@@ -611,6 +611,7 @@ END:
 # If we overrode the database, restore it.
 if ($dbset == 1) {
     $ENV{"PRODUCTS"} = $db_old;
+    print "Setting PRODUCTS.... $ENV{"PRODUCTS"} \n";
 }
 
 return $retval;
