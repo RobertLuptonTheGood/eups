@@ -20,3 +20,7 @@ Thu Apr 15 14:34:19 EDT 2004
    cvs rtag -r vminimal0_1 vminimal0_1_1 eups
    cvs update -j vminimal0_1
    cvs ci -m "Merged from vminimal0_1 branch at point vminimal0_1_1"
+
+   Tue May 18 11:29:21 EDT 2004
+   cvs rtag eups v0_7
+   Misc minor changes/fixes
