@@ -86,6 +86,9 @@ if ($options eq "-h") {
 } elsif ($options < 0) {
    exit(1);
 }
+
+$debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug eq "");
 #
 # Process those arguments
 #
@@ -98,18 +101,6 @@ if (defined($$options{-f})) {
    $flavor = $ENV{"EUPS_FLAVOR"};
 }
 die "ERROR: No flavor specified\n" if ($flavor eq "");
-
-# Get the root directory
-
-if (defined($$options{-r})) {
-   $prodroot = $$options{-r};
-   $proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
-   if ($prodroot =~ m/$proddirprefix/) {
-       $prodroot =~ s|$proddirprefix/*||;
-       print STDERR "WARNING : Making PROD_DIR relative to PROD_DIR_PREFIX\n" if ($debug > 0);
-   }
-}
-die "ERROR: No product directory specified\n" if ($prodroot eq "");
 
 # Do we make this current - and update?
 $iscurrent = defined($$options{-c});
@@ -129,6 +120,27 @@ if ($tablefile eq "") {
    $tablefile = "$prod.table";
 }
 die "ERROR : Incorrect table file -- must use $prod.table\n" if (($tablefile ne "$prod.table")&&($tablefile !~ /^none$/i));
+
+# Get the root directory
+
+if (defined($$options{-r})) {
+   $prodroot = $$options{-r};
+   $proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
+   if ($prodroot =~ m/$proddirprefix/) {
+       $prodroot =~ s|$proddirprefix/*||;
+       print STDERR "WARNING : Making PROD_DIR relative to PROD_DIR_PREFIX\n" if ($debug > 0);
+   }
+} else {
+   $prodroot = eups_find_prod_dir($db, $flavor, $prod, $vers);
+   if (!$prodroot) {
+      die "Failed to find version $vers of $prod for flavor $flavor\n";
+   }
+
+   if ($debug) {
+      warn "Root = $prodroot\n";
+   }
+}
+die "ERROR: No product directory specified, and version \"$vers\" isn't declared\n" if (!$prodroot);
 
 # Check to see if an entry exists in the database
 # create if not.
