@@ -16,6 +16,7 @@ use POSIX;
 # The subroutines that actually write out the necessary
 # shell commands. These subroutines ideally should take care 
 # of the shell determination.
+
 sub sete {
     our $shell;
     our $tmpfile;

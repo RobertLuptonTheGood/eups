@@ -34,6 +34,17 @@ sub fix_special {
     return $arg;
 }
 
+sub envInterpolate {
+# Interpolates in values of environment variables
+    my $in = $_[0];
+    my @env_var = $in =~ m/\$\{(.+?)\}/g;
+    for (my $i = 0; $i < @env_var; $i++) {
+	my $val = $ENV{$env_var[$i]};
+	$in =~ s/\$\{.+?\}/$val/g;
+    }
+    return $in;
+}
+
 
 sub addAlias {
     use File::Basename;
@@ -84,7 +95,7 @@ sub envAppend {
     $delim = ":" if ($delim eq "");
     $curval = $ENV{$var};
     $curval = "$curval$delim$val";
-    $ENV{$var} = $curval;
+    $ENV{$var} = envInterpolate($curval);
 }
 
 sub envPrepend {
@@ -104,7 +115,7 @@ sub envPrepend {
     $delim = ":" if ($delim eq "");
     $curval = $ENV{$var};
     $curval = "$val$delim$curval";
-    $ENV{$var} = $curval;
+    $ENV{$var} = envInterpolate($curval);
 }
 
 sub envSet {
@@ -119,12 +130,13 @@ sub envSet {
         $val = $pval;
     }
 
-    $ENV{$var} = $val;
+    $ENV{$var} = envInterpolate($val);
 }
 
 sub envRemove {
     my $var = $_[0];
     my $pval = $_[1];
+    $pval = envInterpolate($pval);
 
 # $pval might have leading spaces - remove these
     my ($val) = $pval =~ m/ *([^ ].*)/;
