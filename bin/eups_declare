@@ -37,13 +37,10 @@
 
 #############################
 
-
-$eupsdir = $ENV{"EUPS_DIR"};
-if ($eupsdir eq "") {
-    print STDERR "ERROR: EUPS_DIR not set\n";
-    goto CLEAN;
+if ($ENV{'EUPS_DIR'} eq "") {
+    die "ERROR: EUPS_DIR not set\n";
 }
-require "$eupsdir/bin/eups_setup.pm";
+require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
 import eups_setup;
 
 ###############################################################################
@@ -75,36 +72,48 @@ $sep = "#***************************************";
 $name = $ENV{"LOGNAME"};
 $now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
 
-# Is the product database specified in $PRODUCTS
+# Get the command line parameters
+$opts = {-f => 1, -c => 0, -C => 0, -m => 1, -r => 1,
+	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
+
+my $options = eups_parse_argv($opts, \@args, \@words);
+
+if ($options eq "-h") {
+   usage();
+   exit(0);
+} elsif ($options < 0) {
+   exit(1);
+}
+#
+# Process those arguments
+#
 $db = eups_find_products();
 die "ERROR: PRODUCTS not defined\n" if ($db eq "");
 
-# Get the command line parameters
-$arg = join " ",@ARGV;
-
-# Is the flavor specified
-($flavor) = $arg =~ m/\-f *([^ ]+)/;
-$flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq "");
+if (defined($$options{-f})) {
+   $flavor = $$options{-f}
+} elsif (defined($ENV{"EUPS_FLAVOR"})) {
+   $flavor = $ENV{"EUPS_FLAVOR"};
+}
 die "ERROR: No flavor specified\n" if ($flavor eq "");
 
 # Get the root directory
-($prodroot) = $arg =~ m/\-r *([^ ]+)/;
+if (defined($$options{-r})) {
+   $prodroot = $$options{-r};
+}
 die "ERROR: No product directory specified\n" if ($prodroot eq "");
 
 # Do we make this current - and update?
-$iscurrent = $arg =~ m/\-c/;
-$arg =~ s/\-c//;
-$onlycurrent = $arg =~ m/\-C/;
-$arg =~ s/\-C//;
+$iscurrent = defined($$options{-c});
+$onlycurrent = defined($$options{-C});
 
 # Is there a table file?
-$istable = $arg =~ m/\-m/;
-($tablefile) = $arg =~ m/\-m *([^ ]+)/;
+if (defined($$options{-m})) {
+   $tablefile = $$options{-m};
+}
 
-$arg =~ s/\-[a-zA-Z] *[^ ]+//g;
-@arg = split " ", $arg;
-$prod = $arg[0];
-$vers = $arg[1];
+$prod = $words[0];
+$vers = $words[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
@@ -238,6 +247,15 @@ if (-e $fn) {
 END:
 exit;
 
-
-
-
+###############################################################################
+#
+# Print Help message
+#
+sub usage
+{
+   warn <<"EOT";
+Usage:
+   eups_declare [options] product version
+EOT
+    eups_show_options($opts);
+}

@@ -27,7 +27,7 @@ package eups_setup;
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw(eups_unsetup eups_setup eups_find_products);
+our @EXPORT = qw(eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options);
 our $VERSION = 1.1;
 
 #Subroutines follow
@@ -113,8 +113,13 @@ sub envAppend {
     my $val = cleanArg($_[1]);
     my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
+
     $curval = $ENV{$var};
-    $curval = "$curval$delim$val";
+    if ($curval) {
+       $curval .= $delim;
+    }
+    $curval .= "$val";
+
     $ENV{$var} = envInterpolate($curval);
 }
 
@@ -124,8 +129,13 @@ sub envPrepend {
     my $val = cleanArg($_[1]);
     my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
-    $curval = $ENV{$var};
-    $curval = "$val$delim$curval";
+
+    $curval = "$val";
+    if ($curval) {
+       $curval .= $delim;
+    }
+    $curval .= $ENV{$var};
+
     $ENV{$var} = envInterpolate($curval);
 }
 
@@ -322,7 +332,7 @@ setupenv => \&envSet,
             ($qaz) = $arg =~ m/ *"(.*)"/;
             $foo = eups_unsetup($qaz,$outfile,$debug,$quiet);
 	    $retval =+ $foo;
-	    print STDERR "ERROR : REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
+	    print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
 	    next;
 	}
         if (($comm eq "setupoptional")&&($fwd==0)) {
@@ -334,7 +344,7 @@ setupenv => \&envSet,
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
             $foo = eups_setup($qaz,$outfile,$debug,$quiet);
 	    $retval =+ $foo;
-            print STDERR "ERROR : REQUIRED SETUP $qaz failed \n" if ($foo < 0);
+            print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
 	    next;
         }
         if (($comm eq "setupoptional")&&($fwd==1)) {
@@ -380,7 +390,7 @@ local $indent = $indent + 1;
 #Some more environment variables
 $prodprefix = $ENV{"PROD_DIR_PREFIX"};
 if ($prodprefix eq "") {
-    print STDERR  "ERROR : PROD_DIR_PREFIX not specified\n";
+    print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
     return -1;
 }
 
@@ -391,7 +401,7 @@ $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
 my($prod) = $args[0];
 if ($prod eq "") {
-    print STDERR  "ERROR : Product not specified\nSyntax : eups_setup unsetup <product>\n";
+    print STDERR  "ERROR: Product not specified\nSyntax : eups_setup unsetup <product>\n";
     return -1;
 }
 
@@ -456,7 +466,7 @@ local $indent = $indent + 1;
 #Some more environment variables
 $prodprefix = $ENV{"PROD_DIR_PREFIX"};
 if ($prodprefix eq "") {
-    print STDERR  "ERROR : PROD_DIR_PREFIX not specified\n";
+    print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
     return -1;
 }
 
@@ -470,7 +480,7 @@ $prod = $args[0];
 # Extract version info if any
 $vers = $args[1]; 
 if ($prod eq "") {
-    print STDERR  "ERROR : Product not specified\n";
+    print STDERR  "ERROR: Product not specified\n";
     print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-z <database>]\n";
     return -1;
 }
@@ -488,14 +498,13 @@ if (defined($ENV{$SETUP_PROD})) {
 ($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
 $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
 if ($flavor eq "") {
-    print STDERR "ERROR : No flavor specified, Use -f or set EUPS_FLAVOR\n";
+    print STDERR "ERROR: No flavor specified, Use -f or set EUPS_FLAVOR\n";
     return -1;
 }
 $ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
 
 #Determine database - or get it from environment PRODUCTS
 #We want this to propagate to subproducts
-my $dbset = 0;
 my $db = "";
 my $db_old = "";
 ($db) = $qaz =~ m/\-z  *([^ ]+)/;
@@ -504,11 +513,10 @@ if ($db eq "") {
 } else {
     $db_old = eups_find_products();
     $ENV{"PRODUCTS"} = $db;
-    $dbset = 1;
 }
     
 if ($db eq "") {
-    print STDERR "ERROR : No database specified, Use -z, -Z, or set PRODUCTS\n";
+    print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
     return -1;
 }
 
@@ -526,10 +534,16 @@ if ($prod_dir eq "") {
    #Also construct the full version file and check if it exists.
    if ($vers eq "") {
       $fn = catfile($db,$prod,"current.chain");
-      $vers = read_chain_file($fn, $flavor);
-      
-      if ($vers eq "") {
-	 print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
+      if (-e $fn) {
+	 $vers = read_chain_file($fn, $flavor);
+	 
+	 if ($vers eq "") {
+	    print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
+	    return -1;
+	 }
+      } else {
+	 print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 1);
+	 print STDERR "FATAL ERROR: Product $prod doesn't seem to have been declared\n";
 	 return -1;
       }
    }
@@ -540,6 +554,11 @@ if ($prod_dir eq "") {
       return -1;
    }
 } else {
+    if (! -d $prod_dir) {
+       warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
+       return -1;
+    }
+
     $table_file = "$prod.table";
     $table_file = catfile("ups",$table_file);
     if (!($prod_dir =~ m"^/")) {
@@ -578,7 +597,7 @@ sub read_chain_file
    my($fn, $flavor) = @_;
 
    if (!(-e $fn)) {
-      print STDERR "ERROR : No version or current.chain\n" if ($debug >= 1);
+      print STDERR "ERROR: No version or current.chain\n" if ($debug >= 1);
       return "";
    }
    my $versinfo;
@@ -714,4 +733,128 @@ sub show_product_version
    printf STDERR "%-14s %-20s  Flavor: %-10s Version: %s\n",
    sprintf("%s:", $str), sprintf("%*s%s", $indent, "", $prod) ,$flavor,
    ($vers eq "" ? "LOCAL" : $vers);
+}
+
+###############################################################################
+#
+# Parse arguments. Many are actually interpreted by eups_setup.pm
+#
+%longopts = (
+	     '--database',	'-z',
+	     '--flavor',	'-f',
+	     '--help',		'-h',
+	     '--root',		'-r',
+	     '--version',	'-V',
+	     '--verbose',	'-v',
+	     );
+
+sub eups_parse_argv
+{
+   my($opts, $args, $words) = @_;
+   
+   while ($ARGV[0]) {
+      if ($ARGV[0] !~ /^-/) {	# not an option
+	 push(@$words, $ARGV[0]); shift @ARGV;
+	 next;
+      }
+      
+      $ropt = $opt = $ARGV[0]; shift @ARGV;
+      
+      if (defined($$longopts{$opt})) {
+	 $opt = $$longopts{$opt};
+      }
+      
+      if ($opt eq "-h") {
+	 return "-h";
+      } elsif (grep(/^$opt$/, keys(%$opts))) {
+	 if ($$opts{$opt}) {	# require an argument
+	    if (!defined($ARGV[0])) {
+	       warn "You must specify a value with $ropt\n";
+	       return -1;
+	    }
+	    $val = $ARGV[0]; shift @ARGV;
+	 }
+	 
+	 if ($opt eq "-v") {
+	    $ENV{"EUPS_DEBUG"}++;
+	 } elsif ($opt eq "-V") {
+	    my($version) = &get_version();
+	    warn "Version: $version\n";
+	    return -1;
+	 } elsif ($opt eq "-Z") {
+	    $ENV{"PROD_DIR_PREFIX"} = $val;
+	    if (!defined($ENV{PRODUCTS})) {
+	       $ENV{"PRODUCTS"} = $ENV{"PROD_DIR_PREFIX"} . "/ups_db";
+	    }
+	 } else {
+	    push(@$args, $opt);
+
+	    if ($$opts{$opt}) {	# push argument too
+	       push(@$args, $val);
+	       $opts{$opt} = $val;
+	    } else {
+	       $opts{$opt} = 1;
+	    }
+	 }
+      } else {			# unknown argument
+	 warn "Unknown option: $ropt\n";
+	 return -1;
+      }
+   }
+
+   return \%opts;
+}
+
+###############################################################################
+#
+# Get version number from cvs
+#
+sub
+get_version()
+{
+   my($version) = '\$Name: not supported by cvs2svn $';	# version from cvs
+
+   if ($version =~ /^\\\$[N]ame:\s*(\S+)\s*\$$/) {
+      $version = $1;
+   } else {
+      $version = "(NOCVS)";
+   }
+
+   return $version;
+}
+
+###############################################################################
+
+sub eups_show_options
+{
+   my($opts) = @_;
+
+   my $strings = {
+       -h => "Print this help message",
+       -c => "Declare this product current",
+       -C => "Declare this product current",
+       -f => "Use this flavor (default: \$EUPS_FLAVOR)",
+       -m => "Use this table file (may be \"none\") (default: product.table)",
+       -r => "Location of product being declared",
+       -v => "Be chattier (repeat for even more chat)",
+       -V => "Print version number and exit",
+       -z => "Use this products database (default: \$PRODUCTS)",
+       -Z => "Use this products prefix (default: \$PROD_DIR_PREFIX)",
+    };
+
+   foreach $key (keys %longopts) { # inverse of longopts table
+      $rlongopts{$longopts{$key}} = $key;
+   }
+
+   warn "Options:\n";
+
+   foreach $opt ("-h", sort {lc($a) cmp lc($b)} keys %$opts) {
+      printf STDERR "\t$opt";
+      if (defined($rlongopts{$opt})) {
+	 printf STDERR ", %-10s", $rlongopts{$opt};
+      } else {
+	 printf STDERR "  %-10s", "";
+      }
+      printf STDERR "\t$$strings{$opt}\n";
+   }
 }
