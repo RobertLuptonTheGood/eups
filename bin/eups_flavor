@@ -57,7 +57,11 @@ print STDERR "ERROR: $str not defined \n" if (($args eq "")&&($debug == 1));
 exit if ($args eq "");
 
 # Now parse the string
-($prod, $vers, $flavor, $db) = ($args =~ /^\s*(\S+)\s+(\S*)\s*-f\s+(\S+)\s+-z\s+(\S+)/);
+($prod, $vers, $flavor, $z, $db) = ($args =~ /^\s*(\S+)\s+(\S*)\s*-f\s+(\S+)\s+-([zZ])\s+(\S+)/);
+
+if ($z eq "Z") {
+   $db = catfile($db, "ups_db");
+}
 
 if (0) {
    die "ERROR: Missing VERSION information in $str\n" if ($vers eq "");
