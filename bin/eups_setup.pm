@@ -202,11 +202,9 @@ sub extract_table_commands {
 	  warn "FATAL ERROR: Multiple groups but no flavor specification in table file\n";
 	  return -1;
        }
-
-       pos = 0;			# accept first group
-    }
-
-    @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
+   } else {
+       @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
+   }    
     
     return $group[0];
 }
