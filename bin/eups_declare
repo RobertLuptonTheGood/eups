@@ -10,7 +10,7 @@
 # Syntax : eups_declare [-f <flavor>] <product> <version> \
 #   -r <product root directory> [-c] [-m <table file>]
 #
-# -c modifies the current chain
+# -c modifies the current chain (and -r may be omitted if the version's been declared)
 #
 # If the flavor is not specified, then it is extracted from
 # $EUPS_FLAVOR
@@ -73,7 +73,7 @@ $name = $ENV{"LOGNAME"};
 $now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
 
 # Get the command line parameters
-$opts = {-f => 1, -c => 0, -C => 0, -m => 1, -r => 1,
+$opts = {-f => 1, -F => 0, -c => 0, -m => 1, -r => 1,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -104,7 +104,7 @@ die "ERROR: No flavor specified\n" if ($flavor eq "");
 
 # Do we make this current - and update?
 $iscurrent = defined($$options{-c});
-$onlycurrent = defined($$options{-C});
+$force = defined($$options{-F}); # redeclare if needs be
 
 # Is there a table file?
 if (defined($$options{-m})) {
@@ -124,13 +124,10 @@ die "ERROR : Incorrect table file -- must use $prod.table\n" if (($tablefile ne 
 # Get the root directory
 
 if (defined($$options{-r})) {
+   $new_root = 1;		# they specified a new root
    $prodroot = $$options{-r};
-   $proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
-   if ($prodroot =~ m/$proddirprefix/) {
-       $prodroot =~ s|$proddirprefix/*||;
-       print STDERR "WARNING : Making PROD_DIR relative to PROD_DIR_PREFIX\n" if ($debug > 0);
-   }
 } else {
+   $new_root = 0;
    $prodroot = eups_find_prod_dir($db, $flavor, $prod, $vers);
    if (!$prodroot) {
       die "Failed to find version $vers of $prod for flavor $flavor\n";
@@ -141,6 +138,14 @@ if (defined($$options{-r})) {
    }
 }
 die "ERROR: No product directory specified, and version \"$vers\" isn't declared\n" if (!$prodroot);
+#
+# Make path relative to PROD_DIR_PREFIX
+#
+$proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
+if ($prodroot =~ m/$proddirprefix/) {
+   $prodroot =~ s|$proddirprefix/*||;
+   print STDERR "WARNING : Making PROD_DIR relative to PROD_DIR_PREFIX\n" if ($debug > 0);
+}
 
 # Check to see if an entry exists in the database
 # create if not.
@@ -151,45 +156,54 @@ if (!(-d $fn)) {
 }
 
 $fn = catfile($db,$prod,"$vers.version");
-goto CURRENT if (($onlycurrent)&&(-e $fn));
 
-if (-e $fn) {
-    $comm = "eups_undeclare -f $flavor $prod $vers";
-    system($comm);
+if ($new_root) {
+   if ($force) {
+      warn "Version $vers is already declared; redeclaring\n";
+   } else {
+      die "Version $vers is already declared; not modifying\n";
+   }
 }
 
-# Now that any previous declarations are removed
-# simply create/append this declaration
+if (! -e $fn) {			# version isn't declared yet
+    if ($debug) {
+       warn "Undeclaring $prod $vers (flavor: $flavor)\n";
+    }
+    $comm = "eups_undeclare -f $flavor $prod $vers";
+    system($comm);
 
-$new = (!(-e $fn));
-die "ERROR opening/creating file $fn\n" if (!(open FILE, ">>$fn"));
-print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n" if $new;
-# An example
-#FLAVOR = Linux+2.4
-#QUALIFIERS = ""
-#  DECLARER = paddy
-#  DECLARED = 2003-01-17 02.07.41 GMT
-#  MODIFIER = paddy
-#  MODIFIED = 2003-01-17 02.07.41 GMT
-#  PROD_DIR = /u/products/Linux/foobar/v0_1
-#  UPS_DIR = ups
-#  TABLE_FILE = foobar.table
-print FILE "FLAVOR = $flavor\n";
-print FILE "QUALIFIERS = \"\"\n";
-print FILE "   DECLARER = $name\n";
-print FILE "   DECLARED = $now_string\n";
-print FILE "   MODIFIER = $name\n";
-print FILE "   MODIFIED = $now_string\n";
-print FILE "   PROD_DIR = $prodroot\n";
-print FILE "   UPS_DIR = ups\n";
-print FILE "   TABLE_FILE = $tablefile\n";
-print FILE "$sep\n";
-close FILE;
+    # Now that any previous declarations are removed
+    # simply create/append this declaration
 
-goto END if (!($iscurrent));
+    $new = (!(-e $fn));
+    die "ERROR opening/creating file $fn\n" if (!(open FILE, ">>$fn"));
+    print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n" if $new;
+    # An example
+    #FLAVOR = Linux+2.4
+    #QUALIFIERS = ""
+    #  DECLARER = paddy
+    #  DECLARED = 2003-01-17 02.07.41 GMT
+    #  MODIFIER = paddy
+    #  MODIFIED = 2003-01-17 02.07.41 GMT
+    #  PROD_DIR = /u/products/Linux/foobar/v0_1
+    #  UPS_DIR = ups
+    #  TABLE_FILE = foobar.table
+    print FILE "FLAVOR = $flavor\n";
+    print FILE "QUALIFIERS = \"\"\n";
+    print FILE "   DECLARER = $name\n";
+    print FILE "   DECLARED = $now_string\n";
+    print FILE "   MODIFIER = $name\n";
+    print FILE "   MODIFIED = $now_string\n";
+    print FILE "   PROD_DIR = $prodroot\n";
+    print FILE "   UPS_DIR = ups\n";
+    print FILE "   TABLE_FILE = $tablefile\n";
+    print FILE "$sep\n";
+    close FILE;
+
+    exit(0) if (!($iscurrent));
+}
 
 # Now fix the current chain 
-CURRENT:
 $fn = catfile($db,$prod,"current.chain");
 
 # Two cases - if the current chain doesn't exist create it
@@ -263,9 +277,7 @@ if (-e $fn) {
     close FILE;
 }
 
-
-END:
-exit;
+exit(0);
 
 ###############################################################################
 #
