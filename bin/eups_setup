@@ -237,7 +237,7 @@ get_version()
 {
    my($version) = '\$Name: not supported by cvs2svn $';	# version from cvs
 
-   if ($version =~ /^\$Name: not supported by cvs2svn $/) {
+   if ($version =~ /^\\\$[N]ame:\s*(\S+)\s*\$$/) {
       $version = $1;
    } else {
       $version = "(NOCVS)";
