@@ -410,6 +410,8 @@ if ($prodprefix eq "") {
 
 # Need to extract the parameters carefully
 my ($args,$outfile) = @_;
+# Attempt an unsetup
+eups_unsetup($args, $outfile);
 my $qaz = $args;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;

@@ -139,7 +139,7 @@ if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!($comm =~ m/\-f/))) {
 
 if ($select eq "setup") {
 # First try an unsetup
-    eups_unsetup($comm,$tmpfile);
+#    eups_unsetup($comm,$tmpfile);
     $retval = eups_setup($comm,$tmpfile);
     if ($retval < 0) {
 	eups_unsetup($comm,$tmpfile);
