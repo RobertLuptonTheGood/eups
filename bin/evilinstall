@@ -1,0 +1,264 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Script to install a version of a code and declare it current.
+#
+# The version name should either be "cvs" or begin with the letter "c".
+# If it is "cvs", then simply check-out the current (untagged) version
+#   of the code, build it, copy it into a "cvs" subdirectory, and
+#   declare it current.
+# If it is an actual tagged version, then cvs-export that version,
+#   build it, install it using UPS, and declare it current.
+# If the requested version of the code already exists, then simply declare
+#   that version current.
+#
+# If you are installing products with inter-dependencies, be sure to
+# install them in the order of those dependencies.  For example, since
+# "idlspec2d" depends upon "idlutils", you would install them with:
+#   % evilinstall idlutils v4_5_0
+#   % setup idlutils
+#   % evilinstall idlspec2d v4_5_0
+#
+# The CVS repository can be specified by setting the $CVSROOT environment
+# variable.  If not set, then set to the default CVS repository at Princeton.
+#
+# If installing the "idlutils" product, then build with "evilmake"
+# in that product.  Otherwise, if "idlutils" is setup up, then use "evilmake".
+# Otherwise, if "sdsstools" is set up, then use "sdssmake".
+# Finally, simply use "make" in any other cases.
+#
+# This script tries to set-up products using the table file in the /ups
+# subdirectory of the product.  If this file does not exist, then a minimal
+# version of that file is created.
+#
+# D. Schlegel & N. Padmanabhan, Princeton, 29 January 2003
+#------------------------------------------------------------------------------
+
+# Set the shell variable, which is needed for all EvilUPS commands.
+export SHELL=/bin/bash
+
+# Demand that both a product and version name are on the command line,
+# and that the version name either be "cvs" or begin with the character "c".
+if [ $# != 2 ] ; then
+  echo
+  echo "ABORT: Need to specify product and version on command line, i.e."
+  echo "       \"evilinstall idlutils v4_5_0\""
+  exit
+fi
+PRODNAME=$1
+PRODVERS=$2
+if [ $PRODVERS  != "cvs" ] && [ `echo $PRODVERS | awk '{print substr($1,1,1)}'` != "v" ] ; then
+   echo
+   echo "ABORT: Version name must either be \"cvs\" or begin with the character \"v\"."
+   exit
+fi
+
+# Source EvilUPS setup
+echo "Setting up EvilUPS....."
+if [ -z $EUPS_DIR ]; then
+    echo 
+    echo "ABORT: EvilUPS not set up - either set it up, or set EUPS_DIR manually."
+    exit
+fi
+source $EUPS_DIR/bin/setups.sh
+
+if [ -z $EUPS_FLAVOR ]; then
+    echo
+    echo "ABORT: EUPS_FLAVOR not set - you must set this manually."
+    exit
+fi
+FLAVOR=$EUPS_FLAVOR
+echo Setting from environment variable FLAVOR=$EUPS_FLAVOR
+
+if [ -z $PROD_DIR_PREFIX ]; then
+    echo
+    echo "ABORT: PROD_DIR_PREFIX not set."
+    exit
+fi
+
+if [ -e /usr/local/bin/perl ] ; then
+   echo
+else
+   echo
+   echo "ABORT: The binary \"/usr/local/bin/perl\" must exist for"
+   echo "       the \"install_ups_table\" command to work.  Sorry!"
+   echo "       Try putting in a symbolic link to perl and try again."
+   exit
+fi
+
+echo Installing PRODNAME=$PRODNAME PRODVERS=$PRODVERS FLAVOR=$FLAVOR.
+
+#------------------------------------------------------------------------------
+# Create the top-level directory of the appropriate flavor in which
+# to install this product (if it does not yet exist).
+
+if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
+   \mkdir -p $PROD_DIR_PREFIX
+fi
+if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
+    echo "ABORT: Unable to create directory PROD_DIR_PREFIX/FLAVOR."
+    exit
+fi
+MYSDSS_ROOT=$PROD_DIR_PREFIX/$FLAVOR
+echo "Installing in the directory $MYSDSS_ROOT"
+
+#------------------------------------------------------------------------------
+# Make sure this product+version isn't already declared.
+
+if [ -e $MYSDSS_ROOT/$PRODNAME/$PRODVERS ] ; then
+   echo
+   echo "This installation already appears to exist in " $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+   echo "Now declaring this version current."
+   eups_declare -f $FLAVOR \
+    -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -C $PRODNAME $PRODVERS
+   exit
+fi
+
+#------------------------------------------------------------------------------
+# If $CVSROOT is not set, then set it to the default CVS repository
+# at Princeton.
+
+if [ -z "$CVSROOT" ] ; then
+   echo "Setting CVSROOT and CVS_RSH to default locations at Princeton"
+   CVSROOT=spectro.princeton.edu:/usr/local/cvsroot
+   CVS_RSH=ssh
+fi
+
+#------------------------------------------------------------------------------
+# Make a temporary directory for building the code, and make certain
+# that we can write to it.
+
+TEMPDIR=$PWD
+TEMPSUBDIR=$PRODNAME-$PRODVERS
+
+# Make the final destination top-level directory for this product
+# in the "products" directory.  If we cannot create a file in this
+# directory, then stop.
+
+mkdir -p $MYSDSS_ROOT/$PRODNAME
+touch $MYSDSS_ROOT/$PRODNAME/thisisatest
+if [ -e $MYSDSS_ROOT/$PRODNAME/thisisatest ] ; then
+   rm -f $MYSDSS_ROOT/$PRODNAME/thisisatest
+else
+   echo
+   echo "ABORT: Unable to create files in the directory " $MYSDSS_ROOT/$PRODNAME
+   exit
+fi
+
+#------------------------------------------------------------------------------
+# If installing the "idlutils" product, then build with "evilmake"
+# in that product.  Otherwise, if "idlutils" is setup up, then use "evilmake".
+# Otherwise, if "sdsstools" is set up, then use "sdssmake".
+# Finally, simply use "make" in any other cases.
+
+if [ $PRODNAME = "idlutils" ] ; then
+   MAKECOMMAND=$TEMPSUBDIR/bin/evilmake
+   MAKEINSTALLCOMMAND='make install'
+elif [ -e "$IDLUTILS_DIR/bin/evilmake" ] ; then
+   MAKECOMMAND=$IDLUTILS_DIR/bin/evilmake
+   MAKEINSTALLCOMMAND='make install'
+elif [ -e "$SDSSTOOLS_DIR/bin/sdssmake" ] ; then
+   MAKECOMMAND='sdssmake -idl -opt -debug'
+   MAKEINSTALLCOMMAND='sdssmake install'
+else
+   MAKECOMMAND=make
+   MAKEINSTALLCOMMAND='make install'
+fi
+
+echo "Setting MAKECOMMAND=$MAKECOMMAND"
+
+#------------------------------------------------------------------------------
+# Check-out the code from the CVS repository.
+
+cd $TEMPDIR
+if [ $PRODVERS = "cvs" ] ; then
+   echo "cvs co -d $TEMPSUBDIR $PRODNAME"
+   cvs co -d $TEMPSUBDIR $PRODNAME
+else
+   echo "cvs export -d $TEMPSUBDIR -r $PRODVERS $PRODNAME"
+   cvs export -d $TEMPSUBDIR -r $PRODVERS $PRODNAME
+fi
+# If the cvs check-out failed (for example, if this version does not exist),
+# then exit.
+if [ ! -d $TEMPSUBDIR ] ; then
+   echo
+   echo "ABORT: Could not cvs check-out verson $PRODVERS of $PRODNAME"
+   echo "       from the repository CVSROOT=$CVSROOT"
+   exit
+fi
+
+#------------------------------------------------------------------------------
+# Find the table file if it exists.  Otherwise, create a minimal table file.
+
+TABLEFILE=$TEMPDIR/$TEMPSUBDIR/ups/$PRODNAME.table
+if [ -e $TABLEFILE ] ; then
+   TABLEPARAM="-m $PRODNAME.table"
+else
+   echo "WARNING: Cannot find table file " $TABLEFILE
+   \mkdir $TEMPDIR/$TEMPSUBDIR/ups
+   echo "File=Table" > $TABLEFILE
+   echo "Product=$PRODNAME" >> $TABLEFILE
+   echo "Group:" >> $TABLEFILE
+   echo "Flavor=ANY" >> $TABLEFILE
+   echo "Common:" >> $TABLEFILE
+   echo "  Action=setup" >> $TABLEFILE
+   echo "    proddir()" >> $TABLEFILE
+   echo "    setupenv()" >> $TABLEFILE
+   if [ -d $TEMPDIR/$TEMPSUBDIR/bin ] ; then
+      echo "    pathAppend(PATH, \${UPS_PROD_DIR}/bin)" >> $TABLEFILE
+   fi
+   if [ -d $TEMPDIR/$TEMPSUBDIR/pro ] ; then
+      echo "    envAppend(PATH, +\${UPS_PROD_DIR}/pro)" >> $TABLEFILE
+   fi
+   echo "End:" >> $TABLEFILE
+   TABLEPARAM="-m $PRODNAME.table"
+fi
+
+#------------------------------------------------------------------------------
+# The following ups commands are to set up any dependencies needed
+# to build the code.
+
+eups_declare -f $FLAVOR $TABLEPARAM \
+ -r $TEMPDIR/$TEMPSUBDIR $PRODNAME $PRODVERS
+setup -f $FLAVOR $PRODNAME $PRODVERS
+# The following nasty line is simply to set up the environment
+# variable {$PRODNAME}_DIR so that the code can be built.
+eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$TEMPDIR/$TEMPSUBDIR
+echo Setting temporary directory to $TEMPDIR/$TEMPSUBDIR
+
+#------------------------------------------------------------------------------
+# Now build and install the code!!
+
+cd $TEMPDIR/$TEMPSUBDIR
+$MAKECOMMAND
+
+# The following nasty line is simply to set up the environment
+# variable {$PRODNAME}_DIR so that the code can be installed.
+eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$MYSDSS_ROOT/$PRODNAME/$PRODVERS
+eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_INSTALL_DIR=$MYSDSS_ROOT/$PRODNAME/$PRODVERS
+if [ $PRODVERS = "cvs" ] ; then
+   echo cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+   cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+else
+   echo $MAKEINSTALLCOMMAND
+   # It appears that sometimes we need to create the install directory ???
+   # This is a hack!!!
+#   if [ $PRODNAME = "sdsstools" ] ; then
+#      mkdir $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+#   fi
+   $MAKEINSTALLCOMMAND
+fi
+
+#------------------------------------------------------------------------------
+# Declare this version and make it current.
+
+# No need to do an undeclare first since it is automatic with EvilUPS .
+eups_declare -f $FLAVOR $TABLEPARAM \
+ -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+
+#------------------------------------------------------------------------------
+# Finally, delete the temporary directory used to build the code.
+
+\rm -rf $TEMPDIR/$TEMPSUBDIR
+
+exit
+#------------------------------------------------------------------------------
