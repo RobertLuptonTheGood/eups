@@ -835,7 +835,7 @@ sub eups_show_options
    my $strings = {
        -h => "Print this help message",
        -c => "Declare this product current",
-       -C => "Declare this product current",
+       -C => "Make this version current",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
        -n => "Don't actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
