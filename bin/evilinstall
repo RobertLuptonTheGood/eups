@@ -260,12 +260,15 @@ if [ $PRODVERS = "cvs" ] ; then
    echo cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
    cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
 else
-   echo $MAKEINSTALLCOMMAND
-   # It appears that sometimes we need to create the install directory ???
-   # This is a hack!!!
-#   if [ $PRODNAME = "sdsstools" ] ; then
-#      mkdir $MYSDSS_ROOT/$PRODVERS
-#   fi
+   echo "MAKEINSTALLCOMMAND: $MAKEINSTALLCOMMAND"
+
+   # It appears that sometimes we need to create the install directory,
+   # specifically when running "sdssmake install".  This is a hack!!
+   if [ "$MAKEINSTALLCOMMAND" = "sdssmake install" ] ; then
+      echo "Creating output directory: $MYSDSS_ROOT/$PRODVERS"
+      \mkdir -p $MYSDSS_ROOT/$PRODVERS
+      sleep 1
+   fi
 
    echo "Setting SDSSTOOLS_DIR=$SDSSTOOLS_DIR"
    echo "Setting MAKEINSTALLCOMMAND=$MAKEINSTALLCOMMAND"
