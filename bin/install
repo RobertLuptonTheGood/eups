@@ -45,6 +45,7 @@ open FILE, ">setups.sh" or die "Unable to open setups.sh";
 print FILE "export EUPS_DIR=$eupsdir \n";
 print FILE "export PROD_DIR_PREFIX=$prefix\n";
 print FILE "export PRODUCTS=$db\n";
+print FILE "export PATH=\"\$PATH:$bindir\"\n";
 print FILE "function setup { source \`$binname setup \$\@\`; }\n";
 print FILE "function unsetup { source \`$binname unsetup \$\@\`; }\n";
 close FILE;
