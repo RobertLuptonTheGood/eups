@@ -75,11 +75,11 @@ if [ -z $PROD_DIR_PREFIX ]; then
     exit
 fi
 
-if [ -e /usr/local/bin/perl ] ; then
+if [ -e /usr/bin/perl ] ; then
    echo
 else
    echo
-   echo "ABORT: The binary \"/usr/local/bin/perl\" must exist for"
+   echo "ABORT: The binary \"/usr/bin/perl\" must exist for"
    echo "       the \"install_ups_table\" command to work.  Sorry!"
    echo "       Try putting in a symbolic link to perl and try again."
    exit
