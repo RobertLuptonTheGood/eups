@@ -197,7 +197,11 @@ a) Locating table files : EvilUPS first checks for a table file in
 $PRODUCTS/<product>/ - if it doesn't find it there, it looks for it in the ups
 directory of the product, as specified in the version file.
 
+b) evilinstall : A version of EvilUPS is in etc/
 
+c) Test suite (currently tested on): 
+	evilinstall foobar cvs
+	Ran frames manually
 
 
 
