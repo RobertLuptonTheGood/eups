@@ -47,3 +47,6 @@ Tue Jul  6 13:45:05 EDT 2004
    _Finally_ indented eups_(un)?setup
    
 
+Thu Jul 22 11:27:49 EDT 2004
+   cvs rtag v0_7_7 eups
+   Added directory information to "setup -v -l"
