@@ -264,6 +264,11 @@ copied from the header)
 # subdirectory of the product.  If this file does not exist, then a minimal
 # version of that file is created.
 #
+# This script also calls eups_expandtable, which inserts the currently installed
+# versions of products into a blank table file. It however leaves the previous
+# table file unchanged in a ".old" form.
+#
+#
 # D. Schlegel & N. Padmanabhan, Princeton, 29 January 2003
 #------------------------------------------------------------------------------
 
