@@ -152,6 +152,8 @@ for ($i = 0; $i<@newkeys; $i++) {
     }
 }
 
+print $tmpfile "echo \"Done\" \n";
+
 # Self destruct file
 CLEAN:
 print $tmpfile "\\rm -f $fn\n";
