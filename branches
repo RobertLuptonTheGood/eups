@@ -57,3 +57,9 @@ Wed Sep  1 18:12:18 EDT 2004
 Wed Sep  1 18:28:18 EDT 2004
     cvs rtag v0_7_9 eups
     Don't warn if we try to unsetup a subproduct twice (or more) while setting up a product
+
+Mon Sep  6 10:26:52 EDT 2004
+    cvs rtag v0_7_10
+    The new -c without a -r functionality set absolute paths, notrelative
+    to PROD_DIR_PREFIX
+    
