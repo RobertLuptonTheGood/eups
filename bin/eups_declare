@@ -74,6 +74,7 @@ $arg =~ s/\-C//;
 # Is there a table file?
 $istable = $arg =~ m/\-m/;
 ($tablefile) = $arg =~ m/\-m *([^ ]+)/;
+print STDERR "WARNING : Currently overriding $tablefile with $prod.table\n";
 
 $arg =~ s/\-[a-zA-Z] *[^ ]+//g;
 @arg = split " ", $arg;
@@ -123,7 +124,7 @@ print FILE "   MODIFIER = $name\n";
 print FILE "   MODIFIED = $now_string\n";
 print FILE "   PROD_DIR = $prodroot\n";
 print FILE "   UPS_DIR = ups\n";
-print FILE "   TABLE_FILE = $tablefile\n";
+print FILE "   TABLE_FILE = $prod.table\n";
 print FILE "$sep\n";
 close FILE;
 
