@@ -44,7 +44,7 @@ sub addAlias {
     my $name = $_[0];
     my $value = $_[1];
     if ($shell eq "csh") { 
-	print $outfile "alias $name $value\n";
+	print $outfile "alias $name \"$value\"\n";
     }
     if ($shell eq "sh") {
 	print $outfile "function $name \{ $value \; \} \n";
@@ -297,6 +297,10 @@ use File::Basename;
 
 print STDERR "Evilups (eups_unsetup) --- by Nikhil Padmanabhan\n" if ($debug == 1);
 
+my $eups_dir = $ENV{"EUPS_DIR"};
+# We don't need error checking here since that 
+# is already done in evilsetup
+
 my $retval = 0;
 
 $debug = $ENV{"EUPS_DEBUG"};
@@ -326,6 +330,7 @@ print STDERR "Unsetting up : $prod\n";
 
 # Now get the information from eups_flavor
 $comm = "eups_flavor -a $prod";
+$comm = catfile($eups_dir,"bin",$comm);
 $out = `$comm`;
 if ($out eq "") {
    print STDERR "ERROR running eups_flavor : $comm\n";

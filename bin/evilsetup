@@ -22,12 +22,12 @@ sub sete {
     if ($shell eq "sh") {
 	my $key = $_[0];
 	my $val = $_[1];
-	print $tmpfile "export $key=$val\n";
+	print $tmpfile "export $key=\"$val\"\n";
     }
     if ($shell eq "csh") {
         my $key = $_[0];
         my $val = $_[1];
-        print $tmpfile "setenv $key $val\n";
+        print $tmpfile "setenv $key \"$val\"\n";
     }
 }
 

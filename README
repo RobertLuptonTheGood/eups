@@ -20,7 +20,33 @@ assumption that the original code will be acknowledged. )
 
 1. Installing EvilUPS :
 
-(still to be written)
+There are two stages to installing EvilUPS - the first is to install the code onto
+a computer, and the second is to correctly set it up. 
+
+a) First Time installation :
+
+i) Copy the product distribution into a temporary directory $TEMP
+ii) cd $TEMP/bin
+iii) Run the install script as follows 
+
+./install <ups root directory> <product_directory_prefix> <product_database>
+
+For example - at Princeton, I would like to install EvilUPS in
+/u/products/EvilUPS, the product directory is /u/products and the database
+is in /u/products/ups_db  - and I would run
+
+./install /u/products /u/products /u/products/ups_db
+
+In addition to creating the directory and copying files, two startup scripts
+setups.sh and setups.csh are created (for sh and csh type shells respectively). These
+set certain functions/aliases and environment variables.
+
+b) Normal Usage (at login for example) :
+
+If EvilUPS is installed under $EUPS_ROOT, source $EUPS_ROOT/EvilUPS/bin/setups.[c]sh 
+depending on your shell. This is _NOT_ essential to do, if you are willing to 
+set up all your environment variables by hand.
+
 
 2. EvilUPS : Basic Commands
 

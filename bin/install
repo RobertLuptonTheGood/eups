@@ -26,13 +26,15 @@ print "EvilUPS database   : $db\n";
 print "Products location  : $prefix\n";
 
 print "This will start in 30 seconds.........\n";
-#sleep 30;
+sleep 30;
 
 print "Writing a csh startup script\n";
 open FILE, ">setups.csh" or die "Unable to open setups.csh";
 print FILE "setenv EUPS_DIR $eupsdir \n";
 print FILE "setenv PROD_DIR_PREFIX $prefix\n";
 print FILE "setenv PRODUCTS $db\n";
+$bindir = catfile($eupsdir,"bin");
+print FILE "setenv PATH $bindir:\$PATH\n";
 $binname = catfile($eupsdir,"bin","evilsetup");
 print FILE "alias setup \'source \`$binname setup \\!*\`\'\n";
 print FILE "alias unsetup \'source \`$binname unsetup \\!*\`\'\n";
