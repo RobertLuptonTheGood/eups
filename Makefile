@@ -31,7 +31,7 @@ install :
 	@echo "I'll give you 5 seconds to think about it"
 	@echo sleep 5
 	@echo ""
-	@ mkdir $(EUPS_DIR)
+	@ mkdir -p $(EUPS_DIR)
 	@ mkdir -p $(PROD_DIR_PREFIX)
 	@ mkdir -p $(PRODUCTS)
 	@ for f in $(SUBDIRS); do \

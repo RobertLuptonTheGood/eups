@@ -20,6 +20,11 @@ These are the Release Notes for EvilUPS
 (Thanks to Mike Blanton, Doug Finkbeiner, Robert Lupton
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
+v0_3 : 
+    
+	-- The Makefile now creates the $(PRODUCTS) (where the database is)
+	  and $(PROD_DIR_PREFIX) (where the products are) directories.
+
 
 v0_2 :  Tagged Saturday, April 5,2003 0130
 
