@@ -21,6 +21,8 @@ These are the Release Notes for EUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
+v0_7_4: Trivial bugfix
+
 v0_7_2: Verbosity levels adjusted
 
 v0_7_1: Minor bugfix in extract_table_commands()
