@@ -264,11 +264,15 @@ setupenv => \&envSet,
 
 
 # Read in the table file
-    my @size = stat($fn);
-    open FILE, "<$fn";
-    read FILE, $data, $size[7];
-    close FILE;
-    $data =~ s/\#.*?\n//g;
+    if ($fn eq "none") {
+       $data = "";
+    } else {
+       my @size = stat($fn);
+       open FILE, "<$fn";
+       read FILE, $data, $size[7];
+       close FILE;
+       $data =~ s/\#.*?\n//g;	# strip comments
+    }
 
 # Extract the commands from the table file
     $group = extract_table_commands($data, $flavor);
@@ -642,7 +646,8 @@ if ($pos == -1) {
 ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
 $ups_dir = "ups";
 $table_dir = "ups";
-$table_file = "$prod.table";
+($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
+$table_file = lc($table_file);	# normalise to lowercase
 
 #Table files now must be in UPS directory
 #($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
@@ -661,24 +666,24 @@ if (!($prod_dir =~ m"^/")) {
 if (!($ups_dir =~ m"^/")) {
     $ups_dir = catfile($prod_dir,$ups_dir);
 }
-$table_file = catfile($ups_dir,$table_file);
-
-
-START:
-if (!(-e $table_file)) {
-  print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
-  $retval=-1;
-  goto END;
+if ($table_file ne "none") {
+   $table_file = catfile($ups_dir,$table_file);
 }
 
+START:
+if ($table_file ne "none" && (!(-e $table_file))) {
+   print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
+   $retval=-1;
+   goto END;
+}
+   
 #Call the table parser here 
 #The arguments are the full table path, the direction (reversed or not)
 #prod_dir,ups_dir,verbosity
-
+   
 $fwd = 1;
 $retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
-
-
+   
 END:
 
 # If we overrode the database, restore it.

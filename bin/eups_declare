@@ -101,7 +101,10 @@ $vers = $arg[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
-die "ERROR : Incorrect table file -- must use $prod.table\n" if (($tablefile ne "$prod.table")&&($tablefile ne ""));
+if ($tablefile eq "") {
+   $tablefile = "$prod.table";
+}
+die "ERROR : Incorrect table file -- must use $prod.table\n" if (($tablefile ne "$prod.table")&&($tablefile !~ /^none$/i));
 
 # Check to see if an entry exists in the database
 # create if not.
@@ -143,7 +146,7 @@ print FILE "   MODIFIER = $name\n";
 print FILE "   MODIFIED = $now_string\n";
 print FILE "   PROD_DIR = $prodroot\n";
 print FILE "   UPS_DIR = ups\n";
-print FILE "   TABLE_FILE = $prod.table\n";
+print FILE "   TABLE_FILE = $tablefile\n";
 print FILE "$sep\n";
 close FILE;
 
