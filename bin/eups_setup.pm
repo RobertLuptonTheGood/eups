@@ -169,51 +169,58 @@ sub envUnset {
     delete $ENV{$var};
 }
 
-
-
 sub extract_table_commands {
 
     my $data = $_[0];
     my $flavor = $_[1];
+    my $flavor = fix_special($flavor);
+    my $pattern = "FLAVOR\\s*=\\s*$flavor(\\s|\n)";
+    my $pattern2 = "FLAVOR\\s*=\\s*ANY(\\s|\n)";
+    my $pattern3 = "FLAVOR\\s*=\\s*NULL(\\s|\n)";
 
-# Extract the groups
+# Extract the groups - first see if old style table file
     my @group = ($data =~ m/group:(.+?end:)/gsi);
     if (scalar(@group) == 0) {
-	$data = "\n$data";
-	$data =~ s/\n *flavor *= *([^ ]+?)( |\n)/\nEnd:\nFLAVOR=$1\nCommon:\n/gsi;
-	$data = "$data\nEnd:\n";
-	$data =~ s/Common:[ \n]*\nEnd://gsi;
-	@group = $data =~ m/(flavor.*?\nend:\n)/gsi;
-	if (scalar(@group) == 0) {
-	   @group = ($data);	# the entire file
+# If minimal table file
+	$data = "$data\n";
+	my @lines = split  "\n", $data;
+	my $record = 1;
+	my $inblock = 1;
+	my $block = "";
+	for ($i=0; $i < @lines; $i++) {
+	    my $this = "$lines[$i]\n"; 
+	    if ($lines[$i] =~ m/flavor\s*=/gsi) {
+		$record = 0 if ($inblock == 1);
+		$record = 1 if ($this =~ m/$pattern/gsi);
+		$record = 1 if ($this =~ m/$pattern2/gsi);
+		$record = 1 if ($this =~ m/$pattern3/gsi);
+		$inblock = 0;
+		next;
+	    }
+	    $block = "$block$this" if ($record == 1);
+	    $inblock = 1;
+	}
+	@group = ($block);
+    } else {
+# If old style table file
+	for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
+	    $pos = $i if ($group[$i] =~ m/$pattern/gsi);
+	    $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+	    $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+	}
+	if ($pos == -1) {           # no flavor was specified
+	    warn "FATAL ERROR: no match for flavor \"$flavor\" in table file\n";
+	    return -1;
+	} else {
+	    @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
 	}
     }
 
-    $pos = -1;
-    my $flavor = fix_special($flavor);
-    my $pattern = "FLAVOR *= *$flavor( |\n)";
-    my $pattern2 = "FLAVOR *= *ANY( |\n)";
-    my $pattern3 = "FLAVOR *= *NULL( |\n)";
-    for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
-    }
 
-    if ($pos == -1) {		# no flavor was specified
-       if(grep(/^\s*flavor\s*=/i, @group)) {
-	  warn "FATAL ERROR: no match for flavor \"$flavor\" in table file\n";
-	  return -1;
-       } elsif(@group > 1) {
-	  warn "FATAL ERROR: Multiple groups but no flavor specification in table file\n";
-	  return -1;
-       }
-   } else {
-       @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
-   }    
-    
     return $group[0];
+
 }
+
 
 sub parse_table {
     my $fn = $_[0];
