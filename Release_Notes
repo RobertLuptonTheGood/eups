@@ -1,9 +1,29 @@
+EvilUPS : A Unix Versioning System
+Copyright (C) 2003 Nikhil Padmanabhan
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+
 These are the Release Notes for EvilUPS
 (Thanks to Mike Blanton, Doug Finkbeiner, Robert Lupton
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
 v0_2 : 
+        -- Added the GNU Public License.
+
 	-- Table files are now forced to be in the ups/ subdirectory of the 
 	product directory, and have to have the name $PRODUCT.table. The -m
 	option is still accepted by setup, but is overriden, as is any 
@@ -15,5 +35,7 @@ v0_2 :
 	-- The Makefile has been changed to be Solaris compliant.
 
 	-- Fixed a bug with pathPrepend in the table file reader.
+
+	-- Fixed a bug with command line argument passing in evilsetup
 
 v0_1 : First released version
