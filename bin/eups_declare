@@ -101,7 +101,8 @@ $vers = $arg[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
-print STDERR "WARNING : Currently overriding $tablefile with $prod.table\n" if ($tablefile eq "");
+#print STDERR "WARNING : Currently overriding $tablefile with $prod.table\n" if ($tablefile eq "");
+die "ERROR : Incorrect table file -- must use $prod.table\n" if (($tablefile ne "$prod.table")&&($tablefile ne ""));
 
 # Check to see if an entry exists in the database
 # create if not.
