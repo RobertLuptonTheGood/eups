@@ -369,7 +369,7 @@ setupenv => \&envSet,
 	   } elsif ($fwd == 1 && $switchfwd{$comm}) {
 	      $switchfwd{$comm}->(@arg);
 	   } else {
-	      printf STDERR "Unknown command \"%s\" in $fn, line %d\n", $lines[$i], $i + 1;
+	      printf STDERR "Unknown command \"%s\" in $fn, line %d\n", $lines[$i], $i + 1 if ($debug >= 1);
 	   }
 	}
     }
@@ -413,7 +413,7 @@ $comm = "eups_flavor -a $prod";
 $comm = catfile($eups_dir,"bin",$comm);
 chomp($out = `$comm`);
 if ($out eq "") {
-   print STDERR "ERROR running eups_flavor : $comm\n" if ($debug >= 1);
+   print STDERR "ERROR running eups_flavor : $comm\n" if ($debug > 1);
    return -1;
 }
 # Parse the output for the flavor and version file
@@ -546,7 +546,7 @@ if ($prod_dir eq "") {
 	 }
       } else {
 	 print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 1);
-	 print STDERR "FATAL ERROR: Product $prod doesn't seem to have been declared\n";
+	 print STDERR "FATAL ERROR: Product $prod doesn't seem to have been declared\n" if ($debug >=1);
 	 return -1;
       }
    }
