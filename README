@@ -113,6 +113,12 @@ Note the following :
       if they are unsuccessful, then the last line will start with "FATAL ERROR".  If not, 
       then the script was successful.
 
+FOR POWER USERS : There is another way to run setup; which bypasses the product definition (it
+still however requires that the product database be defined). In order to do this, use
+-r <product directory> AND -m <table file> in the setup command; note that both of these must be used
+or else the command will not work.
+
+
 3. EvilUPS : Environment Variables
 
 Required variables -
@@ -130,9 +136,12 @@ Optional Variables -
 
 a) EUPS_FLAVOR - Set to the default flavour.
 
-b) EUPS_DEBUG - This is a development variable, which makes evilsetup
-talk _even_ more than usual. It is STRONGLY RECOMMENDED that you not
-set this variable.
+b) EUPS_DEBUG - This sets the verbosity. Currently, there are two settings 0,1 - 1=verbose.
+If the verbosity is turned off, then although it will tell you when something breaks, it
+will probably give you very little information. You will then need to turn verbosity on
+to find out what is happening.
+Note that you can always enable verbosity by using the -v command line option.
+
 
 4. EvilUPS : The Database
 
@@ -203,6 +212,7 @@ c) Test suite (currently tested on):
 	evilinstall foobar cvs
 	Ran frames manually
 
+d) EvilUPS now properly (I believe) deals with flavours ANY and NULL.
 
 
 

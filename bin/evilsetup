@@ -82,12 +82,17 @@ if ($eupsdir eq "") {
 require "$eupsdir/bin/eups_setup.pm";
 import eups_setup;
 
-#Get the debug environment variable
-$debug = $ENV{"EUPS_DEBUG"};
-$debug = 0 if (!($debug == 1));
 
-#DEBUGGING STATEMENT
-$debug=1;
+$debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug eq "");
+
+$prod = join " ", @ARGV;
+if ($prod =~ m/\-v/) {
+    $prod =~ s/\-v//;
+    $debug = 1;
+    $ENV{"EUPS_DEBUG"} = 1;
+}
+@args = split " ",$prod;
 
 #Get the shell 
 our $shell = $0;
@@ -96,7 +101,6 @@ goto CLEAN if ($retval == -1);
 print STDERR "evilups -- using shell : $shell\n" if ($debug == 1);
 
 # Get the command line
-@args = @ARGV;
 $select = $args[0];
 $args[0] = "";
 $comm = join " ",@args;
@@ -158,7 +162,7 @@ for ($i = 0; $i<@newkeys; $i++) {
     }
 }
 
-print $tmpfile "echo \"Done\" \n";
+print $tmpfile "echo \"Done\" \n" if ($debug == 1);
 
 # Self destruct file
 CLEAN:

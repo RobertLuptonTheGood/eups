@@ -203,9 +203,11 @@ setupenv => \&envSet,
     my $flavour = fix_special($flavor);
     my $pattern = "FLAVOR *= *$flavour( |\n)";
     my $pattern2 = "FLAVOR *= *ANY( |\n)";
+    my $pattern3 = "FLAVOR *= *NULL( |\n)";
     for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
 	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
 	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
     }
     @group = $group[$pos] =~ m/Common:(.+?)End:/gsi;
     my $group = $group[0];
@@ -286,16 +288,14 @@ sub eups_unsetup {
 use File::Spec::Functions;
 use File::Basename;
 
-print STDERR "Evilups (eups_unsetup) --- by Nikhil Padmanabhan\n" if ($debug == 1);
-
 my $eups_dir = $ENV{"EUPS_DIR"};
 # We don't need error checking here since that 
 # is already done in evilsetup
 
 my $retval = 0;
 
-$debug = $ENV{"EUPS_DEBUG"};
-$debug = 0 if ($debug != 1);
+my $debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug eq "");
 
 #Some more environment variables
 $prodprefix = $ENV{"PROD_DIR_PREFIX"};
@@ -317,19 +317,19 @@ if ($prod eq "") {
     goto END;
 }
 
-print STDERR "Unsetting up : $prod\n";
-
 # Now get the information from eups_flavor
 $comm = "eups_flavor -a $prod";
 $comm = catfile($eups_dir,"bin",$comm);
 $out = `$comm`;
 if ($out eq "") {
-   print STDERR "ERROR running eups_flavor : $comm\n";
+   print STDERR "ERROR running eups_flavor : $comm\n" if ($debug == 1);
    $retval = -1;
    goto END;
 }
 # Parse the output for the flavor and version file
 ($vers,$flavor,$fn,$db,$temp) = split " ",$out;
+
+print STDERR "Unsetting up : $prod  " if ($debug == 1);
 print STDERR "Version: $fn\nFlavor: $flavor\n" if ($debug == 1);
 
 # Now read in the version file and start to parse it
@@ -351,16 +351,18 @@ $versinfo =~ s/flavor/##FLAVOR/gsi;
 $pos = -1;
 $flavour = fix_special($flavor);
 $pattern = "FLAVOR *= *$flavour( |\n)";
-print STDERR "Matching pattern : $pattern\n" if ($debug==1);
+my $pattern2 = "FLAVOR *= *ANY( |\n)";
+my $pattern3 = "FLAVOR *= *NULL( |\n)";
 for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
   $pos = $i if ($group[$i] =~ m/$pattern/gsi); 
+  $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+  $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
 }
 if ($pos == -1) {
-    print STDERR "ERROR: Flavor $flavor not found in version file $fn\n";
+    print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug == 1);
     $retval = -1;
     goto END;
 }
-print STDERR "FLAVOR:$flavor\n$group[$pos]\n" if ($debug==1);
 
 # Now extract the prod_dir, ups_dir, table_dir and table_file
 ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
@@ -389,15 +391,10 @@ if (!(-e $table_file)) {
     $table_file = catfile($ups_dir,$table_file);
 }
 if (!(-e $table_file)) {
-  print STDERR "ERROR: Missing table file $table_file\n";
+  print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
   $retval=-1;
   goto END;
 }
-
-print STDERR "PROD_DIR:$prod_dir\n" if ($debug==1);
-print STDERR "UPS_DIR:$ups_dir\n" if ($debug==1);
-print STDERR "TABLE_DIR:$table_dir\n" if ($debug==1);
-print STDERR "TABLE_FILE:$table_file\n" if ($debug==1);
 
 #Call the table parser here 
 #The arguments are the full table path, the direction (reversed or not)
@@ -405,8 +402,6 @@ print STDERR "TABLE_FILE:$table_file\n" if ($debug==1);
 
 $fwd = 0;
 $retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
-
-print STDERR "(eups_unsetup) exiting......\n" if ($debug == 1);
 
 END:
 
@@ -420,12 +415,11 @@ sub eups_setup {
 use File::Spec::Functions;
 use File::Basename;
 
-print STDERR "Evilups (eups_setup) --- by Nikhil Padmanabhan\n" if ($debug == 1);
-
 my $retval = 0;
 
-$debug = $ENV{"EUPS_DEBUG"};
-$debug = 0 if ($debug != 1);
+my $debug = $ENV{"EUPS_DEBUG"};
+
+$debug = 0 if ($debug eq "");
 
 #Some more environment variables
 $prodprefix = $ENV{"PROD_DIR_PREFIX"};
@@ -451,8 +445,6 @@ if ($prod eq "") {
     goto END;
 }
 
-print STDERR "Setting up : $prod\n";
-
 #Determine flavour - first see if specified on command line
 #else get it from the environment EUPS_FLAVOR
 ($flavor) = $qaz =~ m/\-f *([^ ]+)/;
@@ -472,13 +464,40 @@ if ($db eq "") {
     goto END;
 }
 
+print STDERR "Setting up : $prod   " if ($debug == 1);
+# Now check to see if the table file and product directory are 
+# specified. If so, extract these and immediately start, else 
+# complain 
+$table_file = "";
+$prod_dir = "";
+$ups_dir = "";
+($prod_dir) = $qaz =~ m/\-r *([^ ]+)/;
+($table_file) = $qaz =~ m/\-m *([^ ]+)/;
+if (!($prod_dir eq "")) {
+    if ($table_file eq "") {
+	print STDERR "ERROR : Must specify table file with -m";
+	$retval = -1;
+	goto END;
+    }
+    if (!($prod_dir =~ m"^/")) {
+	$prod_dir = catfile($prodprefix,$prod_dir);
+    }
+    if (!($table_file =~ m"^/")) {
+	$table_file = catfile($prod_dir,$table_file);
+    }
+    $vers = "LOCAL" if ($vers eq "");
+    print STDERR "   Flavour:  $flavor\n" if ($debug == 1);
+    goto START;
+}
+
+
 #Determine version - check to see if already defined, otherwise
 #determine it from current.chain
 #Also construct the full version file and check if it exists.
 if ($vers eq "") {
     $fn = catfile($db,$prod,"current.chain");
     if (!(-e $fn)) {
-	print STDERR "ERROR : No version or current.chain\n";
+	print STDERR "ERROR : No version or current.chain\n" if ($debug == 1);
 	$retval = -1;
 	goto END;
     }
@@ -496,29 +515,33 @@ if ($vers eq "") {
     $pos = -1;
     $flavour = fix_special($flavor);
     $pattern = "FLAVOR *= *$flavour( |\n)";
-    print STDERR "Matching pattern : $pattern\n" if ($debug==1);
+    my $pattern2 = "FLAVOR *= *ANY( |\n)";
+    my $pattern3 = "FLAVOR *= *NULL( |\n)";
     for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
 	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
     }
     if ($pos == -1) {
-	print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n";
+	print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug == 1);
 	$retval = -1;
 	goto END;
     }
     ($vers) = $group[$pos] =~ m/VERSION *= *(.+?) *\n/i;
     if ($vers eq "") {
-        print STDERR "ERROR: No version found in chain file $fn\n";
+        print STDERR "ERROR: No version found in chain file $fn\n" if ($debug == 1);
         $retval = -1;
         goto END;
     }
 }
 # Now construct the filename
 $fn = catfile($db,$prod,"$vers.version");
-print STDERR "Version: $fn\nFlavor: $flavor\n" if ($debug == 1);
+
+print STDERR "  Version: $vers Flavour: $flavor\n" if ($debug == 1);
 
 # Now read in the version file and start to parse it
 if (!(open FILE,"<$fn")) {
-    print STDERR "ERROR: Cannot open version file $fn\n";
+    print STDERR "ERROR: Cannot open version file $fn\n" if ($debug == 1);
     $retval = -1;
     goto END;
 }
@@ -539,16 +562,18 @@ $versinfo =~ s/flavor/##FLAVOR/gsi;
 $pos = -1;
 $flavour = fix_special($flavor);
 $pattern = "FLAVOR *= *$flavour( |\n)";
-print STDERR "Matching pattern : $pattern\n" if ($debug==1);
+my $pattern2 = "FLAVOR *= *ANY( |\n)";
+my $pattern3 = "FLAVOR *= *NULL( |\n)";
 for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-  $pos = $i if ($group[$i] =~ m/$pattern/gsi); 
+    $pos = $i if ($group[$i] =~ m/$pattern/gsi);
+    $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+    $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
 }
 if ($pos == -1) {
-    print STDERR "ERROR: Flavor $flavor not found in version file $fn\n";
+    print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug == 1);
     $retval = -1;
     goto END;
 }
-print STDERR "FLAVOR:$flavor\n$group[$pos]\n" if ($debug==1);
 
 # Now extract the prod_dir, ups_dir, table_dir and table_file
 ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
@@ -576,16 +601,13 @@ if (!(-e $table_file)) {
     $table_file = basename($table_file);
     $table_file = catfile($ups_dir,$table_file);
 }
+
+START:
 if (!(-e $table_file)) {
-  print STDERR "ERROR: Missing table file $table_file\n";
+  print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
   $retval=-1;
   goto END;
 }
-
-print STDERR "PROD_DIR:$prod_dir\n" if ($debug==1);
-print STDERR "UPS_DIR:$ups_dir\n" if ($debug==1);
-print STDERR "TABLE_DIR:$table_dir\n" if ($debug==1);
-print STDERR "TABLE_FILE:$table_file\n" if ($debug==1);
 
 #Call the table parser here 
 #The arguments are the full table path, the direction (reversed or not)
@@ -593,8 +615,6 @@ print STDERR "TABLE_FILE:$table_file\n" if ($debug==1);
 
 $fwd = 1;
 $retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
-
-print STDERR "(eups_setup) exiting......\n" if ($debug == 1);
 
 END:
 

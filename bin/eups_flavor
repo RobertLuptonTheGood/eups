@@ -12,28 +12,32 @@
 
 use File::Spec::Functions;
 
+
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug != 1);
 
-print STDERR "Evilups (eups_flavor) --- by Nikhil Padmanabhan\n" if ($debug == 1);
+$prod = join " ", @ARGV;
+if ($prod =~ m/\-v/) {
+    $prod =~ s/\-v//;
+    $debug = 1;
+}
+@prod = split " ",$prod;
 
-$prod = $ARGV[0];
+$prod = $prod[0];
 $all = 0;
 if ($prod eq "-a") {
     $all = 1;
-    $prod = $ARGV[1];
+    $prod = $prod[1];
 }
 $prod2 = $prod;
-
-print STDERR "Using product: $prod with option all=$all\n" if ($debug ==1);
 
 die "ERROR: No product specified\n Syntax : eups_flavor [-a] <product>\n" if ($prod eq "");
 
 $prod =~ tr/a-z/A-Z/;
 $str = "SETUP_$prod";
 $args = $ENV{$str};
-die "ERROR: $str not defined \n" if ($args eq "");
-print STDERR "$str = $args\n" if ($debug == 1);
+print STDERR "ERROR: $str not defined \n" if (($args eq "")&&($debug == 1));
+exit if ($args eq "");
 
 # Now parse the string
 @args =  split " ",$args;
@@ -54,8 +58,6 @@ die "ERROR : Can't find appropriate version file $fn\n" if (!(-e $fn));
 print "$vers";
 print " $flavor $fn $db" if ($all == 1);
 print "\n";
-
-print STDERR "(eups_flavor) exiting.....\n" if ($debug == 1);
 
 exit;
 
