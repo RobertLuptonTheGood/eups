@@ -336,60 +336,42 @@ setupenv => \&envSet,
 
 # Now loop over the remaining commands
     for ($i = 0;$i<@lines;$i++) {
-	next if (!($lines[$i] =~ m/[a-z]+\(.*\)/i));
-	($comm,$arg)=$lines[$i] =~ m/([a-z]+)\((.*)\)/i;
+       chomp($lines[$i]);
+       next if ($lines[$i] =~ /^\s*($|\#)/);
+	#next if (!($lines[$i] =~ m/[a-z]+\(.*\)/i));
+	($comm,$arg)= ($lines[$i] =~ m/([a-z]+)\((.*)\)/i);
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv") {
 	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
-            next;
-	}
-	if ($comm eq "proddir") {
+	} elsif ($comm eq "proddir") {
             print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
-            next;
-	}
-	if (($comm eq "setuprequired")&&($fwd==0)) {
+	} elsif (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
             $foo = eups_unsetup($qaz,$outfile,$debug,$quiet);
 	    $retval =+ $foo;
 	    print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
-	    next;
-	}
-        if (($comm eq "setupoptional")&&($fwd==0)) {
+	} elsif (($comm eq "setupoptional")&&($fwd==0)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
 	    eups_unsetup($qaz,$outfile,$debug,$quiet);
-	    next;
-        }
-        if (($comm eq "setuprequired")&&($fwd==1)) {
+        } elsif (($comm eq "setuprequired")&&($fwd==1)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
             $foo = eups_setup($qaz,$outfile,$debug,$quiet);
 	    $retval =+ $foo;
             print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
-	    next;
-        }
-        if (($comm eq "setupoptional")&&($fwd==1)) {
+        } elsif (($comm eq "setupoptional")&&($fwd==1)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
             eups_setup($qaz,$outfile,$debug,$quiet);
-	    next;
-        }
-	if ($fwd == 0) {
-	    if ($switchback{$comm}) {
-		$switchback{$comm}->(@arg)}
-	    else 
-	    {
-		print STDERR "Unknown command $comm in $fn\n";
-	    }
-	} 
-	else {
-            if ($switchfwd{$comm}) {
-                $switchfwd{$comm}->(@arg)}
-            else
-            {
-                print STDERR "Unknown command $comm in $fn\n";
-            }
-        } 
-
-    }   
+        } else {
+	   if ($fwd == 0 && $switchback{$comm}) {
+	      $switchback{$comm}->(@arg);
+	   } elsif ($fwd == 1 && $switchfwd{$comm}) {
+	      $switchfwd{$comm}->(@arg);
+	   } else {
+	      printf STDERR "Unknown command \"%s\" in $fn, line %d\n", $lines[$i], $i + 1;
+	   }
+	}
+    }
 
     return $retval;
 }
@@ -856,7 +838,7 @@ sub eups_show_options
        -c => "Declare this product current",
        -C => "Make this version current",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
-       -n => "Don't actually do anything",
+       -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
        -r => "Location of product being declared",
        -v => "Be chattier (repeat for even more chat)",
