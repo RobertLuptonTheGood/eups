@@ -1,0 +1,21 @@
+Record the branch structure of the eups product
+
+2004-04-10 00:35
+   Created branch
+	vminimal0_1
+   on which to add support for minimalistic table files
+   N.b. There was no vminimal0_1 tag.
+
+Thu Apr 15 14:34:19 EDT 2004
+   Create new branch for stable code.
+   There are no checkins post v0_4:
+   cvs co eups
+   cvs diff -d v0_4
+   (no diffs)
+   
+   cvs rtag -r v0_4 v0_5_0 eups
+   cvs rtag -r v0_5_0 -b v0_5 eups
+
+   Merge vminimal0_1 to mainline:
+   cvs rtag -r vminimal0_1 vminimal0_1_1 eups
+   cvs update -j vminimal0_1
