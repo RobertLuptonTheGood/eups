@@ -215,6 +215,13 @@ setupenv => \&envSet,
     close FILE;
     $data =~ s/\#.*?\n//g;
 
+# Ensure that a group exists
+    if (!($data =~ m/group:(.+?end:)/gsi)) {
+	print STDERR 'FATAL ERROR : Malformed table file';
+	$retval=-1;
+	return $retval;
+    }
+# Extract the groups
     my @group = $data =~ m/group:(.+?end:)/gsi;
     $pos = -1;
     my $flavour = fix_special($flavor);
@@ -225,6 +232,12 @@ setupenv => \&envSet,
 	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
 	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
 	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+    }
+# Check that a Common block exists
+    if (!($group[$pos] =~ m/Common:(.+?)End:/gsi)) {
+        print STDERR 'FATAL ERROR : Malformed table file';
+        $retval=-1;
+        return $retval;
     }
     @group = $group[$pos] =~ m/Common:(.+?)End:/gsi;
     my $group = $group[0];
