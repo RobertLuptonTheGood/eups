@@ -62,4 +62,7 @@ Mon Sep  6 10:26:52 EDT 2004
     cvs rtag v0_7_10
     The new -c without a -r functionality set absolute paths, notrelative
     to PROD_DIR_PREFIX
-    
+
+Wed Oct  6 17:29:38 EDT 2004
+    cvs rtag v0_7_11
+    Fix problems with -c; make eups_undeclare understand flavours
