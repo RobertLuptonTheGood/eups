@@ -26,17 +26,17 @@ install :
 		echo You have not specified a destination directory PRODUCTS >&2; \
 		exit 1; \
 	fi
-	@if [ -e $(EUPS_DIR) ]; then \
+	@if [ -d $(EUPS_DIR) ]; then \
 		echo The destination directory already exists >&2; \
 		echo I will give you 30 seconds to think about this; \
 		sleep 30; \
+		rm -rf $(EUPS_DIR); \
 	fi 
 	@echo ""
 	@echo "You will be installing in \$$EUPS_DIR=$$EUPS_DIR"
 	@echo "I'll give you 5 seconds to think about it"
 	@echo sleep 5
 	@echo ""
-	@ rm -rf $(EUPS_DIR)
 	@ mkdir $(EUPS_DIR)
 	@ for f in $(SUBDIRS); do \
 		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \

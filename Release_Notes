@@ -3,4 +3,15 @@ These are the Release Notes for EvilUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
+v0_2 : 
+	-- Table files are now forced to be in the ups/ subdirectory of the 
+	product directory, and have to have the name $PRODUCT.table. The -m
+	option is still accepted by setup, but is overriden, as is any 
+	information about table files in the version files.
+
+	-- eups_declare changed to reflect the changes brought about by
+	the above change.
+
+	-- The Makefile has been changed to be Solaris compliant.
+
 v0_1 : First released version
