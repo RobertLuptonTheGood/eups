@@ -92,6 +92,7 @@ fi
 if [ -e $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS ] ; then
    echo
    echo "This installation already appears to exist in " $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
+   eups_make_table $PRODNAME $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
    echo "Now declaring this version current."
    eups_declare -f $DECLAREFLAVOR \
     -r $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
@@ -99,6 +100,7 @@ if [ -e $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS ] ; then
 elif [ -e $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS ] ; then
    echo
    echo "This installation already appears to exist in " $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS
+   eups_make_table $PRODNAME $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
    echo "Now declaring this version current."
    eups_declare -f $DECLAREFLAVOR \
     -r $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
@@ -173,29 +175,8 @@ fi
 #------------------------------------------------------------------------------
 # Find the table file if it exists.  Otherwise, create a minimal table file.
 
-TABLEFILE=$TEMPDIR/$TEMPSUBDIR/ups/$PRODNAME.table
-if [ -e $TABLEFILE ] ; then
-   TABLEPARAM="-m $PRODNAME.table"
-else
-   echo "WARNING: Cannot find table file " $TABLEFILE
-   \mkdir $TEMPDIR/$TEMPSUBDIR/ups
-   echo "File=Table" > $TABLEFILE
-   echo "Product=$PRODNAME" >> $TABLEFILE
-   echo "Group:" >> $TABLEFILE
-   echo "Flavor=ANY" >> $TABLEFILE
-   echo "Common:" >> $TABLEFILE
-   echo "  Action=setup" >> $TABLEFILE
-   echo "    proddir()" >> $TABLEFILE
-   echo "    setupenv()" >> $TABLEFILE
-   if [ -d $TEMPDIR/$TEMPSUBDIR/bin ] ; then
-      echo "    pathAppend(PATH, \${UPS_PROD_DIR}/bin)" >> $TABLEFILE
-   fi
-   if [ -d $TEMPDIR/$TEMPSUBDIR/pro ] ; then
-      echo "    envAppend(PATH, +\${UPS_PROD_DIR}/pro)" >> $TABLEFILE
-   fi
-   echo "End:" >> $TABLEFILE
-   TABLEPARAM="-m $PRODNAME.table"
-fi
+eups_make_table $PRODNAME $TEMPDIR/$TEMPSUBDIR
+TABLEPARAM="-m $PRODNAME.table"
 
 #------------------------------------------------------------------------------
 # Determine if the flavor is NULL, which is a special case.
@@ -250,30 +231,50 @@ echo Setting temporary directory to $TEMPDIR/$TEMPSUBDIR
 # Now build and install the code!!
 
 cd $TEMPDIR/$TEMPSUBDIR
+if [ -e configure ] ; then
+   echo Running the configure script
+   ./configure
+fi
 $MAKECOMMAND
 
 # The following nasty line is simply to set up the environment
 # variable {$PRODNAME}_DIR so that the code can be installed.
+# Also, set the variable {$PRODNAME}_INSTALL_DIR to the same thing,
+# since the sdsstools product seems to use that instead.
 eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$MYSDSS_ROOT/$PRODVERS
 eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_INSTALL_DIR=$MYSDSS_ROOT/$PRODVERS
 if [ $PRODVERS = "cvs" ] ; then
    echo cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
    cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
 else
-   echo "MAKEINSTALLCOMMAND: $MAKEINSTALLCOMMAND"
-
    # It appears that sometimes we need to create the install directory,
-   # specifically when running "sdssmake install".  This is a hack!!
-   if [ "$MAKEINSTALLCOMMAND" = "sdssmake install" ] ; then
+   # specifically when running "sdssmake install", or when the product
+   # is sdsstools.  This is a hack!!
+   if [ "$MAKEINSTALLCOMMAND" = "sdssmake install" ] || [ $PRODNAME = "sdsstools" ] ; then
       echo "Creating output directory: $MYSDSS_ROOT/$PRODVERS"
       \mkdir -p $MYSDSS_ROOT/$PRODVERS
       sleep 1
    fi
 
+   # Run the install command
    echo "Setting SDSSTOOLS_DIR=$SDSSTOOLS_DIR"
    echo "Setting MAKEINSTALLCOMMAND=$MAKEINSTALLCOMMAND"
    echo "Setting MAKECOMMAND=$MAKECOMMAND"
    $MAKEINSTALLCOMMAND
+
+   # If nothing exists in the install directory, then simply copy
+   # all the files of the product to that target directory.
+   anyfiles=`ls $MYSDSS_ROOT/$PRODVERS 2> /dev/null`
+   if [ -z "$anyfiles" ] ; then
+      echo No files found in target directory
+      if [ -e $MYSDSS_ROOT/$PRODVERS ] ; then
+         \rmdir $MYSDSS_ROOT/$PRODVERS
+      fi
+      echo cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
+      cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
+   else
+      echo Files successfully found in target directory
+   fi
 
    # Copy the table file into the install directory, even if the
    # make/install command did not do so.
@@ -293,7 +294,7 @@ fi
 # No need to do an undeclare first since it is automatic with EUPS .
 
 eups_declare -f $DECLAREFLAVOR $TABLEPARAM \
- -r $INSTALLFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+ -r $INSTALLFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS --force
 
 #------------------------------------------------------------------------------
 # Finally, delete the temporary directory used to build the code.
