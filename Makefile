@@ -40,7 +40,7 @@ install :
 	- cp Makefile $(EUPS_DIR)
 	- cp README $(EUPS_DIR)
 	- cp cvsnotes $(EUPS_DIR)
-	- cp Release_Notes $(EUPS_DIR)
+	- cp Release_Notes.* $(EUPS_DIR)
 	- cp gpl.txt $(EUPS_DIR)
 	@echo "Remember to source setups.[c]sh before using!"
 clean :

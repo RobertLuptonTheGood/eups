@@ -159,6 +159,56 @@ sub envUnset {
     delete $ENV{$var};
 }
 
+
+
+sub extract_table_commands {
+
+# Get debug information
+    my $debug = $ENV{"EUPS_DEBUG"};
+    $debug = 0 if ($debug eq "");
+
+    my $data = $_[0];
+    my $flavor = $_[1];
+
+# Extract the groups
+    my @group = ($data =~ m/group:(.+?end:)/gsi);
+    if (scalar(@group) == 0) {
+	$data = "\n$data";
+	$data =~ s/\n *flavor *= *([^ ]+?)( |\n)/\nEnd:\nFLAVOR=$1\nCommon:\n/gsi;
+	$data = "$data\nEnd:\n";
+	$data =~ s/Common:[ \n]*\nEnd://gsi;
+	@group = $data =~ m/(flavor.*?\nend:\n)/gsi;
+	if (scalar(@group) == 0) {
+	   @group = ($data);	# the entire file
+	}
+    }
+
+    $pos = -1;
+    my $flavour = fix_special($flavor);
+    my $pattern = "FLAVOR *= *$flavour( |\n)";
+    my $pattern2 = "FLAVOR *= *ANY( |\n)";
+    my $pattern3 = "FLAVOR *= *NULL( |\n)";
+    for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
+	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+    }
+
+    if ($pos == -1) {		# no flavor was specified
+       if(grep(/^\s*flavor\s*=/i, @group)) {
+	  warn "FATAL ERROR: no match for flavor \"$flavor\" in table file\n";
+	  return -1;
+       } elsif(@group > 1) {
+	  warn "FATAL ERROR: Multiple groups but no flavor specification in table file\n";
+	  return -1;
+       }
+   } else {
+       @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
+   }    
+    
+    return $group[0];
+}
+
 sub parse_table {
     my $fn = $_[0];
     my $proddir = $_[1];
@@ -170,6 +220,10 @@ sub parse_table {
     my $fwd = $_[7];
     our $outfile = $_[8];
     my $data = 0;
+
+# Get debug information
+    my $debug = $ENV{"EUPS_DEBUG"};
+    $debug = 0 if ($debug eq "");
 
 # Define the return value
     my $retval = 0;
@@ -210,24 +264,23 @@ setupenv => \&envSet,
 
 
 # Read in the table file
-    open FILE, "<$fn";
-    read FILE, $data, 1000000;
-    close FILE;
-    $data =~ s/\#.*?\n//g;
-
-    my @group = $data =~ m/group:(.+?end:)/gsi;
-    $pos = -1;
-    my $flavour = fix_special($flavor);
-    my $pattern = "FLAVOR *= *$flavour( |\n)";
-    my $pattern2 = "FLAVOR *= *ANY( |\n)";
-    my $pattern3 = "FLAVOR *= *NULL( |\n)";
-    for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+    if ($fn eq "none") {
+       $data = "";
+    } else {
+       my @size = stat($fn);
+       open FILE, "<$fn";
+       read FILE, $data, $size[7];
+       close FILE;
+       $data =~ s/\#.*?\n//g;	# strip comments
     }
-    @group = $group[$pos] =~ m/Common:(.+?)End:/gsi;
-    my $group = $group[0];
+
+# Extract the commands from the table file
+    $group = extract_table_commands($data, $flavor);
+    if ($group==-1) {
+	$retval = -1;
+	return $retval;
+    }
+
 # Replace certain variables
     $group =~ s/\$\{PRODUCTS\}/$db/g;
     $group =~ s/\$\{UPS_PROD_DIR\}/$proddir/g;
@@ -236,6 +289,25 @@ setupenv => \&envSet,
     $group =~ s/\$\{UPS_PROD_VERSION\}/$vers/g;
     $group =~ s/\$\{UPS_UPS_DIR\}/$upsdir/g;
     
+# Execute the proddir and setupenv commands directly
+    $comm = "setupenv";
+    $qaz = $prod;
+    $qaz =~ tr/[a-z]/[A-Z]/;
+    $arg[0] = "SETUP_$qaz";
+    $arg[1] = "$prod $vers -f $flavor -z $db";
+    if ($fwd == 0) {
+	$switchback{$comm}->(@arg);}
+    else {
+	$switchfwd{$comm}->(@arg);}
+    $arg[0] = "$qaz\_DIR";
+    $arg[1] = "$proddir";
+    $comm = "proddir";
+    if ($fwd == 0) {
+	$switchback{$comm}->(@arg);}
+    else {
+	$switchfwd{$comm}->(@arg);}
+
+# Now loop over the remaining commands
     my @lines = split "\n",$group;
     for ($i = 0;$i<@lines;$i++) {
 	next if (!($lines[$i] =~ m/[a-z]+\(.*\)/i));
@@ -243,16 +315,12 @@ setupenv => \&envSet,
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv") {
-	    $qaz = $prod;
-	    $qaz =~ tr/[a-z]/[A-Z]/;
-	    $arg[0] = "SETUP_$qaz";
-	    $arg[1] = "$prod $vers -f $flavor -z $db"; 
+	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug==1);
+            next;
 	}
 	if ($comm eq "proddir") {
-	    $qaz = $prod;
-            $qaz =~ tr/[a-z]/[A-Z]/;
-            $arg[0] = "$qaz\_DIR";
-            $arg[1] = "$proddir";
+            print STDERR "WARNING : Deprecated command $comm\n" if ($debug==1);
+            next;
 	}
 	if (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
@@ -349,7 +417,7 @@ if ($out eq "") {
 ($vers,$flavor,$db,$temp) = split " ",$out;
 
 print STDERR "Unsetting up : $prod  " if ($debug == 1);
-print STDERR "Version: $vers\nFlavor: $flavor\n" if ($debug == 1);
+print STDERR "Version: $vers\nFlavour: $flavor\n" if ($debug == 1);
 
 # The version file reading code used to go here.
 # This has been removed since it is no longer used.
@@ -410,8 +478,6 @@ if ($prodprefix eq "") {
 
 # Need to extract the parameters carefully
 my ($args,$outfile) = @_;
-# Attempt an unsetup
-eups_unsetup($args, $outfile);
 my $qaz = $args;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
@@ -423,6 +489,13 @@ if ($prod eq "") {
     print STDERR "Syntax : evilsetup setup <product> [version] [-f <flavor>] [-z <database>]\n";
     $retval = -1;
     goto END;
+}
+
+# Attempt an unsetup
+
+my($SETUP_PROD) = "SETUP_".uc($prod);
+if (defined($ENV{$SETUP_PROD})) {
+   eups_unsetup($qaz, $outfile);
 }
 
 #Determine flavour - first see if specified on command line
@@ -455,7 +528,7 @@ if ($db eq "") {
     goto END;
 }
 
-print STDERR "Setting up : $prod   " if ($debug == 1);
+print STDERR "Setting up : $prod," if ($debug == 1);
 # Now check to see if the table file and product directory are 
 # specified. If so, extract these and immediately start, else 
 # complain 
@@ -493,8 +566,9 @@ if ($vers eq "") {
 	$retval = -1;
 	goto END;
     }
+    my @size = stat($fn);
     open FILE, "<$fn";
-    read FILE, $versinfo, 1000000;
+    read FILE, $versinfo, $size[7];
     close FILE;
 # Now strip out all comments
     $versinfo =~ s/\#.*\n//g;
@@ -529,7 +603,7 @@ if ($vers eq "") {
 # Now construct the filename
 $fn = catfile($db,$prod,"$vers.version");
 
-print STDERR "  Version: $vers Flavour: $flavor\n" if ($debug == 1);
+print STDERR " Version: $vers, Flavour: $flavor\n" if ($debug == 1);
 
 # Now read in the version file and start to parse it
 if (!(open FILE,"<$fn")) {
@@ -537,7 +611,8 @@ if (!(open FILE,"<$fn")) {
     $retval = -1;
     goto END;
 }
-read FILE,$versinfo,1000000;
+my @size = stat($fn);
+read FILE,$versinfo,$size[7];
 close FILE;
 # Now strip out all comments
 $versinfo =~ s/\#.*\n//g;
@@ -571,7 +646,8 @@ if ($pos == -1) {
 ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
 $ups_dir = "ups";
 $table_dir = "ups";
-$table_file = "$prod.table";
+($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
+$table_file = lc($table_file);	# normalise to lowercase
 
 #Table files now must be in UPS directory
 #($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
@@ -590,24 +666,24 @@ if (!($prod_dir =~ m"^/")) {
 if (!($ups_dir =~ m"^/")) {
     $ups_dir = catfile($prod_dir,$ups_dir);
 }
-$table_file = catfile($ups_dir,$table_file);
-
-
-START:
-if (!(-e $table_file)) {
-  print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
-  $retval=-1;
-  goto END;
+if ($table_file ne "none") {
+   $table_file = catfile($ups_dir,$table_file);
 }
 
+START:
+if ($table_file ne "none" && (!(-e $table_file))) {
+   print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
+   $retval=-1;
+   goto END;
+}
+   
 #Call the table parser here 
 #The arguments are the full table path, the direction (reversed or not)
 #prod_dir,ups_dir,verbosity
-
+   
 $fwd = 1;
 $retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
-
-
+   
 END:
 
 # If we overrode the database, restore it.
