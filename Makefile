@@ -32,6 +32,8 @@ install :
 	@echo sleep 5
 	@echo ""
 	@ mkdir $(EUPS_DIR)
+	@ mkdir -p $(PROD_DIR_PREFIX)
+	@ mkdir -p $(PRODUCTS)
 	@ for f in $(SUBDIRS); do \
 		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \
 	done
