@@ -57,26 +57,16 @@ print STDERR "ERROR: $str not defined \n" if (($args eq "")&&($debug == 1));
 exit if ($args eq "");
 
 # Now parse the string
-@args =  split " ",$args;
-$vers = $args[1];
-die "ERROR : Missing VERSION information in $str\n" if ($vers eq "");
-# This extracts the flavor
-@opts = $args =~ m/\-f *[^ ]+/gs;
-($temp,$flavor,$temp2) = split " ",$opts[0];
-die "ERROR: Missing FLAVOR information in $str\n" if ($flavor eq "");
-# This extracts the database information
-@opts = $args =~ m/\-z *[^ ]+/gs;
-($temp,$db,$temp2) = split " ",$opts[0];
-die "ERROR: Missing DATABASE information in $str\n" if ($db eq "");
+($prod, $vers, $flavor, $db) = ($args =~ /^\s*(\S+)\s+(\S*)\s*-f\s+(\S+)\s+-z\s+(\S+)/);
 
-#$fn = catfile($db,$prod2,"$vers.version");
-#die "ERROR : Can't find appropriate version file $fn\n" if (!(-e $fn));
+if (0) {
+   die "ERROR: Missing VERSION information in $str\n" if ($vers eq "");
+   die "ERROR: Missing FLAVOR information in $str\n" if ($flavor eq "");
+   die "ERROR: Missing DATABASE information in $str\n" if ($db eq "");
+}
 
 print "$vers";
-print " $flavor $db" if ($all == 1);
+print ":$flavor:$db" if ($all == 1);
 print "\n";
 
 exit;
-
-
-

@@ -16,7 +16,7 @@ install :
 		echo You have not specified PROD_DIR_PREFIX >&2; \
 		exit 1; \
 	fi 
-	@if [ "$(PRODUCTS)" = "" ]; then \
+	@if [ 0 = 1 -a "$(PRODUCTS)" = "" ]; then \
 		echo You have not specified a destination directory PRODUCTS >&2; \
 		exit 1; \
 	fi
@@ -32,7 +32,11 @@ install :
 	@echo ""
 	@ mkdir -p $(EUPS_DIR)
 	@ mkdir -p $(PROD_DIR_PREFIX)
-	@ mkdir -p $(PRODUCTS)
+	@if [ X$(PRODUCTS) != X"" ]; then \
+		mkdir -p $(PRODUCTS); \
+	else \
+		mkdir -p $(PROD_DIR_PREFIX)/ups_db; \
+	fi
 	@ for f in $(SUBDIRS); do \
 		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \
 	done

@@ -27,7 +27,7 @@ package eups_setup;
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw(eups_unsetup eups_setup);
+our @EXPORT = qw(eups_unsetup eups_setup eups_find_products);
 our $VERSION = 1.1;
 
 #Subroutines follow
@@ -163,10 +163,6 @@ sub envUnset {
 
 sub extract_table_commands {
 
-# Get debug information
-    my $debug = $ENV{"EUPS_DEBUG"};
-    $debug = 0 if ($debug eq "");
-
     my $data = $_[0];
     my $flavor = $_[1];
 
@@ -221,10 +217,6 @@ sub parse_table {
     our $outfile = $_[8];
     my $quiet = $_[9];
     my $data = 0;
-
-# Get debug information
-    my $debug = $ENV{"EUPS_DEBUG"};
-    $debug = 0 if ($debug eq "");
 
 # Define the return value
     my $retval = 0;
@@ -297,16 +289,19 @@ setupenv => \&envSet,
     $arg[0] = "SETUP_$qaz";
     $arg[1] = "$prod $vers -f $flavor -z $db";
     if ($fwd == 0) {
-	$switchback{$comm}->(@arg);}
-    else {
-	$switchfwd{$comm}->(@arg);}
+	$switchback{$comm}->(@arg);
+    } else {
+	$switchfwd{$comm}->(@arg);
+    }
     $arg[0] = "$qaz\_DIR";
     $arg[1] = "$proddir";
     $comm = "proddir";
     if ($fwd == 0) {
-	$switchback{$comm}->(@arg);}
+	$switchback{$comm}->(@arg);
+    }
     else {
-	$switchfwd{$comm}->(@arg);}
+	$switchfwd{$comm}->(@arg);
+    }
 
 # Now loop over the remaining commands
     my @lines = split "\n",$group;
@@ -316,35 +311,35 @@ setupenv => \&envSet,
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv") {
-	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug==1);
+	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 2);
             next;
 	}
 	if ($comm eq "proddir") {
-            print STDERR "WARNING : Deprecated command $comm\n" if ($debug==1);
+            print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 2);
             next;
 	}
 	if (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_unsetup($qaz,$outfile,$quiet);
+            $foo = eups_unsetup($qaz,$outfile,$debug,$quiet);
 	    $retval =+ $foo;
 	    print STDERR "ERROR : REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
 	    next;
 	}
         if (($comm eq "setupoptional")&&($fwd==0)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-	    eups_unsetup($qaz,$outfile,$quiet);
+	    eups_unsetup($qaz,$outfile,$debug,$quiet);
 	    next;
         }
         if (($comm eq "setuprequired")&&($fwd==1)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_setup($qaz,$outfile,$quiet);
+            $foo = eups_setup($qaz,$outfile,$debug,$quiet);
 	    $retval =+ $foo;
             print STDERR "ERROR : REQUIRED SETUP $qaz failed \n" if ($foo < 0);
 	    next;
         }
         if (($comm eq "setupoptional")&&($fwd==1)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            eups_setup($qaz,$outfile,$quiet);
+            eups_setup($qaz,$outfile,$debug,$quiet);
 	    next;
         }
 	if ($fwd == 0) {
@@ -380,75 +375,65 @@ my $eups_dir = $ENV{"EUPS_DIR"};
 # We don't need error checking here since that 
 # is already done in eups_setup
 
-my $retval = 0;
 local $indent = $indent + 1;
-
-my $debug = $ENV{"EUPS_DEBUG"};
-$debug = 0 if ($debug eq "");
 
 #Some more environment variables
 $prodprefix = $ENV{"PROD_DIR_PREFIX"};
 if ($prodprefix eq "") {
     print STDERR  "ERROR : PROD_DIR_PREFIX not specified\n";
-    $retval = -1;
-    goto END;
+    return -1;
 }
 
 
 # Need to extract the parameters carefully
-my ($args,$outfile,$quiet) = @_;
+local ($args,$outfile,$debug,$quiet) = @_;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
 my($prod) = $args[0];
 if ($prod eq "") {
     print STDERR  "ERROR : Product not specified\nSyntax : eups_setup unsetup <product>\n";
-    $retval = -1;
-    goto END;
+    return -1;
 }
 
 # Now get the information from eups_flavor
 $comm = "eups_flavor -a $prod";
 $comm = catfile($eups_dir,"bin",$comm);
-$out = `$comm`;
+chomp($out = `$comm`);
 if ($out eq "") {
    print STDERR "ERROR running eups_flavor : $comm\n" if ($debug >= 1);
-   $retval = -1;
-   goto END;
+   return -1;
 }
 # Parse the output for the flavor and version file
-my($vers,$flavor,$db,$temp) = split " ",$out;
+my($vers,$flavor,$db) = split ":",$out;
 
-if (($debug == 1 && !$quiet) || $debug > 1) {
+if (($debug >= 1 && !$quiet) || $debug > 1) {
    show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
 }
 
-# Now construct the version file's name, then read and parse it
-$fn = catfile($db,$prod,"$vers.version");
-if (read_version_file($fn, $flavor) < 0) {
-   $retval = -1;
-   goto END;
-}
-
-my $capprod = $prod;
-$capprod =~ tr/[a-z]/[A-Z]/;
-$capprod = "$capprod\_DIR";
-$prod_dir = $ENV{"$capprod"};
+my $capprod = uc($prod) . "_DIR";
+$prod_dir = $ENV{$capprod};
 if ($prod_dir eq "") {
     print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
-    $retval=-1;
-    goto END;
+    return -1;
 }
-($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-
 $ups_dir = catfile($prod_dir,"ups");
-if ($table_file !~ /^none$/i) {
-   $table_file = catfile($ups_dir,$table_file);
+
+# Now construct the version file's name, then read and parse it
+if ($vers eq "") {		# unknown version, so look in $ups_dir
+   $table_file = catfile($ups_dir, "$prod.version");
+   if (! -e $table_file) {
+      $table_file = "none";
+   }
+} else {
+   $fn = catfile($db,$prod,"$vers.version");
+   if (read_version_file($fn, $prod, $flavor) < 0) {
+      return -1;
+   }
 }
 
 if ($table_file !~ /^none$/i && (!(-e $table_file))) {
-  print STDERR "ERROR: Missing table file $table_file\n" if ($debug >= 1);
-  $retval=-1;
-  goto END;
+  print STDERR "ERROR: Missing table file \"$table_file\"\n" if ($debug >= 1);
+  return -1;
 }
 
 #Call the table parser here 
@@ -456,11 +441,7 @@ if ($table_file !~ /^none$/i && (!(-e $table_file))) {
 #prod_dir,ups_dir,verbosity
 
 $fwd = 0;
-$retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
-
-END:
-
-return $retval;
+return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
 }
 
 
@@ -470,24 +451,18 @@ sub eups_setup {
 use File::Spec::Functions;
 use File::Basename;
 
-my $retval = 0;
 local $indent = $indent + 1;
-
-my $debug = $ENV{"EUPS_DEBUG"};
-
-$debug = 0 if ($debug eq "");
 
 #Some more environment variables
 $prodprefix = $ENV{"PROD_DIR_PREFIX"};
 if ($prodprefix eq "") {
     print STDERR  "ERROR : PROD_DIR_PREFIX not specified\n";
-    $retval = -1;
-    goto END;
+    return -1;
 }
 
-
 # Need to extract the parameters carefully
-my ($args,$outfile,$quiet) = @_;
+local ($args,$outfile,$debug,$quiet) = @_;
+
 my $qaz = $args;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
@@ -497,15 +472,14 @@ $vers = $args[1];
 if ($prod eq "") {
     print STDERR  "ERROR : Product not specified\n";
     print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-z <database>]\n";
-    $retval = -1;
-    goto END;
+    return -1;
 }
 
 # Attempt an unsetup
 
 my($SETUP_PROD) = "SETUP_".uc($prod);
 if (defined($ENV{$SETUP_PROD})) {
-   eups_unsetup($qaz, $outfile, 1);
+   eups_unsetup($qaz, $outfile, $debug, 1);
 }
 
 #Determine flavor - first see if specified on command line
@@ -515,8 +489,7 @@ if (defined($ENV{$SETUP_PROD})) {
 $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
 if ($flavor eq "") {
     print STDERR "ERROR : No flavor specified, Use -f or set EUPS_FLAVOR\n";
-    $retval = -1;
-    goto END;
+    return -1;
 }
 $ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
 
@@ -527,17 +500,16 @@ my $db = "";
 my $db_old = "";
 ($db) = $qaz =~ m/\-z  *([^ ]+)/;
 if ($db eq "") {
-    $db = $ENV{"PRODUCTS"};
+    $db = eups_find_products();
 } else {
-    $db_old = $ENV{"PRODUCTS"};
+    $db_old = eups_find_products();
     $ENV{"PRODUCTS"} = $db;
     $dbset = 1;
 }
     
 if ($db eq "") {
-    print STDERR "ERROR : No database specified, Use -z or set PRODUCTS\n";
-    $retval = -1;
-    goto END;
+    print STDERR "ERROR : No database specified, Use -z, -Z, or set PRODUCTS\n";
+    return -1;
 }
 
 # Now check to see if the table file and product directory are 
@@ -547,8 +519,7 @@ $table_file = "";
 $prod_dir = "";
 $ups_dir = "";
 ($prod_dir) = $qaz =~ m/\-r  *([^ ]+)/;
-# Table files no longer used.
-#($table_file) = $qaz =~ m/\-m  *([^ ]+)/;
+
 if ($prod_dir eq "") {
    #Determine version - check to see if already defined, otherwise
    #determine it from current.chain
@@ -559,16 +530,14 @@ if ($prod_dir eq "") {
       
       if ($vers eq "") {
 	 print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
-	 $retval = -1;
-	 goto END;
+	 return -1;
       }
    }
    
    # Now construct the version file\'s name, then read and parse it
    $fn = catfile($db,$prod,"$vers.version");
-   if (read_version_file($fn, $flavor) < 0) {
-      $retval = -1;		# 
-      goto END;
+   if (read_version_file($fn, $prod, $flavor) < 0) {
+      return -1;
    }
 } else {
     $table_file = "$prod.table";
@@ -579,36 +548,25 @@ if ($prod_dir eq "") {
     if (!($table_file =~ m"^/")) {
 	$table_file = catfile($prod_dir,$table_file);
     }
-    $vers = "LOCAL" if ($vers eq "");
 
     if ($table_file ne "" && $debug >= 1) {
        print STDERR "WARNING : Using table file $table_file\n";
     }
 } 
    
-if (($debug == 1 && !$quiet) || $debug > 1) {
+if (($debug >= 1 && !$quiet) || $debug > 1) {
    show_product_version("Setting up", $indent, $prod, $vers, $flavor);
 }
 
 if ($table_file !~ /^none$/i && !(-e $table_file)) {
    print STDERR "ERROR: Missing table file $table_file\n" if ($debug >= 1);
-   $retval=-1;
-   goto END;
+   return -1;
 }
    
 #Call the table parser here 
    
 $fwd = 1;
-$retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
-   
-END:
-
-# If we overrode the database, restore it.
-if ($dbset == 1) {
-    $ENV{"PRODUCTS"} = $db_old;
-}
-
-return $retval;
+return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
 }
 
 ###############################################################################
@@ -661,7 +619,7 @@ sub read_chain_file
 #
 sub read_version_file
 {
-   my($fn, $flavor) = @_;
+   my($fn, $prod, $flavor) = @_;
 
    if (!(open FILE,"<$fn")) {
       print STDERR "ERROR: Cannot open version file $fn\n" if ($debug >= 1);
@@ -696,17 +654,23 @@ sub read_version_file
    }
    if ($pos == -1) {
       print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug >= 1);
-      $retval = -1;
-      goto END;
+      return -1;
    }
 
-   # Now extract the prod_dir, ups_dir, table_dir and table_file
-   ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
+   # Now extract the prod_dir and table_file
    my($ups_dir) = "ups";
    my($table_dir) = "ups";
+   ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
    ($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
 
-   #Table files now must be in UPS directory
+   if ($table_file ne "$prod.table" && $table_file !~ /^none$/i) {
+      my $otable_file = $table_file;
+      $table_file = "$prod.table";
+
+      if ($debug > 1) {
+	 warn "WARNING: table file name $otable_file is invalid; using $table_file\n";
+      }
+   }
 
    # Does the product directory have an environment variable set in it?
    @env = $prod_dir =~ m/\$\{(.+?)\}/g;
@@ -729,10 +693,25 @@ sub read_version_file
 }
 
 ###############################################################################
+#
+# Try to find the PRODUCTS directory
+#
+sub eups_find_products {
+   if (defined($ENV{"PRODUCTS"})) {
+      return $ENV{"PRODUCTS"};
+   } elsif (defined($ENV{PROD_DIR_PREFIX}) && -d $ENV{PROD_DIR_PREFIX} . "/ups_db") {
+      return $ENV{PROD_DIR_PREFIX} . "/ups_db";
+   } else {
+      return "";
+   }
+}
+
+###############################################################################
 
 sub show_product_version
 {
    my($str, $indent, $prod, $vers, $flavor) = @_;
-   printf STDERR "%-14s %-20s Version: %-10s Flavor: %s\n",
-   sprintf("%s:", $str), sprintf("%*s%s", $indent, "", $prod) ,$vers, $flavor;
+   printf STDERR "%-14s %-20s  Flavor: %-10s Version: %s\n",
+   sprintf("%s:", $str), sprintf("%*s%s", $indent, "", $prod) ,$flavor,
+   ($vers eq "" ? "LOCAL" : $vers);
 }

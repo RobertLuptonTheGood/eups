@@ -35,11 +35,18 @@
 #Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
-
 #############################
 
 
+$eupsdir = $ENV{"EUPS_DIR"};
+if ($eupsdir eq "") {
+    print STDERR "ERROR: EUPS_DIR not set\n";
+    goto CLEAN;
+}
+require "$eupsdir/bin/eups_setup.pm";
+import eups_setup;
 
+###############################################################################
 
 sub fix_special {
 # This is essential since some of the flavors have special characters in 
@@ -69,7 +76,7 @@ $name = $ENV{"LOGNAME"};
 $now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
 
 # Is the product database specified in $PRODUCTS
-$db = $ENV{"PRODUCTS"};
+$db = eups_find_products();
 die "ERROR: PRODUCTS not defined\n" if ($db eq "");
 
 # Get the command line parameters
