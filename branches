@@ -36,3 +36,8 @@ Sun May 23 01:05:47 EDT 2004
 Thu Jun 17 11:46:01 EDT 2004
    cvs rtag v0_7_4 eups
    Adjusted verbosity levels
+
+Thu Jul  1 16:15:10 EDT 2004
+   cvs rtag v0_7_5 eups
+   Added "setup -l"
+
