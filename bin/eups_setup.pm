@@ -173,6 +173,9 @@ sub extract_table_commands {
 
     my $data = $_[0];
     my $flavor = $_[1];
+
+# Protect special characters in flavor and 
+# define matching patterns    
     my $flavor = fix_special($flavor);
     my $pattern = "FLAVOR\\s*=\\s*$flavor(\\s|\n)";
     my $pattern2 = "FLAVOR\\s*=\\s*ANY(\\s|\n)";
@@ -184,9 +187,7 @@ sub extract_table_commands {
 # If minimal table file
 	$data = "$data\n";
 	my @lines = split  "\n", $data;
-	my $record = 1;
-	my $inblock = 1;
-	my $block = "";
+	my $record = 1;	my $inblock = 1; my $block = "";
 	for ($i=0; $i < @lines; $i++) {
 	    my $this = "$lines[$i]\n"; 
 	    if ($lines[$i] =~ m/flavor\s*=/gsi) {
@@ -195,10 +196,10 @@ sub extract_table_commands {
 		$record = 1 if ($this =~ m/$pattern2/gsi);
 		$record = 1 if ($this =~ m/$pattern3/gsi);
 		$inblock = 0;
-		next;
+	    } elsif ($lines[$i] =~ m/[^\s]/) {
+		$block .= "$this" if ($record == 1);
+		$inblock = 1;
 	    }
-	    $block = "$block$this" if ($record == 1);
-	    $inblock = 1;
 	}
 	@group = ($block);
     } else {
