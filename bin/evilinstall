@@ -264,10 +264,15 @@ fi
 
 #------------------------------------------------------------------------------
 # Declare this version and make it current.
-
 # No need to do an undeclare first since it is automatic with EvilUPS .
+
 eups_declare -f $FLAVOR $TABLEPARAM \
- -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+ -r $FLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+
+# Declaring with the below line would put an absolute path in PROD_DIR
+# in the version file, rather than a path relative to $PROD_DIR_PREFIX.
+#eups_declare -f $FLAVOR $TABLEPARAM \
+# -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
 
 #------------------------------------------------------------------------------
 # Finally, delete the temporary directory used to build the code.
