@@ -437,12 +437,12 @@ if ($flavor eq "") {
 #We want this to propagate to subproducts
 my $dbset = 0;
 my $db = "";
+my $db_old = "";
 ($db) = $qaz =~ m/\-z  *([^ ]+)/;
-#$db = $ENV{"PRODUCTS"} if ($db eq "");
 if ($db eq "") {
     $db = $ENV{"PRODUCTS"};
 } else {
-    my $db_old = $ENV{"PRODUCTS"};
+    $db_old = $ENV{"PRODUCTS"};
     $ENV{"PRODUCTS"} = $db;
     $dbset = 1;
 }
@@ -611,7 +611,6 @@ END:
 # If we overrode the database, restore it.
 if ($dbset == 1) {
     $ENV{"PRODUCTS"} = $db_old;
-    print "Setting PRODUCTS.... $ENV{"PRODUCTS"} \n";
 }
 
 return $retval;
