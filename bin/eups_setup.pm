@@ -606,7 +606,7 @@ sub eups_list {
    }
 
 # Need to extract the parameters carefully
-   local ($args,$outfile,$debug,$quiet) = @_;
+   local ($args,$debug,$quiet) = @_;
 
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
@@ -668,6 +668,10 @@ sub eups_list {
 	 $info .= " Setup";
       }
 
+      $vers = sprintf("%-10s", $vers);
+      if ($debug) {
+	 $vers .= sprintf("\t%-40s", $prod_dir);
+      }
 
       if ($info) {
 	 $info = "\t\t$info";
@@ -833,6 +837,7 @@ sub show_product_version
 	     '--database',	'-Z',
 	     '--flavor',	'-f',
 	     '--help',		'-h',
+	     '--list'	,	'-l',
 	     '--root',		'-r',
 	     '--version',	'-V',
 	     '--verbose',	'-v',
@@ -924,7 +929,7 @@ sub eups_show_options
        -c => "Declare this product current",
        -C => "Make this version current",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
-       -l => "List available versions",
+       -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
        -r => "Location of product being declared",
