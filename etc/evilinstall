@@ -66,7 +66,8 @@ fi
 # Source EvilUPS setup
 # source /u/products/EvilUPS/bin/setups.sh
 # For testing
-source /u/paddy/test/EvilUPS/bin/setups.sh
+echo "Setting up EvilUPS....."
+source /u/paddy/EvilUPS/bin/setups.sh
 
 if [ -z $EUPS_FLAVOR ]; then
     echo
