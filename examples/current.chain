@@ -1,6 +1,6 @@
 # The current chain (example)
 
-# The header, not used by EvilUPS
+# The header, not used by EUPS
 
 FILE = chain
 PRODUCT = example # Product name
@@ -16,4 +16,4 @@ QUALIFIERS = ""
   MODIFIER = paddy
   MODIFIED = 2003-01-17 02.07.41 GMT
 
-# You can have multiple flavours.
+# You can have multiple flavors.

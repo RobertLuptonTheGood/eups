@@ -1,14 +1,12 @@
 #!/usr/bin/perl
 #
-# This script calls the 
-# appropriate setup/unsetup tasks and 
-# update the environment variables. It writes
-# it out to a temporary file, which can be 
-# sourced. 
+# This script calls the appropriate setup/unsetup tasks and update the
+# environment variables. It writes it out to a temporary file, which
+# can be sourced.
 #
 # Nikhil Padmanabhan
 # Jan 22, 2003 Princeton
-#EvilUPS : A Unix Versioning System
+#EUPS : A Unix Versioning System
 #Copyright (C) 2003 Nikhil Padmanabhan
 
 #    This program is free software; you can redistribute it and/or
@@ -98,36 +96,80 @@ if ($eupsdir eq "") {
 require "$eupsdir/bin/eups_setup.pm";
 import eups_setup;
 
-
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
+#
+# Parse arguments. Many are actually interpreted by eups_setup.pm
+#
+push(@args, $ARGV[0]); shift; # move desired operation (e.g. "setup") to @args
 
-$prod = join " ", @ARGV;
-if ($prod =~ m/\-v /) {
-    $prod =~ s/\-v //;
-    $debug = 1;
-    $ENV{"EUPS_DEBUG"} = 1;
+%longopts = (
+	     '--database',	'-z',
+	     '--flavor',	'-f',
+	     '--help',		'-h',
+	     '--root',		'-r',
+	     '--version',	'-V',
+	     '--verbose',	'-v',
+	     );
+
+while ($ARGV[0] =~ /^-/) {
+   $ropt = $opt = $ARGV[0]; shift;
+
+   if (defined($longopts{$opt})) {
+      $opt = $longopts{$opt};
+   }
+   
+   if ($opt eq "-h") {
+      &usage();
+      &myexit(0);
+   } elsif ($opt eq "-f" || $opt eq "-r" || $opt eq "-z") {
+      push(@args, $opt);
+      
+      if (!defined($ARGV[0])) {
+	 warn "You must specify a value with $ropt\n";
+	 &myexit(1);
+      }
+      push(@args, $ARGV[0]);
+      shift;
+   } elsif ($opt eq "-v") {
+      $debug++;
+      $ENV{"EUPS_DEBUG"} = $debug;
+   } elsif ($opt eq "-V") {
+      my($version) = &get_version();
+      warn "Version: $version\n";
+      &myexit(0);
+   } else {			# unknown argument
+      &usage();
+      &myexit(1);
+   }
 }
-@args = split " ",$prod;
+
+if (!defined($ARGV[0])) {
+   warn "Please specify a product\n";
+   &usage();
+   &myexit(1);
+}
+
+@args = (@args, @ARGV);
 
 #Get the shell 
 our $shell = $0;
 $retval = setshell;
 goto CLEAN if ($retval == -1);
-print STDERR "evilups -- using shell : $shell\n" if ($debug == 1);
+print STDERR "eups -- using shell : $shell\n" if ($debug > 1);
 
 # Get the command line
 $select = $args[0];
 $args[0] = "";
 $comm = join " ",@args;
 if (!(($select eq "setup")||($select eq "unsetup"))) {
-    print STDERR "ERROR: Unknown command to evilsetup (not setup/unsetup)\n";
+    print STDERR "ERROR: Unknown command \"$select\" to eups_setup (not setup/unsetup)\n";
     goto CLEAN;
 }
 # Die if EUPS_FLAVOR is not set and -f not used... this is so that
 # a major failure mode gets a decent error message.
 if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!($comm =~ m/\-f/))) {
-    print STDERR "ERROR: No flavor flavour - use -f or set EUPS_FLAVOR\n";
+    print STDERR "ERROR: No flavor flavor - use -f or set EUPS_FLAVOR\n";
     goto CLEAN;
 }
 
@@ -138,16 +180,16 @@ if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!($comm =~ m/\-f/))) {
 # Call either setup or unsetup
 
 if ($select eq "setup") {
-# First try an unsetup
-    $retval = eups_setup($comm,$tmpfile);
+   # First try an unsetup
+    $retval = eups_setup($comm,$tmpfile,0);
     if ($retval < 0) {
-	eups_unsetup($comm,$tmpfile);
+	eups_unsetup($comm,$tmpfile,1);
 	print STDERR "FATAL ERROR : setup failed\n";
 	goto CLEAN;
     }
 }
 if ($select eq "unsetup") {
-    $retval = eups_unsetup($comm,$tmpfile);
+    $retval = eups_unsetup($comm,$tmpfile,0);
     if ($retval < 0) {
 	print STDERR "FATAL ERROR : unsetup failed\n";
 	goto CLEAN;
@@ -177,8 +219,6 @@ for ($i = 0; $i<@newkeys; $i++) {
     }
 }
 
-print $tmpfile "echo \"Done\" \n" if ($debug == 1);
-
 # Self destruct file
 CLEAN:
 print $tmpfile "\\rm -f $fn\n";
@@ -188,3 +228,48 @@ print "$fn\n";
 
 exit;
 
+###############################################################################
+#
+# Get version number from cvs
+#
+sub
+get_version()
+{
+   my($version) = '\$Name: not supported by cvs2svn $';	# version from cvs
+
+   if ($version =~ /^\$Name: not supported by cvs2svn $/) {
+      $version = $1;
+   } else {
+      $version = "(NOCVS)";
+   }
+
+   return $version;
+}
+
+###############################################################################
+#
+# Print Help message
+#
+sub usage
+{
+   warn <<"EOT";
+Usage:
+   setup [options] product [version]
+Options:
+       -h, --help		Print this help message
+       -f, --flavor FLAVOR	Use this flavor (default: \$EUPS_FLAVOR)
+       -r, --root DIR          	Use DIR as the root directory for this product
+       -v, --verbose		Be chattier (repeat for even more chat)
+       -V, --version    	Print version number and exit
+       -z, --database DB	Use this products database (default: \$PRODUCTS)
+EOT
+}
+
+###############################################################################
+
+sub myexit
+{
+   my($exit) = @_;
+   print "/dev/null\n";
+   exit $exit;
+}

@@ -8,7 +8,6 @@ SHELL = /bin/sh
 all :;
 
 install :
-	- cp * $(EUPS_DIR)/examples
-
+	- cp Makefile current.chain example.table example.version $(EUPS_DIR)/examples
 clean :
 	- /bin/rm -f *~ core

@@ -1,12 +1,12 @@
 # An example version file
 # The three lines below are a header, not used 
-# by EvilUPS, but are used by UPS.
+# by EUPS, but are used by UPS.
 
 FILE = version 
 PRODUCT = example # The product name
 VERSION = v0_1 # The product version
 
-# The lines below form a flavour declaration
+# The lines below form a flavor declaration
 # PROD_DIR can either be an absolute path or 
 # relative to PROD_DIR_PREFIX (environment variable).
 
@@ -16,8 +16,8 @@ VERSION = v0_1 # The product version
 
 #*************************************************
 #
-FLAVOR = Linux # What flavour ?
-QUALIFIERS = "" # Not used by EvilUPS, but supported for UPS
+FLAVOR = Linux # What flavor ?
+QUALIFIERS = "" # Not used by EUPS, but supported for UPS
   DECLARER = products 
   DECLARED = 2000-03-02 09.04.37 GMT
   MODIFIER = products
@@ -26,9 +26,9 @@ QUALIFIERS = "" # Not used by EvilUPS, but supported for UPS
   UPS_DIR = ups # The UPS directory
   TABLE_FILE = example.table # The name of the table file
 
-# You can have multiple flavour declarations
-FLAVOR = OSX # What flavour ?
-QUALIFIERS = "" # Not used by EvilUPS, but supported for UPS
+# You can have multiple flavor declarations
+FLAVOR = OSX # What flavor ?
+QUALIFIERS = "" # Not used by EUPS, but supported for UPS
   DECLARER = products
   DECLARED = 2000-03-02 09.04.37 GMT
   MODIFIER = products

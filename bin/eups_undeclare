@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# The evil implementation of ups undeclare.
+# Our reimplementation of ups undeclare.
 #
 # Note that this is designed _only_ to
 # work with products declared with eups_declare.
@@ -14,7 +14,7 @@
 #
 # Nikhil Padmanabhan, Princeton
 # January 23rd, 2003
-#EvilUPS : A Unix Versioning System
+#EUPS : A Unix Versioning System
 #Copyright (C) 2003 Nikhil Padmanabhan
 
 #    This program is free software; you can redistribute it and/or
@@ -94,8 +94,8 @@ $versinfo =~ s/flavor/##FLAVOR/gsi;
 open FILE, ">$fn";
 print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
 #Now enter in all groups that don't match the flavor
-$flavour = fix_special($flavor);
-$pattern = "FLAVOR *= *$flavour( |\n)";
+$flavor = fix_special($flavor);
+$pattern = "FLAVOR *= *$flavor( |\n)";
 $pos = 0;
 for ($i = 0; ($i<@group);$i++) {
     if ($group[$i] =~ m/$pattern/gsi) {
@@ -128,13 +128,13 @@ if (-e $fn ) {
     open FILE, ">$fn";
     print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
 #Now enter in all groups that don't match the flavor
-    $flavour = fix_special($flavor);
+    $flavor = fix_special($flavor);
     $verss = fix_special($vers);
-    $pattern = "FLAVOR *= *$flavour( |\n)";
+    $pattern = "FLAVOR *= *$flavor( |\n)";
     $pattern2 = "VERSION *= *$verss( |\n)";
     $pos = 0;
     for ($i = 0; ($i<@group);$i++) {
-# Both the flavour and the version must match
+# Both the flavor and the version must match
     if (($group[$i] =~ m/$pattern/gsi)&&($group[$i] =~ m/$pattern2/gsi)) {
 	$pos++;
     } else {

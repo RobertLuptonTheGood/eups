@@ -19,3 +19,4 @@ Thu Apr 15 14:34:19 EDT 2004
    Merge vminimal0_1 to mainline:
    cvs rtag -r vminimal0_1 vminimal0_1_1 eups
    cvs update -j vminimal0_1
+   cvs ci -m "Merged from vminimal0_1 branch at point vminimal0_1_1"

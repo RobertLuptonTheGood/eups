@@ -1,10 +1,10 @@
 #!/usr/bin/perl
-# Parser for evilups table files
+# Parser for eups table files
 # Nikhil Padmanabhan, Princeton
 #
 #
 # Jan 22, 2002
-#EvilUPS : A Unix Versioning System
+#EUPS : A Unix Versioning System
 #Copyright (C) 2003 Nikhil Padmanabhan
 
 #    This program is free software; you can redistribute it and/or
@@ -184,8 +184,8 @@ sub extract_table_commands {
     }
 
     $pos = -1;
-    my $flavour = fix_special($flavor);
-    my $pattern = "FLAVOR *= *$flavour( |\n)";
+    my $flavor = fix_special($flavor);
+    my $pattern = "FLAVOR *= *$flavor( |\n)";
     my $pattern2 = "FLAVOR *= *ANY( |\n)";
     my $pattern3 = "FLAVOR *= *NULL( |\n)";
     for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
@@ -219,6 +219,7 @@ sub parse_table {
     my $db = $_[6];
     my $fwd = $_[7];
     our $outfile = $_[8];
+    my $quiet = $_[9];
     my $data = 0;
 
 # Get debug information
@@ -324,26 +325,26 @@ setupenv => \&envSet,
 	}
 	if (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_unsetup($qaz,$outfile);
+            $foo = eups_unsetup($qaz,$outfile,$quiet);
 	    $retval =+ $foo;
 	    print STDERR "ERROR : REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
 	    next;
 	}
         if (($comm eq "setupoptional")&&($fwd==0)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-	    eups_unsetup($qaz,$outfile);
+	    eups_unsetup($qaz,$outfile,$quiet);
 	    next;
         }
         if (($comm eq "setuprequired")&&($fwd==1)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_setup($qaz,$outfile);
+            $foo = eups_setup($qaz,$outfile,$quiet);
 	    $retval =+ $foo;
             print STDERR "ERROR : REQUIRED SETUP $qaz failed \n" if ($foo < 0);
 	    next;
         }
         if (($comm eq "setupoptional")&&($fwd==1)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            eups_setup($qaz,$outfile);
+            eups_setup($qaz,$outfile,$quiet);
 	    next;
         }
 	if ($fwd == 0) {
@@ -377,9 +378,10 @@ use File::Basename;
 
 my $eups_dir = $ENV{"EUPS_DIR"};
 # We don't need error checking here since that 
-# is already done in evilsetup
+# is already done in eups_setup
 
 my $retval = 0;
+local $indent = $indent + 1;
 
 my $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
@@ -394,12 +396,12 @@ if ($prodprefix eq "") {
 
 
 # Need to extract the parameters carefully
-my ($args,$outfile) = @_;
+my ($args,$outfile,$quiet) = @_;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
-$prod = $args[0];
+my($prod) = $args[0];
 if ($prod eq "") {
-    print STDERR  "ERROR : Product not specified\nSyntax : evilsetup unsetup <product>\n";
+    print STDERR  "ERROR : Product not specified\nSyntax : eups_setup unsetup <product>\n";
     $retval = -1;
     goto END;
 }
@@ -409,35 +411,42 @@ $comm = "eups_flavor -a $prod";
 $comm = catfile($eups_dir,"bin",$comm);
 $out = `$comm`;
 if ($out eq "") {
-   print STDERR "ERROR running eups_flavor : $comm\n" if ($debug == 1);
+   print STDERR "ERROR running eups_flavor : $comm\n" if ($debug >= 1);
    $retval = -1;
    goto END;
 }
 # Parse the output for the flavor and version file
-($vers,$flavor,$db,$temp) = split " ",$out;
+my($vers,$flavor,$db,$temp) = split " ",$out;
 
-print STDERR "Unsetting up : $prod  " if ($debug == 1);
-print STDERR "Version: $vers\nFlavour: $flavor\n" if ($debug == 1);
+if (($debug == 1 && !$quiet) || $debug > 1) {
+   show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
+}
 
-# The version file reading code used to go here.
-# This has been removed since it is no longer used.
-# The software assumes that the file is in a ups directory.
+# Now construct the version file's name, then read and parse it
+$fn = catfile($db,$prod,"$vers.version");
+if (read_version_file($fn, $flavor) < 0) {
+   $retval = -1;
+   goto END;
+}
 
 my $capprod = $prod;
 $capprod =~ tr/[a-z]/[A-Z]/;
 $capprod = "$capprod\_DIR";
 $prod_dir = $ENV{"$capprod"};
 if ($prod_dir eq "") {
-    print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug == 1);
+    print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
     $retval=-1;
     goto END;
 }
-$ups_dir = catfile($prod_dir,"ups");
-$table_file = "$prod.table";
-$table_file = catfile($ups_dir,$table_file);
+($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
 
-if (!(-e $table_file)) {
-  print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
+$ups_dir = catfile($prod_dir,"ups");
+if ($table_file !~ /^none$/i) {
+   $table_file = catfile($ups_dir,$table_file);
+}
+
+if ($table_file !~ /^none$/i && (!(-e $table_file))) {
+  print STDERR "ERROR: Missing table file $table_file\n" if ($debug >= 1);
   $retval=-1;
   goto END;
 }
@@ -447,7 +456,7 @@ if (!(-e $table_file)) {
 #prod_dir,ups_dir,verbosity
 
 $fwd = 0;
-$retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
+$retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
 
 END:
 
@@ -462,6 +471,7 @@ use File::Spec::Functions;
 use File::Basename;
 
 my $retval = 0;
+local $indent = $indent + 1;
 
 my $debug = $ENV{"EUPS_DEBUG"};
 
@@ -477,7 +487,7 @@ if ($prodprefix eq "") {
 
 
 # Need to extract the parameters carefully
-my ($args,$outfile) = @_;
+my ($args,$outfile,$quiet) = @_;
 my $qaz = $args;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
@@ -486,7 +496,7 @@ $prod = $args[0];
 $vers = $args[1]; 
 if ($prod eq "") {
     print STDERR  "ERROR : Product not specified\n";
-    print STDERR "Syntax : evilsetup setup <product> [version] [-f <flavor>] [-z <database>]\n";
+    print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-z <database>]\n";
     $retval = -1;
     goto END;
 }
@@ -495,11 +505,12 @@ if ($prod eq "") {
 
 my($SETUP_PROD) = "SETUP_".uc($prod);
 if (defined($ENV{$SETUP_PROD})) {
-   eups_unsetup($qaz, $outfile);
+   eups_unsetup($qaz, $outfile, 1);
 }
 
-#Determine flavour - first see if specified on command line
+#Determine flavor - first see if specified on command line
 #else get it from the environment EUPS_FLAVOR
+#We want this to propagate to subproducts
 ($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
 $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
 if ($flavor eq "") {
@@ -507,6 +518,7 @@ if ($flavor eq "") {
     $retval = -1;
     goto END;
 }
+$ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
 
 #Determine database - or get it from environment PRODUCTS
 #We want this to propagate to subproducts
@@ -528,7 +540,6 @@ if ($db eq "") {
     goto END;
 }
 
-print STDERR "Setting up : $prod," if ($debug == 1);
 # Now check to see if the table file and product directory are 
 # specified. If so, extract these and immediately start, else 
 # complain 
@@ -538,12 +549,30 @@ $ups_dir = "";
 ($prod_dir) = $qaz =~ m/\-r  *([^ ]+)/;
 # Table files no longer used.
 #($table_file) = $qaz =~ m/\-m  *([^ ]+)/;
-if (!($prod_dir eq "")) {
+if ($prod_dir eq "") {
+   #Determine version - check to see if already defined, otherwise
+   #determine it from current.chain
+   #Also construct the full version file and check if it exists.
+   if ($vers eq "") {
+      $fn = catfile($db,$prod,"current.chain");
+      $vers = read_chain_file($fn, $flavor);
+      
+      if ($vers eq "") {
+	 print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
+	 $retval = -1;
+	 goto END;
+      }
+   }
+   
+   # Now construct the version file\'s name, then read and parse it
+   $fn = catfile($db,$prod,"$vers.version");
+   if (read_version_file($fn, $flavor) < 0) {
+      $retval = -1;		# 
+      goto END;
+   }
+} else {
     $table_file = "$prod.table";
     $table_file = catfile("ups",$table_file);
-    if (!($table_file eq "")) {
-	print STDERR "WARNING : Overriding the table file setting with $prod.table\n" if ($debug==1);
-    }
     if (!($prod_dir =~ m"^/")) {
 	$prod_dir = catfile($prodprefix,$prod_dir);
     }
@@ -551,138 +580,26 @@ if (!($prod_dir eq "")) {
 	$table_file = catfile($prod_dir,$table_file);
     }
     $vers = "LOCAL" if ($vers eq "");
-    print STDERR "   Flavour:  $flavor\n" if ($debug == 1);
-    goto START;
-}
 
-
-#Determine version - check to see if already defined, otherwise
-#determine it from current.chain
-#Also construct the full version file and check if it exists.
-if ($vers eq "") {
-    $fn = catfile($db,$prod,"current.chain");
-    if (!(-e $fn)) {
-	print STDERR "ERROR : No version or current.chain\n" if ($debug == 1);
-	$retval = -1;
-	goto END;
+    if ($table_file ne "" && $debug >= 1) {
+       print STDERR "WARNING : Using table file $table_file\n";
     }
-    my @size = stat($fn);
-    open FILE, "<$fn";
-    read FILE, $versinfo, $size[7];
-    close FILE;
-# Now strip out all comments
-    $versinfo =~ s/\#.*\n//g;
-    $versinfo =~ s/flavor/##FLAVOR/gsi;
-    @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
-# Match the last flavor
-    @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
-    @group = (@groups2,@groups3);
-#Now find the appropriate group
-    $pos = -1;
-    $flavour = fix_special($flavor);
-    $pattern = "FLAVOR *= *$flavour( |\n)";
-    my $pattern2 = "FLAVOR *= *ANY( |\n)";
-    my $pattern3 = "FLAVOR *= *NULL( |\n)";
-    for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
-    }
-    if ($pos == -1) {
-	print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug == 1);
-	$retval = -1;
-	goto END;
-    }
-    ($vers) = $group[$pos] =~ m/VERSION *= *(.+?) *\n/i;
-    if ($vers eq "") {
-        print STDERR "ERROR: No version found in chain file $fn\n" if ($debug == 1);
-        $retval = -1;
-        goto END;
-    }
-}
-# Now construct the filename
-$fn = catfile($db,$prod,"$vers.version");
-
-print STDERR " Version: $vers, Flavour: $flavor\n" if ($debug == 1);
-
-# Now read in the version file and start to parse it
-if (!(open FILE,"<$fn")) {
-    print STDERR "ERROR: Cannot open version file $fn\n" if ($debug == 1);
-    $retval = -1;
-    goto END;
-}
-my @size = stat($fn);
-read FILE,$versinfo,$size[7];
-close FILE;
-# Now strip out all comments
-$versinfo =~ s/\#.*\n//g;
-# Extract the groups - either defined by group-end or between two flavours
-@groups = $versinfo =~ m/group:(.+?)end:/gsi;
-$versinfo =~ s/group:(.+?)end://gsi;
-$versinfo =~ s/flavor/##FLAVOR/gsi;
-@groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
-# Match the last flavor
-@groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
-@group = (@groups,@groups2,@groups3);
-
-#Now find the appropriate group
-$pos = -1;
-$flavour = fix_special($flavor);
-$pattern = "FLAVOR *= *$flavour( |\n)";
-my $pattern2 = "FLAVOR *= *ANY( |\n)";
-my $pattern3 = "FLAVOR *= *NULL( |\n)";
-for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-    $pos = $i if ($group[$i] =~ m/$pattern/gsi);
-    $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-    $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
-}
-if ($pos == -1) {
-    print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug == 1);
-    $retval = -1;
-    goto END;
+} 
+   
+if (($debug == 1 && !$quiet) || $debug > 1) {
+   show_product_version("Setting up", $indent, $prod, $vers, $flavor);
 }
 
-# Now extract the prod_dir, ups_dir, table_dir and table_file
-($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
-$ups_dir = "ups";
-$table_dir = "ups";
-($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-$table_file = lc($table_file);	# normalise to lowercase
-
-#Table files now must be in UPS directory
-#($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
-#($table_dir) = $group[$pos] =~ m/TABLE_DIR *= *({^ ,.}+?) *\n/i;
-#($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-
-# Does the product directory have an environment variable set in it
-@env = $prod_dir =~ m/\$\{(.+?)\}/g;
-for ($i = 0; $i < @env; $i++) {
-    $val = $ENV{"$env[$i]"};
-    $prod_dir =~ s/\$\{$env[$i]\}/$val/g;
-}
-if (!($prod_dir =~ m"^/")) {
-    $prod_dir = catfile($prodprefix,$prod_dir);
-}
-if (!($ups_dir =~ m"^/")) {
-    $ups_dir = catfile($prod_dir,$ups_dir);
-}
-if ($table_file ne "none") {
-   $table_file = catfile($ups_dir,$table_file);
-}
-
-START:
-if ($table_file ne "none" && (!(-e $table_file))) {
-   print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
+if ($table_file !~ /^none$/i && !(-e $table_file)) {
+   print STDERR "ERROR: Missing table file $table_file\n" if ($debug >= 1);
    $retval=-1;
    goto END;
 }
    
 #Call the table parser here 
-#The arguments are the full table path, the direction (reversed or not)
-#prod_dir,ups_dir,verbosity
    
 $fwd = 1;
-$retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
+$retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
    
 END:
 
@@ -694,7 +611,128 @@ if ($dbset == 1) {
 return $retval;
 }
 
+###############################################################################
+#
+# Read and parse current.chain file
+#
+sub read_chain_file
+{
+   my($fn, $flavor) = @_;
 
+   if (!(-e $fn)) {
+      print STDERR "ERROR : No version or current.chain\n" if ($debug >= 1);
+      return "";
+   }
+   my $versinfo;
+   my @size = stat($fn);
+   open FILE, "<$fn";
+   read FILE, $versinfo, $size[7];
+   close FILE;
+# Now strip out all comments
+   $versinfo =~ s/\#.*\n//g;
+   $versinfo =~ s/flavor/##FLAVOR/gsi;
+   my @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+# Match the last flavor
+   my @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+   my @group = (@groups2,@groups3);
+#Now find the appropriate group
+   $flavor = fix_special($flavor);
+   my $pattern = "FLAVOR *= *$flavor( |\n)";
+   my $pattern2 = "FLAVOR *= *ANY( |\n)";
+   my $pattern3 = "FLAVOR *= *NULL( |\n)";
 
+   my $pos = -1;
+   for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
+      $pos = $i if ($group[$i] =~ m/$pattern/gsi);
+      $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+      $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+   }
+   if ($pos == -1) {
+      print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug >= 1);
+      return "";
+   }
+   ($vers) = $group[$pos] =~ m/VERSION *= *(.+?) *\n/i;
 
+   return $vers;
+}
 
+###############################################################################
+# read in the version file and start to parse it
+#
+sub read_version_file
+{
+   my($fn, $flavor) = @_;
+
+   if (!(open FILE,"<$fn")) {
+      print STDERR "ERROR: Cannot open version file $fn\n" if ($debug >= 1);
+      return -1;
+   }
+   my @size = stat($fn);
+   my $versinfo;
+   
+   read FILE,$versinfo,$size[7];
+   close FILE;
+   # Now strip out all comments
+   $versinfo =~ s/\#.*\n//g;
+   # Extract the groups - either defined by group-end or between two flavors
+   my(@groups) = $versinfo =~ m/group:(.+?)end:/gsi;
+   $versinfo =~ s/group:(.+?)end://gsi;
+   $versinfo =~ s/flavor/##FLAVOR/gsi;
+   @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+   # Match the last flavor
+   @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+   @group = (@groups,@groups2,@groups3);
+
+   #Now find the appropriate group
+   $pos = -1;
+   $flavor = fix_special($flavor);
+   $pattern = "FLAVOR *= *$flavor( |\n)";
+   my $pattern2 = "FLAVOR *= *ANY( |\n)";
+   my $pattern3 = "FLAVOR *= *NULL( |\n)";
+   for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
+      $pos = $i if ($group[$i] =~ m/$pattern/gsi);
+      $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+      $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+   }
+   if ($pos == -1) {
+      print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug >= 1);
+      $retval = -1;
+      goto END;
+   }
+
+   # Now extract the prod_dir, ups_dir, table_dir and table_file
+   ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
+   my($ups_dir) = "ups";
+   my($table_dir) = "ups";
+   ($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
+
+   #Table files now must be in UPS directory
+
+   # Does the product directory have an environment variable set in it?
+   @env = $prod_dir =~ m/\$\{(.+?)\}/g;
+   for ($i = 0; $i < @env; $i++) {
+      $val = $ENV{"$env[$i]"};
+      $prod_dir =~ s/\$\{$env[$i]\}/$val/g;
+   }
+   
+   if (!($prod_dir =~ m"^/")) {
+      $prod_dir = catfile($prodprefix,$prod_dir);
+   }
+   
+   if (!($ups_dir =~ m"^/")) {
+      $ups_dir = catfile($prod_dir,$ups_dir);
+   }
+   
+   if ($table_file !~ /^none$/i) {
+      $table_file = catfile($ups_dir,$table_file);
+   }
+}
+
+###############################################################################
+
+sub show_product_version
+{
+   my($str, $indent, $prod, $vers, $flavor) = @_;
+   printf STDERR "%-14s %-20s Version: %-10s Flavor: %s\n",
+   sprintf("%s:", $str), sprintf("%*s%s", $indent, "", $prod) ,$vers, $flavor;
+}

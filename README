@@ -1,4 +1,4 @@
-EvilUPS : A Unix Versioning System
+EUPS : A Unix Versioning System
 Copyright (C) 2003 Nikhil Padmanabhan
 
 This program is free software; you can redistribute it and/or
@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 (The following is a text version of the documentation for the 
-Perl implementation of UPS, evilups.)
+Perl implementation of UPS, eups.)
 
 Nikhil Padmanabhan
 npadmana@princeton.edu
@@ -29,33 +29,33 @@ free to update any/all parts of the code.  This is with the implicit
 assumption that the original code will be acknowledged.
 
 0. TABLE OF CONTENTS:	
-	1. Installing EvilUPS
-	2. EvilUPS : Basic Commands
-	3. EvilUPS : Environment Variables
-	4. EvilUPS : The Database (Version/Table) Files
-	5. EvilUPS : Further Notes
+	1. Installing EUPS
+	2. EUPS : Basic Commands
+	3. EUPS : Environment Variables
+	4. EUPS : The Database (Version/Table) Files
+	5. EUPS : Further Notes
 
-1. Installing EvilUPS :
+1. Installing EUPS :
 
-There are two stages to installing EvilUPS - the first is to install the code onto
+There are two stages to installing EUPS - the first is to install the code onto
 a computer, and the second is to correctly set it up. 
 
 a) First Time installation :
 
 i)   Use cvs to download this product from Princeton into a temporary directory
-     "evilups-temp".
+     "eups-temp".
        setenv CVS_RSH ssh
        setenv CVSROOT :pserver:anonymous@spectro.princeton.edu:/usr/local/cvsroot
        cvs -d login
-       cvs export -d evilups-temp evilups v0_2
+       cvs export -d eups-temp eups v0_2
 ii)  Set the environment variables EUPS_DIR, PROD_DIR_PREFIX and PRODUCTS.
-     EUPS_DIR is the directory to install EvilUPS to, PROD_DIR_PREFIX is the
+     EUPS_DIR is the directory to install EUPS to, PROD_DIR_PREFIX is the
      top-level directory where products are installed, and PRODUCTS is the 
      UPS database.  Suggested locations are:
        setenv PROD_DIR_PREFIX $HOME/products
        setenv PRODUCTS $PROD_DIR_PREFIX/ups_db
-       setenv EUPS_DIR $PROD_DIR_PREFIX/evilups
-iii) cd evilups-temp
+       setenv EUPS_DIR $PROD_DIR_PREFIX/eups
+iii) cd eups-temp
 iv)  Execute "make clean"
 v)   Execute "make install"
 
@@ -65,20 +65,20 @@ set certain functions/aliases and environment variables.
 
 b) Normal Usage (at login for example) :
 
-If EvilUPS is installed under $EUPS_ROOT, source $EUPS_ROOT/EvilUPS/bin/setups.[c]sh 
+If EUPS is installed under $EUPS_ROOT, source $EUPS_ROOT/EUPS/bin/setups.[c]sh 
 depending on your shell. This is _NOT_ essential to do, _if_ you are willing to 
 set up all your environment variables by hand.
 
-2. EvilUPS : Basic Commands
+2. EUPS : Basic Commands
 
-EvilUPS implements the following UPS commands:
+EUPS implements the following UPS commands:
 
 a) eups_flavor :
 
 Syntax : eups_flavor [-a] <productname>
 
 Returns the version of a product, by parsing the SETUP_<product> environment
-variable. The -a switch returns, in addition to the version, the flavour,
+variable. The -a switch returns, in addition to the version, the flavor,
 a full path to the version file, and the database used.
 
 b) eups_undeclare :
@@ -86,7 +86,7 @@ b) eups_undeclare :
 Syntax : eups_undeclare [-f <flavor>] <product> <version>
 
 Undeclares <version> of <product> from the database. Also removes any declarations
-of this version from current.chain. The flavour is determined from the environment
+of this version from current.chain. The flavor is determined from the environment
 variable EUPS_FLAVOR, but -f overrides this. The database used is defined by the 
 environment variable PRODUCTS.
 
@@ -99,22 +99,22 @@ Syntax : eups_declare [-f <flavor>] [-c/C] [-m <tablefile>] -r <product root dir
 
 Declares <version> of <product> into the database defined by $PRODUCTS.
 The product root directory is where the product has been installed, and can either
-be an absolute pathname or specified relative to $PROD_DIR_PREFIX. The flavour is
+be an absolute pathname or specified relative to $PROD_DIR_PREFIX. The flavor is
 defined by $EUPS_FLAVOR, unless the -f option is used. The -c option also declares
-this version to be current for the flavour, while the -m option specifies the table
+this version to be current for the flavor, while the -m option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
 If you specify -c (or -C), then it leaves the currently declared version alone, and
 only updates the current.chain.
 
-d) evilsetup :
+d) eups_setup :
 
-Syntax : evilsetup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]
+Syntax : eups_setup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]
 
-Usage : source `evilsetup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]`
+Usage : source `eups_setup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]`
 
 This is the workhorse routine. It sets up or unsets  <version> of <product>. The PERL
-script evilsetup writes the name of a file to STDOUT that contains the necessary
+script eups_setup writes the name of a file to STDOUT that contains the necessary
 commands to setup/unsetup a product; sourcing this file sets up the necessary
 environment. 
 
@@ -126,7 +126,7 @@ Options:
 <"setup"/"unsetup"> - Setup/UnSetup?
 <product> - The product name
 <version> - The version. If not specified, uses current.chain
-[-f <flavor>] - The flavour to set up. If not specified, $EUPS_FLAVOR is used.
+[-f <flavor>] - The flavor to set up. If not specified, $EUPS_FLAVOR is used.
 [-z <database>] - The database to use. If not specified, $PRODUCTS is used.
 
 Note the following :
@@ -142,7 +142,7 @@ order to do this, use -r <product directory> AND -m <table file> in the setup
 command; note that both of these must be used or else the command will not work.
 
 
-3. EvilUPS : Environment Variables
+3. EUPS : Environment Variables
 
 Required variables -
 
@@ -157,7 +157,7 @@ d) PRODUCTS - The path to the UPS database.
 
 Optional Variables -
 
-a) EUPS_FLAVOR - Set to the default flavour.
+a) EUPS_FLAVOR - Set to the default flavor.
 
 b) EUPS_DEBUG - This sets the verbosity. Currently, there are two settings: 0 for
 quiet, and 1 for verbose.  If the verbosity is turned off, then although it will
@@ -166,7 +166,7 @@ You will then need to turn verbosity on to find out what is happening.
 Note that you can always enable verbosity by using the -v command line option.
 
 
-4. EvilUPS : The Database
+4. EUPS : The Database
 
 a)
 This section briefly describes the structure of the UPS database. The UPS database
@@ -175,7 +175,7 @@ Each of these product directories contain a series of product definitions, speci
 by three types of files.
 
 i) current.chain : There is only one (if any) of these per directory.  The
-   current.chain file specifies the current version for a given flavour, and is
+   current.chain file specifies the current version for a given flavor, and is
    what is used as the default if the version is not specified.
 
    An example of a current.chain file is in the examples directory.
@@ -192,12 +192,12 @@ iii) Table files : These specify the dependencies of the product. The default na
      Table files use a series of commands to specify the dependencies. These are
      discussed in the next subsection.
 
-     NOTE: See Section 5 for a note on the search algorithm that EvilUPS uses for 
+     NOTE: See Section 5 for a note on the search algorithm that EUPS uses for 
      locating table files.
 
 b) UPS commands :
 
-The following UPS commands are supported by EvilUPS : (<NAME> either specifies an
+The following UPS commands are supported by EUPS : (<NAME> either specifies an
 alias or an environment variable - clear from the context.)
 
 i)    addAlias(<NAME>,<Value>) : Defines a function or an alias.
@@ -228,7 +228,7 @@ v)   ${UPS_PROD_VERSION} : The product version
 vi)  ${UPS_UPS_DIR} : The ups directory of the product (distinct from the directory
      in the database - this is often where the table file will be stored).
 
-5. EvilUPS : Further Notes
+5. EUPS : Further Notes
 
 evilinstall help :: (The following is the documentation for evilinstall,
 copied from the header)
@@ -273,15 +273,15 @@ copied from the header)
 #------------------------------------------------------------------------------
 
 
-a) Locating table files : EvilUPS first checks for a table file in 
+a) Locating table files : EUPS first checks for a table file in 
 $PRODUCTS/<product>/ - if it doesn't find it there, it looks for it in the ups
 directory of the product, as specified in the version file.
 
-b) evilinstall : A version of EvilUPS is in etc/
+b) evilinstall : A version of EUPS is in etc/
 
 c) Test suite (currently tested on): 
 	evilinstall foobar cvs
 	Ran frames manually
 
-d) EvilUPS now properly (I believe) deals with flavours ANY and NULL.
+d) EUPS now properly (I believe) deals with flavors ANY and NULL.
 

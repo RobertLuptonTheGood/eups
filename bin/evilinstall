@@ -33,7 +33,7 @@
 # D. Schlegel & N. Padmanabhan, Princeton, 29 January 2003
 #------------------------------------------------------------------------------
 
-# Set the shell variable, which is needed for all EvilUPS commands.
+# Set the shell variable, which is needed for all EUPS commands.
 export SHELL=/bin/bash
 
 # Demand that both a product and version name are on the command line,
@@ -52,11 +52,11 @@ if [ $PRODVERS  != "cvs" ] && [ `echo $PRODVERS | awk '{print substr($1,1,1)}'` 
    exit
 fi
 
-# Source EvilUPS setup
-echo "Setting up EvilUPS....."
+# Source EUPS setup
+echo "Setting up EUPS....."
 if [ -z $EUPS_DIR ]; then
     echo 
-    echo "ABORT: EvilUPS not set up - either set it up, or set EUPS_DIR manually."
+    echo "ABORT: EUPS not set up - either set it up, or set EUPS_DIR manually."
     exit
 fi
 source $EUPS_DIR/bin/setups.sh
@@ -287,7 +287,7 @@ fi
 
 #------------------------------------------------------------------------------
 # Declare this version and make it current.
-# No need to do an undeclare first since it is automatic with EvilUPS .
+# No need to do an undeclare first since it is automatic with EUPS .
 
 eups_declare -f $DECLAREFLAVOR $TABLEPARAM \
  -r $INSTALLFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS

@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 #
-#A simple install script for EvilUPS
+#A simple install script for EUPS
 #
 # Nikhil Padmanabhan
 # Princeton, 1.25.2003
-#EvilUPS : A Unix Versioning System
+#EUPS : A Unix Versioning System
 #Copyright (C) 2003 Nikhil Padmanabhan
 
 #    This program is free software; you can redistribute it and/or
@@ -25,7 +25,7 @@
 
 use File::Spec::Functions;
 
-$syntax = "install <evilups dir> <prod_dir_prefix> <product database>\n";
+$syntax = "install <eups dir> <prod_dir_prefix> <product database>\n";
 
 $eupsdir = $ARGV[0];
 $prefix = $ARGV[1];
@@ -35,14 +35,14 @@ die "$syntax" if ($eupsdir eq "");
 die "$syntax" if ($prefix eq "");
 die "$syntax" if ($db eq "");
 
-print "EvilUPS - Nikhil Padmanabhan\n";
-print "Installing:\n";
-print "EvilUPS directory  : $eupsdir\n";
-print "EvilUPS database   : $db\n";
-print "Products location  : $prefix\n";
+print "Installing EUPS:\n";
+print "EUPS directory:      $eupsdir\n";
+print "EUPS database:       $db\n";
+print "Products location:   $prefix\n";
 
-print "This will start in 30 seconds.........\n";
-sleep 30;
+$sleep = 5;
+print "This will start in $sleep seconds.........\n";
+sleep $sleep;
 
 print "Writing a csh startup script\n";
 open FILE, ">setups.csh" or die "Unable to open setups.csh";
@@ -51,7 +51,7 @@ print FILE "setenv PROD_DIR_PREFIX $prefix\n";
 print FILE "setenv PRODUCTS $db\n";
 $bindir = catfile($eupsdir,"bin");
 print FILE "setenv PATH $bindir:\$PATH\n";
-$binname = catfile($eupsdir,"bin","evilsetup");
+$binname = catfile($eupsdir,"bin","eups_setup");
 print FILE "alias setup \'source \`$binname setup \\!*\`\'\n";
 print FILE "alias unsetup \'source \`$binname unsetup \\!*\`\'\n";
 close FILE;
@@ -66,5 +66,4 @@ print FILE "function setup { source \`$binname setup \$\@\`; }\n";
 print FILE "function unsetup { source \`$binname unsetup \$\@\`; }\n";
 close FILE;
 
-exit;
-
+exit 0;

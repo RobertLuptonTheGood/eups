@@ -5,10 +5,9 @@
 
 SHELL = /bin/sh
 
-SUBDIRS = bin etc examples
+SUBDIRS = bin doc examples
 
 install :
-	@echo ""
 	@if [ "$(EUPS_DIR)" = "" ]; then \
 		echo You have not specified a destination directory EUPS_DIR >&2; \
 		exit 1; \
@@ -23,13 +22,13 @@ install :
 	fi
 	@if [ -d $(EUPS_DIR) ]; then \
 		echo The destination directory already exists for EUPS_DIR=$(EUPS_DIR). >&2; \
-		echo Please remove any old installation of EvilUPS there first. >&2; \
+		echo Please remove any old installation of EUPS there first. >&2; \
 		exit 1; \
 	fi 
-	@echo ""
+
 	@echo "You will be installing in \$$EUPS_DIR=$$EUPS_DIR"
 	@echo "I'll give you 5 seconds to think about it"
-	@echo sleep 5
+	@sleep 5
 	@echo ""
 	@ mkdir -p $(EUPS_DIR)
 	@ mkdir -p $(PROD_DIR_PREFIX)
@@ -41,7 +40,7 @@ install :
 	- cp README $(EUPS_DIR)
 	- cp Release_Notes $(EUPS_DIR)
 	- cp gpl.txt $(EUPS_DIR)
-	@echo "Remember to source setups.[c]sh before using!"
+	@echo "Remember to source $(EUPS_DIR)/bin/setups.[c]sh"
 clean :
 	- /bin/rm -f *~ core
 	@ for f in $(SUBDIRS); do \

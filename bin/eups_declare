@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# The evil implementation of ups declare.
+# Our reimplementation of ups declare.
 #
 # Note that this is designed _only_ to
 # work with products declared with eups_declare.
@@ -17,7 +17,7 @@
 #
 # Nikhil Padmanabhan, Princeton
 # January 23rd, 2003
-#EvilUPS : A Unix Versioning System
+#EUPS : A Unix Versioning System
 #Copyright (C) 2003 Nikhil Padmanabhan
 
 #    This program is free software; you can redistribute it and/or
@@ -176,11 +176,11 @@ if (-e $fn) {
     open FILE, ">$fn" or die "Error writing $fn\n";
     print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
 #Now enter in all groups that don't match the flavor
-    $flavour = fix_special($flavor);
-    $pattern = "FLAVOR *= *$flavour( |\n)";
+    $flavor = fix_special($flavor);
+    $pattern = "FLAVOR *= *$flavor( |\n)";
     $matched = 0;
     for ($i = 0; ($i<@group);$i++) {
-# Both the flavour and the version must match
+# Both the flavor and the version must match
 	if (($group[$i] =~ m/$pattern/gsi)) {
 	    $matched = 1;
 	    print FILE "FLAVOR = $flavor\n";
@@ -194,7 +194,7 @@ if (-e $fn) {
 	    print FILE "$group[$i]\n$sep\n";
 	}
     }
-# Suppose the flavour was never declared...?
+# Suppose the flavor was never declared...?
     if ($matched == 0) {
 	print FILE "FLAVOR = $flavor\n";
 	print FILE "VERSION = $vers\n";

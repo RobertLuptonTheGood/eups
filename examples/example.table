@@ -1,15 +1,15 @@
 # An example table file
 
-# Header, not used by EvilUPS
+# Header, not used by EUPS
 File=Table
 Product=example # Product name
 
 # The group definition below groups together a 
-# series of common actions for a series of flavours
+# series of common actions for a series of flavors
 #*************************************************
 # Starting Group definition
 Group:
-# The flavours...
+# The flavors...
 Flavor=Linux
 Qualifiers=""
 Flavor=OSX
@@ -17,7 +17,7 @@ Qualifiers=""
 
 # The common actions
 Common:
-   Action=setup # The action keyword not used by EvilUPS, but is supported by UPS
+   Action=setup # The action keyword not used by EUPS, but is supported by UPS
 # Some commands
       setupRequired("-f ${UPS_PROD_FLAVOR} tclx v7_4adf")
       proddir()
