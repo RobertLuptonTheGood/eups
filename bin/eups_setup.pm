@@ -297,7 +297,8 @@ setupenv => \&envSet,
     $qaz = $prod;
     $qaz =~ tr/[a-z]/[A-Z]/;
     $arg[0] = "SETUP_$qaz";
-    $arg[1] = "$prod $vers -f $flavor -z $db";
+    #$arg[1] = "$prod $vers -f $flavor -z $db";
+    $arg[1] = "$prod $vers -f $flavor -Z $ENV{PROD_DIR_PREFIX}";
     if ($fwd == 0) {
 	$switchback{$comm}->(@arg);
     } else {
@@ -740,7 +741,7 @@ sub show_product_version
 # Parse arguments. Many are actually interpreted by eups_setup.pm
 #
 %longopts = (
-	     '--database',	'-z',
+	     '--database',	'-Z',
 	     '--flavor',	'-f',
 	     '--help',		'-h',
 	     '--root',		'-r',
@@ -760,8 +761,8 @@ sub eups_parse_argv
       
       $ropt = $opt = $ARGV[0]; shift @ARGV;
       
-      if (defined($$longopts{$opt})) {
-	 $opt = $$longopts{$opt};
+      if (defined($longopts{$opt})) {
+	 $opt = $longopts{$opt};
       }
       
       if ($opt eq "-h") {
