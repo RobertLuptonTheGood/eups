@@ -87,8 +87,8 @@ $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
 
 $prod = join " ", @ARGV;
-if ($prod =~ m/ \-v /) {
-    $prod =~ s/ \-v //;
+if ($prod =~ m/\-v /) {
+    $prod =~ s/\-v //;
     $debug = 1;
     $ENV{"EUPS_DEBUG"} = 1;
 }

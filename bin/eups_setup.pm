@@ -310,7 +310,7 @@ if ($prodprefix eq "") {
 
 # Need to extract the parameters carefully
 my ($args,$outfile) = @_;
-$args =~ s/ \-[a-zA-Z]  *[^ ]+//g;
+$args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
 $prod = $args[0];
 if ($prod eq "") {
@@ -394,7 +394,7 @@ if ($prodprefix eq "") {
 # Need to extract the parameters carefully
 my ($args,$outfile) = @_;
 my $qaz = $args;
-$args =~ s/ \-[a-zA-Z]  *[^ ]+//g;
+$args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
 $prod = $args[0];
 # Extract version info if any
@@ -408,7 +408,7 @@ if ($prod eq "") {
 
 #Determine flavour - first see if specified on command line
 #else get it from the environment EUPS_FLAVOR
-($flavor) = $qaz =~ m/ \-f  *([^ ]+)/;
+($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
 $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
 if ($flavor eq "") {
     print STDERR "ERROR : No flavor specified, Use -f or set EUPS_FLAVOR\n";
@@ -417,7 +417,7 @@ if ($flavor eq "") {
 }
 
 #Determine database - or get it from environment PRODUCTS
-($db) = $qaz =~ m/ \-z  *([^ ]+)/;
+($db) = $qaz =~ m/\-z  *([^ ]+)/;
 $db = $ENV{"PRODUCTS"} if ($db eq "");
 if ($db eq "") {
     print STDERR "ERROR : No database specified, Use -z or set PRODUCTS\n";
@@ -432,9 +432,9 @@ print STDERR "Setting up : $prod   " if ($debug == 1);
 $table_file = "";
 $prod_dir = "";
 $ups_dir = "";
-($prod_dir) = $qaz =~ m/ \-r  *([^ ]+)/;
+($prod_dir) = $qaz =~ m/\-r  *([^ ]+)/;
 # Table files no longer used.
-#($table_file) = $qaz =~ m/ \-m  *([^ ]+)/;
+#($table_file) = $qaz =~ m/\-m  *([^ ]+)/;
 if (!($prod_dir eq "")) {
     $table_file = "$prod.table";
     $table_file = catfile("ups",$table_file);
