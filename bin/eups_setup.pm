@@ -36,8 +36,11 @@ sub fix_special {
 
 
 sub addAlias {
+    use File::Basename;
     our $outfile;
-    my $shell = $ENV{"EUPS_SHELL"};
+    my $shell = basename($ENV{"SHELL"});
+    $shell = "sh" if ($shell eq "bash");
+    $shell = "csh" if ($shell eq "tcsh");
     my $name = $_[0];
     my $value = $_[1];
     if ($shell eq "csh") { 
@@ -49,8 +52,11 @@ sub addAlias {
 }
 
 sub unAlias {
+    use File::Basename;
     our $outfile;
-    my $shell = $ENV{"EUPS_SHELL"};
+    my $shell = basename($ENV{"SHELL"});
+    $shell = "sh" if ($shell eq "bash");
+    $shell = "csh" if ($shell eq "tcsh");
     my $name = $_[0];
     if ($shell eq "csh") {
         print $outfile "unalias $name\n";
@@ -474,8 +480,7 @@ if ($db eq "") {
 #determine it from current.chain
 #Also construct the full version file and check if it exists.
 if ($vers eq "") {
-    $fn = catfile($db,$prod);
-    $fn = catfile($fn,"current.chain");
+    $fn = catfile($db,$prod,"current.chain");
     if (!(-e $fn)) {
 	print STDERR "ERROR : No version or current.chain\n";
 	$retval = -1;
@@ -512,9 +517,7 @@ if ($vers eq "") {
     }
 }
 # Now construct the filename
-$fn = "$vers.version";
-$fn = catfile($prod,$fn);
-$fn = catfile($db,$fn);
+$fn = catfile($db,$prod,"$vers.version");
 print STDERR "Version: $fn\nFlavor: $flavor\n" if ($debug == 1);
 
 # Now read in the version file and start to parse it
@@ -601,5 +604,7 @@ END:
 
 return $retval;
 }
+
+
 
 

@@ -60,8 +60,7 @@ die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
 
 # Now open the version file
-$fn = catfile($db,$prod);
-$fn = catfile($fn,"$vers.version");
+$fn = catfile($db,$prod,"$vers.version");
 die "ERROR : Cannot open version file $fn\n" if (!(open FILE, "<$fn"));
 read FILE, $versinfo, 100000;
 close FILE;
@@ -96,8 +95,7 @@ unlink $fn if ($pos == @group);
 #Now do the same to the current.chain file
 
 # Now open the version file
-$fn = catfile($db,$prod);
-$fn = catfile($fn,"current.chain");
+$fn = catfile($db,$prod,"current.chain");
 if (-e $fn ) {
 
     open FILE, "<$fn";

@@ -46,11 +46,19 @@ sub unsete {
 }
 
 sub setshell {
-    our $shell = $ENV{"EUPS_SHELL"};
+    use File::Basename;
+    our $shell = basename($ENV{"SHELL"});
+
+# Do some quick translations
+    $shell = "sh" if ($shell eq "bash");
+    $shell = "csh" if ($shell eq "tcsh");
+
+
     my $retval = 0;
     if ($shell eq "") {
 	print STDERR "ERROR : EUPS_SHELL not set\n";
 	$retval = -1;
+
     } elsif (!(($shell eq "sh")||($shell eq "csh"))) {
 	print STDERR "ERROR : Unknown shell $shell\n";
 	$retval = -1;

@@ -75,8 +75,7 @@ $vers = $arg[1];
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
 
-$fn = catfile($db,$prod);
-$fn = catfile($fn,"$vers.version");
+$fn = catfile($db,$prod,"$vers.version");
 if (-e $fn) {
     $comm = "eups_undeclare -f $flavor $prod $vers";
     system($comm);
@@ -119,8 +118,7 @@ close FILE;
 goto END if (!($iscurrent));
 
 # Now fix the current chain 
-$fn = catfile($db,$prod);
-$fn = catfile($fn,"current.chain");
+$fn = catfile($db,$prod,"current.chain");
 
 # Two cases - if the current chain doesn't exist create it
 # otherwise go through the file, update a record if necessary
