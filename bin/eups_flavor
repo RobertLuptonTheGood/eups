@@ -52,11 +52,11 @@ die "ERROR: Missing FLAVOR information in $str\n" if ($flavor eq "");
 ($temp,$db,$temp2) = split " ",$opts[0];
 die "ERROR: Missing DATABASE information in $str\n" if ($db eq "");
 
-$fn = catfile($db,$prod2,"$vers.version");
-die "ERROR : Can't find appropriate version file $fn\n" if (!(-e $fn));
+#$fn = catfile($db,$prod2,"$vers.version");
+#die "ERROR : Can't find appropriate version file $fn\n" if (!(-e $fn));
 
 print "$vers";
-print " $flavor $fn $db" if ($all == 1);
+print " $flavor $db" if ($all == 1);
 print "\n";
 
 exit;

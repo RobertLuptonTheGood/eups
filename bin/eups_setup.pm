@@ -327,69 +327,28 @@ if ($out eq "") {
    goto END;
 }
 # Parse the output for the flavor and version file
-($vers,$flavor,$fn,$db,$temp) = split " ",$out;
+($vers,$flavor,$db,$temp) = split " ",$out;
 
 print STDERR "Unsetting up : $prod  " if ($debug == 1);
 print STDERR "Version: $fn\nFlavor: $flavor\n" if ($debug == 1);
 
-# Now read in the version file and start to parse it
-open FILE,"<$fn";
-read FILE,$versinfo,1000000;
-close FILE;
-# Now strip out all comments
-$versinfo =~ s/\#.*\n//g;
-# Extract the groups - either defined by group-end or between two flavours
-@groups = $versinfo =~ m/group:(.+?)end:/gsi;
-$versinfo =~ s/group:(.+?)end://gsi;
-$versinfo =~ s/flavor/##FLAVOR/gsi;
-@groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
-# Match the last flavor
-@groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
-@group = (@groups,@groups2,@groups3);
+# The version file reading code used to go here.
+# This has been removed since it is no longer used.
+# The software assumes that the file is in a ups directory.
 
-#Now find the appropriate group
-$pos = -1;
-$flavour = fix_special($flavor);
-$pattern = "FLAVOR *= *$flavour( |\n)";
-my $pattern2 = "FLAVOR *= *ANY( |\n)";
-my $pattern3 = "FLAVOR *= *NULL( |\n)";
-for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-  $pos = $i if ($group[$i] =~ m/$pattern/gsi); 
-  $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-  $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
-}
-if ($pos == -1) {
-    print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug == 1);
-    $retval = -1;
+my $capprod = $prod;
+$capprod =~ tr/[a-z]/[A-Z]/;
+$capprod = "$capprod_DIR";
+$prod_dir = $ENV{"$capprod"};
+if ($prod_dir eq "") {
+    print STDERR "ERROR: Environment variable $capprod not set\n" if ($debug == 1);
+    $retval=-1;
     goto END;
 }
+$ups_dir = catfile($prod_dir,"ups");
+$table_file = "$prod.table";
+$table_file = catfile($ups_dir,$table_file);
 
-# Now extract the prod_dir, ups_dir, table_dir and table_file
-($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
-($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
-($table_dir) = $group[$pos] =~ m/TABLE_DIR *= *({^ ,.}+?) *\n/i;
-($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-# Check for a few things 
-$table_file = "$vers.table" if ($table_file eq "");
-$table_dir = dirname($fn) if ($table_dir eq "");
-$table_file = catfile($table_dir,$table_file);
-# Does the product directory have an environment variable set in it
-@env = $prod_dir =~ m/\$\{(.+?)\}/g;
-for ($i = 0; $i < @env; $i++) {
-    $val = $ENV{"$env[$i]"};
-    $prod_dir =~ s/\$\{$env[$i]\}/$val/g;
-}
-if (!($prod_dir =~ m"^/")) {
-    $prod_dir = catfile($prodprefix,$prod_dir);
-}
-if (!($ups_dir =~ m"^/")) {
-    $ups_dir = catfile($prod_dir,$ups_dir);
-}
-#If the table file is not in the directory, search in new directory...
-if (!(-e $table_file)) {
-    $table_file = basename($table_file);
-    $table_file = catfile($ups_dir,$table_file);
-}
 if (!(-e $table_file)) {
   print STDERR "ERROR: Missing table file $table_file\n" if ($debug == 1);
   $retval=-1;
