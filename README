@@ -74,7 +74,7 @@ with version files that use the "Group: End:" construct.
 
 c) eups_declare:
 
-Syntax : eups_declare [-f <flavor>] [-c] [-m <tablefile>] -r <product root directory> <product> <version>
+Syntax : eups_declare [-f <flavor>] [-c/C] [-m <tablefile>] -r <product root directory> <product> <version>
 
 Declares <version> of <product> into the database defined by $PRODUCTS.
 The product root directory is where the product has been installed, and can either be an absolute pathname
@@ -82,6 +82,9 @@ or specified relative to $PROD_DIR_PREFIX. The flavour is defined by $EUPS_FLAVO
 the -f option is used. The -c option also declares this version to be current for the flavour, while 
 the -m option specifies the table file to be used (either in the database, or in the ups directory of 
 the product).
+
+If you specify -C, then it leaves the currently declared version alone, and only updates 
+the current.chain.
 
 d) evilsetup :
 

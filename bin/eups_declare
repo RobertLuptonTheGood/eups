@@ -59,9 +59,11 @@ die "ERROR: No flavor specified\n" if ($flavor eq "");
 ($prodroot) = $arg =~ m/\-r *([^ ]+)/;
 die "ERROR: No product directory specified\n" if ($prodroot eq "");
 
-# Do we make this current?
+# Do we make this current - and update?
 $iscurrent = $arg =~ m/\-c/;
 $arg =~ s/\-c//;
+$onlycurrent = $arg =~ m/\-C/;
+$arg =~ s/\-C//;
 
 # Is there a table file?
 $istable = $arg =~ m/\-m/;
@@ -74,6 +76,8 @@ $vers = $arg[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
+
+goto CURRENT if ($onlycurrent);
 
 $fn = catfile($db,$prod,"$vers.version");
 if (-e $fn) {
@@ -118,6 +122,7 @@ close FILE;
 goto END if (!($iscurrent));
 
 # Now fix the current chain 
+CURRENT:
 $fn = catfile($db,$prod,"current.chain");
 
 # Two cases - if the current chain doesn't exist create it
