@@ -53,3 +53,7 @@ Thu Jul 22 11:27:49 EDT 2004
 Wed Sep  1 18:12:18 EDT 2004
     cvs rtag v0_7_8 eups
     Support "eups_declare -c -f Flavor prod vX_Y" (i.e. no -r ROOT)
+
+Wed Sep  1 18:28:18 EDT 2004
+    cvs rtag v0_7_9 eups
+    Don't warn if we try to unsetup a subproduct twice (or more) while setting up a product
