@@ -27,7 +27,7 @@ package eups_setup;
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw(eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options);
+our @EXPORT = qw(eups_list eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options);
 our $VERSION = 1.1;
 
 #Subroutines follow
@@ -306,7 +306,6 @@ setupenv => \&envSet,
     $qaz = $prod;
     $qaz =~ tr/[a-z]/[A-Z]/;
     $arg[0] = "SETUP_$qaz";
-    #$arg[1] = "$prod $vers -f $flavor -z $db";
     $arg[1] = "$prod $vers -f $flavor -Z $ENV{PROD_DIR_PREFIX}";
     if ($fwd == 0) {
 	$switchback{$comm}->(@arg);
@@ -596,6 +595,68 @@ return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$
 }
 
 ###############################################################################
+
+sub eups_list {
+
+   use File::Spec::Functions;
+   use File::Basename;
+
+#Some more environment variables
+   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   if ($prodprefix eq "") {
+      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      return -1;
+   }
+
+# Need to extract the parameters carefully
+   local ($args,$outfile,$debug,$quiet) = @_;
+
+   my $qaz = $args;
+   $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
+   @args = split " ",$args;
+   $prod = $args[0];
+   if ($prod eq "") {
+      print STDERR  "ERROR: Product not specified\n";
+      return -1;
+   }
+
+#Determine flavor - first see if specified on command line
+#else get it from the environment EUPS_FLAVOR
+
+   ($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
+   $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
+   if ($flavor eq "") {
+      print STDERR "ERROR: No flavor specified, Use -f or set EUPS_FLAVOR\n";
+      return -1;			# 
+   }					# 
+
+#Determine database - or get it from environment PRODUCTS
+#We want this to propagate to subproducts
+   my $db = "";
+   my $db_old = "";
+   ($db) = $qaz =~ m/\-z  *([^ ]+)/;
+   if ($db eq "") {
+      $db = eups_find_products();
+   } else {
+      $db_old = eups_find_products();
+      $ENV{"PRODUCTS"} = $db;
+   }
+
+   if ($db eq "") {
+      print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
+      return -1;
+   }
+
+# Now check to see if product directory is specified.
+# If so, extract and immediately start, else complain 
+   foreach $file (glob(catfile($db,$prod,"*.version"))) {
+      $file = basename($file);
+      ($vers = $file) =~ s/\.version$//;
+      warn "   $vers\n";
+   }
+}
+
+###############################################################################
 #
 # Read and parse current.chain file
 #
@@ -784,8 +845,6 @@ sub eups_parse_argv
 	 
 	 if ($opt eq "-v") {
 	    $ENV{"EUPS_DEBUG"}++;
-	 } elsif ($opt eq "-n") {
-	    $opts{$opt} = 1;
 	 } elsif ($opt eq "-V") {
 	    my($version) = &get_version();
 	    warn "Version: $version\n";
@@ -796,10 +855,10 @@ sub eups_parse_argv
 	       $ENV{"PRODUCTS"} = $ENV{"PROD_DIR_PREFIX"} . "/ups_db";
 	    }
 	 } else {
-	    push(@$args, $opt);
-
-	    if ($$opts{$opt}) {	# push argument too
+	    if ($$opts{$opt}) {	# push argument
+	       push(@$args, $opt);
 	       push(@$args, $val);
+	       
 	       $opts{$opt} = $val;
 	    } else {
 	       $opts{$opt} = 1;
@@ -843,6 +902,7 @@ sub eups_show_options
        -c => "Declare this product current",
        -C => "Make this version current",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
+       -l => "List available versions",
        -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
        -r => "Location of product being declared",

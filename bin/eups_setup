@@ -94,7 +94,7 @@ import eups_setup;
 #
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
-$opts = {-f => 1, -n => 0, -r => 1,
+$opts = {-f => 1, -l => 0, -n => 0, -r => 1,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -108,6 +108,10 @@ if ($options eq "-h") {
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
 $noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
+if (defined($$options{-l})) {
+   $noaction = 1;
+   $op = "list";
+}
 
 if (!defined($words[0])) {
    warn "Please specify a product\n";
@@ -140,10 +144,7 @@ print STDERR "eups -- using shell : $shell\n" if ($debug > 2);
 $select = $args[0];
 $args[0] = "";
 $comm = join " ",@args;
-if (!(($select eq "setup")||($select eq "unsetup"))) {
-    print STDERR "ERROR: Unknown command \"$select\" to eups_setup (not setup/unsetup)\n";
-    goto CLEAN;
-}
+
 # Die if EUPS_FLAVOR is not set and -f not used... this is so that
 # a major failure mode gets a decent error message.
 if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{-f}))) {
@@ -157,20 +158,24 @@ if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{-f}))
 
 # Call either setup or unsetup
 
-if ($select eq "setup") {
+if ($select eq "list") {
+    eups_list($comm,$debug,0);
+} elsif ($select eq "setup") {
     $retval = eups_setup($comm,$tmpfile,$debug,0);
     if ($retval < 0) {
 	eups_unsetup($comm,$tmpfile,$debug,1);
 	print STDERR "FATAL ERROR: setup failed\n";
 	goto CLEAN;
     }
-}
-if ($select eq "unsetup") {
+} elsif ($select eq "unsetup") {
     $retval = eups_unsetup($comm,$tmpfile,$debug,0);
     if ($retval < 0) {
 	print STDERR "FATAL ERROR: unsetup failed\n";
 	goto CLEAN;
     }
+} else {
+    print STDERR "ERROR: Unknown command \"$select\" to eups_setup\n";
+    goto CLEAN;
 }
 
 #Check to see and update the environment 
