@@ -329,11 +329,11 @@ setupenv => \&envSet,
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv") {
-	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 2);
+	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
             next;
 	}
 	if ($comm eq "proddir") {
-            print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 2);
+            print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
             next;
 	}
 	if (($comm eq "setuprequired")&&($fwd==0)) {
