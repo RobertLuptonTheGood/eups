@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 Perl implementation of UPS, evilups.)
 
 Nikhil Padmanabhan
+npadmana@princeton.edu
 Princeton, Jan 23rd, 2003 
 
 Note that this package is distributed free of cost, and the user is 

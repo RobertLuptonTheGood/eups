@@ -22,7 +22,13 @@ and David Schlegel for testing the code out, and finding
 all the various problems with it.)
 
 v0_2 : 
-        -- Added the GNU Public License.
+        -- Fixed bug with setup - now correctly unsets previous setups.
+ 
+        -- -z now propagates the database to all dependencies.
+
+        -- Shifted the perl location to /usr/bin/perl from /usr/local/bin/perl
+ 
+        -- Added the GNU General Public License (gpl.txt).
 
 	-- Table files are now forced to be in the ups/ subdirectory of the 
 	product directory, and have to have the name $PRODUCT.table. The -m
