@@ -45,6 +45,18 @@ sub envInterpolate {
     return $in;
 }
 
+sub cleanArg {
+# Cleans out quotes and leading spaces
+    my $pval = $_[0]
+# $pval might have leading spaces - remove these
+    my ($val) = $pval =~ m/ *([^ ].*)/;
+# Maybe $val is quoted
+    if ($val =~ m/".*"/) {
+        ($pval) = $val =~ m/"(.*)"/;
+        $val = $pval;
+    }
+    return $val;
+}
 
 sub addAlias {
     use File::Basename;
@@ -81,17 +93,8 @@ sub unAlias {
 sub envAppend {
     our $outfile;
     my $var = $_[0];
-    my $pval = $_[1];
-
-# $pval might have leading spaces - remove these
-    my ($val) = $pval =~ m/ *([^ ].*)/;
-# Maybe $val is quoted
-    if ($val =~ m/".*"/) {
-        ($pval) = $val =~ m/"(.*)"/;
-        $val = $pval;
-    }
-
-    my $delim = $_[2];
+    my $val = cleanArg($_[1]);
+    my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
     $curval = $ENV{$var};
     $curval = "$curval$delim$val";
@@ -101,17 +104,8 @@ sub envAppend {
 sub envPrepend {
     our $outfile;
     my $var = $_[0];
-    my $pval = $_[1];
-
-# $pval might have leading spaces - remove these
-    my ($val) = $pval =~ m/ *([^ ].*)/;
-# Maybe $val is quoted
-    if ($val =~ m/".*"/) {
-        ($pval) = $val =~ m/"(.*)"/;
-        $val = $pval;
-    }
-
-    my $delim = $_[2];
+    my $val = cleanArg($_[1]);
+    my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
     $curval = $ENV{$var};
     $curval = "$val$delim$curval";
@@ -120,15 +114,7 @@ sub envPrepend {
 
 sub envSet {
     my $var = $_[0];
-    my $pval = $_[1];
-
-# $pval might have leading spaces - remove these
-    my ($val) = $pval =~ m/ *([^ ].*)/;
-# Maybe $val is quoted
-    if ($val =~ m/".*"/) {
-        ($pval) = $val =~ m/"(.*)"/;
-        $val = $pval;
-    }
+    my $val = cleanArg($_[1]);
 
     $ENV{$var} = envInterpolate($val);
 }
@@ -137,17 +123,9 @@ sub envRemove {
     my $var = $_[0];
     my $pval = $_[1];
     $pval = envInterpolate($pval);
-
-# $pval might have leading spaces - remove these
-    my ($val) = $pval =~ m/ *([^ ].*)/;
-# Maybe $val is quoted
-    if ($val =~ m/".*"/) {
-	($pval) = $val =~ m/"(.*)"/;
-	$val = $pval;
-    }
-
+    my $val = cleanArg($_[1]);
+    my $delim = cleanArg($_[2]);
     my $sval = fix_special($val);
-    my $delim = $_[2];
     $delim = ":" if ($delim eq "");
     my $sdelim = fix_special($delim);
     $curval = $ENV{$var};
