@@ -14,4 +14,6 @@ v0_2 :
 
 	-- The Makefile has been changed to be Solaris compliant.
 
+	-- Fixed a bug with pathPrepend in the table file reader.
+
 v0_1 : First released version
