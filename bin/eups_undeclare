@@ -60,31 +60,42 @@ import eups_setup;
 
 use File::Spec::Functions;
 
+# Get the command line parameters
+$opts = {-f => 1, -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
+
+my $options = eups_parse_argv($opts, \@args, \@words);
+# 
+if ($options eq "-h") {
+   usage();
+   exit(0);
+} elsif ($options < 0) {
+   exit(1);
+}
+#
+# Process those arguments
+#
 # Is the product database specified in $PRODUCTS
+$debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug eq "");
+
 $db = eups_find_products();
 if (!$db) {
    die "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
 }
 $ENV{"PRODUCTS"} = $db;
 
-# Get the command line parameters
-$opts = {-f => 1, -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
-
-my $ret = eups_parse_argv($opts, \@args, \@words);
-# 
-if ($ret eq "-h") {
-   usage();
-   exit(0);
-} elsif ($ret < 0) {
-   exit(1);
+if (defined($$options{-f})) {
+   $flavor = $$options{-f}
+} elsif (defined($ENV{"EUPS_FLAVOR"})) {
+   $flavor = $ENV{"EUPS_FLAVOR"};
 }
+die "ERROR: No flavor specified\n" if ($flavor eq "");
 
 $prod = $words[0];
 $vers = $words[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
-
 
 # Now open the version file
 $fn = catfile($db,$prod,"$vers.version");
