@@ -20,6 +20,13 @@ These are the Release Notes for EvilUPS
 (Thanks to Mike Blanton, Doug Finkbeiner, Robert Lupton
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
+
+	-- Evilinstall now no longer calls sdssmake with the -idl flag.
+
+	-- The toplevel Makefile now copies over the GPL license and the 
+	   Release_Notes
+
+
 v0_3 : 
     
 	-- The Makefile now creates the $(PRODUCTS) (where the database is)
