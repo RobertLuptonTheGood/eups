@@ -320,9 +320,21 @@ setupenv => \&envSet,
     else {
 	$switchfwd{$comm}->(@arg);
     }
+    #
+    # Split the table file into lines
+    #
+    my @lines = split "\n",$group;
+
+    # If we're unsetting up, expand any remaining variables;
+    # they may become undefined as we unsetup products
+    if (!$fwd) {
+       my($line);
+       foreach $line (@lines) {
+	  $line = envInterpolate($line);
+       }
+    }
 
 # Now loop over the remaining commands
-    my @lines = split "\n",$group;
     for ($i = 0;$i<@lines;$i++) {
 	next if (!($lines[$i] =~ m/[a-z]+\(.*\)/i));
 	($comm,$arg)=$lines[$i] =~ m/([a-z]+)\((.*)\)/i;
@@ -438,7 +450,7 @@ $ups_dir = catfile($prod_dir,"ups");
 
 # Now construct the version file's name, then read and parse it
 if ($vers eq "") {		# unknown version, so look in $ups_dir
-   $table_file = catfile($ups_dir, "$prod.version");
+   $table_file = catfile($ups_dir, "$prod.table");
    if (! -e $table_file) {
       $table_file = "none";
    }
