@@ -44,9 +44,8 @@ set certain functions/aliases and environment variables.
 b) Normal Usage (at login for example) :
 
 If EvilUPS is installed under $EUPS_ROOT, source $EUPS_ROOT/EvilUPS/bin/setups.[c]sh 
-depending on your shell. This is _NOT_ essential to do, if you are willing to 
+depending on your shell. This is _NOT_ essential to do, _if_ you are willing to 
 set up all your environment variables by hand.
-
 
 2. EvilUPS : Basic Commands
 
@@ -137,13 +136,68 @@ set this variable.
 
 4. EvilUPS : The Database
 
-This section briefly describes the structure of the UPS database.
+a)
+This section briefly describes the structure of the UPS database. The UPS database
+consists of a directory $PRODUCTS, with a subdirectory for each declared product.
+Each of these product directories contain a series of product definitions, specified
+by three types of files.
 
-(to be written)
+i) current.chain : There is only one (if any) of these per directory - the current.chain
+file specifies the current version for a given flavour, and is what is used as the default
+if the version is not specified.
+
+An example of a current.chain file is in the examples directory.
+
+ii) Version files : There is one of these for every declared version of the product, named
+<version>.version. The file specifies basic information about the version of the product, 
+including where it is installed etc. An example is in the examples directory as example.version
+
+iii) Table files : These specify the dependencies of the product. The default name for these
+is <version>.table although a specific name can be specified in the version file. An example 
+table file is in the examples directory as example.table.
+
+Table files use a series of commands to specify the dependencies. These are discussed in the next
+subsection.
+
+NOTE: See Section 5 for a note on the search algorithm that EvilUPS uses for 
+locating table files.
+
+b) UPS commands :
+
+The following UPS commands are supported by EvilUPS : (<NAME> either specifies an alias 
+or an environment variable - clear from the context.)
+
+i) addAlias(<NAME>,<Value>) : Defines a function or an alias.
+ii) envAppend(<NAME>,<Value>,[<delimiter>]) : Appends <Value> to <NAME>. The default delimiter is ":".
+iii) envPrepend(<NAME>,<Value>,[<delimiter>]) : Similar to envAppend
+iv) envRemove(<NAME>,<Value>,[<delimiter>]) : Removes <Value> from <NAME>. Otherwise similar to envAppend
+v) envSet(<NAME>,<Value>) : Set <NAME> to <Value>
+vi) envUnset(<NAME>) : Unsets <NAME>
+vii) pathAppend, pathPrepend, pathRemove, pathSet - Functionally equivalent to the env commands - provided
+	for compatibility
+viii) prodDir() : Sets <PRODUCT>_DIR to the directory where the product is installed.
+ix) setupEnv() : Sets SETUP_<PRODUCT> so that product can be unsetup.
+x) setupRequired(<args>) : Run setup with arguments args. Fail if unable to setup.
+xi) setupOptional(<args>) : Same as setupRequired except that it does not fail if unable to setup.
+
+c) Variables : The values to these UPS commands can be variables. All environment variables
+can be used as ${<ENV_VARIABLE>}. In addition, the following special variables are defined....
+
+i) ${PRODUCTS} : The database
+ii) ${UPS_PROD_DIR} : Where the product is installed.
+iii) ${UPS_PROD_FLAVOR} : The product flavor.
+iv) ${UPS_PROD_NAME} : The product name
+v) ${UPS_PROD_VERSION} : The product version
+vi) ${UPS_UPS_DIR} : The ups directory of the product (distinct from the directory in the 
+database - this is often where the table file will be stored).
 
 5. EvilUPS : Further Notes
 
-(None yet.)
+a) Locating table files : EvilUPS first checks for a table file in 
+$PRODUCTS/<product>/ - if it doesn't find it there, it looks for it in the ups
+directory of the product, as specified in the version file.
+
+
 
 
 

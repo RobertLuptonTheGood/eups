@@ -1,0 +1,38 @@
+# An example version file
+# The three lines below are a header, not used 
+# by EvilUPS, but are used by UPS.
+
+FILE = version 
+PRODUCT = example # The product name
+VERSION = v0_1 # The product version
+
+# The lines below form a flavour declaration
+# PROD_DIR can either be an absolute path or 
+# relative to PROD_DIR_PREFIX (environment variable).
+
+# UPS_DIR and TABLE_FILE are optional
+# UPS_DIR can either be specified absolutely or relative
+# to PROD_DIR. The default filename for TABLE_FILE is <version.table>
+
+#*************************************************
+#
+FLAVOR = Linux # What flavour ?
+QUALIFIERS = "" # Not used by EvilUPS, but supported for UPS
+  DECLARER = products 
+  DECLARED = 2000-03-02 09.04.37 GMT
+  MODIFIER = products
+  MODIFIED = 2000-03-02 09.04.37 GMT
+  PROD_DIR = Linux/example/v0_1 # Where the product is installed 
+  UPS_DIR = ups # The UPS directory
+  TABLE_FILE = example.table # The name of the table file
+
+# You can have multiple flavour declarations
+FLAVOR = OSX # What flavour ?
+QUALIFIERS = "" # Not used by EvilUPS, but supported for UPS
+  DECLARER = products
+  DECLARED = 2000-03-02 09.04.37 GMT
+  MODIFIER = products
+  MODIFIED = 2000-03-02 09.04.37 GMT
+  PROD_DIR = OSX/example/v0_1 # Where the product is installed
+  UPS_DIR = ups # The UPS directory
+  TABLE_FILE = example.table # The name of the table file

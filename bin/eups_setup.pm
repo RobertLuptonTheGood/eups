@@ -196,6 +196,7 @@ setupenv => \&envSet,
     open FILE, "<$fn";
     read FILE, $data, 1000000;
     close FILE;
+    $data =~ s/\#.*?\n//g;
 
     my @group = $data =~ m/group:(.+?end:)/gsi;
     $pos = -1;
