@@ -178,10 +178,11 @@ sub extract_table_commands {
 	$data = "$data\nEnd:\n";
 	$data =~ s/Common:[ \n]*\nEnd://gsi;
 	@group = $data =~ m/(flavor.*?\nend:\n)/gsi;
-	if ($group == 0) {
+	if (scalar(@group) == 0) {
 	   @group = ($data);	# the entire file
 	}
     }
+
     $pos = -1;
     my $flavour = fix_special($flavor);
     my $pattern = "FLAVOR *= *$flavour( |\n)";
@@ -204,7 +205,7 @@ sub extract_table_commands {
 
        pos = 0;			# accept first group
     }
-    
+
     @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
     
     return $group[0];
@@ -414,7 +415,7 @@ if ($out eq "") {
 ($vers,$flavor,$db,$temp) = split " ",$out;
 
 print STDERR "Unsetting up : $prod  " if ($debug == 1);
-print STDERR "Version: $vers\nFlavor: $flavor\n" if ($debug == 1);
+print STDERR "Version: $vers\nFlavour: $flavor\n" if ($debug == 1);
 
 # The version file reading code used to go here.
 # This has been removed since it is no longer used.
@@ -490,8 +491,8 @@ if ($prod eq "") {
 
 # Attempt an unsetup
 
-my($PROD_DIR) = uc($prod) . "_DIR";
-if (defined($ENV{$PROD_DIR})) {
+my($SETUP_PROD) = "SETUP_".uc($prod);
+if (defined($ENV{$SETUP_PROD})) {
    eups_unsetup($qaz, $outfile);
 }
 
