@@ -15,7 +15,6 @@ $prefix = $ARGV[1];
 $db = $ARGV[2];
 
 die "$syntax" if ($eupsdir eq "");
-$eupsdir = catfile($eupsdir,"EvilUPS");
 die "$syntax" if ($prefix eq "");
 die "$syntax" if ($db eq "");
 
@@ -49,17 +48,6 @@ print FILE "export PATH=\"\$PATH:$bindir\"\n";
 print FILE "function setup { source \`$binname setup \$\@\`; }\n";
 print FILE "function unsetup { source \`$binname unsetup \$\@\`; }\n";
 close FILE;
-
-print "Now creating $eupsdir  ..... \n";
-system ("mkdir -p $eupsdir");
-die "ERROR : Cannot create directory $eupsdir\n" if (!(-d $eupsdir));
-
-$qaz = catfile ("..","*");
-$comm = "cp -R $qaz $eupsdir";
-print "$comm\n";
-system "$comm";
-
-print "Setup successful!\n";
 
 exit;
 
