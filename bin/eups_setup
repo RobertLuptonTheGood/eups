@@ -135,7 +135,7 @@ if ($noaction) {
 our $shell = $0;
 $retval = setshell;
 goto CLEAN if ($retval == -1);
-print STDERR "eups -- using shell : $shell\n" if ($debug > 1);
+print STDERR "eups -- using shell : $shell\n" if ($debug > 2);
 
 # Get the command line
 $select = $args[0];
@@ -167,7 +167,7 @@ if ($select eq "setup") {
     }
 }
 if ($select eq "unsetup") {
-    $retval = eups_unsetup($comm,$tmpfile,0);
+    $retval = eups_unsetup($comm,$tmpfile,$debug,0);
     if ($retval < 0) {
 	print STDERR "FATAL ERROR: unsetup failed\n";
 	goto CLEAN;
