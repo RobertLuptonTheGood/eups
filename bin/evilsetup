@@ -78,7 +78,7 @@ if ($eupsdir eq "") {
     print STDERR "ERROR: EUPS_DIR not set\n";
     goto CLEAN;
 }
-require "$eupsdir/eups_setup.pm";
+require "$eupsdir/bin/eups_setup.pm";
 import eups_setup;
 
 #Get the debug environment variable

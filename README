@@ -85,6 +85,39 @@ Note the following :
       if they are unsuccessful, then the last line will start with "FATAL ERROR".  If not, 
       then the script was successful.
 
+3. EvilUPS : Environment Variables
+
+Required variables -
+
+a) SHELL - This must be set to the shell running. This is true in general, unless you run
+a shell script, or change your shell.
+
+b) EUPS_DIR - Where EUPS_DIR is installed.
+
+c) PROD_DIR_PREFIX - The root directory under which all products are installed.
+
+d) PRODUCTS - The path to the UPS database.
+
+Optional Variables -
+
+a) EUPS_FLAVOR - Set to the default flavour.
+
+b) EUPS_DEBUG - This is a development variable, which makes evilsetup
+talk _even_ more than usual. It is STRONGLY RECOMMENDED that you not
+set this variable.
+
+4. EvilUPS : The Database
+
+This section briefly describes the structure of the UPS database.
+
+(to be written)
+
+5. EvilUPS : Further Notes
+
+(None yet.)
+
+
+
 
 
 
