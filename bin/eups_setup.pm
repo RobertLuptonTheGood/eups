@@ -171,6 +171,10 @@ sub parse_table {
     our $outfile = $_[8];
     my $data = 0;
 
+# Get debug information
+    my $debug = $ENV{"EUPS_DEBUG"};
+    $debug = 0 if ($debug eq "");
+
 # Define the return value
     my $retval = 0;
 
@@ -219,7 +223,7 @@ setupenv => \&envSet,
 # Extract the groups
     my @group = ($data =~ m/group:(.+?end:)/gsi);
     if (scalar(@group) == 0) {
-       print STDERR "FATAL ERROR : Malformed table file\n";
+       print STDERR "FATAL ERROR : Malformed table file\n" if ($debug==1);
        $retval=-1;
        return $retval;
     }
@@ -235,7 +239,7 @@ setupenv => \&envSet,
     }
     @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
     if ($pos == -1) {
-	print STDERR "FATAL ERROR : Malformed table file\n";
+	print STDERR "FATAL ERROR : Malformed table file\n" if ($debug==1);
 	$retval=-1;
 	return $retval;
     }
@@ -248,6 +252,25 @@ setupenv => \&envSet,
     $group =~ s/\$\{UPS_PROD_VERSION\}/$vers/g;
     $group =~ s/\$\{UPS_UPS_DIR\}/$upsdir/g;
     
+# Execute the proddir and setupenv commands directly
+    $comm = "setupenv";
+    $qaz = $prod;
+    $qaz =~ tr/[a-z]/[A-Z]/;
+    $arg[0] = "SETUP_$qaz";
+    $arg[1] = "$prod $vers -f $flavor -z $db";
+    if ($fwd == 0) {
+	$switchback{$comm}->(@arg);}
+    else {
+	$switchfwd{$comm}->(@arg);}
+    $arg[0] = "$qaz\_DIR";
+    $arg[1] = "$proddir";
+    $comm = "proddir";
+    if ($fwd == 0) {
+	$switchback{$comm}->(@arg);}
+    else {
+	$switchfwd{$comm}->(@arg);}
+
+# Now loop over the remaining commands
     my @lines = split "\n",$group;
     for ($i = 0;$i<@lines;$i++) {
 	next if (!($lines[$i] =~ m/[a-z]+\(.*\)/i));
@@ -255,16 +278,12 @@ setupenv => \&envSet,
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv") {
-	    $qaz = $prod;
-	    $qaz =~ tr/[a-z]/[A-Z]/;
-	    $arg[0] = "SETUP_$qaz";
-	    $arg[1] = "$prod $vers -f $flavor -z $db"; 
+	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug==1);
+            next;
 	}
 	if ($comm eq "proddir") {
-	    $qaz = $prod;
-            $qaz =~ tr/[a-z]/[A-Z]/;
-            $arg[0] = "$qaz\_DIR";
-            $arg[1] = "$proddir";
+            print STDERR "WARNING : Deprecated command $comm\n" if ($debug==1);
+            next;
 	}
 	if (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
