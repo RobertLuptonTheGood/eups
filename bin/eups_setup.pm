@@ -47,7 +47,7 @@ sub envInterpolate {
 
 sub cleanArg {
 # Cleans out quotes and leading spaces
-    my $pval = $_[0]
+    my $pval = $_[0];
 # $pval might have leading spaces - remove these
     my ($val) = $pval =~ m/ *([^ ].*)/;
 # Maybe $val is quoted
