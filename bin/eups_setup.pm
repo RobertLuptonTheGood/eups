@@ -380,218 +380,215 @@ setupenv => \&envSet,
     return $retval;
 }
 
-
-
 sub eups_unsetup {
 
-use File::Spec::Functions;
-use File::Basename;
-
-my $eups_dir = $ENV{"EUPS_DIR"};
-# We don't need error checking here since that 
-# is already done in eups_setup
-
-local $indent = $indent + 1;
-
-#Some more environment variables
-$prodprefix = $ENV{"PROD_DIR_PREFIX"};
-if ($prodprefix eq "") {
-    print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
-    return -1;
-}
-
-
-# Need to extract the parameters carefully
-local ($args,$outfile,$debug,$quiet) = @_;
-$args =~ s/\-[a-zA-Z]  *[^ ]+//g;
-@args = split " ",$args;
-my($prod) = $args[0];
-if ($prod eq "") {
-    print STDERR  "ERROR: Product not specified\nSyntax : eups_setup unsetup <product>\n";
-    return -1;
-}
-
-# Now get the information from eups_flavor
-$comm = "eups_flavor -a $prod";
-$comm = catfile($eups_dir,"bin",$comm);
-chomp($out = `$comm`);
-if ($out eq "") {
-   print STDERR "ERROR running eups_flavor : $comm\n" if ($debug > 1);
-   return -1;
-}
-# Parse the output for the flavor and version file
-my($vers,$flavor,$db) = split ":",$out;
-
-if (($debug >= 1 && !$quiet) || $debug > 1) {
-   show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
-}
-
-my $capprod = uc($prod) . "_DIR";
-$prod_dir = $ENV{$capprod};
-if ($prod_dir eq "") {
-    print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
-    return -1;
-}
-$ups_dir = catfile($prod_dir,"ups");
-
-# Now construct the version file's name, then read and parse it
-if ($vers eq "") {		# unknown version, so look in $ups_dir
-   $table_file = catfile($ups_dir, "$prod.table");
-   if (! -e $table_file) {
-      $table_file = "none";
-   }
-} else {
-   $fn = catfile($db,$prod,"$vers.version");
-   if (read_version_file($fn, $prod, $flavor) < 0) {
+   use File::Spec::Functions;
+   use File::Basename;
+   
+   my $eups_dir = $ENV{"EUPS_DIR"};
+   # We don't need error checking here since that 
+   # is already done in eups_setup
+   
+   local $indent = $indent + 1;
+   
+   #Some more environment variables
+   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   if ($prodprefix eq "") {		# 
+      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      return -1;			# 
+			  }
+   
+   # Need to extract the parameters carefully
+   local ($args,$outfile,$debug,$quiet) = @_;
+   $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
+   @args = split " ",$args;
+   my($prod) = $args[0];
+   if ($prod eq "") {
+      print STDERR  "ERROR: Product not specified\nSyntax : eups_setup unsetup <product>\n";
       return -1;
    }
-}
+   
+   # Now get the information from eups_flavor
+   $comm = "eups_flavor -a $prod";
+   $comm = catfile($eups_dir,"bin",$comm);
+   chomp($out = `$comm`);
+   if ($out eq "") {
+      print STDERR "ERROR running eups_flavor : $comm\n" if ($debug > 1);
+      return -1;
+   }
+   # Parse the output for the flavor and version file
+   my($vers,$flavor,$db) = split ":",$out;
+   
+   if (($debug >= 1 && !$quiet) || $debug > 1) {
+      show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
+   }
+   
+   my $capprod = uc($prod) . "_DIR";
+   $prod_dir = $ENV{$capprod};
+   if ($prod_dir eq "") {
+      print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
+      return -1;
+   }
+   $ups_dir = catfile($prod_dir,"ups");
 
-if ($table_file !~ /^none$/i && (!(-e $table_file))) {
-  print STDERR "ERROR: Missing table file \"$table_file\"\n" if ($debug >= 1);
-  return -1;
-}
+   # Now construct the version file's name, then read and parse it
+   if ($vers eq "") {
+      $table_file = catfile($ups_dir, "$prod.table"); # unknown version, so look in $ups_dir
+      if (! -e $table_file) {
+	 $table_file = "none";
+      }
+   } else {
+      $fn = catfile($db,$prod,"$vers.version");
+      if (read_version_file($fn, $prod, $flavor) < 0) {
+	 return -1;
+      }
+   }
 
-#Call the table parser here 
-#The arguments are the full table path, the direction (reversed or not)
-#prod_dir,ups_dir,verbosity
+   if ($table_file !~ /^none$/i && (!(-e $table_file))) {
+      print STDERR "ERROR: Missing table file \"$table_file\"\n" if ($debug >= 1);
+      return -1;
+   }
+   
+   #Call the table parser here 
+   #The arguments are the full table path, the direction (reversed or not)
+   #prod_dir,ups_dir,verbosity
 
-$fwd = 0;
-return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
+   $fwd = 0;
+   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
 }
 
 
 
 sub eups_setup {
 
-use File::Spec::Functions;
-use File::Basename;
-
-local $indent = $indent + 1;
-
-#Some more environment variables
-$prodprefix = $ENV{"PROD_DIR_PREFIX"};
-if ($prodprefix eq "") {
-    print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
-    return -1;
-}
-
-# Need to extract the parameters carefully
-local ($args,$outfile,$debug,$quiet) = @_;
-
-my $qaz = $args;
-$args =~ s/\-[a-zA-Z]  *[^ ]+//g;
-@args = split " ",$args;
-$prod = $args[0];
-# Extract version info if any
-$vers = $args[1]; 
-if ($prod eq "") {
-    print STDERR  "ERROR: Product not specified\n";
-    print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-z <database>]\n";
-    return -1;
-}
-
-# Attempt an unsetup
-
-my($SETUP_PROD) = "SETUP_".uc($prod);
-if (defined($ENV{$SETUP_PROD})) {
-   eups_unsetup($qaz, $outfile, $debug, 1);
-}
-
-#Determine flavor - first see if specified on command line
-#else get it from the environment EUPS_FLAVOR
-#We want this to propagate to subproducts
-($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
-$flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
-if ($flavor eq "") {
-    print STDERR "ERROR: No flavor specified, Use -f or set EUPS_FLAVOR\n";
-    return -1;
-}
-$ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
-
-#Determine database - or get it from environment PRODUCTS
-#We want this to propagate to subproducts
-my $db = "";
-my $db_old = "";
-($db) = $qaz =~ m/\-z  *([^ ]+)/;
-if ($db eq "") {
-    $db = eups_find_products();
-} else {
-    $db_old = eups_find_products();
-    $ENV{"PRODUCTS"} = $db;
-}
-    
-if ($db eq "") {
-    print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
-    return -1;
-}
-
-# Now check to see if the table file and product directory are 
-# specified. If so, extract these and immediately start, else 
-# complain 
-$table_file = "";
-$prod_dir = "";
-$ups_dir = "";
-($prod_dir) = $qaz =~ m/\-r  *([^ ]+)/;
-
-if ($prod_dir eq "") {
-   #Determine version - check to see if already defined, otherwise
-   #determine it from current.chain
-   #Also construct the full version file and check if it exists.
-   if ($vers eq "") {
-      $fn = catfile($db,$prod,"current.chain");
-      if (-e $fn) {
-	 $vers = read_chain_file($fn, $flavor);
-	 
-	 if ($vers eq "") {
-	    print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
-	    return -1;
-	 }
-      } else {
-	 print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 1);
-	 print STDERR "FATAL ERROR: Product $prod doesn't seem to have been declared\n" if ($debug >=1);
-	 return -1;
-      }
-   }
+   use File::Spec::Functions;
+   use File::Basename;
    
-   # Now construct the version file\'s name, then read and parse it
-   $fn = catfile($db,$prod,"$vers.version");
-   if (read_version_file($fn, $prod, $flavor) < 0) {
+   local $indent = $indent + 1;
+   
+   #Some more environment variables
+   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   if ($prodprefix eq "") {
+      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
       return -1;
    }
-} else {
-    if (! -d $prod_dir) {
-       warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
-       return -1;
-    }
-
-    $table_file = "$prod.table";
-    $table_file = catfile("ups",$table_file);
-    if (!($prod_dir =~ m"^/")) {
-	$prod_dir = catfile($prodprefix,$prod_dir);
-    }
-    if (!($table_file =~ m"^/")) {
-	$table_file = catfile($prod_dir,$table_file);
-    }
-
-    if ($table_file ne "" && $debug >= 1) {
-       print STDERR "WARNING : Using table file $table_file\n";
-    }
-} 
    
-if (($debug >= 1 && !$quiet) || $debug > 1) {
-   show_product_version("Setting up", $indent, $prod, $vers, $flavor);
-}
+   # Need to extract the parameters carefully
+   local ($args,$outfile,$debug,$quiet) = @_;
+   
+   my $qaz = $args;
+   $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
+   @args = split " ",$args;
+   $prod = $args[0];
+   # Extract version info if any
+   $vers = $args[1]; 
+   if ($prod eq "") {
+      print STDERR  "ERROR: Product not specified\n";
+      print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-z <database>]\n";
+      return -1;
+   }
+   
+   # Attempt an unsetup
+   
+   my($SETUP_PROD) = "SETUP_".uc($prod);
+   if (defined($ENV{$SETUP_PROD})) {
+      eups_unsetup($qaz, $outfile, $debug, 1);
+   }
+   
+   #Determine flavor - first see if specified on command line
+   #else get it from the environment EUPS_FLAVOR
+   # We want this to propagate to subproducts
+   ($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
+   $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
+   if ($flavor eq "") {
+      print STDERR "ERROR: No flavor specified, Use -f or set EUPS_FLAVOR\n";
+      return -1;
+   }
+   $ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
 
-if ($table_file !~ /^none$/i && !(-e $table_file)) {
-   print STDERR "ERROR: Missing table file $table_file\n" if ($debug >= 1);
-   return -1;
-}
+   #Determine database - or get it from environment PRODUCTS
+   #We want this to propagate to subproducts
+   my $db = "";
+   my $db_old = "";
+   ($db) = $qaz =~ m/\-z  *([^ ]+)/;
+   if ($db eq "") {
+      $db = eups_find_products();
+   } else {
+      $db_old = eups_find_products();
+      $ENV{"PRODUCTS"} = $db;
+   }
    
-#Call the table parser here 
+   if ($db eq "") {
+      print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
+      return -1;
+   }
+
+   # Now check to see if the table file and product directory are 
+   # specified. If so, extract these and immediately start, else 
+   # complain 
+   $table_file = "";
+   $prod_dir = "";
+   $ups_dir = "";
+   ($prod_dir) = $qaz =~ m/\-r  *([^ ]+)/;
    
-$fwd = 1;
-return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
+   if ($prod_dir eq "") {
+      #Determine version - check to see if already defined, otherwise
+      #determine it from current.chain
+      #Also construct the full version file and check if it exists.
+      if ($vers eq "") {
+	 $fn = catfile($db,$prod,"current.chain");
+	 if (-e $fn) {
+	    $vers = read_chain_file($fn, $flavor);
+	    
+	    if ($vers eq "") {
+	       print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
+	       return -1;
+	    }
+	 } else {
+	    print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 1);
+	    print STDERR "FATAL ERROR: Product $prod doesn't seem to have been declared\n" if ($debug >=1);
+	    return -1;
+	 }
+      }
+      
+      # Now construct the version file\'s name, then read and parse it
+      $fn = catfile($db,$prod,"$vers.version");
+      if (read_version_file($fn, $prod, $flavor) < 0) {
+	 return -1;
+      }
+   } else {
+      if (! -d $prod_dir) {
+	 warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
+	 return -1;
+      }
+      
+      $table_file = "$prod.table";
+      $table_file = catfile("ups",$table_file);
+      if (!($prod_dir =~ m"^/")) {
+	 $prod_dir = catfile($prodprefix,$prod_dir);
+      }
+      if (!($table_file =~ m"^/")) {
+	 $table_file = catfile($prod_dir,$table_file);
+      }
+      
+      if ($table_file ne "" && $debug >= 1) {
+	 print STDERR "WARNING : Using table file $table_file\n";
+      }
+   } 
+
+   if (($debug >= 1 && !$quiet) || $debug > 1) {
+      show_product_version("Setting up", $indent, $prod, $vers, $flavor);
+   }
+   
+   if ($table_file !~ /^none$/i && !(-e $table_file)) {
+      print STDERR "ERROR: Missing table file $table_file\n" if ($debug >= 1);
+      return -1;
+   }
+
+   #Call the table parser here 
+
+   $fwd = 1;
+   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
 }
 
 ###############################################################################
