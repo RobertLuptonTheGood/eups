@@ -66,8 +66,8 @@ if [ -z $EUPS_FLAVOR ]; then
     echo "ABORT: EUPS_FLAVOR not set - you must set this manually."
     exit
 fi
-FLAVOR=$EUPS_FLAVOR
-echo Setting from environment variable FLAVOR=$EUPS_FLAVOR
+DECLAREFLAVOR=$EUPS_FLAVOR
+echo Setting from environment variable EUPS_FLAVOR=$EUPS_FLAVOR
 
 if [ -z $PROD_DIR_PREFIX ]; then
     echo
@@ -85,31 +85,23 @@ else
    exit
 fi
 
-echo Installing PRODNAME=$PRODNAME PRODVERS=$PRODVERS FLAVOR=$FLAVOR.
-
 #------------------------------------------------------------------------------
-# Create the top-level directory of the appropriate flavor in which
-# to install this product (if it does not yet exist).
+# Make sure this product+version isn't already declared, either in the
+# current flavor or in the NULL flavor.
 
-if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
-   \mkdir -p $PROD_DIR_PREFIX/$FLAVOR
-fi
-if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
-    echo "ABORT: Unable to create directory PROD_DIR_PREFIX/FLAVOR."
-    exit
-fi
-MYSDSS_ROOT=$PROD_DIR_PREFIX/$FLAVOR
-echo "Installing in the directory $MYSDSS_ROOT"
-
-#------------------------------------------------------------------------------
-# Make sure this product+version isn't already declared.
-
-if [ -e $MYSDSS_ROOT/$PRODNAME/$PRODVERS ] ; then
+if [ -e $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS ] ; then
    echo
-   echo "This installation already appears to exist in " $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+   echo "This installation already appears to exist in " $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
    echo "Now declaring this version current."
-   eups_declare -f $FLAVOR \
-    -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -C $PRODNAME $PRODVERS
+   eups_declare -f $DECLAREFLAVOR \
+    -r $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+   exit
+elif [ -e $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS ] ; then
+   echo
+   echo "This installation already appears to exist in " $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS
+   echo "Now declaring this version current."
+   eups_declare -f $DECLAREFLAVOR \
+    -r $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
    exit
 fi
 
@@ -129,20 +121,6 @@ fi
 
 TEMPDIR=$PWD
 TEMPSUBDIR=$PRODNAME-$PRODVERS
-
-# Make the final destination top-level directory for this product
-# in the "products" directory.  If we cannot create a file in this
-# directory, then stop.
-
-mkdir -p $MYSDSS_ROOT/$PRODNAME
-touch $MYSDSS_ROOT/$PRODNAME/thisisatest
-if [ -e $MYSDSS_ROOT/$PRODNAME/thisisatest ] ; then
-   rm -f $MYSDSS_ROOT/$PRODNAME/thisisatest
-else
-   echo
-   echo "ABORT: Unable to create files in the directory " $MYSDSS_ROOT/$PRODNAME
-   exit
-fi
 
 #------------------------------------------------------------------------------
 # If installing the "idlutils" product, then build with "evilmake"
@@ -175,11 +153,11 @@ echo "Setting MAKECOMMAND=$MAKECOMMAND"
 
 cd $TEMPDIR
 if [ $PRODVERS = "cvs" ] ; then
-   echo "cvs co -d $TEMPSUBDIR $PRODNAME"
-   cvs co -d $TEMPSUBDIR $PRODNAME
+   echo "cvs co -R -d $TEMPSUBDIR $PRODNAME"
+   cvs co -R -d $TEMPSUBDIR $PRODNAME
 else
-   echo "cvs export -d $TEMPSUBDIR -r $PRODVERS $PRODNAME"
-   cvs export -d $TEMPSUBDIR -r $PRODVERS $PRODNAME
+   echo "cvs export -R -d $TEMPSUBDIR -r $PRODVERS $PRODNAME"
+   cvs export -R -d $TEMPSUBDIR -r $PRODVERS $PRODNAME
 fi
 # If the cvs check-out failed (for example, if this version does not exist),
 # then exit.
@@ -218,12 +196,48 @@ else
 fi
 
 #------------------------------------------------------------------------------
+# Determine if the flavor is NULL, which is a special case.
+
+tableflavor=`awk 'BEGIN{FS="="}{if (toupper($1) == "FLAVOR") {print $2}}' $TABLEFILE`
+if [ "$tableflavor" = "NULL" ] ; then
+   INSTALLFLAVOR=$tableflavor
+else
+   INSTALLFLAVOR=$DECLAREFLAVOR
+fi
+
+#------------------------------------------------------------------------------
+# Create the top-level directory of the appropriate flavor in which
+# to install this product (if it does not yet exist).
+
+MYSDSS_ROOT=$PROD_DIR_PREFIX/$INSTALLFLAVOR/$PRODNAME
+echo "Installing PRODNAME=$PRODNAME PRODVERS=$PRODVERS FLAVOR=$DECLAREFLAVOR".
+echo "Installing in the directory $MYSDSS_ROOT"
+
+if [ ! -d $MYSDSS_ROOT ] ; then
+   \mkdir -p $MYSDSS_ROOT
+fi
+if [ ! -d $MYSDSS_ROOT ] ; then
+    echo "ABORT: Unable to create directory $MYSDSS_ROOT"
+    exit
+fi
+touch $MYSDSS_ROOT/thisisatest
+if [ -e $MYSDSS_ROOT/thisisatest ] ; then
+   rm -f $MYSDSS_ROOT/thisisatest
+else
+   echo
+   echo "ABORT: Unable to create files in the directory $MYSDSS_ROOT"
+   exit
+fi
+
+#------------------------------------------------------------------------------
 # The following ups commands are to set up any dependencies needed
 # to build the code.
 
-eups_declare -f $FLAVOR $TABLEPARAM \
+echo "eups_declare -f $DECLAREFLAVOR $TABLEPARAM -r $TEMPDIR/$TEMPSUBDIR $PRODNAME $PRODVERS"
+eups_declare -f $DECLAREFLAVOR $TABLEPARAM \
  -r $TEMPDIR/$TEMPSUBDIR $PRODNAME $PRODVERS
-setup -f $FLAVOR $PRODNAME $PRODVERS
+echo "setup -f $DECLAREFLAVOR $PRODNAME $PRODVERS"
+setup -f $DECLAREFLAVOR $PRODNAME $PRODVERS
 # The following nasty line is simply to set up the environment
 # variable {$PRODNAME}_DIR so that the code can be built.
 eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$TEMPDIR/$TEMPSUBDIR
@@ -237,17 +251,17 @@ $MAKECOMMAND
 
 # The following nasty line is simply to set up the environment
 # variable {$PRODNAME}_DIR so that the code can be installed.
-eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$MYSDSS_ROOT/$PRODNAME/$PRODVERS
-eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_INSTALL_DIR=$MYSDSS_ROOT/$PRODNAME/$PRODVERS
+eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$MYSDSS_ROOT/$PRODVERS
+eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_INSTALL_DIR=$MYSDSS_ROOT/$PRODVERS
 if [ $PRODVERS = "cvs" ] ; then
-   echo cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODNAME/$PRODVERS
-   cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+   echo cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
+   cp -r $TEMPDIR/$TEMPSUBDIR $MYSDSS_ROOT/$PRODVERS
 else
    echo $MAKEINSTALLCOMMAND
    # It appears that sometimes we need to create the install directory ???
    # This is a hack!!!
 #   if [ $PRODNAME = "sdsstools" ] ; then
-#      mkdir $MYSDSS_ROOT/$PRODNAME/$PRODVERS
+#      mkdir $MYSDSS_ROOT/$PRODVERS
 #   fi
 
    echo "Setting SDSSTOOLS_DIR=$SDSSTOOLS_DIR"
@@ -257,8 +271,8 @@ else
 
    # Copy the table file into the install directory, even if the
    # make/install command did not do so.
-   if [ ! -e $MYSDSS_ROOT/$PRODNAME/$PRODVERS/ups/$PRODNAME.table ] ; then
-      cp $TABLEFILE $MYSDSS_ROOT/$PRODNAME/$PRODVERS/ups/$PRODNAME.table
+   if [ ! -e $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table ] ; then
+      cp $TABLEFILE $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table
    fi
 fi
 
@@ -266,13 +280,8 @@ fi
 # Declare this version and make it current.
 # No need to do an undeclare first since it is automatic with EvilUPS .
 
-eups_declare -f $FLAVOR $TABLEPARAM \
- -r $FLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
-
-# Declaring with the below line would put an absolute path in PROD_DIR
-# in the version file, rather than a path relative to $PROD_DIR_PREFIX.
-#eups_declare -f $FLAVOR $TABLEPARAM \
-# -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+eups_declare -f $DECLAREFLAVOR $TABLEPARAM \
+ -r $INSTALLFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
 
 #------------------------------------------------------------------------------
 # Finally, delete the temporary directory used to build the code.
