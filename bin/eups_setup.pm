@@ -394,7 +394,7 @@ if ($prodprefix eq "") {
 # Need to extract the parameters carefully
 my ($args,$outfile) = @_;
 my $qaz = $args;
-$args =~ s/\-[a-zA-Z] *[^ ]+//g;
+$args =~ s/ \-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
 $prod = $args[0];
 # Extract version info if any
