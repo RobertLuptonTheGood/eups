@@ -89,8 +89,6 @@ if ($ENV{'EUPS_DIR'} eq "") {
 require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
 import eups_setup;
 
-$debug = $ENV{"EUPS_DEBUG"};
-$debug = 0 if ($debug eq "");
 #
 # Parse arguments. Many are actually interpreted by eups_setup.pm
 #
@@ -107,7 +105,8 @@ if ($options eq "-h") {
 } elsif ($options < 0) {
    &myexit(1);
 }
-$debug = $ENV{EUPS_DEBUG};
+$debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug eq "");
 $noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
 
 if (!defined($words[0])) {
