@@ -100,6 +100,11 @@ while(<IFD>) {
 	    &unchanged("I cannot find a version for $product in: $ENV{'SETUP_$uproduct'}");
 	    next;
 	 }
+# Check to see if the version is LOCAL --- internal keyword
+	 if ($version eq "LOCAL") {
+	     &unchanged("I cannot find a version for $product in: $ENV{'SETUP_$uproduct'}");
+	     next;
+         }
          if($warn_versions && !($version =~ /^[vV]/)) {
             if(!$warned_about_product{$product}) {
 	       $warned_about_product{$product}++;
