@@ -436,6 +436,7 @@ if ($flavor eq "") {
 #Determine database - or get it from environment PRODUCTS
 #We want this to propagate to subproducts
 my $dbset = 0;
+my $db = "";
 ($db) = $qaz =~ m/\-z  *([^ ]+)/;
 #$db = $ENV{"PRODUCTS"} if ($db eq "");
 if ($db eq "") {
