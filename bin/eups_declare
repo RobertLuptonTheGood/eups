@@ -80,8 +80,10 @@ die "ERROR : No version specified\n" if ($vers eq "");
 # Check to see if an entry exists in the database
 # create if not.
 $fn = catfile($db,$prod);
-$retval = mkdir $fn if (!(-d $fn));
-die "ERROR : Unable to create entry in database $fn\n" if (!($retval));
+if (!(-d $fn)) {
+    $retval = mkdir $fn;
+    die "ERROR : Unable to create entry in database $fn\n" if (!($retval));
+}
 
 goto CURRENT if ($onlycurrent);
 
