@@ -137,7 +137,9 @@ elif [ -e "$IDLUTILS_DIR/bin/evilmake" ] ; then
    MAKEINSTALLCOMMAND='make install'
    export SDSSTOOLS_DIR=$IDLUTILS_DIR
 elif [ -e "$SDSSTOOLS_DIR/bin/sdssmake" ] ; then
-   MAKECOMMAND='sdssmake -idl -opt -debug'
+# We no longer use sdssmake for any IDL-dependent products.
+#   MAKECOMMAND='sdssmake -idl -opt -debug'
+   MAKECOMMAND='sdssmake -opt -debug'
    MAKEINSTALLCOMMAND='sdssmake install'
 else
    MAKECOMMAND=make
