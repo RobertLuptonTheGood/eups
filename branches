@@ -49,3 +49,7 @@ Tue Jul  6 13:45:05 EDT 2004
 Thu Jul 22 11:27:49 EDT 2004
    cvs rtag v0_7_7 eups
    Added directory information to "setup -v -l"
+
+Wed Sep  1 18:12:18 EDT 2004
+    cvs rtag v0_7_8 eups
+    Support "eups_declare -c -f Flavor prod vX_Y" (i.e. no -r ROOT)
