@@ -21,7 +21,8 @@ These are the Release Notes for EvilUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
-v0_2 : 
+v0_2 :  Tagged Saturday, April 5,2003 0130
+
         -- Fixed bug with setup - now correctly unsets previous setups.
  
         -- -z now propagates the database to all dependencies.
