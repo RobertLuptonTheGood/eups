@@ -210,8 +210,9 @@ setupenv => \&envSet,
 
 
 # Read in the table file
+    my @size = stat($fn);
     open FILE, "<$fn";
-    read FILE, $data, 1000000;
+    read FILE, $data, $size[7];
     close FILE;
     $data =~ s/\#.*?\n//g;
 
@@ -506,8 +507,9 @@ if ($vers eq "") {
 	$retval = -1;
 	goto END;
     }
+    my @size = stat($fn);
     open FILE, "<$fn";
-    read FILE, $versinfo, 1000000;
+    read FILE, $versinfo, $size[7];
     close FILE;
 # Now strip out all comments
     $versinfo =~ s/\#.*\n//g;
@@ -550,7 +552,8 @@ if (!(open FILE,"<$fn")) {
     $retval = -1;
     goto END;
 }
-read FILE,$versinfo,1000000;
+my @size = stat($fn);
+read FILE,$versinfo,$size[7];
 close FILE;
 # Now strip out all comments
 $versinfo =~ s/\#.*\n//g;
