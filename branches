@@ -41,3 +41,9 @@ Thu Jul  1 16:15:10 EDT 2004
    cvs rtag v0_7_5 eups
    Added "setup -l"
 
+Tue Jul  6 13:45:05 EDT 2004
+   cvs rtag v0_7_6 eups
+   Added Current/Setup information to "setup -l"
+   _Finally_ indented eups_(un)?setup
+   
+
