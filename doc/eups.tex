@@ -1,0 +1,186 @@
+\documentclass{article}
+\ExecuteOptions{dvips,color}
+%
+\newcommand{\XXX}[1]{{\color{red}\textbf{XXX} #1}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\eups}{\code{EUPS}}
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+\begin{document}
+\title{\eups{} --- a Tool to Manage Software Dependencies}
+\author{Nikhil Padmanabhan and Robert Lupton}
+
+\maketitle
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+\section{Introduction}
+
+Complex software systems are generally built from a hierarchy of
+components, and in general all of these systems are in a state of
+flux.  In order to bring order out of chaos, we need to be able to:
+\begin{itemize}
+  \item Organize the set of components, allowing for their natural
+    hierarchy.
+
+  \item
+    Select which versions of components should be used, ensuring
+    that a consistent set are chosen
+
+  \item
+    Configure the environment (\code{PATH}; environment variables)
+    for each component.
+
+  \item
+    Provide a way to identify a chosen set of components
+
+  \item
+    In addition, we would like to be able to install libraries that support
+    these versions, and to do so on a number of different platforms.
+\end{itemize}
+
+We assume that the task of actually managing individual components
+(e.g. tracking code versions) is being handled with some other system,
+such as \texttt{cvs}.
+
+\section{The \code{setup} command}
+
+\eups
+\footnote{%
+  The name comes from \code{UPS} (\code{Unix Product Support}), a
+  tool written at Fermi National Accelerator Laboratory, FNAL. \eups{}
+  is basically a reimplementation in perl of those parts of \code{UPS}
+  that we have found especially valuable.}
+achieves all of these goals. A component (refered to as a `product')
+may be used after it has been \code{setup}, and these products may
+in turn setup other products. When setting up a product, a user
+may specify a version, or accept the current default. These setup versions
+may either be in a user's file space (e.g. a cvs version), or copies
+that have been \code{declare}d to the system; these declarations are
+aware of the user's computer architecture (referred to as a `flavor').
+
+The organisation is via `table' files
+associated with each component, for example the table file
+for a product named \code{photo} reads:
+\begin{verbatim}
+       setupRequired("astrotools")
+       envSet(PHOTO_STARTUP, ${UPS_PROD_DIR}/etc/photoStartup.tcl)
+       pathAppend(PATH, ${UPS_PROD_DIR}/bin)
+\end{verbatim}
+
+When we attempt to \code{setup} the product \code{photo}, this
+table file leads to the following actions:
+\begin{description}
+\item
+  The environment variable \code{PHOTO\_DIR} is automatically set to 
+  the root of the directory tree for product \code{photo} (how this
+  is determined is described in the next section)
+\item
+  \code{setupRequired} states that when you \code{setup} this product, you
+  should also \code{setup} a product called \code{astrotools}.
+  The table file for \code{astrotools} can
+  (and in fact does) itself \code{setup} further products.  We say that
+  \code{photo} \emph{depends} on \code{astrotools}.
+\item
+  \code{envSet} sets an extra environment variable; here \code{\$\{UPS\_PROD\_DIR\}}
+  refers to the root of this product's tree (i.e. to \code{PHOTO\_DIR} as set above)
+\item
+  \code{pathAppend} appends
+  the directory \code{\$\{UPS\_PROD\_DIR\}/bin} to the current path (there
+  is also a \code{pathPrepend} directive).
+\end{description}
+
+So far we have achieved the first of the goals listed in the introduction,
+describing a hierarchy.  The next section describes how to maintain
+multiple versions.
+
+\section{Declaring Products and Versions}
+
+Whence came \code{PHOTO\_DIR} in the example? From a command of the form
+\begin{verbatim}
+eups_declare photo v5_4_25 -f Darwin -r /u/products/Darwin/photo/v5_4_25
+\end{verbatim}
+
+This command updates the \eups{} `database' (in reality a set of files);
+this `database' is then `queried' by the \code{setup} command. In
+the \code{declare} command,
+\begin{itemize}
+  \item
+    \code{photo} is the name of the product
+
+  \item
+    \code{v5\_4\_25} specifies the version number (by convention this
+    is a cvs tag)
+
+  \item
+    \code{-f Darwin} specifies the flavor (i.e. my computer's hardware and
+    operating system)
+
+  \item
+    \code{-r /u/products/Darwin/photo/v5\_4\_25} is the directory where
+    the specified version can be found. The name is purely conventional,
+    but the convention is pretty transparent.
+
+  \item
+    This directory is typically created by an \code{install} target
+    in a Makefile, but it could simply be your current working
+    copy:
+\begin{verbatim}
+       declare photo cvs -f Darwin -r ~/photo
+\end{verbatim}
+\end{itemize}
+
+If I now say \code{setup photo v5\_4\_25}, \eups{} will look for
+a table file in the directory \code{/u/products/Darwin/photo/v5\_4\_25/ups},
+and obey whatever instructions it finds there.  For example,
+I will find that
+\code{PHOTO\_DIR} is set to \code{/u/products/Darwin/photo/v5\_4\_25}. If,
+in the \code{declare} command I'd also specified \code{-c} (for
+`current'), then version \code{v5\_4\_25} of \code{photo} would
+have become the default, and I could have simply said \code{setup photo}.
+
+You will remember that \code{photo}'s table file simply requested
+that \code{astrotools} be setup, but it could have specified a version:
+\begin{verbatim}
+setupRequired("astrotools v4_10_1")
+\end{verbatim}
+The table file being used is the one in the \emph{installed} directory,
+and the \code{install} command was free (and indeed encouraged) to
+rewrite the table file to specify explicit version numbers.
+
+We have now achieved all of our five goals (although we have not
+yet described how to make use of our success): I have defined
+a version \code{v5\_4\_25} of a product \code{photo}, which is
+to be found in a given directory for a given architecture,
+and specified how its environment should be Furthermore,
+this version depends on a specific version (\code{v4\_10\_1}) of
+\code{astrotools}, and so on. By convention, each of these version
+numbers corresponds to a cvs tag in some repository, so I am
+able to recover the complete set of releases used to build and
+run this version of \code{photo} by examining the \eups{} database.
+
+\section{How do I Actually Use this System to Manage Code?}
+
+The \code{setup} command set a number of environment variables,
+such as \code{PHOTO\_DIR} and \code{ASTROTOOLS\_DIR}. These can
+be used in Makefiles, e.g.
+\begin{verbatim}
+CFLAGS = -g $(INCS)
+INCS = -I$(ASTROTOOLS_DIR)/include \
+       -I$(PHOTO_DIR)/include \
+       ...
+LIBS =   -L$(ASTROTOOLS_DIR)/lib -lastrom \
+         -L$(PHOTO_DIR)/lib -lphoto -lmeasureObj \
+         ...
+\end{verbatim}
+For this to work, you also need a convention that the include
+files be found in e.g. \code{.../photo/include} and the
+libraries in \code{.../photo/lib}.
+
+In a large project there will be many directories that need to appear
+in the \code{INCS} and \code{LIBS} definitions.  Fortunately, we need
+only maintain these variables in one place, in a file included by all
+project makefiles, or in a script that is used to invoke make.
+
+\end{document}
