@@ -15,33 +15,21 @@
 # install them in the order of those dependencies.  For example, since
 # "idlspec2d" depends upon "idlutils", you would install them with:
 #   % evilinstall idlutils v4_5_0
+#   % setup idlutils
 #   % evilinstall idlspec2d v4_5_0
 #
 # The CVS repository can be specified by setting the $CVSROOT environment
-# variable.  If not set, then set up the "sdsscvs" product if it exists,
-# or explicitly set to the Fermi CVS location.
+# variable.  If not set, then set to the default CVS repository at Princeton.
 #
-# This script requires the "ups" product.  It will try to build code and
-# install it using the utilities in the "sdsstools" product.  If those do
-# not exist, then it tries using the "evilmake" and "install_ups_table"
-# scripts in the "idlutils" product.  In that case, the following files
-# must exist:
-#   $IDLUTILS_DIR/bin/evilmake
-#   $IDLUTILS_DIR/bin/install_ups_table
-# so set $IDLUTILS_DIR appropriately.
-#
-# Now with all the messy confusion at Fermi, it is no longer possible
-# to auto-detect Linux flavors using the $SETUP_UPS environment.
-# It is best to first set an environment variable, i.e.:
-#   UPS_PROD_FLAVOR=Linux+2
-# to over-ride the auto-detected flavor on Linux boxes, which now always
-# appears to come up as Linux+2.4, which no one actually uses.
+# If the "sdsstools" product is setup, then use the "sdssmake" command
+# to build code.  Otherwise, if the "idlutils" product is setup, then
+# use the "evilmake" command to build code.
 #
 # Note: This script tries to set-up products using the table file in the /ups
 # subdirectory of the product.  I can't say with certainty that it works
 # w/out that table file.
 #
-# D. Schlegel, Princeton, 1 March 2001
+# D. Schlegel & N. Padmanabhan, Princeton, 29 January 2003
 #------------------------------------------------------------------------------
 
 # Important to set the shell variable
@@ -67,82 +55,75 @@ fi
 echo "Setting up EvilUPS....."
 if [ -z $EUPS_DIR ]; then
     echo 
-    echo "ERROR : EvilUPS not set up - either set it up, or set EUPS_DIR manually"
+    echo "ABORT: EvilUPS not set up - either set it up, or set EUPS_DIR manually."
     exit
 fi
 source $EUPS_DIR/bin/setups.sh
 
 if [ -z $EUPS_FLAVOR ]; then
     echo
-    echo "ABORT: EUPS_FLAVOR not set"
+    echo "ABORT: EUPS_FLAVOR not set - you must set this manually."
     exit
 fi
 FLAVOR=$EUPS_FLAVOR
 echo Setting from environment variable FLAVOR=$EUPS_FLAVOR
 
+if [ -z $PROD_DIR_PREFIX ]; then
+    echo
+    echo "ABORT: PROD_DIR_PREFIX not set."
+    exit
+fi
+
 echo Installing PRODNAME=$PRODNAME PRODVERS=$PRODVERS FLAVOR=$FLAVOR.
 
-if [ -z $FLAVOR ] ; then
-   echo
-   echo "ABORT: FLAVOR could not be determined from environment variable EUPS_FLAVOR"
-   exit
-fi
-echo
+#------------------------------------------------------------------------------
+# Create the top-level directory of the appropriate flavor in which
+# to install this product (if it does not yet exist).
 
-# The following is a hack: Change $SDSS_ROOT to $SDSS_ROOT/$FLAVOR if it
-# appears that's where the code should go.  This is the case at Princeton.
-
-if [ -e $SDSS_ROOT/$FLAVOR ] ; then
-   MYSDSS_ROOT=$SDSS_ROOT/$FLAVOR
-else
-   MYSDSS_ROOT=$SDSS_ROOT
+if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
+   \mkdir -p $PROD_DIR_PREFIX
 fi
+if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
+    echo "ABORT: Unable to create directory PROD_DIR_PREFIX/FLAVOR."
+    exit
+fi
+MYSDSS_ROOT=$PROD_DIR_PREFIX/$FLAVOR
 echo "Setting MYSDSS_ROOT=$MYSDSS_ROOT"
 
+#------------------------------------------------------------------------------
 # Make sure this product+version isn't already declared.
 
 if [ -e $MYSDSS_ROOT/$PRODNAME/$PRODVERS ] ; then
    echo
    echo "This installation already appears to exist in " $MYSDSS_ROOT/$PRODNAME/$PRODVERS
    echo "Now declaring this version current."
-# We could set this up too, but that information is not passed outside
-# of this script so don't bother ???
-#   setup $PRODNAME $PRODVERS
    eups_declare -f $FLAVOR \
     -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -C $PRODNAME $PRODVERS
    exit
 fi
 
-# If $CVSROOT is not set, then set it either by setting up the "sdsscvs"
-# product or explicitly setting to the Fermi CVS location.  This allows
-# the option of installing from a different repository (i.e., Princeton
-# or NYU) by setting $CVSROOT first.
+#------------------------------------------------------------------------------
+# If $CVSROOT is not set, then set it to the default CVS repository
+# at Princeton.
 
 if [ -z "$CVSROOT" ] ; then
-   setup sdsscvs
-fi
-
-if [ -z "$CVSROOT" ] ; then
-   echo "Setting CVSROOT and CVS_RSH to default locations at Fermi"
-   CVSROOT=cvsuser@sdss.fnal.gov:/cvs/sdss
+   echo "Setting CVSROOT and CVS_RSH to default locations at Princeton"
+   CVSROOT=spectro.princeton.edu:/usr/local/cvsroot
    CVS_RSH=ssh
 fi
 
-# Set up "sdsstools" if it exists as a product.
-# If it exists, use "sdssmake" to build code.
-# Otherwise, use "evilmake", which is in the product "idlutils", and
-#   set SDSSTOOLS_DIR=$IDLUTILS_DIR for the sake of getting a copy
-#   of the script "install_ups_table".
+#------------------------------------------------------------------------------
+# If the product "sdsstools" is setup, then use "sdssmake" to build code.
+# Otherwise, if "idlutils" is setup, then use "evilmake" to build code.
+# In the latter case, set SDSSTOOLS_DIR=$IDLUTILS_DIR for the sake of
+# getting a copy of the script "install_ups_table".
 
-setup sdsstools
 if [ -n "$SDSSTOOLS_DIR" ] && [ -e "$SDSSTOOLS_DIR/bin/sdssmake" ] &&\
    [ -e "$SDSSTOOLS_DIR/bin/install_ups_table" ] ; then
    MAKECOMMAND='sdssmake -idl -opt -debug'
    MAKEINSTALLCOMMAND='sdssmake install'
 else
-#   setup idlutils
    SDSSTOOLS_DIR=$IDLUTILS_DIR
-#   if [ -n `which \evilmake` ] ; then
    if [ -e "$IDLUTILS_DIR/bin/evilmake" ] ; then
       MAKECOMMAND=$IDLUTILS_DIR/bin/evilmake
       MAKEINSTALLCOMMAND='make install'
@@ -152,9 +133,8 @@ if [ -z "$MAKECOMMAND" ] ; then
    echo
    echo "ABORT: Could not set up either \"sdssmake\" or \"evilmake\" for building code."
    exit
-else
-   echo "Setting MAKECOMMAND=$MAKECOMMAND"
 fi
+echo "Setting MAKECOMMAND=$MAKECOMMAND"
 
 if [ -e $SDSSTOOLS_DIR/bin/install_ups_table ] ; then
    # Save where this script lives, in case this environment variable changes.
@@ -175,6 +155,7 @@ else
    exit
 fi
 
+#------------------------------------------------------------------------------
 # Make a temporary directory for building the code, and make certain
 # that we can write to it.
 
@@ -195,7 +176,8 @@ else
    exit
 fi
 
-# Now build and install the code!!
+#------------------------------------------------------------------------------
+# Check-out the code from the CVS repository.
 
 cd $TEMPDIR
 if [ $PRODVERS = "cvs" ] ; then
@@ -211,9 +193,12 @@ if [ ! -d $TEMPSUBDIR ] ; then
    echo "       from the repository CVSROOT=$CVSROOT"
    exit
 fi
+
+#------------------------------------------------------------------------------
 # The following ups commands are to set up any dependencies needed
 # to build the code.
 # Find the table file if it exists...
+
 if [ -e $TEMPDIR/$TEMPSUBDIR/ups/$PRODNAME.table ] ; then
    TABLEPARAM="-m $PRODNAME.table"
 else
@@ -227,6 +212,10 @@ setup -f $FLAVOR $PRODNAME $PRODVERS
 # variable {$PRODNAME}_DIR so that the code can be built.
 eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$TEMPDIR/$TEMPSUBDIR
 echo Setting temporary directory to $TEMPDIR/$TEMPSUBDIR
+
+#------------------------------------------------------------------------------
+# Now build and install the code!!
+
 cd $TEMPDIR/$TEMPSUBDIR
 $MAKECOMMAND
 
@@ -249,18 +238,17 @@ else
    $MAKEINSTALLCOMMAND
 fi
 
+#------------------------------------------------------------------------------
 # Declare this version and make it current.
-#ups undeclare -f $FLAVOR $PRODNAME $PRODVERS
-# No longer need to do the undeclare since it is automatic with EvilUPS 
+
+# No need to do an undeclare first since it is automatic with EvilUPS .
 eups_declare -f $FLAVOR $TABLEPARAM \
  -r $MYSDSS_ROOT/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
 
+#------------------------------------------------------------------------------
 # Finally, delete the temporary directory used to build the code.
 
 \rm -rf $TEMPDIR/$TEMPSUBDIR
 
 exit
 #------------------------------------------------------------------------------
-
-
-
