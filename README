@@ -1,0 +1,91 @@
+(The following is a text version of the documentation for the 
+Perl implementation of UPS, evilups. 
+
+The package can be downloaded from the cvs repository at
+spectro.princeton.edu:/home/spectro/cvs -- package name = evilups.
+
+Nikhil Padmanabhan
+Princeton, Jan 23rd, 2003 
+
+Note that this package is distributed free of cost, and the user is 
+free to update any/all parts of the code; this is with the implicit
+assumption that the original code will be acknowledged. )
+
+0. TABLE OF CONTENTS:	
+	1. Installing EvilUPS
+	2. EvilUPS : Basic Commands
+	3. EvilUPS : Environment Variables
+	4. EvilUPS : The Database (Version/Table) Files
+	5. EvilUPS : Further Notes
+
+1. Installing EvilUPS :
+
+(still to be written)
+
+2. EvilUPS : Basic Commands
+
+EvilUPS implements the following UPS commands:
+
+a) eups_flavor :
+
+Syntax : eups_flavor [-a] <productname>
+
+Returns the version of a product, by parsing the SETUP_<product> environment
+variable. The -a switch returns, in addition to the version, the flavour,
+a full path to the version file, and the database used.
+
+b) eups_undeclare :
+
+Syntax : eups_undeclare [-f <flavor>] <product> <version>
+
+Undeclares <version> of <product> from the database. Also removes any declarations of 
+this version from current.chain. The flavour is determined from the environment
+variable EUPS_FLAVOR, but -f overrides this. The database used is defined by the 
+environment variable PRODUCTS.
+
+NOTE: eups_undeclare is designed to be used with eups_declare. It is NOT compatible
+with version files that use the "Group: End:" construct.
+
+c) eups_declare:
+
+Syntax : eups_declare [-f <flavor>] [-c] [-m <tablefile>] -r <product root directory> <product> <version>
+
+Declares <version> of <product> into the database defined by $PRODUCTS.
+The product root directory is where the product has been installed, and can either be an absolute pathname
+or specified relative to $PROD_DIR_PREFIX. The flavour is defined by $EUPS_FLAVOR, unless
+the -f option is used. The -c option also declares this version to be current for the flavour, while 
+the -m option specifies the table file to be used (either in the database, or in the ups directory of 
+the product).
+
+d) evilsetup :
+
+Syntax : evilsetup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]
+
+Usage : source `evilsetup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]`
+
+This is the workhorse routine. It sets up or unsets  <version> of <product>. The PERL script evilsetup
+writes the name of a file to STDOUT that contains the necessary commands to setup/unsetup a product; 
+sourcing this file sets up the necessary environment. 
+
+IMPORTANT : Since the commands to set environment variables differ across shells, it is essential that
+$SHELL reflects the current shell.
+
+Options:
+
+<"setup"/"unsetup"> - Setup/UnSetup?
+<product> - The product name
+<version> - The version. If not specified, uses current.chain
+[-f <flavor>] - The flavour to set up. If not specified, $EUPS_FLAVOR is used.
+[-z <database>] - The database to use. If not specified, $PRODUCTS is used.
+
+Note the following :
+(i)   unsetup ignores all inputs except the product name.
+(ii)  unsetup fails if $SETUP_<product> is not set.
+(iii) Both setup and unsetup are currently very verbose (to STDERR). However,	
+      if they are unsuccessful, then the last line will start with "FATAL ERROR".  If not, 
+      then the script was successful.
+
+
+
+
+
