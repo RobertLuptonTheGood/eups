@@ -350,8 +350,15 @@ setupenv => \&envSet,
 	} elsif (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
             $foo = eups_unsetup($qaz,$outfile,$debug,$quiet);
+	    my($p) = split(" ", $qaz);
+	    if ($foo && $unsetup_products{$p}) { # we've already unset it; we don't need to do it twice
+	       $foo = 0;
+	    }
+
 	    $retval =+ $foo;
 	    print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
+
+	    $unsetup_products{$p}++; # remember that we already unset it
 	} elsif (($comm eq "setupoptional")&&($fwd==0)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
 	    eups_unsetup($qaz,$outfile,$debug,$quiet);
@@ -493,6 +500,10 @@ sub eups_setup {
    my($SETUP_PROD) = "SETUP_".uc($prod);
    if (defined($ENV{$SETUP_PROD})) {
       eups_unsetup($qaz, $outfile, $debug, 1);
+
+      if (defined(%unsetup_products)) {	# we used this to suppress warning if products were unset twice
+	 undef(%unsetup_products);
+      }
    }
    
    #Determine flavor - first see if specified on command line
