@@ -1,18 +1,13 @@
 ###############################################################################
 # Sloan Digital Sky Survey (SDSS) -- PHOTO Operations
-# D. Finkbeiner & D. Schlegel
-# Modified : Nikhil Padmanabhan
+# N. Padmanabhan, D. Schlegel, & D. Finkbeiner
 ###############################################################################
 
 SHELL = /bin/sh
 
 SUBDIRS = bin etc examples
 
-#
-# Install things in their proper places in $(EUPS_DIR)
-#
 install :
-	@echo "You should be sure to have updated before doing this."
 	@echo ""
 	@if [ "$(EUPS_DIR)" = "" ]; then \
 		echo You have not specified a destination directory EUPS_DIR >&2; \
@@ -27,10 +22,9 @@ install :
 		exit 1; \
 	fi
 	@if [ -d $(EUPS_DIR) ]; then \
-		echo The destination directory already exists >&2; \
-		echo I will give you 30 seconds to think about this; \
-		sleep 30; \
-		rm -rf $(EUPS_DIR); \
+		echo The destination directory already exists for EUPS_DIR=$(EUPS_DIR). >&2; \
+		echo Please remove any old installation of EvilUPS there first. >&2; \
+		exit 1; \
 	fi 
 	@echo ""
 	@echo "You will be installing in \$$EUPS_DIR=$$EUPS_DIR"
@@ -50,8 +44,4 @@ clean :
 	@ for f in $(SUBDIRS); do \
 		(cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) clean ); \
 	done
-
-
-
-
 

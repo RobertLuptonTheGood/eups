@@ -4,11 +4,9 @@
 ###############################################################################
 
 SHELL = /bin/sh
-#
+
 all :;
-#
-# Install things in their proper places in $(PHOTOOP_DIR)
-#
+
 install :
 	- cp * $(EUPS_DIR)/etc
 
