@@ -778,6 +778,8 @@ sub eups_parse_argv
 	 
 	 if ($opt eq "-v") {
 	    $ENV{"EUPS_DEBUG"}++;
+	 } elsif ($opt eq "-n") {
+	    $opts{$opt} = 1;
 	 } elsif ($opt eq "-V") {
 	    my($version) = &get_version();
 	    warn "Version: $version\n";
@@ -835,6 +837,7 @@ sub eups_show_options
        -c => "Declare this product current",
        -C => "Declare this product current",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
+       -n => "Don't actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
        -r => "Location of product being declared",
        -v => "Be chattier (repeat for even more chat)",

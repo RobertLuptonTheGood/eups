@@ -82,13 +82,6 @@ sub setshell {
     return $retval;
 }
 
-
-# Open the temporary file
-our $tmpfile;
-do {
-    $fn = tmpnam();
-} until open $tmpfile, ">$fn";
-
 if ($ENV{'EUPS_DIR'} eq "") {
     print STDERR "ERROR: EUPS_DIR is not set\n";
     goto CLEAN;
@@ -103,7 +96,9 @@ $debug = 0 if ($debug eq "");
 #
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
-$opts = {-f => 1, -r => 1, -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
+$opts = {-f => 1, -n => 0, -r => 1,
+	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
+
 my $options = eups_parse_argv($opts, \@args, \@words);
 # 
 if ($options eq "-h") {
@@ -113,6 +108,7 @@ if ($options eq "-h") {
    &myexit(1);
 }
 $debug = $ENV{EUPS_DEBUG};
+$noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
 
 if (!defined($words[0])) {
    warn "Please specify a product\n";
@@ -122,6 +118,19 @@ if (!defined($words[0])) {
 
 @args = ($op, @args, @words);
 
+# Open the temporary file
+our $tmpfile;
+if ($noaction) {
+   $fn = "/dev/null";
+   if(!open $tmpfile, ">$fn") {
+      warn "Cannot open $fn for write\n";
+      myexit(1);
+   }
+} else {
+   do {
+      $fn = tmpnam();
+   } until open $tmpfile, ">$fn";
+}
 #Get the shell 
 our $shell = $0;
 $retval = setshell;
