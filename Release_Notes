@@ -21,6 +21,44 @@ These are the Release Notes for EUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
+v0_7_1: Minor bugfix in extract_table_commands()
+
+v0_7: Continuation of the Great Cleanup
+	-- Proper help is now added into the code
+
+	-- Complete rewrite of the extract_table_commands();
+	   Now includes support for table files that have a common
+	   commands section before the flavor specifications.
+
+
+v0_6: First tag after the Great Cleanup.
+
+	-- More work on new minimalistic table files; bugs fixed
+
+	-- Significant cleanup/factoring of code
+
+	-- New argument parser in eups_setup
+
+	-- Reduced chatter if $debug == 1 (but can set -v -v to set it to 2)
+
+	-- Indented "Setting up" lines (with -v) to indicate depth of dependency nesting
+
+
+
+v0_5: A branch; the first version on this branch (v5_0_0) is identical to v0_4
+
+At this point, the code was enhanced:
+
+	-- EUPS now includes support for minimal table files, or, indeed,
+	no table file at all ("-m none")
+
+	-- setupenv and proddir are now deprecated. The appropriate environment
+	variables are automatically set.
+
+	-- Removed hardcoded file sizes from eups_setup.pm
+
+	-- Added checks that ensure that the Table files are properly formed.
+
 
 v0_4 :
 	-- evilinstall now uses eups_expandtable
@@ -64,31 +102,3 @@ v0_2 :  Tagged Saturday, April 5,2003 0130
 	-- Fixed a bug with command line argument passing in eups_setup
 
 v0_1 : First released version
-
-v0_4 : Another released version
-
-v0_5: A branch; the first version on this branch (v5_0_0) is identical to v0_4
-
-At this point, the code was enhanced:
-
-	-- EUPS now includes support for minimal table files, or, indeed,
-	no table file at all ("-m none")
-
-	-- setupenv and proddir are now deprecated. The appropriate environment
-	variables are automatically set.
-
-	-- Removed hardcoded file sizes from eups_setup.pm
-
-	-- Added checks that ensure that the Table files are properly formed.
-
-v0_6: First tag after the Great Cleanup.
-
-	-- More work on new minimalistic table files; bugs fixed
-
-	-- Significant cleanup/factoring of code
-
-	-- New argument parser in eups_setup
-
-	-- Reduced chatter if $debug == 1 (but can set -v -v to set it to 2)
-
-	-- Indented "Setting up" lines (with -v) to indicate depth of dependency nesting
