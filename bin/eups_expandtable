@@ -91,6 +91,10 @@ while(<IFD>) {
       }
       if($version eq "") {
 	 ($uproduct = $product) =~ tr/a-z/A-Z/;
+	 if ($ENV{"SETUP_$uproduct"} eq "") {
+	     &unchanged("Product $product doesn't appear to be set up");
+	     next;
+	 }
 	 ($prod, $version) = split(" ", $ENV{"SETUP_$uproduct"});
 	 if($prod ne $product) {
 	    &unchanged("Invalid setup for $product: $ENV{'SETUP_$uproduct'}");
