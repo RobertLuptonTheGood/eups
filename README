@@ -54,7 +54,7 @@ ii)  Set the environment variables EUPS_DIR, PROD_DIR_PREFIX and PRODUCTS.
      UPS database.  Suggested locations are:
        setenv PROD_DIR_PREFIX $HOME/products
        setenv PRODUCTS $PROD_DIR_PREFIX/ups_db
-       setenv EUPS_DIR $PROD_DIR_PREFIX/EvilUPS
+       setenv EUPS_DIR $PROD_DIR_PREFIX/evilups
 iii) cd evilups-temp
 iv)  Execute "make clean"
 v)   Execute "make install"
