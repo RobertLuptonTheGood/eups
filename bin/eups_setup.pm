@@ -434,8 +434,18 @@ if ($flavor eq "") {
 }
 
 #Determine database - or get it from environment PRODUCTS
+#We want this to propagate to subproducts
+my $dbset = 0;
 ($db) = $qaz =~ m/\-z  *([^ ]+)/;
-$db = $ENV{"PRODUCTS"} if ($db eq "");
+#$db = $ENV{"PRODUCTS"} if ($db eq "");
+if ($db eq "") {
+    $db = $ENV{"PRODUCTS"};
+} else {
+    my $db_old = $ENV{"PRODUCTS"};
+    $ENV{"PRODUCTS"} = $db;
+    $dbset = 1;
+}
+    
 if ($db eq "") {
     print STDERR "ERROR : No database specified, Use -z or set PRODUCTS\n";
     $retval = -1;
@@ -594,7 +604,13 @@ if (!(-e $table_file)) {
 $fwd = 1;
 $retval = parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile);
 
+
 END:
+
+# If we overrode the database, restore it.
+if ($dbset == 1) {
+    $ENV{"PRODUCTS"} = $db_old;
+}
 
 return $retval;
 }
