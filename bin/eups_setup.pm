@@ -178,10 +178,8 @@ sub extract_table_commands {
 	$data = "$data\nEnd:\n";
 	$data =~ s/Common:[ \n]*\nEnd://gsi;
 	@group = $data =~ m/(flavor.*?\nend:\n)/gsi;
-	if (($debug==1)&&(scalar(@group)==0)) {
-	    print STDERR "FATAL ERROR : Malformed table file\n";
-	    $retval=-1;
-	    return $retval;
+	if ($group == 0) {
+	   @group = ($data);	# the entire file
 	}
     }
     $pos = -1;
