@@ -64,10 +64,13 @@ if [ $PRODVERS  != "cvs" ] && [ `echo $PRODVERS | awk '{print substr($1,1,1)}'` 
 fi
 
 # Source EvilUPS setup
-# source /u/products/EvilUPS/bin/setups.sh
-# For testing
 echo "Setting up EvilUPS....."
-source /u/paddy/EvilUPS/bin/setups.sh
+if [ -z $EUPS_DIR ]; then
+    echo 
+    echo "ERROR : EvilUPS not set up - either set it up, or set EUPS_DIR manually"
+    exit
+fi
+source $EUPS_DIR/bin/setups.sh
 
 if [ -z $EUPS_FLAVOR ]; then
     echo
