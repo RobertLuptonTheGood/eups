@@ -204,6 +204,7 @@ sub extract_table_commands {
 	@group = ($block);
     } else {
 # If old style table file
+	my $pos = -1;
 	for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
 	    $pos = $i if ($group[$i] =~ m/$pattern/gsi);
 	    $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
