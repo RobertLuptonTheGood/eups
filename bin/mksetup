@@ -74,8 +74,8 @@ if ($have_products) {
 print FILE "export PATH=\"\$PATH:$bindir\"\n";
 print FILE "function setup { source \`$binname setup \$\@\`; }\n";
 print FILE "function unsetup { source \`$binname unsetup \$\@\`; }\n";
-print FILE "export -f setup";
-print FILE "export -f unsetup";
+print FILE "export -f setup\n";
+print FILE "export -f unsetup\n";
 close FILE;
 
 exit 0;
