@@ -226,8 +226,10 @@ sub myexit
 sub usage
 {
    warn <<"EOT";
-Usage:
-   setup [options] product [version]
+EUPS : A Unix Versioning System
+CVS Version : $Name: not supported by cvs2svn $
+
+Usage: setup [options] product [version]
 EOT
     eups_show_options($opts);
 }
