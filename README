@@ -25,17 +25,14 @@ a computer, and the second is to correctly set it up.
 
 a) First Time installation :
 
-i) Copy the product distribution into a temporary directory $TEMP
-ii) cd $TEMP/bin
-iii) Run the install script as follows 
-
-./install <ups root directory> <product_directory_prefix> <product_database>
-
-For example - at Princeton, I would like to install EvilUPS in
-/u/products/EvilUPS, the product directory is /u/products and the database
-is in /u/products/ups_db  - and I would run
-
-./install /u/products /u/products /u/products/ups_db
+i) Copy the product over to a temporary directory $TEMP.
+ii) Set the environment variables EUPS_DIR, PROD_DIR_PREFIX and PRODUCTS.
+EUPS_DIR is the directory to install EvilUPS to, PROD_DIR_PREFIX is the toplevel
+directory where products are installed, and PRODUCTS is the 
+UPS database.
+iii) cd $TEMP.
+iv) Execute "make clean"
+v) Execute "make install"
 
 In addition to creating the directory and copying files, two startup scripts
 setups.sh and setups.csh are created (for sh and csh type shells respectively). These
@@ -201,6 +198,44 @@ vi) ${UPS_UPS_DIR} : The ups directory of the product (distinct from the directo
 database - this is often where the table file will be stored).
 
 5. EvilUPS : Further Notes
+
+evilinstall help :: (The following is the documentation for evilinstall,
+copied from the header)
+
+#------------------------------------------------------------------------------
+# Script to install a version of a code and declare it current.
+#
+# The version name should either be "cvs" or begin with the letter "c".
+# If it is "cvs", then simply check-out the current (untagged) version
+#   of the code, build it, copy it into a "cvs" subdirectory, and
+#   declare it current.
+# If it is an actual tagged version, then cvs-export that version,
+#   build it, install it using UPS, and declare it current.
+# If the requested version of the code already exists, then simply declare
+#   that version current.
+#
+# If you are installing products with inter-dependencies, be sure to
+# install them in the order of those dependencies.  For example, since
+# "idlspec2d" depends upon "idlutils", you would install them with:
+#   % evilinstall idlutils v4_5_0
+#   % setup idlutils
+#   % evilinstall idlspec2d v4_5_0
+#
+# The CVS repository can be specified by setting the $CVSROOT environment
+# variable.  If not set, then set to the default CVS repository at Princeton.
+#
+# If installing the "idlutils" product, then build with "evilmake"
+# in that product.  Otherwise, if "idlutils" is setup up, then use "evilmake".
+# Otherwise, if "sdsstools" is set up, then use "sdssmake".
+# Finally, simply use "make" in any other cases.
+#
+# This script tries to set-up products using the table file in the /ups
+# subdirectory of the product.  If this file does not exist, then a minimal
+# version of that file is created.
+#
+# D. Schlegel & N. Padmanabhan, Princeton, 29 January 2003
+#------------------------------------------------------------------------------
+
 
 a) Locating table files : EvilUPS first checks for a table file in 
 $PRODUCTS/<product>/ - if it doesn't find it there, it looks for it in the ups
