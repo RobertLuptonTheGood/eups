@@ -71,3 +71,7 @@ Tue Mar 22 21:23:13 EST 2005
     cvs rtag v0_7_12 eups
     Added version information to -h option; added export commands
     to setups.sh
+
+Mon Mar 28 00:25:50 EST 2005
+    cvs rtag v0_7_13 eups
+    Trivial bug fix
