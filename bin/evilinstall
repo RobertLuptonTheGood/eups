@@ -177,11 +177,15 @@ fi
 
 eups_make_table $PRODNAME $TEMPDIR/$TEMPSUBDIR
 TABLEPARAM="-m $PRODNAME.table"
+echo Setting TABLEPARAM=$TABLEPARAM
 
 #------------------------------------------------------------------------------
 # Determine if the flavor is NULL, which is a special case.
 
-tableflavor=`awk 'BEGIN{FS="="}{if (toupper($1) == "FLAVOR") {print $2}}' $TABLEFILE`
+TABLEFILE=$TEMPDIR/$TEMPSUBDIR/ups/$PRODNAME.table
+echo Setting TABLEFILE=$TABLEFILE
+tableflavor=`awk 'BEGIN{FS=" ="}{if (toupper($1) ~ "FLAVOR") {print $2}}' $TABLEFILE | head -1 | sed 's/ //g'`
+echo Table flavor=\"$tableflavor\"
 if [ "$tableflavor" = "NULL" ] ; then
    INSTALLFLAVOR=$tableflavor
    DECLAREFLAVOR=$tableflavor
