@@ -77,6 +77,8 @@ $opts = {-f => 1, -c => 0, -C => 0, -m => 1, -r => 1,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
+my $debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug eq "");
 
 if ($options eq "-h") {
    usage();
@@ -98,8 +100,14 @@ if (defined($$options{-f})) {
 die "ERROR: No flavor specified\n" if ($flavor eq "");
 
 # Get the root directory
+
 if (defined($$options{-r})) {
    $prodroot = $$options{-r};
+   $proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
+   if ($prodroot =~ m/$proddirprefix/) {
+       $prodroot =~ s|$proddirprefix/*||;
+       print STDERR "WARNING : Making PROD_DIR relative to PROD_DIR_PREFIX\n" if ($debug > 0);
+   }
 }
 die "ERROR: No product directory specified\n" if ($prodroot eq "");
 
