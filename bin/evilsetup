@@ -1,0 +1,154 @@
+#!/usr/local/bin/perl
+#
+# This script calls the 
+# appropriate setup/unsetup tasks and 
+# update the environment variables. It writes
+# it out to a temporary file, which can be 
+# sourced. 
+#
+# Nikhil Padmanabhan
+# Jan 22, 2003 Princeton
+####################
+
+
+use POSIX;
+
+# The subroutines that actually write out the necessary
+# shell commands. These subroutines ideally should take care 
+# of the shell determination.
+sub sete {
+    our $shell;
+    our $tmpfile;
+    if ($shell eq "sh") {
+	my $key = $_[0];
+	my $val = $_[1];
+	print $tmpfile "export $key=$val\n";
+    }
+    if ($shell eq "csh") {
+        my $key = $_[0];
+        my $val = $_[1];
+        print $tmpfile "setenv $key $val\n";
+    }
+}
+
+sub unsete {
+    our $shell;
+    our $tmpfile;
+    if ($shell eq "sh") {
+        my $key = $_[0];
+        print $tmpfile "unset $key\n";
+    }
+    if ($shell eq "csh") {
+        my $key = $_[0];
+        print $tmpfile "unsetenv $key\n";
+    }
+
+}
+
+sub setshell {
+    our $shell = $ENV{"EUPS_SHELL"};
+    my $retval = 0;
+    if ($shell eq "") {
+	print STDERR "ERROR : EUPS_SHELL not set\n";
+	$retval = -1;
+    } elsif (!(($shell eq "sh")||($shell eq "csh"))) {
+	print STDERR "ERROR : Unknown shell $shell\n";
+	$retval = -1;
+    }
+    return $retval;
+}
+
+
+# Open the temporary file
+our $tmpfile;
+do {
+    $fn = tmpnam();
+} until open $tmpfile, ">$fn";
+
+$eupsdir = $ENV{"EUPS_DIR"};
+if ($eupsdir eq "") {
+    print STDERR "ERROR: EUPS_DIR not set\n";
+    goto CLEAN;
+}
+require "$eupsdir/eups_setup.pm";
+import eups_setup;
+
+#Get the debug environment variable
+$debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if (!($debug == 1));
+
+#DEBUGGING STATEMENT
+$debug=1;
+
+#Get the shell 
+our $shell = $0;
+$retval = setshell;
+goto CLEAN if ($retval == -1);
+print STDERR "evilups -- using shell : $shell\n" if ($debug == 1);
+
+# Get the command line
+@args = @ARGV;
+$select = $args[0];
+$args[0] = "";
+$comm = join " ",@args;
+if (!(($select eq "setup")||($select eq "unsetup"))) {
+    print STDERR "ERROR: Unknown command to evilsetup (not setup/unsetup)\n";
+    goto CLEAN;
+}
+
+#Get the environment variables
+%oldenv = %ENV;
+@oldkeys = keys %ENV;
+
+# Call either setup or unsetup
+
+if ($select eq "setup") {
+# First try an unsetup
+    eups_unsetup($comm,$tmpfile);
+    $retval = eups_setup($comm,$tmpfile);
+    if ($retval == -1) {
+	eups_unsetup($comm,$tmpfile);
+	print STDERR "FATAL ERROR : setup failed\n";
+	goto CLEAN;
+    }
+}
+if ($select eq "unsetup") {
+    $retval = eups_unsetup($comm,$tmpfile);
+    if ($retval == -1) {
+	print STDERR "FATAL ERROR : unsetup failed\n";
+	goto CLEAN;
+    }
+}
+
+#Check to see and update the environment 
+
+@newkeys = keys %ENV;
+
+for ($i=0;$i<@oldkeys;$i++) {
+# Is the variable still set?
+    if (!($ENV{$oldkeys[$i]})) {
+	unsete($oldkeys[$i]);
+	next;
+    } 
+    $val = $ENV{$oldkeys[$i]};
+    $oval = $oldenv{$oldkeys[$i]};
+    if (!($val eq $oval)) {
+	sete($oldkeys[$i],$val);
+    }
+}
+
+for ($i = 0; $i<@newkeys; $i++) {
+    if (!($oldenv{$newkeys[$i]})) {
+	sete($newkeys[$i],$ENV{$newkeys[$i]});
+    }
+}
+
+# Self destruct file
+CLEAN:
+print $tmpfile "\\rm -f $fn\n";
+close $tmpfile;
+
+print "$fn\n";
+
+exit;
+

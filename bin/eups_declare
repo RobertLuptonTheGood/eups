@@ -1,0 +1,190 @@
+#!/usr/local/bin/perl
+#
+# The evil implementation of ups declare.
+#
+# Note that this is designed _only_ to
+# work with products declared with eups_declare.
+# There is some compatibility with older files,
+# but this program currently breaks for groups.
+#
+# Syntax : eups_declare [-f <flavor>] <product> <version> \
+#   -r <product root directory> [-c] [-m <table file>]
+#
+# -c modifies the current chain
+#
+# If the flavor is not specified, then it is extracted from
+# $EUPS_FLAVOR
+#
+# Nikhil Padmanabhan, Princeton
+# January 23rd, 2003
+#############################
+
+
+sub fix_special {
+# This is essential since some of the flavors have special characters in 
+# them.
+    my $arg = $_[0];
+    $arg =~ s/\\/\\\\/g;
+    $arg =~ s/\./\\\./g;
+    $arg =~ s/\+/\\\+/g;
+    $arg =~ s/\(/\\\(/g;
+    $arg =~ s/\)/\\\)/g;
+    $arg =~ s/\{/\\\{/g;
+    $arg =~ s/\}/\\\}/g;
+    $arg =~ s/\^/\\\^/g;
+    $arg =~ s/\*/\\\*/g;
+    $arg =~ s/\?/\\\?/g;
+    $arg =~ s/\[/\\\[/g;
+    $arg =~ s/\|/\\\|/g;
+    return $arg;
+}
+
+use File::Spec::Functions;
+use POSIX qw(strftime);
+
+# Is the product database specified in $PRODUCTS
+$db = $ENV{"PRODUCTS"};
+die "ERROR: PRODUCTS not defined\n" if ($db eq "");
+
+
+# Get the command line parameters
+$arg = join " ",@ARGV;
+
+# Is the flavor specified
+($flavor) = $arg =~ m/\-f *([^ ]+)/;
+$flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq "");
+die "ERROR: No flavor specified\n" if ($flavor eq "");
+
+# Get the root directory
+($prodroot) = $arg =~ m/\-r *([^ ]+)/;
+die "ERROR: No product directory specified\n" if ($prodroot eq "");
+
+# Do we make this current?
+$iscurrent = $arg =~ m/\-c/;
+$arg =~ s/\-c//;
+
+# Is there a table file?
+$istable = $arg =~ m/\-m/;
+($tablefile) = $arg =~ m/\-m *([^ ]+)/;
+
+$arg =~ s/\-[a-zA-Z] *[^ ]+//g;
+@arg = split " ", $arg;
+$prod = $arg[0];
+$vers = $arg[1];
+
+die "ERROR : No product specified\n" if ($prod eq "");
+die "ERROR : No version specified\n" if ($vers eq "");
+
+$fn = catfile($db,$prod);
+$fn = catfile($fn,"$vers.version");
+if (-e $fn) {
+    $comm = "eups_undeclare -f $flavor $prod $vers";
+    system($comm);
+}
+
+# Now that any previous declarations are removed
+# simply create/append this declaration
+
+$new = (!(-e $fn));
+$sep = "#***************************************";
+die "ERROR opening/creating file $fn\n" if (!(open FILE, ">>$fn"));
+print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n" if $new;
+# An example
+#FLAVOR = Linux+2.4
+#QUALIFIERS = ""
+#  DECLARER = paddy
+#  DECLARED = 2003-01-17 02.07.41 GMT
+#  MODIFIER = paddy
+#  MODIFIED = 2003-01-17 02.07.41 GMT
+#  PROD_DIR = /u/products/Linux/foobar/v0_1
+#  UPS_DIR = ups
+#  TABLE_FILE = foobar.table
+print FILE "FLAVOR = $flavor\n";
+print FILE "QUALIFIERS = \"\"";
+$name = $ENV{"LOGNAME"};
+$now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
+print FILE "   DECLARER = $name\n";
+print FILE "   DECLARED = $now_string\n";
+print FILE "   MODIFIER = $name\n";
+print FILE "   MODIFIED = $now_string\n";
+print FILE "   PROD_DIR = $prodroot\n";
+if ($istable) {
+    $dir = catfile($prodroot,"ups");
+    print FILE "   UPS_DIR = ups\n" if (-d $dir);
+    print FILE "   TABLE_FILE = $tablefile\n";
+}
+print FILE "$sep\n";
+close FILE;
+
+goto END if (!($iscurrent));
+
+# Now fix the current chain 
+$fn = catfile($db,$prod);
+$fn = catfile($fn,"current.chain");
+
+# Two cases - if the current chain doesn't exist create it
+# otherwise go through the file, update a record if necessary
+# or add one.
+
+if (-e $fn) {
+# Similar code to that in ups_undeclare
+    open FILE, "<$fn" or die "Error reading $fn\n";;
+    read FILE, $versinfo, 100000;
+    close FILE;
+# Now strip out all comments
+    $versinfo =~ s/\#.*\n//g;
+    $versinfo =~ s/flavor/##FLAVOR/gsi;
+    @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+# Match the last flavor
+    @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+    @group = (@groups2,@groups3);
+
+    open FILE, ">$fn" or die "Error writing $fn\n";
+    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
+#Now enter in all groups that don't match the flavor
+    $flavour = fix_special($flavor);
+    $pattern = "FLAVOR *= *$flavour( |\n)";
+    for ($i = 0; ($i<@group);$i++) {
+# Both the flavour and the version must match
+	if (($group[$i] =~ m/$pattern/gsi)) {
+	    print FILE "FLAVOR = $flavor\n";
+	    print FILE "VERSION = $vers\n";
+	    print FILE "QUALIFIERS = \"\"";
+	    print FILE "   DECLARER = $name\n";
+	    print FILE "   DECLARED = $now_string\n";
+	    print FILE "   MODIFIER = $name\n";
+	    print FILE "   MODIFIED = $now_string\n$sep\n";
+	} else {
+	    print FILE "$group[$i]\n$sep\n";
+	}
+    }
+    close FILE;
+
+} else {
+    die "ERROR : opening current chain $fn\n" if (!(open FILE, ">$fn"));
+    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
+# Another example
+#FLAVOR = Linux
+#VERSION = v0_1
+#QUALIFIERS = ""
+#  DECLARER = paddy
+#  DECLARED = 2003-01-17 02.07.41 GMT
+#  MODIFIER = paddy
+#  MODIFIED = 2003-01-17 02.07.41 GMT
+    print FILE "FLAVOR = $flavor\n";
+    print FILE "VERSION = $vers\n";
+    print FILE "QUALIFIERS = \"\"";
+    print FILE "   DECLARER = $name\n";
+    print FILE "   DECLARED = $now_string\n";
+    print FILE "   MODIFIER = $name\n";
+    print FILE "   MODIFIED = $now_string\n$sep\n";
+    close FILE;
+}
+
+
+END:
+exit;
+
+
+
+
