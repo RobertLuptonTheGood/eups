@@ -1,0 +1,129 @@
+#!/usr/bin/perl
+# -*- perl -*-
+#
+# Expands the table file by filling in 
+# the currently set-up versions.
+# Small modifications of install_ups_table in sdsstools.
+# Nikhil Padmanabhan, Princeton, 2003
+#
+# #############################################
+
+$warn_versions = 0;		# warn about suspicious versions
+
+while($ARGV[0] =~ /^-/) {
+   if($ARGV[0] =~ /-[h?]/) {
+      warn <<EOT;
+Usage: eups_expandtable [options] file.table [directory]
+Options are
+    -h   Print this message
+    -w   Warn about versions that don't start with v or V
+
+Modify a ups table file, replacing setupRequired and setupOptional
+lines which refer to the current version by the actual version number 
+of the currently setup product; e.g.
+      setupRequired("-f \${UPS_PROD_FLAVOR} astroda")
+becomes
+      setupRequired("-f \${UPS_PROD_FLAVOR} astroda v13_1")
+
+If a directory is specified, the modified table file will be written
+there, with the same name as the original; otherwise it's written to
+standard out.
+
+For example, the make target in a ups directory might contain the line:
+      eups_expandtable -w iop.table \$(IOP_DIR)/ups
+
+All setup options are understood, with the exception of -B and -O which
+were too much trouble to parse.
+EOT
+    exit 1;
+   } elsif($ARGV[0] =~ /-w/) {
+      $warn_versions = 1;
+   } else {
+      warn "Unknown option: $ARGV[0]\n";
+      break;
+   }
+   shift @ARGV;
+}
+
+if(($filename = $ARGV[0]) eq "") {
+   die "Please specify a table file to install\n";
+}
+
+if($ARGV[1] ne "") {
+   $filename =~ m|([^/]*)$|;
+   $outfile = "$ARGV[1]/$1";
+   if($outfile eq $ARGV[0]) {
+      die "I refuse to overwrite your table file\n";      
+   }
+
+   open(FD, ">$outfile") || die "I cannot open $outfile\n";
+   select(FD);
+}
+
+open(IFD, "$filename") || die "Cannot open $filename for read\n";
+
+while(<IFD>) {
+   if ((/(.*setupRequired\(")([^"]*)("\).*)/)||(/(.*setupOptional\(")([^"]*)("\).*)/)) { # matched the unmatched "
+      $head = $1; $body = $2; $tail = $3;
+
+      $flags = $words = "";
+      @args = split(" ", $body);
+      for($i = 0; $i < @args; $i++) {
+	 $a = @args[$i];
+	 if($a =~ /^-[fgHmMqrUz]/) {
+	    $flags .= "$a $args[$i + 1] ";
+	    $i++;
+	 } elsif($a =~ /^-[cdejknoPsvtV0-3]/) {
+	    $flags .= "$a ";
+	 } elsif ($a =~ /^-[BO]/) {
+	    &unchanged("I don't know how to process $a"); next;
+	 } elsif ($a =~ /^-/) {
+	    &unchanged("Unknown flag $a"); next;
+	 } else {
+	    $words .= "$a ";
+	 }
+      }
+      chop $flags; chop $words;
+      $product = $version = "";
+      ($product, $version) = split(" ", $words);
+      if($product eq "") {
+	 &unchanged("I cannot find a product"); next;
+      }
+      if($version eq "") {
+	 ($uproduct = $product) =~ tr/a-z/A-Z/;
+	 ($prod, $version) = split(" ", $ENV{"SETUP_$uproduct"});
+	 if($prod ne $product) {
+	    &unchanged("Invalid setup for $product: $ENV{'SETUP_$uproduct'}");
+	    next;
+	 }
+	 if($version eq "") {
+	    &unchanged("I cannot find a version for $product in: $ENV{'SETUP_$uproduct'}");
+	    next;
+	 }
+         if($warn_versions && !($version =~ /^[vV]/)) {
+            if(!$warned_about_product{$product}) {
+	       $warned_about_product{$product}++;
+               printf STDERR "%-30s suspicious version %s\n",
+					     "$filename   $product:", $version;
+            }
+         }
+      }
+
+      if($flags ne "") { $flags .= " "; }
+      print "$head$flags$product $version$tail\n";
+   } else {
+      print;
+   }
+}
+
+#
+# Print a message and pass a line to the output file unmodified
+#
+sub unchanged
+{
+   local($msg) = @_;
+   local($line) = $_;
+   $line =~ s/^\s*//;
+   warn "$msg in line: $line";
+   warn "copying to output unchanged\n"; print;
+}
