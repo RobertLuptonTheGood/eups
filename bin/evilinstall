@@ -151,11 +151,13 @@ fi
 # Finally, simply use "make" in any other cases.
 
 if [ $PRODNAME = "idlutils" ] ; then
-   MAKECOMMAND=$TEMPSUBDIR/bin/evilmake
+   MAKECOMMAND=$TEMPDIR/$TEMPSUBDIR/bin/evilmake
    MAKEINSTALLCOMMAND='make install'
+   export SDSSTOOLS_DIR=$TEMPDIR/$TEMPSUBDIR
 elif [ -e "$IDLUTILS_DIR/bin/evilmake" ] ; then
    MAKECOMMAND=$IDLUTILS_DIR/bin/evilmake
    MAKEINSTALLCOMMAND='make install'
+   export SDSSTOOLS_DIR=$IDLUTILS_DIR
 elif [ -e "$SDSSTOOLS_DIR/bin/sdssmake" ] ; then
    MAKECOMMAND='sdssmake -idl -opt -debug'
    MAKEINSTALLCOMMAND='sdssmake install'
@@ -164,6 +166,8 @@ else
    MAKEINSTALLCOMMAND='make install'
 fi
 
+echo "Setting SDSSTOOLS_DIR=$SDSSTOOLS_DIR"
+echo "Setting MAKEINSTALLCOMMAND=$MAKEINSTALLCOMMAND"
 echo "Setting MAKECOMMAND=$MAKECOMMAND"
 
 #------------------------------------------------------------------------------
@@ -245,6 +249,10 @@ else
 #   if [ $PRODNAME = "sdsstools" ] ; then
 #      mkdir $MYSDSS_ROOT/$PRODNAME/$PRODVERS
 #   fi
+
+   echo "Setting SDSSTOOLS_DIR=$SDSSTOOLS_DIR"
+   echo "Setting MAKEINSTALLCOMMAND=$MAKEINSTALLCOMMAND"
+   echo "Setting MAKECOMMAND=$MAKECOMMAND"
    $MAKEINSTALLCOMMAND
 fi
 
