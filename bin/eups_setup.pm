@@ -27,7 +27,7 @@ package eups_setup;
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw(eups_list eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options);
+our @EXPORT = qw(eups_list eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options eups_find_prod_dir);
 our $VERSION = 1.1;
 
 #Subroutines follow
@@ -589,6 +589,26 @@ sub eups_setup {
 
    $fwd = 1;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
+}
+
+###############################################################################
+
+sub eups_find_prod_dir {
+   my($db, $flavor, $prod, $vers) = @_;
+   
+   $fn = catfile($db,$prod,"$vers.version");
+
+   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   if ($prodprefix eq "") {
+      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      return -1;
+   }
+
+   if (read_version_file($fn, $prod, $flavor) < 0) {
+      return undef;
+   }
+
+   return $prod_dir;
 }
 
 ###############################################################################
