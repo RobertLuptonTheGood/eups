@@ -369,8 +369,8 @@ setupenv => \&envSet,
 	   } elsif ($fwd == 1 && $switchfwd{$comm}) {
 	      $switchfwd{$comm}->(@arg);
 	   } else {
-	      if ($debug || $verbose ||
-		  $lines[$i] !~ /^\s*(Action\s*=\s*setup)\s*$/i) {
+	      if ($debug > 1 ||
+		  ($debug && $lines[$i] !~ /^\s*(Action\s*=\s*setup)\s*$/i)) {
 		 printf STDERR "Unknown command \"%s\" in $fn, line %d\n", $lines[$i], $i + 1;
 	      }
 	   }
