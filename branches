@@ -28,3 +28,7 @@ Thu Apr 15 14:34:19 EDT 2004
 Tue May 18 19:20:49 EDT 2004
    cvs rtag v0_7_1 eups
    Minor bugfix
+
+Sun May 23 01:05:47 EDT 2004
+   cvs rtag v0_7_2 eups
+   Adjusted verbosity levels
