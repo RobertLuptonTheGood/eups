@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 # Parser for evilups table files
 # Nikhil Padmanabhan, Princeton
 #

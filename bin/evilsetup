@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # This script calls the 
 # appropriate setup/unsetup tasks and 

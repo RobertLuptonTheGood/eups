@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 #
 # Returns the version of a currently installed product
 # If used with -a, also returns the flavor and version file used to install it
