@@ -330,7 +330,7 @@ if ($out eq "") {
 ($vers,$flavor,$db,$temp) = split " ",$out;
 
 print STDERR "Unsetting up : $prod  " if ($debug == 1);
-print STDERR "Version: $fn\nFlavor: $flavor\n" if ($debug == 1);
+print STDERR "Version: $vers\nFlavor: $flavor\n" if ($debug == 1);
 
 # The version file reading code used to go here.
 # This has been removed since it is no longer used.
@@ -341,7 +341,7 @@ $capprod =~ tr/[a-z]/[A-Z]/;
 $capprod = "$capprod_DIR";
 $prod_dir = $ENV{"$capprod"};
 if ($prod_dir eq "") {
-    print STDERR "ERROR: Environment variable $capprod not set\n" if ($debug == 1);
+    print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug == 1);
     $retval=-1;
     goto END;
 }
