@@ -104,7 +104,7 @@ sub envPrepend {
     $delim = ":" if ($delim eq "");
     $curval = $ENV{$var};
     $curval = "$val$delim$curval";
-    $ENV{$val} = $curval;
+    $ENV{$var} = $curval;
 }
 
 sub envSet {
