@@ -125,7 +125,7 @@ if ($select eq "setup") {
 # First try an unsetup
     eups_unsetup($comm,$tmpfile);
     $retval = eups_setup($comm,$tmpfile);
-    if ($retval == -1) {
+    if ($retval < 0) {
 	eups_unsetup($comm,$tmpfile);
 	print STDERR "FATAL ERROR : setup failed\n";
 	goto CLEAN;
@@ -133,7 +133,7 @@ if ($select eq "setup") {
 }
 if ($select eq "unsetup") {
     $retval = eups_unsetup($comm,$tmpfile);
-    if ($retval == -1) {
+    if ($retval < 0) {
 	print STDERR "FATAL ERROR : unsetup failed\n";
 	goto CLEAN;
     }

@@ -239,8 +239,9 @@ setupenv => \&envSet,
 	}
 	if (($comm eq "setuprequired")&&($fwd==0)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            $retval = eups_unsetup($qaz,$outfile);
-	    print STDERR "ERROR : REQUIRED UNSETUP $qaz failed \n" if ($retval == -1);
+            $foo = eups_unsetup($qaz,$outfile);
+	    $retval =+ $foo;
+	    print STDERR "ERROR : REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
 	    next;
 	}
         if (($comm eq "setupoptional")&&($fwd==0)) {
@@ -250,8 +251,9 @@ setupenv => \&envSet,
         }
         if (($comm eq "setuprequired")&&($fwd==1)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-            $retval = eups_setup($qaz,$outfile);
-            print STDERR "ERROR : REQUIRED UNSETUP $qaz failed \n" if ($retval == -1);
+            $foo = eups_setup($qaz,$outfile);
+	    $retval =+ $foo;
+            print STDERR "ERROR : REQUIRED SETUP $qaz failed \n" if ($foo < 0);
 	    next;
         }
         if (($comm eq "setupoptional")&&($fwd==1)) {
@@ -338,7 +340,7 @@ print STDERR "Version: $vers\nFlavor: $flavor\n" if ($debug == 1);
 
 my $capprod = $prod;
 $capprod =~ tr/[a-z]/[A-Z]/;
-$capprod = "$capprod_DIR";
+$capprod = "$capprod\_DIR";
 $prod_dir = $ENV{"$capprod"};
 if ($prod_dir eq "") {
     print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug == 1);
@@ -431,12 +433,13 @@ $table_file = "";
 $prod_dir = "";
 $ups_dir = "";
 ($prod_dir) = $qaz =~ m/\-r *([^ ]+)/;
-($table_file) = $qaz =~ m/\-m *([^ ]+)/;
+# Table files no longer used.
+#($table_file) = $qaz =~ m/\-m *([^ ]+)/;
 if (!($prod_dir eq "")) {
-    if ($table_file eq "") {
-	print STDERR "ERROR : Must specify table file with -m";
-	$retval = -1;
-	goto END;
+    $table_file = "$prod.table";
+    $table_file = catfile("ups",$table_file);
+    if (!($table_file eq "")) {
+	print STDERR "WARNING : Overriding the table file setting with $prod.table\n" if ($debug==1);
     }
     if (!($prod_dir =~ m"^/")) {
 	$prod_dir = catfile($prodprefix,$prod_dir);
@@ -536,13 +539,15 @@ if ($pos == -1) {
 
 # Now extract the prod_dir, ups_dir, table_dir and table_file
 ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
-($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
-($table_dir) = $group[$pos] =~ m/TABLE_DIR *= *({^ ,.}+?) *\n/i;
-($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-# Check for a few things 
-$table_file = "$vers.table" if ($table_file eq "");
-$table_dir = dirname($fn) if ($table_dir eq "");
-$table_file = catfile($table_dir,$table_file);
+$ups_dir = "ups";
+$table_dir = "ups";
+$table_file = "$prod.table";
+
+#Table files now must be in UPS directory
+#($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
+#($table_dir) = $group[$pos] =~ m/TABLE_DIR *= *({^ ,.}+?) *\n/i;
+#($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
+
 # Does the product directory have an environment variable set in it
 @env = $prod_dir =~ m/\$\{(.+?)\}/g;
 for ($i = 0; $i < @env; $i++) {
@@ -555,11 +560,8 @@ if (!($prod_dir =~ m"^/")) {
 if (!($ups_dir =~ m"^/")) {
     $ups_dir = catfile($prod_dir,$ups_dir);
 }
-#If the table file is not in the directory, search in new directory...
-if (!(-e $table_file)) {
-    $table_file = basename($table_file);
-    $table_file = catfile($ups_dir,$table_file);
-}
+$table_file = catfile($ups_dir,$table_file);
+
 
 START:
 if (!(-e $table_file)) {
@@ -579,6 +581,7 @@ END:
 
 return $retval;
 }
+
 
 
 
