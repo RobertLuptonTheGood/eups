@@ -21,6 +21,9 @@ These are the Release Notes for EUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
+v0_7_12: Added version information to -h option; added export commands 
+	 to setups.sh
+
 v0_7_4: Trivial bugfix
 
 v0_7_2: Verbosity levels adjusted
