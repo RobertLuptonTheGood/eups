@@ -646,13 +646,36 @@ sub eups_list {
       print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
       return -1;
    }
-
-# Now check to see if product directory is specified.
-# If so, extract and immediately start, else complain 
+   #
+   # Find the current version
+   #
+   $fn = catfile($db,$prod,"current.chain");
+   if (-e $fn) {
+      $current_vers = read_chain_file($fn, $flavor);
+   }
+   
+   # Look through directory searching for version files
+   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
    foreach $file (glob(catfile($db,$prod,"*.version"))) {
-      $file = basename($file);
-      ($vers = $file) =~ s/\.version$//;
-      warn "   $vers\n";
+      ($vers = basename($file)) =~ s/\.version$//;
+
+      if (read_version_file($file, $prod, $flavor) < 0) {
+	 next;
+      }
+      
+      $info = "";
+      if (defined($current_vers) && $vers eq $current_vers) {
+	 $info .= " Current";
+      }
+      if ($prod_dir eq $setup_prod_dir) {
+	 $info .= " Setup";
+      }
+
+
+      if ($info) {
+	 $info = "\t\t$info";
+      }
+      warn "   ${vers}$info\n";
    }
 }
 
@@ -777,6 +800,8 @@ sub read_version_file
    if ($table_file !~ /^none$/i) {
       $table_file = catfile($ups_dir,$table_file);
    }
+
+   return 0;
 }
 
 ###############################################################################
