@@ -92,7 +92,7 @@ echo Installing PRODNAME=$PRODNAME PRODVERS=$PRODVERS FLAVOR=$FLAVOR.
 # to install this product (if it does not yet exist).
 
 if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
-   \mkdir -p $PROD_DIR_PREFIX
+   \mkdir -p $PROD_DIR_PREFIX/$FLAVOR
 fi
 if [ ! -d $PROD_DIR_PREFIX/$FLAVOR ] ; then
     echo "ABORT: Unable to create directory PROD_DIR_PREFIX/FLAVOR."
