@@ -201,6 +201,7 @@ fi
 tableflavor=`awk 'BEGIN{FS="="}{if (toupper($1) == "FLAVOR") {print $2}}' $TABLEFILE`
 if [ "$tableflavor" = "NULL" ] ; then
    INSTALLFLAVOR=$tableflavor
+   DECLAREFLAVOR=$tableflavor
 else
    INSTALLFLAVOR=$DECLAREFLAVOR
 fi
