@@ -74,7 +74,6 @@ $arg =~ s/\-C//;
 # Is there a table file?
 $istable = $arg =~ m/\-m/;
 ($tablefile) = $arg =~ m/\-m *([^ ]+)/;
-print STDERR "WARNING : Currently overriding $tablefile with $prod.table\n";
 
 $arg =~ s/\-[a-zA-Z] *[^ ]+//g;
 @arg = split " ", $arg;
@@ -83,6 +82,7 @@ $vers = $arg[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
+print STDERR "WARNING : Currently overriding $tablefile with $prod.table\n" if ($tablefile eq "");
 
 # Check to see if an entry exists in the database
 # create if not.
