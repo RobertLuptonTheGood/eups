@@ -194,12 +194,20 @@ sub extract_table_commands {
 	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
 	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
     }
-    @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
-    if ($pos == -1) {
-	print STDERR "FATAL ERROR : Malformed table file or flavour not found\n" if ($debug==1);
-	$retval=-1;
-	return $retval;
+
+    if ($pos == -1) {		# no flavor was specified
+       if(grep(/^\s*flavor\s*=/i, @group)) {
+	  warn "FATAL ERROR: no match for flavor \"$flavor\" in table file\n";
+	  return -1;
+       } elsif(@group > 1) {
+	  warn "FATAL ERROR: Multiple groups but no flavor specification in table file\n";
+	  return -1;
+       }
+
+       pos = 0;			# accept first group
     }
+    
+    @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
     
     return $group[0];
 }
@@ -469,8 +477,6 @@ if ($prodprefix eq "") {
 
 # Need to extract the parameters carefully
 my ($args,$outfile) = @_;
-# Attempt an unsetup
-eups_unsetup($args, $outfile);
 my $qaz = $args;
 $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
 @args = split " ",$args;
@@ -482,6 +488,13 @@ if ($prod eq "") {
     print STDERR "Syntax : evilsetup setup <product> [version] [-f <flavor>] [-z <database>]\n";
     $retval = -1;
     goto END;
+}
+
+# Attempt an unsetup
+
+my($PROD_DIR) = uc($prod) . "_DIR";
+if (defined($ENV{$PROD_DIR})) {
+   eups_unsetup($qaz, $outfile);
 }
 
 #Determine flavour - first see if specified on command line
@@ -514,7 +527,7 @@ if ($db eq "") {
     goto END;
 }
 
-print STDERR "Setting up : $prod   " if ($debug == 1);
+print STDERR "Setting up : $prod," if ($debug == 1);
 # Now check to see if the table file and product directory are 
 # specified. If so, extract these and immediately start, else 
 # complain 
@@ -589,7 +602,7 @@ if ($vers eq "") {
 # Now construct the filename
 $fn = catfile($db,$prod,"$vers.version");
 
-print STDERR "  Version: $vers Flavour: $flavor\n" if ($debug == 1);
+print STDERR " Version: $vers, Flavour: $flavor\n" if ($debug == 1);
 
 # Now read in the version file and start to parse it
 if (!(open FILE,"<$fn")) {
