@@ -181,8 +181,10 @@ fi
 
 cd $TEMPDIR
 if [ $PRODVERS = "cvs" ] ; then
+   echo "cvs co -d $TEMPSUBDIR $PRODNAME"
    cvs co -d $TEMPSUBDIR $PRODNAME
 else
+   echo "cvs export -d $TEMPSUBDIR -r $PRODVERS $PRODNAME"
    cvs export -d $TEMPSUBDIR -r $PRODVERS $PRODNAME
 fi
 # If the cvs check-out failed (for example, if this version does not exist),
@@ -217,7 +219,7 @@ echo Setting temporary directory to $TEMPDIR/$TEMPSUBDIR
 # Now build and install the code!!
 
 cd $TEMPDIR/$TEMPSUBDIR
-$MAKECOMMAND
+$MAKECOMMAND all
 
 # The following nasty line is simply to set up the environment
 # variable {$PRODNAME}_DIR so that the code can be installed.
