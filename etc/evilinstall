@@ -219,11 +219,11 @@ else
 fi
 eups_declare -f $FLAVOR $TABLEPARAM \
  -r $TEMPDIR/$TEMPSUBDIR $PRODNAME $PRODVERS
-setup -r $TEMPDIR/$TEMPSUBDIR $PRODNAME
+setup -f $FLAVOR $PRODNAME $PRODVERS
 # The following nasty line is simply to set up the environment
 # variable {$PRODNAME}_DIR so that the code can be built.
 eval export `echo $PRODNAME | perl -pe 'y/a-z/A-Z/'`_DIR=$TEMPDIR/$TEMPSUBDIR
-echo Setting temporary directory to $IDLMAPPER_DIR
+echo Setting temporary directory to $TEMPDIR/$TEMPSUBDIR
 cd $TEMPDIR/$TEMPSUBDIR
 $MAKECOMMAND
 
