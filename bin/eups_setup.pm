@@ -865,8 +865,10 @@ sub show_product_version
 # Parse arguments. Many are actually interpreted by eups_setup.pm
 #
 %longopts = (
+	     '--current',	'-c',
 	     '--database',	'-Z',
 	     '--flavor',	'-f',
+	     '--force',		'-F',
 	     '--help',		'-h',
 	     '--list'	,	'-l',
 	     '--root',		'-r',
@@ -958,8 +960,8 @@ sub eups_show_options
    my $strings = {
        -h => "Print this help message",
        -c => "Declare this product current",
-       -C => "Make this version current",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
+       -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
