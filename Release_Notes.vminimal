@@ -15,6 +15,10 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
+vminimal0_2b :
+
+	-- EUPS now includes support for minimal table files.
+
 	-- setupenv and proddir are now deprecated. The appropriate environment
 	variables are automatically set.
 
