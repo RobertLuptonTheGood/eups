@@ -106,8 +106,8 @@ if (!(($select eq "setup")||($select eq "unsetup"))) {
 }
 # Die if EUPS_FLAVOR is not set and -f not used... this is so that
 # a major failure mode gets a decent error message.
-if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"})&&(!($comm =~ m/\-f/))) {
-    print STDERR "ERROR: Unknown flavour - use -f or set EUPS_FLAVOR\n";
+if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!($comm =~ m/\-f/))) {
+    print STDERR "ERROR: No flavor flavour - use -f or set EUPS_FLAVOR\n";
     goto CLEAN;
 }
 
