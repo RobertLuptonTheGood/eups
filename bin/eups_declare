@@ -122,11 +122,8 @@ print FILE "   DECLARED = $now_string\n";
 print FILE "   MODIFIER = $name\n";
 print FILE "   MODIFIED = $now_string\n";
 print FILE "   PROD_DIR = $prodroot\n";
-if ($istable) {
-    $dir = catfile($prodroot,"ups");
-    print FILE "   UPS_DIR = ups\n" if (-d $dir);
-    print FILE "   TABLE_FILE = $tablefile\n";
-}
+print FILE "   UPS_DIR = ups\n";
+print FILE "   TABLE_FILE = $tablefile\n";
 print FILE "$sep\n";
 close FILE;
 
