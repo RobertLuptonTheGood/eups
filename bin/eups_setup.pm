@@ -159,6 +159,51 @@ sub envUnset {
     delete $ENV{$var};
 }
 
+
+
+sub extract_table_commands {
+
+# Get debug information
+    my $debug = $ENV{"EUPS_DEBUG"};
+    $debug = 0 if ($debug eq "");
+
+    my $data = $_[0];
+    my $flavor = $_[1];
+
+# Extract the groups
+    my @group = ($data =~ m/group:(.+?end:)/gsi);
+    if (scalar(@group) == 0) {
+	$data = "\n$data";
+	$data =~ s/\n *flavor *= *([^ ]+?)( |\n)/\nEnd:\nFLAVOR=$1\nCommon:\n/gsi;
+	$data = "$data\nEnd:\n";
+	$data =~ s/Common:[ \n]*\nEnd://gsi;
+	@group = $data =~ m/(flavor.*?\nend:\n)/gsi;
+	if (($debug==1)&&(scalar(@group)==0)) {
+	    print STDERR "FATAL ERROR : Malformed table file\n";
+	    $retval=-1;
+	    return $retval;
+	}
+    }
+    $pos = -1;
+    my $flavour = fix_special($flavor);
+    my $pattern = "FLAVOR *= *$flavour( |\n)";
+    my $pattern2 = "FLAVOR *= *ANY( |\n)";
+    my $pattern3 = "FLAVOR *= *NULL( |\n)";
+    for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
+	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
+	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+    }
+    @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
+    if ($pos == -1) {
+	print STDERR "FATAL ERROR : Malformed table file or flavour not found\n" if ($debug==1);
+	$retval=-1;
+	return $retval;
+    }
+    
+    return $group[0];
+}
+
 sub parse_table {
     my $fn = $_[0];
     my $proddir = $_[1];
@@ -220,30 +265,13 @@ setupenv => \&envSet,
     close FILE;
     $data =~ s/\#.*?\n//g;
 
-# Extract the groups
-    my @group = ($data =~ m/group:(.+?end:)/gsi);
-    if (scalar(@group) == 0) {
-       print STDERR "FATAL ERROR : Malformed table file\n" if ($debug==1);
-       $retval=-1;
-       return $retval;
-    }
-    $pos = -1;
-    my $flavour = fix_special($flavor);
-    my $pattern = "FLAVOR *= *$flavour( |\n)";
-    my $pattern2 = "FLAVOR *= *ANY( |\n)";
-    my $pattern3 = "FLAVOR *= *NULL( |\n)";
-    for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-	$pos = $i if ($group[$i] =~ m/$pattern/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-	$pos = $i if ($group[$i] =~ m/$pattern3/gsi);
-    }
-    @group = ($group[$pos] =~ m/Common:(.+?)End:/gsi);
-    if ($pos == -1) {
-	print STDERR "FATAL ERROR : Malformed table file\n" if ($debug==1);
-	$retval=-1;
+# Extract the commands from the table file
+    $group = extract_table_commands($data, $flavor);
+    if ($group==-1) {
+	$retval = -1;
 	return $retval;
     }
-    my $group = $group[0];
+
 # Replace certain variables
     $group =~ s/\$\{PRODUCTS\}/$db/g;
     $group =~ s/\$\{UPS_PROD_DIR\}/$proddir/g;
