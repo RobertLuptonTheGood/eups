@@ -21,6 +21,10 @@ These are the Release Notes for EvilUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
+	-- evilinstall now uses eups_expandtable
+
+	-- Created eups_expandtable to expand table files
+
 	-- Evilinstall now no longer calls sdssmake with the -idl flag.
 
 	-- The toplevel Makefile now copies over the GPL license and the 
