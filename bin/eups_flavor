@@ -1,0 +1,63 @@
+#!/usr/local/bin/perl
+#
+# Returns the version of a currently installed product
+# If used with -a, also returns the flavor and version file used to install it
+# 
+# Syntax : eups_flavor [-a] <product>
+#
+# Nikhil Padmanabhan, Princeton
+# Jan 16, 2003
+#
+#################################
+
+use File::Spec::Functions;
+
+$debug = $ENV{"EUPS_DEBUG"};
+$debug = 0 if ($debug != 1);
+
+print STDERR "Evilups (eups_flavor) --- by Nikhil Padmanabhan\n" if ($debug == 1);
+
+$prod = $ARGV[0];
+$all = 0;
+if ($prod eq "-a") {
+    $all = 1;
+    $prod = $ARGV[1];
+}
+$prod2 = $prod;
+
+print STDERR "Using product: $prod with option all=$all\n" if ($debug ==1);
+
+die "ERROR: No product specified\n Syntax : eups_flavor [-a] <product>\n" if ($prod eq "");
+
+$prod =~ tr/a-z/A-Z/;
+$str = "SETUP_$prod";
+$args = $ENV{$str};
+die "ERROR: $str not defined \n" if ($args eq "");
+print STDERR "$str = $args\n" if ($debug == 1);
+
+# Now parse the string
+@args =  split " ",$args;
+$vers = $args[1];
+die "ERROR : Missing VERSION information in $str\n" if ($vers eq "");
+# This extracts the flavor
+@opts = $args =~ m/\-f *[^ ]+/gs;
+($temp,$flavor,$temp2) = split " ",$opts[0];
+die "ERROR: Missing FLAVOR information in $str\n" if ($flavor eq "");
+# This extracts the database information
+@opts = $args =~ m/\-z *[^ ]+/gs;
+($temp,$db,$temp2) = split " ",$opts[0];
+die "ERROR: Missing DATABASE information in $str\n" if ($db eq "");
+
+$fn = catfile($db,$prod2,"$vers.version");
+die "ERROR : Can't find appropriate version file $fn\n" if (!(-e $fn));
+
+print "$vers";
+print " $flavor $fn $db" if ($all == 1);
+print "\n";
+
+print STDERR "(eups_flavor) exiting.....\n" if ($debug == 1);
+
+exit;
+
+
+

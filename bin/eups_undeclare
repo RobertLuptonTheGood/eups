@@ -1,0 +1,135 @@
+#!/usr/local/bin/perl
+#
+# The evil implementation of ups undeclare.
+#
+# Note that this is designed _only_ to
+# work with products declared with eups_declare.
+# There is some compatibility with older files,
+# but this program currently breaks for groups.
+#
+# Syntax : eups_undeclare [-f <flavor>] <product> <version>
+#
+# If the flavor is not specified, then it is extracted from
+# $EUPS_FLAVOR
+#
+# Nikhil Padmanabhan, Princeton
+# January 23rd, 2003
+#############################
+
+
+sub fix_special {
+# This is essential since some of the flavors have special characters in 
+# them.
+    my $arg = $_[0];
+    $arg =~ s/\\/\\\\/g;
+    $arg =~ s/\./\\\./g;
+    $arg =~ s/\+/\\\+/g;
+    $arg =~ s/\(/\\\(/g;
+    $arg =~ s/\)/\\\)/g;
+    $arg =~ s/\{/\\\{/g;
+    $arg =~ s/\}/\\\}/g;
+    $arg =~ s/\^/\\\^/g;
+    $arg =~ s/\*/\\\*/g;
+    $arg =~ s/\?/\\\?/g;
+    $arg =~ s/\[/\\\[/g;
+    $arg =~ s/\|/\\\|/g;
+    return $arg;
+}
+
+use File::Spec::Functions;
+
+# Is the product database specified in $PRODUCTS
+$db = $ENV{"PRODUCTS"};
+die "ERROR: PRODUCTS not defined\n" if ($db eq "");
+
+
+# Get the command line parameters
+$arg = join " ",@ARGV;
+
+# Is the flavor specified
+($flavor) = $arg =~ m/\-f *([^ ]+)/;
+$flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq "");
+die "ERROR: No flavor specified\n" if ($flavor eq "");
+
+$arg =~ s/\-f *[^ ]+//g;
+@arg = split " ", $arg;
+$prod = $arg[0];
+$vers = $arg[1];
+
+die "ERROR : No product specified\n" if ($prod eq "");
+die "ERROR : No version specified\n" if ($vers eq "");
+
+# Now open the version file
+$fn = catfile($db,$prod);
+$fn = catfile($fn,"$vers.version");
+die "ERROR : Cannot open version file $fn\n" if (!(open FILE, "<$fn"));
+read FILE, $versinfo, 100000;
+close FILE;
+
+$sep = "#****************************";
+
+# Now strip out all comments
+$versinfo =~ s/\#.*\n//g;
+$versinfo =~ s/flavor/##FLAVOR/gsi;
+@groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+# Match the last flavor
+@groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+@group = (@groups2,@groups3);
+
+open FILE, ">$fn";
+print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
+#Now enter in all groups that don't match the flavor
+$flavour = fix_special($flavor);
+$pattern = "FLAVOR *= *$flavour( |\n)";
+$pos = 0;
+for ($i = 0; ($i<@group);$i++) {
+    if ($group[$i] =~ m/$pattern/gsi) {
+	$pos++;
+    } else {
+	print FILE "$group[$i]\n$sep\n";
+    }
+}
+close FILE;
+
+unlink $fn if ($pos == @group); 
+
+#Now do the same to the current.chain file
+
+# Now open the version file
+$fn = catfile($db,$prod);
+$fn = catfile($fn,"current.chain");
+if (-e $fn ) {
+
+    open FILE, "<$fn";
+    read FILE, $versinfo, 100000;
+    close FILE;
+# Now strip out all comments
+    $versinfo =~ s/\#.*\n//g;
+    $versinfo =~ s/flavor/##FLAVOR/gsi;
+    @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+# Match the last flavor
+    @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+    @group = (@groups2,@groups3);
+
+    open FILE, ">$fn";
+    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
+#Now enter in all groups that don't match the flavor
+    $flavour = fix_special($flavor);
+    $verss = fix_special($vers);
+    $pattern = "FLAVOR *= *$flavour( |\n)";
+    $pattern2 = "VERSION *= *$verss( |\n)";
+    $pos = 0;
+    for ($i = 0; ($i<@group);$i++) {
+# Both the flavour and the version must match
+    if (($group[$i] =~ m/$pattern/gsi)&&($group[$i] =~ m/$pattern2/gsi)) {
+	$pos++;
+    } else {
+	print FILE "$group[$i]\n$sep\n";
+    }
+    }
+    close FILE;
+
+    unlink $fn if ($pos == @group); 
+}
+
+exit;
