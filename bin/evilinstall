@@ -254,6 +254,12 @@ else
    echo "Setting MAKEINSTALLCOMMAND=$MAKEINSTALLCOMMAND"
    echo "Setting MAKECOMMAND=$MAKECOMMAND"
    $MAKEINSTALLCOMMAND
+
+   # Copy the table file into the install directory, even if the
+   # make/install command did not do so.
+   if [ ! -e $MYSDSS_ROOT/$PRODNAME/$PRODVERS/ups/$PRODNAME.table ] ; then
+      cp $TABLEFILE $MYSDSS_ROOT/$PRODNAME/$PRODVERS/ups/$PRODNAME.table
+   fi
 fi
 
 #------------------------------------------------------------------------------
