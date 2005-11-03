@@ -57,9 +57,9 @@ print FILE "setenv PROD_DIR_PREFIX $prefix\n";
 if ($have_products) {
    print FILE "setenv PRODUCTS $db\n";
 }
-$bindir = catfile($eupsdir,"bin");
+$bindir = catfile('$EUPS_DIR',"bin");
+$binname = catfile('$EUPS_DIR',"bin","eups_setup");
 print FILE "setenv PATH $bindir:\$PATH\n";
-$binname = catfile($eupsdir,"bin","eups_setup");
 print FILE "alias setup \'source \`$binname setup \\!*\`\'\n";
 print FILE "alias unsetup \'source \`$binname unsetup \\!*\`\'\n";
 close FILE;
