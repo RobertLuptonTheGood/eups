@@ -637,7 +637,7 @@ sub eups_list {
    }
 
 # Need to extract the parameters carefully
-   local ($args,$debug,$quiet) = @_;
+   local ($args,$debug,$quiet,$current, $setup) = @_;
 
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
@@ -672,7 +672,7 @@ sub eups_list {
 
    if ($db eq "") {
       print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
-      return -1;
+      return;
    }
    #
    # Find the current version
@@ -680,6 +680,10 @@ sub eups_list {
    $fn = catfile($db,$prod,"current.chain");
    if (-e $fn) {
       $current_vers = read_chain_file($fn, $flavor);
+   }
+   if($current && !defined($current_vers)) {
+      warn "No version is declared current\n";
+      return;
    }
    
    # Look through directory searching for version files
@@ -694,9 +698,13 @@ sub eups_list {
       $info = "";
       if (defined($current_vers) && $vers eq $current_vers) {
 	 $info .= " Current";
+      } elsif($current) {
+	 next;
       }
       if ($prod_dir eq $setup_prod_dir) {
 	 $info .= " Setup";
+      } elsif($setup) {
+	 next;
       }
 
       $vers = sprintf("%-10s", $vers);
@@ -872,6 +880,7 @@ sub show_product_version
 	     '--help',		'-h',
 	     '--list'	,	'-l',
 	     '--root',		'-r',
+	     '--setup',		'-s',
 	     '--version',	'-V',
 	     '--verbose',	'-v',
 	     );
@@ -959,13 +968,14 @@ sub eups_show_options
 
    my $strings = {
        -h => "Print this help message",
-       -c => "Declare this product current",
+       -c => "Declare this product current, or show current version",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
        -r => "Location of product being declared",
+       -s => "Show setup version",
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print version number and exit",
        -z => "Use this products database (default: \$PRODUCTS)",
