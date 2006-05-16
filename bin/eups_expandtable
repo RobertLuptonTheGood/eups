@@ -96,17 +96,20 @@ while(<IFD>) {
 	     next;
 	 }
 	 ($prod, $version) = split(" ", $ENV{"SETUP_$uproduct"});
+	 if ($version =~ /^-/) {
+	    $version = "";
+	 }
 	 if($prod ne $product) {
 	    &unchanged("Invalid setup for $product: $ENV{'SETUP_$uproduct'}");
 	    next;
 	 }
 	 if($version eq "") {
-	    &unchanged("I cannot find a version for $product in: $ENV{'SETUP_$uproduct'}");
+	    &unchanged("I cannot find a version for $product in:\n\t$ENV{'SETUP_' . $uproduct}\n");
 	    next;
 	 }
 # Check to see if the version is LOCAL --- internal keyword
 	 if ($version eq "LOCAL") {
-	     &unchanged("I cannot find a version for $product in: $ENV{'SETUP_$uproduct'}");
+	     &unchanged("I cannot find a version for $product in:\n\t$ENV{'SETUP_' . $uproduct}\n");
 	     next;
          }
          if($warn_versions && !($version =~ /^[vV]/)) {
@@ -133,6 +136,9 @@ sub unchanged
    local($msg) = @_;
    local($line) = $_;
    $line =~ s/^\s*//;
-   warn "$msg in line: $line";
+   if ($msg !~ /\n$/) {
+      $msg .= " ";
+   }
+   warn "${msg}in line: $line";
    warn "copying to output unchanged\n"; print;
 }
