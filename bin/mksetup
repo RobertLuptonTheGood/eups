@@ -46,10 +46,6 @@ print "EUPS directory:      $eupsdir\n";
 print "EUPS database:       $db\n";
 print "Products location:   $prefix\n";
 
-$sleep = 5;
-print "This will start in $sleep seconds.........\n";
-sleep $sleep;
-
 print "Writing a csh startup script\n";
 open FILE, ">setups.csh" or die "Unable to open setups.csh";
 print FILE "setenv EUPS_DIR $eupsdir \n";
