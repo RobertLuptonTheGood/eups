@@ -144,7 +144,8 @@ die "ERROR: No product directory specified, and version \"$vers\" isn't declared
 $proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
 if ($prodroot =~ m/$proddirprefix/) {
    $prodroot =~ s|$proddirprefix/*||;
-   print STDERR "WARNING : Making PROD_DIR relative to PROD_DIR_PREFIX\n" if ($debug > 0);
+} else {
+   print STDERR "WARNING : Not making PROD_DIR relative to PROD_DIR_PREFIX\n";
 }
 
 # Check to see if an entry exists in the database
