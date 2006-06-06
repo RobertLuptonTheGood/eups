@@ -16,7 +16,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
-
 (The following is a text version of the documentation for the 
 Perl implementation of UPS, eups.)
 
@@ -35,53 +34,55 @@ assumption that the original code will be acknowledged.
 	4. EUPS : The Database (Version/Table) Files
 	5. EUPS : Further Notes
 
-1. Installing EUPS :
+1. Installing EUPS:
+===================
 
 There are two stages to installing EUPS - the first is to install the code onto
 a computer, and the second is to correctly set it up. 
 
-a) First Time installation :
+a) First Time installation:
+---------------------------
 
-i)   Use cvs to download this product from Princeton into a temporary directory
-     "eups-temp".
-       setenv CVS_RSH ssh
-       setenv CVSROOT :pserver:anonymous@spectro.princeton.edu:/usr/local/cvsroot
-       cvs -d login
-       cvs export -d eups-temp eups v0_2
-ii)  Set the environment variables EUPS_DIR, PROD_DIR_PREFIX and PRODUCTS.
-     EUPS_DIR is the directory to install EUPS to, PROD_DIR_PREFIX is the
-     top-level directory where products are installed, and PRODUCTS is the 
-     UPS database.  Suggested locations are:
-       setenv PROD_DIR_PREFIX $HOME/products
-       setenv PRODUCTS $PROD_DIR_PREFIX/ups_db
-       setenv EUPS_DIR $PROD_DIR_PREFIX/eups
-iii) cd eups-temp
-iv)  Execute "make clean"
-v)   Execute "make install"
+i) Use cvs to download this product from Princeton into a temporary
+directory "eups-temp".
+	$ export CVS_RSH=ssh
+	$ export CVSROOT=:pserver:anonymous@spectro.princeton.edu:/usr/local/cvsroot
+	$ cvs -d login
+	$ cvs export -d eups-temp eups
+     
+ii) $ cd eups-temp
+iii) Define where eups should put its files:
+	$ ./configure;
+By default they'll go in /usr/local/share, so you may need to be root
+to install them -- and in this case, only root will be able to declare
+files.  So probably you want to say something like:
+	$ ./configure --with-ups_prod_dir=/users/products
+iv) Finally:
+	$ make install
 
-In addition to creating the directory and copying files, two startup scripts
-setups.sh and setups.csh are created (for sh and csh type shells respectively). These
-set certain functions/aliases and environment variables.
+In addition to creating the directory and copying files, two startup
+scripts
+	/users/products/eups/bin/setups.sh 
+and
+	/users/products/eups/bin/setups.csh 
+
+(with the preceeding configure file) are created (for sh and csh type
+shells respectively). These set certain environment variables and
+functions/aliases.  You'll be reminded of the paths to setups.[c]sh
+when make install finishes.
 
 b) Normal Usage (at login for example) :
+----------------------------------------
 
-If EUPS is installed under $EUPS_ROOT, source $EUPS_ROOT/EUPS/bin/setups.[c]sh 
-depending on your shell. This is _NOT_ essential to do, _if_ you are willing to 
-set up all your environment variables by hand.
+You'll probably want to automatically source one of those setups scripts
+in your startup files; so why not add the command now?
 
 2. EUPS : Basic Commands
+========================
 
 EUPS implements the following UPS commands:
 
-a) eups_flavor :
-
-Syntax : eups_flavor [-a] <productname>
-
-Returns the version of a product, by parsing the SETUP_<product> environment
-variable. The -a switch returns, in addition to the version, the flavor,
-a full path to the version file, and the database used.
-
-b) eups_undeclare :
+a) eups_undeclare :
 
 Syntax : eups_undeclare [-f <flavor>] <product> <version>
 
@@ -93,7 +94,7 @@ environment variable PRODUCTS.
 NOTE: eups_undeclare is designed to be used with eups_declare. It is NOT compatible
 with version files that use the "Group: End:" construct.
 
-c) eups_declare:
+b) eups_declare:
 
 Syntax : eups_declare [-f <flavor>] [-c/C] [-m <tablefile>] -r <product root directory> <product> <version>
 
@@ -107,7 +108,7 @@ file to be used (either in the database, or in the ups directory of the product)
 If you specify -c (or -C), then it leaves the currently declared version alone, and
 only updates the current.chain.
 
-d) eups_setup :
+c) eups_setup :
 
 Syntax : eups_setup <"setup"/"unsetup"> <product> [<version>] [-f <flavor>] [-z <database>]
 

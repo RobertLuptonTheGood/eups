@@ -1,0 +1,61 @@
+###############################################################################
+# Sloan Digital Sky Survey (SDSS) -- PHOTO Operations
+# N. Padmanabhan, D. Schlegel, & D. Finkbeiner
+###############################################################################
+
+SHELL = /bin/sh
+#
+# Set by configure
+#
+prefix = @prefix@
+PROD_DIR_PREFIX = @PROD_DIR_PREFIX@
+PRODUCTS = @PRODUCTS@
+EUPS_DIR = @EUPS_DIR@
+#
+export prefix PROD_DIR_PREFIX PRODUCTS EUPS_DIR
+#
+SUBDIRS = bin doc etc
+
+.PHONY : show install clean
+install : show
+	@if [ "$(PROD_DIR_PREFIX)" = "" ]; then \
+		echo You have not specified PROD_DIR_PREFIX >&2; \
+		exit 1; \
+	fi 
+	@if [ -d $(EUPS_DIR) ]; then \
+		echo The destination directory already exists for EUPS_DIR=$(EUPS_DIR). >&2; \
+		echo Please remove any old installation of EUPS there first. >&2; \
+		exit 1; \
+	fi 
+
+	@ if [ ! -d $(PROD_DIR_PREFIX) ]; then \
+		mkdir -p $(PROD_DIR_PREFIX); \
+	fi
+
+	@ if [ -d $(PRODUCTS) ]; then \
+		echo "UPS database $(PRODUCTS) already exists"; \
+	else \
+		mkdir -p $(PRODUCTS); \
+	fi
+
+	@ mkdir -p $(EUPS_DIR)
+	@ for f in $(SUBDIRS); do \
+		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \
+	done
+	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
+	@echo "Remember to source $(EUPS_DIR)/bin/setups.[c]sh"
+show :
+	@echo "You will be installing ups in \$$EUPS_DIR        = $$EUPS_DIR"
+	@echo "Ups will look for products in \$$PROD_DIR_PREFIX = $$PROD_DIR_PREFIX"
+	@echo "The products database will be \$$PRODUCTS        = $$PRODUCTS"
+#
+# Rebuild configure; almost no-one should need to do this
+#
+configure : configure.ac
+	@ echo "Rebuilding ./configure"
+	autoconf
+clean :
+	- /bin/rm -f *~ core
+	@ for f in $(SUBDIRS); do \
+		(cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) clean ); \
+	done
