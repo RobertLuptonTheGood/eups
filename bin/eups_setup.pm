@@ -295,6 +295,12 @@ setupenv => \&envSet,
 
 # Replace certain variables
     $group =~ s/\$\{PRODUCTS\}/$db/g;
+    $group =~ s/\$\{PRODUCT_DIR\}/$proddir/g;
+    $group =~ s/\$\{PRODUCT_FLAVOR\}/$flavor/g;
+    $group =~ s/\$\{PRODUCT_NAME\}/$prod/g;
+    $group =~ s/\$\{PRODUCT_VERSION\}/$vers/g;
+    $group =~ s/\$\{UPS_DIR\}/$upsdir/g;
+    # Older synonyms
     $group =~ s/\$\{UPS_PROD_DIR\}/$proddir/g;
     $group =~ s/\$\{UPS_PROD_FLAVOR\}/$flavor/g;
     $group =~ s/\$\{UPS_PROD_NAME\}/$prod/g;
@@ -356,7 +362,7 @@ setupenv => \&envSet,
 	    }
 
 	    $retval =+ $foo;
-	    print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0);
+	    print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0 && $debug >= 0);
 
 	    $unsetup_products{$p}++; # remember that we already unset it
 	} elsif (($comm eq "setupoptional")&&($fwd==0)) {
@@ -415,16 +421,12 @@ sub eups_unsetup {
       return -1;
    }
    
-   # Now get the information from eups_flavor
-   $comm = "eups_flavor -a $prod";
-   $comm = catfile($eups_dir,"bin",$comm);
-   chomp($out = `$comm`);
-   if ($out eq "") {
-      print STDERR "ERROR running eups_flavor : $comm\n" if ($debug > 1);
+   my($status, $vers, $flavor, $db) = parse_setup_prod($prod);
+
+   if($status ne "ok") {
+      print STDERR "WARNING: $prod is not setup\n" if ($debug > 1);
       return -1;
    }
-   # Parse the output for the flavor and version file
-   my($vers,$flavor,$db) = split ":",$out;
    
    if (($debug >= 1 && !$quiet) || $debug > 1) {
       show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
@@ -463,8 +465,6 @@ sub eups_unsetup {
    $fwd = 0;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
 }
-
-
 
 sub eups_setup {
 
@@ -600,6 +600,29 @@ sub eups_setup {
 
    $fwd = 1;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
+}
+
+###############################################################################
+#
+# Parse the SETUP_PROD environment variable for product $prod
+#
+sub parse_setup_prod {
+   my($prod) = @_;
+   
+   my($key) = "SETUP_\U$prod";
+   $args = $ENV{$key};
+   if ($args eq "") {
+      return (undef, undef, undef, undef)
+   }
+
+   # Now parse the string
+   my($prod, $vers, $flavor, $z, $db) = ($args =~ /^\s*(\S+)\s+(\S*)\s*-f\s+(\S+)\s+-([zZ])\s+(\S+)/);
+
+   if ($z eq "Z") {
+      $db = catfile($db, "ups_db");
+   }
+
+   return ("ok", $vers, $flavor, $db);
 }
 
 ###############################################################################
@@ -879,6 +902,7 @@ sub show_product_version
 	     '--force',		'-F',
 	     '--help',		'-h',
 	     '--list'	,	'-l',
+	     '--quiet',		'-q',
 	     '--root',		'-r',
 	     '--setup',		'-s',
 	     '--version',	'-V',
@@ -912,7 +936,9 @@ sub eups_parse_argv
 	    $val = $ARGV[0]; shift @ARGV;
 	 }
 	 
-	 if ($opt eq "-v") {
+	 if ($opt eq "-q") {
+	    $ENV{"EUPS_DEBUG"}--;
+	 } elsif ($opt eq "-v") {
 	    $ENV{"EUPS_DEBUG"}++;
 	 } elsif ($opt eq "-V") {
 	    my($version) = &get_version();
@@ -949,7 +975,7 @@ sub eups_parse_argv
 sub
 get_version()
 {
-   my($version) = '\$Name: not supported by cvs2svn $';	# version from cvs
+   my($version) = '\$Name: not supported by cvs2svn $';	# 'version from cvs
 
    if ($version =~ /^\\\$[N]ame:\s*(\S+)\s*\$$/) {
       $version = $1;
@@ -974,8 +1000,9 @@ sub eups_show_options
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
+       -q => "Be extra quiet (the opposite of -v)",
        -r => "Location of product being declared",
-       -s => "Show setup version",
+       -s => "Show which version is setup",
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print version number and exit",
        -z => "Use this products database (default: \$PRODUCTS)",
