@@ -183,4 +183,303 @@ in the \code{INCS} and \code{LIBS} definitions.  Fortunately, we need
 only maintain these variables in one place, in a file included by all
 project makefiles, or in a script that is used to invoke make.
 
+\section{\eups{} and configure}
+
+Eups uses configure to decide where to put its files; more interestingly,
+you can use autoconf macros to make \emph{your} projects use \eups{}-declared
+products.
+
+\subsection{Using configure to install \eups{}}
+
+To install you need first to generate a Makefile:
+\begin{verbatim}
+./configure && make install
+\end{verbatim}
+
+You can say \texttt{make show} to show you where things are
+going to be installed:
+\begin{verbatim}
+$ make show
+You will be installing ups in $EUPS_DIR        = /usr/local/share/eups
+Ups will look for products in $PROD_DIR_PREFIX = /usr/local/share
+The products database will be $PRODUCTS        = /usr/local/share/ups_db
+\end{verbatim}
+
+You can control where files are put with the following configure options:
+\begin{verbatim}
+--prefix=PREFIX         install architecture-independent files in PREFIX
+                        [default: /usr/local]
+--with-prod_dir_prefix=DIR
+                        Use DIR as root for installed products
+--with-ups_db=DIR       Use DIR as the UPS database directory
+--with-eups_dir=DIR     Install eups into DIR/{bin,doc}
+\end{verbatim}
+The difference between \texttt{--prefix} and \texttt{--with-prod\_dir\_prefix}
+is that the former appends \texttt{/share} to the specified directory, to
+be consistent with the standard default value, \texttt{/usr/local}.
+  
+As an alternative to
+\begin{verbatim}
+./configure --prefix=/foo/bar
+...
+make install
+\end{verbatim}
+you can say
+\begin{verbatim}
+make install prefix=/foo/bar
+\end{verbatim}
+\texttt{PROD\_DIR\_PREFIX=...} also works as an alternative to \texttt{--with-prod\_dir\_prefix=...};
+note upper case.
+  
+\section{Reference Manual}
+
+\subsection{\eups{} commands}
+
+\begin{itemize}
+
+%------------------------------------------------------------------------------
+
+\item \texttt{eups\_declare}
+\begin{verbatim}
+Usage:
+   eups_declare [options] product version
+Options:
+        -h, --help      Print this help message
+        -c, --current   Declare this product current
+        -F, --force     Force requested behaviour (e.g. redeclare a product)
+        -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
+        -m              Use this table file (may be "none") (default: product.table)
+        -r, --root      Location of product being declared
+        -V, --version   Print version number and exit
+        -v, --verbose   Be chattier (repeat for even more chat)
+        -Z, --database  Use this products prefix (default: $PROD_DIR_PREFIX)
+        -z              Use this products database (default: $PRODUCTS)
+\end{verbatim}
+
+Declares \texttt{version} of \texttt{product} into the database defined by \texttt{\$PRODUCTS}.
+The product root directory is where the product has been installed, and can either
+be an absolute pathname or specified relative to \texttt{\$PROD\_DIR\_PREFIX}.
+
+The flavor is usually determined from the
+environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
+overrides this. The database used is defined by the environment
+variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
+The \texttt{-m} option specifies the table
+file to be used (either in the database, or in the ups directory of the product).
+
+If you specify \texttt{-c} then it leaves the currently declared version alone, and
+only updates the current.chain.
+
+%------------------------------------------------------------------------------
+
+  \item \texttt{eups\_undeclare}
+\begin{verbatim}
+Usage:
+   eups_undeclare [options] product version
+Options:
+        -h, --help      Print this help message
+        -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
+        -V, --version   Print version number and exit
+        -v, --verbose   Be chattier (repeat for even more chat)
+        -Z, --database  Use this products prefix (default: $PROD_DIR_PREFIX)
+        -z              Use this products database (default: $PRODUCTS)
+\end{verbatim}
+  
+Undeclares \texttt{version} of \texttt{product} from the
+database. Also removes any declarations of this version from
+\texttt{current.chain}. The flavor is usually determined from the
+environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
+overrides this. The database used is defined by the environment
+variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
+
+%------------------------------------------------------------------------------
+
+\item \texttt{setup}
+\begin{verbatim}
+Usage:
+   setup [options] product [version]
+Options:
+        -h, --help      Print this help message
+        -c, --current   Show current version
+        -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
+        -l, --list      List available versions (-v => include root directories)
+        -n              Don't actually do anything
+        -q, --quiet     Be extra quiet (the opposite of -v)
+        -r, --root      Location of product being declared
+        -s, --setup     Show which version is setup
+        -V, --version   Print version number and exit
+        -v, --verbose   Be chattier (repeat for even more chat)
+        -Z, --database  Use this products prefix (default: $PROD_DIR_PREFIX)
+        -z              Use this products database (default: $PRODUCTS)
+\end{verbatim}
+
+This is the workhorse routine. It sets up \texttt{version} of \texttt{product}.
+
+\textbf{Important}: Since the commands to set environment variables differ across shells,
+it is essential that \texttt{\$SHELL} reflects the current shell.
+
+Options \texttt{--current} and \texttt{--setup} are only relevant with \texttt{--list}.
+
+(N.b. setup is really an alias or shell function that runs the command\hfil\break
+\texttt{source `eups\_setup [options] "setup" product [version]`}\hfil\break
+\texttt{eups\_setup} writes a shell script that is then sourced into the
+current shell.
+)
+
+%------------------------------------------------------------------------------
+
+\item \texttt{unsetup}
+\begin{verbatim}
+Usage:
+   unsetup [options] product
+Options:
+(same as setup)
+\end{verbatim}
+  
+All the notes under \texttt{setup} apply to
+\texttt{unsetup}. Unsetting up a product relies on the environment
+variable \texttt{\$SETUP\_$<$product$>$}, so it fails if the variable
+isn't set.
+
+\end{itemize}
+
+\subsection{Environment Variables}
+
+Required variables -
+
+\begin{itemize}
+  \item \texttt{SHELL}
+    This must be set to the shell running. This is true in general, unless
+    you run a shell script, or change your shell.
+
+  \item \texttt{EUPS\_DIR}
+    Where EUPS\_DIR is installed.
+
+  \item \texttt{PROD\_DIR\_PREFIX}
+    The root directory under which all products are installed.
+
+  \item \texttt{PRODUCTS}
+    The path to the UPS database.
+\end{itemize}
+
+Optional Variables -
+
+\begin{itemize}
+  \item \texttt{EUPS\_FLAVOR}
+    Set to the default flavor.
+
+  \item \texttt{EUPS\_DEBUG}
+    This sets the verbosity; equal to the difference beteween the number of \texttt{-v}s
+    and \texttt{-q}s.
+
+    If you are confused by some error, or simply nosy, try adding a \texttt{-v}.
+\end{itemize}
+
+\subsection{The Database}
+
+\subsubsection{\eups{} Files}
+
+This section briefly describes the structure of the UPS database. The UPS database
+consists of a directory \$PRODUCTS, with a subdirectory for each declared product.
+Each of these product directories contain a series of product definitions, specified
+by three types of files:
+
+\begin{itemize}
+  \item current.chain
+
+    There is only one (if any) of these per directory.  The
+    current.chain file specifies the current version for a given
+    flavor, and is what is used as the default if the version is not
+    specified.
+
+  \item Version files
+
+    There is one of these for every declared version of the product,
+    named \texttt{<version>.version}. The file specifies basic information
+    about the version of the product, including where it is installed.
+
+  \item Table files
+
+    These specify the dependencies of the product. The default name
+    for these is \texttt{<version>.table} although a specific name can be specified in the
+    version file.
+
+    Table files use a series of commands to specify the dependencies. These are
+    discussed in the next subsection.
+
+    NOTE: See Section 5 for a note on the search algorithm that EUPS uses for 
+    locating table files.
+\end{itemize}
+
+\subsubsection{\eups{} commands}
+
+The following table commands are supported by \eups{}: ($<$NAME$>$ either specifies an
+alias or an environment variable - clear from the context.)
+
+\begin{itemize}
+   \item \texttt{addAlias($<$NAME$>$,$<$Value$>$)}
+     Defines a function or an alias.
+    
+   \item \texttt{envAppend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
+     Appends $<$Value$>$ to $<$NAME$>$. The default delimiter is `:'.
+     
+   \item \texttt{envPrepend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
+     Similar to envAppend
+     
+   \item \texttt{envSet($<$NAME$>$,$<$Value$>$)}
+     Set $<$NAME$>$ to $<$Value$>$
+     
+   \item \texttt{setupRequired($<$args$>$)}
+     Run setup with arguments args. Fail if unable to setup.
+     
+   \item \texttt{setupOptional($<$args$>$)}
+     Same as setupRequired except that it does not fail if unable to setup.
+\end{itemize}
+
+There are also \texttt{envRemove} and \texttt{envUnset()} commands, which
+are the inverse of \texttt{env\{Ap,Pre\}pend} and \texttt{envSet()}; I have
+never used either.     
+
+\subsubsection{Obselete table commands}
+
+\begin{itemize}
+   \item \texttt{pathAppend}, \texttt{pathPrepend}, \texttt{pathRemove}, \texttt{pathSet}
+     Aliases for the \texttt{env} commands.
+     
+   \item \texttt{prodDir()}
+     Sets \texttt{$<$PRODUCT$>$\_DIR} to the directory where the product is installed;
+     this directive is ignored as \texttt{$<$PRODUCT$>$\_DIR} is automatically set for you.
+     
+   \item \texttt{setupEnv()}
+     Sets \texttt{SETUP\_$<$PRODUCT$>$} so that product can be unsetup.
+     this directive is ignored as \texttt{$<$PRODUCT$>$\_DIR} is automatically set for you.
+\end{itemize}
+        
+\subsubsection{Variables}
+
+The values to these UPS commands can be variables. All environment
+variables can be used as \${$<$ENV\_VARIABLE$>$}. In addition, the following special
+variables are defined;
+
+\begin{itemize}
+  \item \texttt{\${PRODUCTS}}
+    The database
+    
+  \item \texttt{\${UPS\_PROD\_DIR}}
+    Where the product is installed.
+    
+  \item \texttt{\${UPS\_PROD\_FLAVOR}}
+    The product flavor.
+    
+  \item \texttt{\${UPS\_PROD\_NAME}}
+    The product name
+    
+  \item \texttt{\${UPS\_PROD\_VERSION}}
+    The product version
+    
+  \item \texttt{\${UPS\_UPS\_DIR}}
+    The ups directory of the product (distinct from the directory
+    in \texttt{\$PRODUCTS} - this is often where the table file will be stored).
+\end{itemize}
+
 \end{document}
