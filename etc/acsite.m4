@@ -195,4 +195,96 @@ define([UPS_WITHOUT_CONFIGURE], [
 	AC_SUBST(ac_ups_PROD[]_LIBS)
 	undefine([ac_ups_prod])
 	undefine([ac_ups_PROD])])
-	
+
+dnl -----------------------------------------------
+dnl
+dnl Done with ups macros.  Now some more to support
+dnl shareable libraries, python, and swig
+dnl
+
+m4_define(RHL_DYNAMIC_LIBS, [
+ups_uname=$(uname)
+
+AC_MSG_NOTICE([Setting up shareable libraries for] $ups_uname)
+if [[ $ups_uname = "Darwin" ]]; then
+   AC_SUBST(SO_LDFLAGS, ["-bundle -undefined suppress -flat_namespace"])
+   AC_SUBST(SO, [so])
+   AC_SUBST(DYLIB_LDFLAGS, ["-undefined suppress -flat_namespace -dynamiclib"])
+   AC_SUBST(DYLIB, [dylib])
+   CFLAGS="$CFLAGS -fPIC"
+elif [[ $ups_uname = "Linux" ]]; then
+   AC_SUBST(SO_LDFLAGS, ["-shared"])
+   AC_SUBST(SO, [so])
+   AC_SUBST(DYLIB_LDFLAGS, ["-shared"])
+   AC_SUBST(DYLIB, [so])
+   CFLAGS="$CFLAGS -fPIC"
+else
+   AC_MSG_ERROR(Unknown O/S for setting up dynamic libraries: ups_uname)
+fi
+])
+#
+# End of dynamic loader section
+#
+
+m4_define(RHL_FIND_PYTHON, [
+   AC_ARG_WITH(python,
+     [AS_HELP_STRING(--with-python=file,Specify name of python executable.)],
+     [PYTHON="$withval"
+     if [[ ! -x $PYTHON ]]; then
+        PYTHON=""
+     fi],
+     AC_CHECK_PROG(PYTHON, python, python, ""))
+
+   if [[ "$PYTHON" = "" ]]; then
+      AC_MSG_FAILURE([You'll need python; try using --with-python=file.])
+   fi
+
+   PYTHON_INCDIR=$($PYTHON -c 'import distutils.sysconfig as ds; print ds.get_python_inc()')
+   AC_SUBST(PYTHON_CFLAGS, [-I$PYTHON_INCDIR])
+   AC_SUBST(PYTHON_LIBS, [])
+])
+
+dnl numpy
+
+m4_define(RHL_FIND_NUMPY, [
+   AC_ARG_ENABLE(numpy,
+       [AS_HELP_STRING(--enable-numpy, Generate numpy/swig code)])
+
+   if [[ "$enable_numpy" = "" -o "$enable_numpy" = "yes" ]]; then
+       AC_MSG_CHECKING([numpy])
+       NUMPY_INCDIR=$($PYTHON -c 'import numpy; print numpy.get_numpy_include()')
+       if [[ $? != 0 ]]; then
+          AC_MSG_RESULT([no])
+          AC_MSG_WARN([Failed to find numpy; ignoring --enable-numpy])
+       else
+          AC_MSG_RESULT([ok])
+          CFLAGS="$CFLAGS -DUSE_NUMPY=1"
+          PYTHON_CFLAGS="$PYTHON_CFLAGS -I$NUMPY_INCDIR"
+       fi
+   fi
+])
+
+dnl ------------------- swig ---------------------
+
+m4_define(RHL_SWIG, [
+   AC_ARG_WITH(swig,
+     [AS_HELP_STRING(--with-swig=DIR,Specify location of SWIG executable.)],
+     [SWIG="$withval/swig"
+     if [[ ! -x $SWIG ]]; then
+        SWIG=""
+     fi],
+     AC_CHECK_PROG(SWIG, swig, swig, ""))
+
+   if [[ "$SWIG" != "" ]]; then
+      [SWIG="$SWIG -w301,451 -python -Drestrict= -Dinline="]
+   else
+      AC_MSG_FAILURE([You'll need swig; try using --with-swig=DIR to specify its location.])
+   fi
+
+   swig_version=$($SWIG -version 2>&1 | perl -ne 'if(/^SWIG Version (\d)\.(\d)\.(\d+)/) { print 100000*[$]1 + 1000*[$]2 + [$]3; }')
+   desired_swig_version=$(echo $1 | perl -ne 'if(/^(\d)\.(\d)\.(\d+)/) { print 100000*[$]1 + 1000*[$]2 + [$]3; }')
+
+   if [[ "$swig_version" = "" -o $swig_version -lt $desired_swig_version ]]; then
+      AC_MSG_NOTICE([You would be better off with a swig version >= $1])
+   fi
+])
