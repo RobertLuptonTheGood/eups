@@ -202,30 +202,37 @@ dnl Done with ups macros.  Now some more to support
 dnl shareable libraries, python, and swig
 dnl
 
+dnl
+dnl RHL does not believe that the added complexity of libtool, e.g.
+dnl   libtool --mode=execute gdb foo
+dnl is warranted, especially since we're using ups to set e.g. LD_LIBRARY_PATH,
+dnl so we'll set the variables by hand
+dnl
+
 m4_define(RHL_DYNAMIC_LIBS, [
-ups_uname=$(uname)
+   rhl_uname=$(uname)
 
-AC_MSG_NOTICE([Setting up shareable libraries for] $ups_uname)
-if [[ $ups_uname = "Darwin" ]]; then
-   AC_SUBST(SO_LDFLAGS, ["-bundle -undefined suppress -flat_namespace"])
-   AC_SUBST(SO, [so])
-   AC_SUBST(DYLIB_LDFLAGS, ["-undefined suppress -flat_namespace -dynamiclib"])
-   AC_SUBST(DYLIB, [dylib])
-   CFLAGS="$CFLAGS -fPIC"
-elif [[ $ups_uname = "Linux" ]]; then
-   AC_SUBST(SO_LDFLAGS, ["-shared"])
-   AC_SUBST(SO, [so])
-   AC_SUBST(DYLIB_LDFLAGS, ["-shared"])
-   AC_SUBST(DYLIB, [so])
-   CFLAGS="$CFLAGS -fPIC"
-else
-   AC_MSG_ERROR(Unknown O/S for setting up dynamic libraries: ups_uname)
-fi
+   AC_MSG_NOTICE([Setting up shareable libraries for] $rhl_uname)
+   if [[ $rhl_uname = "Darwin" ]]; then
+      AC_SUBST(SO_LDFLAGS, ["-bundle -undefined suppress -flat_namespace"])
+      AC_SUBST(SO, [so])
+      AC_SUBST(DYLIB_LDFLAGS, ["-undefined suppress -flat_namespace -dynamiclib"])
+      AC_SUBST(DYLIB, [dylib])
+      CFLAGS="$CFLAGS -fPIC"
+   elif [[ $rhl_uname = "Linux" ]]; then
+      AC_SUBST(SO_LDFLAGS, ["-shared"])
+      AC_SUBST(SO, [so])
+      AC_SUBST(DYLIB_LDFLAGS, ["-shared"])
+      AC_SUBST(DYLIB, [so])
+     CFLAGS="$CFLAGS -fPIC"
+   else
+      AC_MSG_ERROR(Unknown O/S for setting up dynamic libraries: rhl_uname)
+   fi
 ])
-#
-# End of dynamic loader section
-#
 
+dnl
+dnl Detect python and add appropriate flags to PYTHON_CFLAGS/PYTHON_LIBS
+dnl
 m4_define(RHL_FIND_PYTHON, [
    AC_ARG_WITH(python,
      [AS_HELP_STRING(--with-python=file,Specify name of python executable.)],
@@ -244,11 +251,14 @@ m4_define(RHL_FIND_PYTHON, [
    AC_SUBST(PYTHON_LIBS, [])
 ])
 
-dnl numpy
+dnl
+dnl Detect numpy and add appropriate flags to PYTHON_CFLAGS/PYTHON_LIBS
+dnl If $1 is defined, add it to PYTHON_CFLAGS -- e.g. RHL_FIND_NUMPY([-DUSE_NUMPY=1])
+dnl
 
 m4_define(RHL_FIND_NUMPY, [
    AC_ARG_ENABLE(numpy,
-       [AS_HELP_STRING(--enable-numpy, Generate numpy/swig code)])
+       [AS_HELP_STRING(--enable-numpy, Generate numpy code)])
 
    if [[ "$enable_numpy" = "" -o "$enable_numpy" = "yes" ]]; then
        AC_MSG_CHECKING([numpy])
@@ -258,14 +268,20 @@ m4_define(RHL_FIND_NUMPY, [
           AC_MSG_WARN([Failed to find numpy; ignoring --enable-numpy])
        else
           AC_MSG_RESULT([ok])
-          CFLAGS="$CFLAGS -DUSE_NUMPY=1"
           PYTHON_CFLAGS="$PYTHON_CFLAGS -I$NUMPY_INCDIR"
+	  ifelse($1, , ,
+             [PYTHON_CFLAGS="$PYTHON_CFLAGS $1"])
        fi
    fi
 ])
 
 dnl ------------------- swig ---------------------
-
+dnl
+dnl Detect swig, possibly via --with-swig
+dnl If you provide an argument such as 1.3.27, you'll be warned if the
+dnl version found is older than the specified version.  If $2 is defined,
+dnl an error is generated
+dnl
 m4_define(RHL_SWIG, [
    AC_ARG_WITH(swig,
      [AS_HELP_STRING(--with-swig=DIR,Specify location of SWIG executable.)],
@@ -281,10 +297,14 @@ m4_define(RHL_SWIG, [
       AC_MSG_FAILURE([You'll need swig; try using --with-swig=DIR to specify its location.])
    fi
 
+   ifelse($1, , , [
    swig_version=$($SWIG -version 2>&1 | perl -ne 'if(/^SWIG Version (\d)\.(\d)\.(\d+)/) { print 100000*[$]1 + 1000*[$]2 + [$]3; }')
    desired_swig_version=$(echo $1 | perl -ne 'if(/^(\d)\.(\d)\.(\d+)/) { print 100000*[$]1 + 1000*[$]2 + [$]3; }')
 
    if [[ "$swig_version" = "" -o $swig_version -lt $desired_swig_version ]]; then
-      AC_MSG_NOTICE([You would be better off with a swig version >= $1])
+      ifelse($2, ,
+	      AC_MSG_NOTICE([You would be better off with a swig version >= $1]),
+	      AC_MSG_ERROR([Please provide a swig version >= $1]))
    fi
+   unset swig_version; unset desired_swig_version])
 ])
