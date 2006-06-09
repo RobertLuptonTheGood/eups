@@ -209,12 +209,11 @@ You can control where files are put with the following configure options:
 \begin{verbatim}
 --prefix=PREFIX         install architecture-independent files in PREFIX
                         [default: /usr/local]
---with-prod_dir_prefix=DIR
-                        Use DIR as root for installed products
+--with-ups=DIR          Use DIR as root for installed products
 --with-ups_db=DIR       Use DIR as the UPS database directory
 --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 \end{verbatim}
-The difference between \texttt{--prefix} and \texttt{--with-prod\_dir\_prefix}
+The difference between \texttt{--prefix} and \texttt{--with-ups}
 is that the former appends \texttt{/share} to the specified directory, to
 be consistent with the standard default value, \texttt{/usr/local}.
   
@@ -228,7 +227,7 @@ you can say
 \begin{verbatim}
 make install prefix=/foo/bar
 \end{verbatim}
-\texttt{PROD\_DIR\_PREFIX=...} also works as an alternative to \texttt{--with-prod\_dir\_prefix=...};
+\texttt{PROD\_DIR\_PREFIX=...} also works as an alternative to \texttt{--with-ups=...};
 note upper case.
   
 \section{Reference Manual}

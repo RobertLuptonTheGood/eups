@@ -2,8 +2,8 @@ AC_INIT([eups], [X.Y], [rhl@astro.princeton.edu])
 dnl
 dnl Installation directories
 dnl
-AC_ARG_WITH(prod_dir_prefix,
-   [AS_HELP_STRING(--with-prod_dir_prefix=DIR, Use DIR as root for installed products)],
+AC_ARG_WITH(ups,
+   [AS_HELP_STRING(--with-ups=DIR, Use DIR as root for installed products)],
    [PROD_DIR_PREFIX=$withval],
    [PROD_DIR_PREFIX=\${prefix}/share])
 AC_SUBST(PROD_DIR_PREFIX)

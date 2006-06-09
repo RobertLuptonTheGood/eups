@@ -786,8 +786,7 @@ if test -n "$ac_init_help"; then
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-prod_dir_prefix=DIR
-                          Use DIR as root for installed products
+  --with-ups=DIR          Use DIR as root for installed products
   --with-ups_db=DIR       Use DIR as the UPS database directory
   --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 
@@ -1238,9 +1237,9 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-# Check whether --with-prod_dir_prefix or --without-prod_dir_prefix was given.
-if test "${with_prod_dir_prefix+set}" = set; then
-  withval="$with_prod_dir_prefix"
+# Check whether --with-ups or --without-ups was given.
+if test "${with_ups+set}" = set; then
+  withval="$with_ups"
   PROD_DIR_PREFIX=$withval
 else
   PROD_DIR_PREFIX=\${prefix}/share
