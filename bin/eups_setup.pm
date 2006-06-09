@@ -666,10 +666,6 @@ sub eups_list {
    $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
    @args = split " ",$args;
    $prod = $args[0];
-   if ($prod eq "") {
-      print STDERR  "ERROR: Product not specified\n";
-      return -1;
-   }
 
 #Determine flavor - first see if specified on command line
 #else get it from the environment EUPS_FLAVOR
@@ -694,51 +690,72 @@ sub eups_list {
    }
 
    if ($db eq "") {
-      print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
+      warn "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
       return;
+   }
+   #
+   # Did they specify a product?
+   #
+   if ($prod eq "") {
+      if (!opendir(DB, $db)) {
+	 warn "ERROR Unable to get list of products from $db\n";
+	 return;
+      }
+      @products = sort(readdir DB);
+      closedir DB;
+   } else {
+      @products = ($prod);
    }
    #
    # Find the current version
    #
-   $fn = catfile($db,$prod,"current.chain");
-   if (-e $fn) {
-      $current_vers = read_chain_file($fn, $flavor);
-   }
-   if($current && !defined($current_vers)) {
-      warn "No version is declared current\n";
-      return;
-   }
-   
-   # Look through directory searching for version files
-   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
-   foreach $file (glob(catfile($db,$prod,"*.version"))) {
-      ($vers = basename($file)) =~ s/\.version$//;
-
-      if (read_version_file($file, $prod, $flavor) < 0) {
-	 next;
+   foreach $prod (@products) {
+      $fn = catfile($db,$prod,"current.chain");
+      if (-e $fn) {
+	 $current_vers = read_chain_file($fn, $flavor);
+      }
+      if($current && !defined($current_vers)) {
+	 if (@products == 1) {
+	    warn "No version is declared current\n";
+	    return;
+	 }
       }
       
-      $info = "";
-      if (defined($current_vers) && $vers eq $current_vers) {
-	 $info .= " Current";
-      } elsif($current) {
-	 next;
-      }
-      if ($prod_dir eq $setup_prod_dir) {
-	 $info .= " Setup";
-      } elsif($setup) {
-	 next;
-      }
+      # Look through directory searching for version files
+      my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
+      foreach $file (glob(catfile($db,$prod,"*.version"))) {
+	 ($vers = basename($file)) =~ s/\.version$//;
+	 
+	 if (read_version_file($file, $prod, $flavor) < 0) {
+	    next;
+	 }
 
-      $vers = sprintf("%-10s", $vers);
-      if ($debug) {
-	 $vers .= sprintf("\t%-40s", $prod_dir);
-      }
+	 $info = "";
+	 if (defined($current_vers) && $vers eq $current_vers) {
+	    $info .= " Current";
+	 } elsif($current) {
+	    next;
+	 }
+	 if ($prod_dir eq $setup_prod_dir) {
+	    $info .= " Setup";
+	 } elsif($setup) {
+	    next;
+	 }
+	 
+	 $vers = sprintf("%-10s", $vers);
+	 if ($debug) {
+	    $vers .= sprintf("\t%-40s", $prod_dir);
+	 }
+	 
+	 if ($info) {
+	    $info = "\t\t$info";
+	 }
 
-      if ($info) {
-	 $info = "\t\t$info";
+	 if(@products > 1) {
+	    printf STDERR "%-20s", $prod;
+	 }
+	 warn "   ${vers}$info\n";
       }
-      warn "   ${vers}$info\n";
    }
 }
 
