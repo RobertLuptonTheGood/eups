@@ -115,13 +115,17 @@ if (defined($$options{-l})) {
 }
 $setup = defined($$options{-s}) ? 1 : 0; # Only show setup version (default, except for -l)
 
-if (!defined($words[0])) {
+@args = ($op, @args, @words);
+# Get the command line
+$select = $args[0];
+$args[0] = "";
+$comm = join " ",@args;
+
+if (!defined($words[0]) && $select ne "list") {
    warn "Please specify a product\n";
    &usage();
    &myexit(1);
 }
-
-@args = ($op, @args, @words);
 
 # Open the temporary file
 our $tmpfile;
@@ -141,11 +145,6 @@ our $shell = $0;
 $retval = setshell;
 goto CLEAN if ($retval == -1);
 print STDERR "eups -- using shell : $shell\n" if ($debug > 2);
-
-# Get the command line
-$select = $args[0];
-$args[0] = "";
-$comm = join " ",@args;
 
 # Die if EUPS_FLAVOR is not set and -f not used... this is so that
 # a major failure mode gets a decent error message.
