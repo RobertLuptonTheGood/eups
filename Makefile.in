@@ -22,11 +22,6 @@ install : show
 		echo You have not specified PROD_DIR_PREFIX >&2; \
 		exit 1; \
 	fi 
-	@if [ -d $(EUPS_DIR) ]; then \
-		echo The destination directory already exists for EUPS_DIR=$(EUPS_DIR). >&2; \
-		echo Please remove any old installation of EUPS there first. >&2; \
-		exit 1; \
-	fi 
 
 	@ if [ ! -d $(PROD_DIR_PREFIX) ]; then \
 		mkdir -p $(PROD_DIR_PREFIX); \
@@ -38,6 +33,7 @@ install : show
 		mkdir -p $(PRODUCTS); \
 	fi
 
+	@ $(RM) -r $(EUPS_DIR)
 	@ mkdir -p $(EUPS_DIR)
 	@ for f in $(SUBDIRS); do \
 		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \
