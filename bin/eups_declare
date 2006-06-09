@@ -139,6 +139,19 @@ if (defined($$options{-r})) {
 }
 die "ERROR: No product directory specified, and version \"$vers\" isn't declared\n" if (!$prodroot);
 #
+# Check that the table file exists
+#
+if ($tablefile ne "none" && ! -e $tablefile) {
+   if ($tablefile =~ m|^/|) {	# absolute name
+      warn "Warning: failed to find \"$tablefile\"\n";
+   } else {
+      if (! -e "$prodroot/$tablefile" && ! -e "$prodroot/ups/$tablefile") {
+	 warn "Warning: \"$tablefile\" is in neither\n" .
+	     "\t$prodroot\nnor\n\t$prodroot/ups\n";
+      }
+   }
+}
+#
 # Make path relative to PROD_DIR_PREFIX
 #
 $proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
