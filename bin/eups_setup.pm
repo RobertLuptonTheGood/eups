@@ -375,7 +375,9 @@ setupenv => \&envSet,
             print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
         } elsif (($comm eq "setupoptional")&&($fwd==1)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            eups_setup($qaz,$outfile,$debug,$quiet);
+            if (eups_setup($qaz,$outfile,$debug - 1,$quiet) < 0 && $debug > 1) {
+	       warn "WARNING: optional setup of $qaz failed\n";
+	    }
         } else {
 	   if ($fwd == 0 && $switchback{$comm}) {
 	      $switchback{$comm}->(@arg);
@@ -556,8 +558,8 @@ sub eups_setup {
 	       return -1;
 	    }
 	 } else {
-	    print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 1);
-	    print STDERR "FATAL ERROR: Product $prod doesn't seem to have been declared\n" if ($debug >=1);
+	    print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 2);
+	    print STDERR "ERROR: Product $prod doesn't seem to have been declared\n" if ($debug >=1);
 	    return -1;
 	 }
       }
