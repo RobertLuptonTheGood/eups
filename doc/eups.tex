@@ -266,6 +266,11 @@ variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
 The \texttt{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
+If you omit both \texttt{product} and \texttt{version}, but provide \texttt{-r dir},
+the product and version will be guessed from the last two parts of the directory
+name (e.g. \texttt{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
+declaring version \texttt{v2\_1\_6} of product \texttt{xpa}).
+
 If you specify \texttt{-c} then it leaves the currently declared version alone, and
 only updates the current.chain.
 

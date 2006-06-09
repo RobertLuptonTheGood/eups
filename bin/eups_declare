@@ -114,6 +114,11 @@ if (defined($$options{-m})) {
 $prod = $words[0];
 $vers = $words[1];
 
+if (($prod eq "" && $vers eq "") && ($$options{-r} =~ m|([^/]+)/([^/]+)$|)) {
+   ($prod, $vers) = ($1, $2);
+   warn "Guessing product = $prod; version = $vers\n" if($debug > 0);
+}
+
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
 if ($tablefile eq "") {
