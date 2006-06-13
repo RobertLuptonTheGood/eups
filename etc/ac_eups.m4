@@ -39,7 +39,7 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 	   [AC_MSG_NOTICE([[Using version from ./configure ($PACKAGE_VERSION) in $0]])]
 	    [define([ups_version], $PACKAGE_VERSION)],
 	    [define([ups_version],
-	               $(echo '$1' | perl -pe 'chomp; s/^\$''Name:\s*(\S*)\$/\1/; if(!$_){$_="cvs"}'))])
+	               $(echo '$1' | perl -pe 'chomp; s/^\$''Name:\s*(\S*)\s*\$/\1/; if(!$_){$_="cvs"}'))])
 	AC_SUBST([[ups_version]], "ups_version")
 	AC_MSG_NOTICE([Setting ups version to ups_version])
 	AC_ARG_WITH([flavor],
