@@ -139,8 +139,8 @@ dnl Prod's location may be specified (in order of decreasing priority) by:
 dnl     --with-prod=DIR         Location of prod-config
 dnl    ups			(i.e. a $PROD_DIR directory)
 dnl
-dnl Use libraries $2; check for header $3, library:symbol $4; e.g.
-dnl   UPS_WITHOUT_CONFIGURE([fftw], -lfftw3f -lfftw3, [fftw3.h], [fftw3f,fftwf_plan_dft_2d])
+dnl Check for header $2, use libraries $3; library:symbol $4; e.g.
+dnl   UPS_WITHOUT_CONFIGURE([fftw], [fftw3.h], -lfftw3f, [fftw3f,fftwf_plan_dft_2d])
 dnl to configure a ups product fftw, using FFTW_DIR
 dnl
 dnl If the product comes from ups, then the path will be specified in
@@ -162,7 +162,7 @@ AC_DEFUN([UPS_WITHOUT_CONFIGURE], [
 	      ac_ups_PROD[]_CFLAGS="-I$ac_ups_PROD[]_DIR/include"
 	      ac_ups_PROD[]_LIBS="-L$ac_ups_PROD[]_DIR/lib"
 	   fi])
-	ifelse([$2], [], [], [ac_ups_PROD[]_LIBS="$ac_ups_PROD[]_LIBS $2"])
+	ifelse([$3], [], [], [ac_ups_PROD[]_LIBS="$ac_ups_PROD[]_LIBS $3"])
 	
 	dnl Save CPPFLAGS/CFLAGS/LDFLAGS so that they can be restored after tests
 	TMP_CPPFLAGS=${CPPFLAGS}
@@ -173,10 +173,11 @@ AC_DEFUN([UPS_WITHOUT_CONFIGURE], [
 	CPPFLAGS="${CFLAGS}"
 	LDFLAGS="${TMP_LDFLAGS} ${ac_ups_PROD[]_LIBS}"
 
-	ifelse([$3], [], [], [
-	   AC_CHECK_HEADERS([$3],[],
+	ifelse([$2], [], [], [
+	   AC_CHECK_HEADERS([$2],[],
 	    [AC_MSG_ERROR([Failed to find ac_ups_prod; setup ac_ups_prod or use --with-ac_ups_prod to specify location.])]
 	)])
+
 	ifelse([$4], [], [], [
 	   TMP_LIBS=${LIBS}
 	   AC_CHECK_LIB($4,[],
