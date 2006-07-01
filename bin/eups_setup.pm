@@ -553,10 +553,10 @@ sub eups_setup {
       if ($vers eq "") {
 	 $fn = catfile($db,$prod,"current.chain");
 	 if (-e $fn) {
-	    $vers = read_chain_file($fn, $flavor);
+	    $vers = read_chain_file($fn, $flavor, $optional);
 	    
 	    if ($vers eq "") {
-	       print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1);
+	       print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1 + $optional);
 	       return -1;
 	    }
 	 } else {
@@ -718,7 +718,7 @@ sub eups_list {
    foreach $prod (@products) {
       $fn = catfile($db,$prod,"current.chain");
       if (-e $fn) {
-	 $current_vers = read_chain_file($fn, $flavor);
+	 $current_vers = read_chain_file($fn, $flavor, $quiet);
       }
       if($current && !defined($current_vers)) {
 	 if (@products == 1) {
@@ -771,7 +771,7 @@ sub eups_list {
 #
 sub read_chain_file
 {
-   my($fn, $flavor) = @_;
+   my($fn, $flavor, $quiet) = @_;
 
    if (!(-e $fn)) {
       print STDERR "ERROR: No version or current.chain\n" if ($debug >= 1);
@@ -802,7 +802,7 @@ sub read_chain_file
       $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
    }
    if ($pos == -1) {
-      print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug >= 1);
+      print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug >= 1 + $quiet);
       return "";
    }
    ($vers) = $group[$pos] =~ m/VERSION *= *(.+?) *\n/i;
