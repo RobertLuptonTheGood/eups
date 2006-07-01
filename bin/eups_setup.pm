@@ -452,7 +452,7 @@ sub eups_unsetup {
       }
    } else {
       $fn = catfile($db,$prod,"$vers.version");
-      if (read_version_file($fn, $prod, $flavor) < 0) {
+      if (read_version_file($fn, $prod, $flavor, 0) < 0) {
 	 return -1;
       }
    }
@@ -570,7 +570,7 @@ sub eups_setup {
       
       # Now construct the version file\'s name, then read and parse it
       $fn = catfile($db,$prod,"$vers.version");
-      if (read_version_file($fn, $prod, $flavor) < 0) {
+      if (read_version_file($fn, $prod, $flavor, 0) < 0) {
 	 return -1;
       }
    } else {
@@ -644,7 +644,7 @@ sub eups_find_prod_dir {
       return -1;
    }
 
-   if (read_version_file($fn, $prod, $flavor) < 0) {
+   if (read_version_file($fn, $prod, $flavor, 0) < 0) {
       return undef;
    }
 
@@ -732,7 +732,7 @@ sub eups_list {
       foreach $file (glob(catfile($db,$prod,"*.version"))) {
 	 ($vers = basename($file)) =~ s/\.version$//;
 	 
-	 if (read_version_file($file, $prod, $flavor) < 0) {
+	 if (read_version_file($file, $prod, $flavor, 1) < 0) {
 	    next;
 	 }
 
@@ -815,7 +815,7 @@ sub read_chain_file
 #
 sub read_version_file
 {
-   my($fn, $prod, $flavor) = @_;
+   my($fn, $prod, $flavor, $quiet) = @_;
 
    if (!(open FILE,"<$fn")) {
       print STDERR "ERROR: Cannot open version file $fn\n" if ($debug >= 1);
@@ -849,7 +849,7 @@ sub read_version_file
       $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
    }
    if ($pos == -1) {
-      print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if ($debug >= 1);
+      print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if (!$quiet && $debug >= 1);
       return -1;
    }
 
