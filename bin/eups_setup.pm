@@ -367,15 +367,17 @@ setupenv => \&envSet,
 	    $unsetup_products{$p}++; # remember that we already unset it
 	} elsif (($comm eq "setupoptional")&&($fwd==0)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-	    eups_unsetup($qaz,$outfile,$debug,$quiet);
+	    if (eups_unsetup($qaz,$outfile,$debug,$quiet) < 0 && $debug > 1) {
+	       warn "WARNING: unsetup of optional $qaz failed\n";
+	    }
         } elsif (($comm eq "setuprequired")&&($fwd==1)) {
 	    ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_setup($qaz,$outfile,$debug,$quiet);
+            $foo = eups_setup($qaz,$outfile,$debug,$quiet,0);
 	    $retval =+ $foo;
             print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
         } elsif (($comm eq "setupoptional")&&($fwd==1)) {
             ($qaz) = $arg =~ m/ *"(.*)"/;
-            if (eups_setup($qaz,$outfile,$debug - 1,$quiet) < 0 && $debug > 1) {
+            if (eups_setup($qaz,$outfile,$debug,$quiet,1) < 0 && $debug > 1) {
 	       warn "WARNING: optional setup of $qaz failed\n";
 	    }
         } else {
@@ -483,7 +485,7 @@ sub eups_setup {
    }
    
    # Need to extract the parameters carefully
-   local ($args,$outfile,$debug,$quiet) = @_;
+   local ($args,$outfile,$debug,$quiet,$optional) = @_;
    
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
@@ -558,8 +560,10 @@ sub eups_setup {
 	       return -1;
 	    }
 	 } else {
-	    print STDERR "ERROR: chain file $fn does not exist\n" if ($debug >= 2);
-	    print STDERR "ERROR: Product $prod doesn't seem to have been declared\n" if ($debug >=1);
+	    print STDERR "ERROR: chain file $fn does not exist\n"
+		if ($debug >= 2 + $optional);
+	    print STDERR "ERROR: Product $prod doesn't seem to have been declared\n"
+		if ($debug >= 1 + $optional);
 	    return -1;
 	 }
       }
