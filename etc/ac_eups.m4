@@ -111,8 +111,8 @@ AC_DEFUN([UPS_WITH_CONFIGURE],[
 	ac_ups_PROD[]_LIBS="$([$]{ac_ups_PROD[]_CONFIG} --libs)"
 	
 	if test $ac_ups_PROD[]_FROM_UPS = 1; then
-	   ac_ups_PROD[]_CFLAGS=$(echo $ac_ups_PROD[]_CFLAGS | sed -e "s|$ac_ups_PROD[]_DIR|\\\$\(ac_ups_PROD[]_DIR\)|g")
-	   ac_ups_PROD[]_LIBS=$(echo $ac_ups_PROD[]_LIBS | sed -e "s|$ac_ups_PROD[]_DIR|\\\$\(ac_ups_PROD[]_DIR\)|g")
+	   ac_ups_PROD[]_CFLAGS=$(echo $ac_ups_PROD[]_CFLAGS | sed -e "s|$ac_ups_PROD[]_DIR|\\\${ac_ups_PROD[]_DIR}|g")
+	   ac_ups_PROD[]_LIBS=$(echo $ac_ups_PROD[]_LIBS | sed -e "s|$ac_ups_PROD[]_DIR|\\\${ac_ups_PROD[]_DIR}|g")
 	else
 	   ac_ups_dir=$(echo $ac_ups_PROD[]_CFLAGS | perl -pe 's,^\s*-I(\S+).*,[$]1,; s,/include,,')
 	   AC_MSG_NOTICE(Guessing that \$ac_ups_PROD[]_DIR is $ac_ups_dir)
@@ -191,8 +191,8 @@ AC_DEFUN([UPS_WITHOUT_CONFIGURE], [
 	LDFLAGS=${TMP_LDFLAGS}
 	
 	if test $ac_ups_PROD[]_FROM_UPS = 1; then
-	   ac_ups_PROD[]_CFLAGS=$(echo $ac_ups_PROD[]_CFLAGS | sed -e "s|$ac_ups_PROD[]_DIR|\\\$(ac_ups_PROD[]_DIR)|g")
-	   ac_ups_PROD[]_LIBS=$(echo $ac_ups_PROD[]_LIBS | sed -e "s|$ac_ups_PROD[]_DIR|\\\$(ac_ups_PROD[]_DIR)|g")
+	   ac_ups_PROD[]_CFLAGS=$(echo $ac_ups_PROD[]_CFLAGS | sed -e "s|$ac_ups_PROD[]_DIR|\\\${ac_ups_PROD[]_DIR}|g")
+	   ac_ups_PROD[]_LIBS=$(echo $ac_ups_PROD[]_LIBS | sed -e "s|$ac_ups_PROD[]_DIR|\\\${ac_ups_PROD[]_DIR}|g")
 	elif test "$ac_ups_dir" != ""; then
 	   ups_import_products="$ups_import_products ac_ups_prod"
 	   AC_SUBST([ups_import_products])
