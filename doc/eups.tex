@@ -1,7 +1,7 @@
 \documentclass{article}
 \ExecuteOptions{dvips,color}
 %
-\newcommand{\XXX}[1]{{\color{red}\textbf{XXX} #1}}
+\newcommand{\XXX}[1]{\textbf{XXX} #1}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\eups}{\code{ExtUPS}}
 
@@ -42,7 +42,7 @@ flux.  In order to bring order out of chaos, we need to be able to:
 
 We assume that the task of actually managing individual components
 (e.g. tracking code versions) is being handled with some other system,
-such as \texttt{cvs}.
+such as \texttt{cvs} or \texttt{svn}.
 
 \section{The \code{setup} command}
 
@@ -65,8 +65,8 @@ associated with each component, for example the table file
 for a product named \code{photo} reads:
 \begin{verbatim}
        setupRequired("astrotools")
-       envSet(PHOTO_STARTUP, ${UPS_PROD_DIR}/etc/photoStartup.tcl)
-       pathAppend(PATH, ${UPS_PROD_DIR}/bin)
+       envSet(PHOTO_STARTUP, ${PRODUCT_DIR}/etc/photoStartup.tcl)
+       envAppend(PATH, ${PRODUCT_DIR}/bin)
 \end{verbatim}
 
 When we attempt to \code{setup} the product \code{photo}, this
@@ -83,12 +83,12 @@ table file leads to the following actions:
   (and in fact does) itself \code{setup} further products.  We say that
   \code{photo} \emph{depends} on \code{astrotools}.
 \item
-  \code{envSet} sets an extra environment variable; here \code{\$\{UPS\_PROD\_DIR\}}
+  \code{envSet} sets an extra environment variable; here \code{\$\{PRODUCT\_DIR\}}
   refers to the root of this product's tree (i.e. to \code{PHOTO\_DIR} as set above)
 \item
-  \code{pathAppend} appends
-  the directory \code{\$\{UPS\_PROD\_DIR\}/bin} to the current path (there
-  is also a \code{pathPrepend} directive).
+  \code{envAppend} appends
+  the directory \code{\$\{PRODUCT\_DIR\}/bin} to the current path (there
+  is also a \code{envPrepend} directive).
 \end{description}
 
 So far we have achieved the first of the goals listed in the introduction,
@@ -174,63 +174,137 @@ LIBS =   -L$(ASTROTOOLS_DIR)/lib -lastrom \
          -L$(PHOTO_DIR)/lib -lphoto -lmeasureObj \
          ...
 \end{verbatim}
-For this to work, you also need a convention that the include
-files be found in e.g. \code{.../photo/include} and the
-libraries in \code{.../photo/lib}.
 
-In a large project there will be many directories that need to appear
-in the \code{INCS} and \code{LIBS} definitions.  Fortunately, we need
-only maintain these variables in one place, in a file included by all
-project makefiles, or in a script that is used to invoke make.
+The next section discusses a strategy for managing include files
+and libraries using configure and make.
 
-\section{\eups{} and configure}
+\section{\eups{} and autoconf/configure}
 
-Eups uses configure to decide where to put its files; more interestingly,
-you can use autoconf macros to make \emph{your} projects use \eups{}-declared
-products.
+If you're a user, you don't need to understand this section. If
+you're creating new products, you may need to.
 
-\subsection{Using configure to install \eups{}}
+The \eups{} distribution includes a set of autoconf macros
+in the file \texttt{etc/ac\_eups.m4}. Once you've arranged for
+autoconf to know about his file,\footnote{e.g. by copying the
+  file into your top level directory} you can write a
+\texttt{configure.ac} file that looks something like
+\begin{quote}
+\obeylines\tt\small\parskip=0pt
+AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
+UPS\_DEFINE\_ROOT(\${Name}: v2\_4 \$)
+AC\_PROG\_CC(cc)
+UPS\_WITH\_CONFIGURE([gsl])
+UPS\_WITHOUT\_CONFIGURE([fftw], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
+AC\_CONFIG\_FILES([etc/Makefile.global])
+AC\_OUTPUT
+\end{quote}
 
-To install you need first to generate a Makefile:
-\begin{verbatim}
-./configure && make install
-\end{verbatim}
+Once you've generated a configure file (i.e. typed \texttt{autoconf})%
+\footnote{You'll check the resulting configure file in, so users won't
+  need to have autoconf on their machines}
+you can say\hfil\break
+\texttt{setup gsl}\hfil\break
+\texttt{./configure --with-ups=/u/act/products --with-flavor=Linux64}\hfil\break
+\texttt{make}\hfil\break
+\texttt{make install}\hfil\break
+\texttt{make declare}\hfil\break
+\texttt{setup myProduct v2\_4}\hfil\break
 
-You can say \texttt{make show} to show you where things are
-going to be installed:
-\begin{verbatim}
-$ make show
-You will be installing ups in $EUPS_DIR        = /usr/local/share/eups
-Ups will look for products in $PROD_DIR_PREFIX = /usr/local/share
-The products database will be $PRODUCTS        = /usr/local/share/ups_db
-\end{verbatim}
+How did your \texttt{configure.ac} file achieve this magic?
 
-You can control where files are put with the following configure options:
-\begin{verbatim}
---prefix=PREFIX         install architecture-independent files in PREFIX
-                        [default: /usr/local]
---with-ups=DIR          Use DIR as root for installed products
---with-ups_db=DIR       Use DIR as the UPS database directory
---with-eups_dir=DIR     Install eups into DIR/{bin,doc}
-\end{verbatim}
-The difference between \texttt{--prefix} and \texttt{--with-ups}
-is that the former appends \texttt{/share} to the specified directory, to
-be consistent with the standard default value, \texttt{/usr/local}.
-  
-As an alternative to
-\begin{verbatim}
-./configure --prefix=/foo/bar
-...
-make install
-\end{verbatim}
-you can say
-\begin{verbatim}
-make install prefix=/foo/bar
-\end{verbatim}
-\texttt{PROD\_DIR\_PREFIX=...} also works as an alternative to \texttt{--with-ups=...};
-note upper case.
-  
-\section{Reference Manual}
+\begin{itemize}
+  \item{\texttt{AC\_INIT}
+
+    This is a standard autoconf line, but with an invalid version name (\texttt{X.Y}).
+
+  \item{\texttt{AC\_DEFINE\_ROOT}}
+
+    Define the \texttt{configure} options \texttt{--with-ups=dir}} and \texttt{--with-flavor=XXX}.
+    The version comes from the \texttt{\${Name}: v2\_4 \$} --- if the \texttt{v2\_4} were
+    absent the value \texttt{cvs} would have been used instead.
+
+  \item\texttt{AC\_PROG\_CC(cc)}
+
+    Find the C compiler    
+
+  \item\texttt{UPS\_WITH\_CONFIGURE([gsl])}
+
+    Tell configure that we need the product \texttt{gsl}, and that it
+    comes with a pkg-config script.\footnote{%
+      I.e. a script \texttt{gsl-config} which accepts arguments \texttt{--cflags}
+      and \texttt{--libs} to print out the options that you should pass to the
+      compiler and linker to use the \texttt{gsl} libraries. For example,
+      \texttt{--libs} $\rightarrow$ \texttt{-I/usr/local/include} and
+      \texttt{--cflags} $\rightarrow$ \texttt{-L/usr/local/lib -lgsl -lgslcblas -lm}
+      }
+    In this case, it came from ups,
+    but the macro also supports \texttt{--with-gsl=DIR}; there are
+    other possibilies (see the reference manual,
+    Sec. \ref{autoconfReference}).  If all goes well the macro macro sets (in the
+    case of \texttt{gsl}) the variables \texttt{GSL\_CFLAGS} and \texttt{GSL\_LIBS}.
+
+  \item\texttt{UPS\_WITHOUT\_CONFIGURE([fftw], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
+
+    This macro is similar to \texttt{UPS\_WITH\_CONFIGURE}, and sets
+    \texttt{FFTW\_CFLAGS} and \texttt{FFTW\_LIBS}, armed with knowledge of
+    \eups{} and  \texttt{--with-fftw=DIR}.
+
+    The difference is that this time configure has to probe the system
+    to find the include files and libraries.  More specifically, it
+    checks that it can find \texttt{fftw3.h} and that \texttt{-lfftw3f} provides the symbol
+    \texttt{fftwf\_plan\_dft\_2d}.
+    
+  \item\texttt{AC\_CONFIG\_FILES}
+  \item\texttt{AC\_OUTPUT}
+
+    The standard autoconf macro to interpolate derived values
+    into \texttt{Makefile.global}.  What does this mean?
+    \XXX{Describe Makefile.global.in}
+\end{itemize}
+
+
+\subsection{A Strategy for using autoconf and \eups{} to Manage Layered Products}
+
+
+A more complete example is:
+
+\begin{quote}
+    \obeylines\tt\small\parskip=0pt
+AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
+\vspace{5pt}
+dnl --------- UPS directories and how to install --------------------------
+\vspace{5pt}
+UPS\_DEFINE\_ROOT(\${Name}:  \$)
+UPS\_INSTALL\_DIRS   
+\vspace{5pt}
+
+dnl --------- Build environment -------------------------------------------
+
+AC\_PROG\_CC(cc)
+AC\_PROG\_RANLIB
+
+dnl --------- Products from UPS -------------------------------------------
+dnl (remember to update etc/Makefile.global if you add a new product)
+\vspace{5pt}
+UPS\_WITH\_CONFIGURE([gsl])
+UPS\_WITH\_CONFIGURE([pslib])
+\vspace{5pt}
+UPS\_WITHOUT\_CONFIGURE([cfitsio], [fitsio.h],
+                        -lcfitsio, [cfitsio,ffopen])
+UPS\_WITHOUT\_CONFIGURE([fftw],    [fftw3.h],
+                        -lfftw3f,  [fftw3f,fftwf\_plan\_dft\_2d])
+UPS\_WITHOUT\_CONFIGURE([wcslib],  [wcslib/wcslib.h],
+                        -lwcs,     [wcs,wcsini])
+\vspace{5pt}
+AC\_CONFIG\_FILES([etc/makedefs etc/builddefs etc/installdefs])
+AC\_CONFIG\_FILES([bin/eups\_import], [chmod 755 bin/eups\_import])
+\vspace{5pt}
+AC\_OUTPUT
+\end{quote}
+
+\appendix
+
+\section{\eups Reference Manual}
 
 \subsection{\eups{} commands}
 
@@ -329,6 +403,10 @@ Options \texttt{--current} and \texttt{--setup} are only relevant with \texttt{-
 \texttt{eups\_setup} writes a shell script that is then sourced into the
 current shell.
 )
+
+With the \texttt{--list} option, \texttt{setup} can be used to list the available
+products; for example \texttt{setup --list --current} will list all products that
+are declared current.
 
 %------------------------------------------------------------------------------
 
@@ -469,21 +547,105 @@ variables are defined;
   \item \texttt{\${PRODUCTS}}
     The database
     
-  \item \texttt{\${UPS\_PROD\_DIR}}
+  \item \texttt{\${PRODUCT\_DIR}}
     Where the product is installed.
     
-  \item \texttt{\${UPS\_PROD\_FLAVOR}}
+  \item \texttt{\${PRODUCT\_FLAVOR}}
     The product flavor.
     
-  \item \texttt{\${UPS\_PROD\_NAME}}
+  \item \texttt{\${PRODUCT\_NAME}}
     The product name
     
-  \item \texttt{\${UPS\_PROD\_VERSION}}
+  \item \texttt{\${PRODUCT\_VERSION}}
     The product version
     
-  \item \texttt{\${UPS\_UPS\_DIR}}
+  \item \texttt{\${UPS\_DIR}}
     The ups directory of the product (distinct from the directory
     in \texttt{\$PRODUCTS} - this is often where the table file will be stored).
 \end{itemize}
 
+\subsection{\eups{} autoconf commands}
+\label{autoconfReference}
+
+\XXX{Finish me}
+
+\begin{itemize}
+  \item{\texttt{AC\_INIT(product, version, ...}}
+    This is a standard autoconf line, but with an invalid version name (\texttt{X.Y}).
+
+  \item{\texttt{AC\_DEFINE\_ROOT(version [, flavor])}}
+    Define the \texttt{configure} options
+    \begin{itemize}
+      \item{\texttt{--with-ups=dir}}
+        Specify the value of \texttt{PROD\_DIR\_PREFIX}
+        (default: \texttt{\$prefix/share}).
+        \XXX{This is scheduled to be renamed to \texttt{UPS\_ROOT}}
+      \item{\texttt{--with-flavor=XXX}}
+        Set the value of \texttt{EUPS\_FLAVOR}
+        (default: flavor, or, failing that, the value of uname).
+    \end{itemize}
+\end{itemize}
+
+The conventional files are:
+\begin{itemize}
+   \item{etc/builddefs}
+     Supports building on this platform. E.g.
+\begin{verbatim}
+CC = cc -std=c99
+CFLAGS = -g -Wall
+RANLIB = ranlib
+\end{verbatim}
+  
+   \item{etc/installdefs}
+     Supports the \texttt{make install} and \texttt{make declare} targets.
+  
+   \item{etc/makedefs}
+     Supports building and linking products (GSL in this case). After
+     expansion, the file will look like:
+\begin{verbatim}
+GSL_CFLAGS = -I$(GSL_DIR)/include
+GSL_LIBS = -L$(GSL_DIR)/lib -lgsl -lgslcblas -lm
+\end{verbatim}
+\end{itemize}
+  
+\section{Installing \eups{}}
+  
+  To install you need first to generate a Makefile:
+\begin{verbatim}
+./configure && make install
+\end{verbatim}
+
+You can say \texttt{make show} to show you where things are
+going to be installed:
+\begin{verbatim}
+$ make show
+You will be installing ups in $EUPS_DIR        = /usr/local/share/eups
+Ups will look for products in $PROD_DIR_PREFIX = /usr/local/share
+The products database will be $PRODUCTS        = /usr/local/share/ups_db
+\end{verbatim}
+
+You can control where files are put with the following configure options:
+\begin{verbatim}
+--prefix=PREFIX         install architecture-independent files in PREFIX
+                        [default: /usr/local]
+--with-ups=DIR          Use DIR as root for installed products
+--with-ups_db=DIR       Use DIR as the UPS database directory
+--with-eups_dir=DIR     Install eups into DIR/{bin,doc}
+\end{verbatim}
+The difference between \texttt{--prefix} and \texttt{--with-ups}
+is that the former appends \texttt{/share} to the specified directory, to
+be consistent with the standard default value, \texttt{/usr/local}.
+  
+As an alternative to
+\begin{verbatim}
+./configure --prefix=/foo/bar
+...
+make install
+\end{verbatim}
+you can say
+\begin{verbatim}
+make install prefix=/foo/bar
+\end{verbatim}
+\texttt{PROD\_DIR\_PREFIX=...} also works as an alternative to \texttt{--with-ups=...};
+note upper case.
 \end{document}
