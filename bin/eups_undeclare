@@ -128,7 +128,9 @@ for ($i = 0; ($i<@group);$i++) {
 }
 close FILE;
 
-unlink $fn if ($pos == @group); 
+if ($pos == @group) {
+   unlink $fn or warn "Failed to delete $fn: $!\n";
+}
 
 #Now do the same to the current.chain file
 
@@ -165,7 +167,9 @@ if (-e $fn ) {
     }
     close FILE;
 
-    unlink $fn if ($pos == @group); 
+    if ($pos == @group) {
+       unlink $fn or warn "Failed to delete $fn: $!\n";
+    }
 }
 
 exit;
