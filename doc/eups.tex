@@ -340,7 +340,9 @@ variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
 The \texttt{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
-If you omit both \texttt{product} and \texttt{version}, but provide \texttt{-r dir},
+If you omit the \texttt{-r dir} \eups{} will attempt to guess it for you based
+on your products directory, flavor, product and version; alternatively,
+if you omit both \texttt{product} and \texttt{version}, but provide \texttt{-r dir},
 the product and version will be guessed from the last two parts of the directory
 name (e.g. \texttt{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
 declaring version \texttt{v2\_1\_6} of product \texttt{xpa}).
