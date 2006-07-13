@@ -129,6 +129,10 @@ AC_DEFUN([UPS_WITH_CONFIGURE],[
 		
 	AC_SUBST(ac_ups_PROD[]_CFLAGS)
 	AC_SUBST(ac_ups_PROD[]_LIBS)
+
+	CFLAGS="$CFLAGS $(eval echo $ac_ups_PROD[]_CFLAGS)"
+	LIBS="$LIBS $(eval echo $ac_ups_PROD[]_LIBS)"
+
 	undefine([ac_ups_prod])
 	undefine([ac_ups_PROD])])[]dnl
 
@@ -205,5 +209,9 @@ AC_DEFUN([UPS_WITHOUT_CONFIGURE], [
 	
 	AC_SUBST(ac_ups_PROD[]_CFLAGS)
 	AC_SUBST(ac_ups_PROD[]_LIBS)
+
+	CFLAGS="$CFLAGS $(eval echo $ac_ups_PROD[]_CFLAGS)"
+	LIBS="$LIBS $(eval echo $ac_ups_PROD[]_LIBS)"
+
 	undefine([ac_ups_prod])
 	undefine([ac_ups_PROD])])
