@@ -319,14 +319,19 @@ Usage:
 Options:
         -h, --help      Print this help message
         -c, --current   Declare this product current
-        -F, --force     Force requested behaviour (e.g. redeclare a product)
-        -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
-        -m              Use this table file (may be "none") (default: product.table)
+        -F, --force     Force requested behaviour, for example
+                        to redeclare a product
+        -f, --flavor    Use this flavor
+                        (default: $EUPS_FLAVOR)
+        -m              Use this table file (may be "none")
+                        (default: product.table)
         -r, --root      Location of product being declared
         -V, --version   Print version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
-        -Z, --database  Use this products prefix (default: $PROD_DIR_PREFIX)
-        -z              Use this products database (default: $PRODUCTS)
+        -Z, --database  Use this products prefix
+                        (default: $PROD_DIR_PREFIX)
+        -z              Use this products database
+                        (default: $PRODUCTS)
 \end{verbatim}
 
 Declares \texttt{version} of \texttt{product} into the database defined by \texttt{\$PRODUCTS}.
@@ -340,7 +345,7 @@ variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
 The \texttt{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
-If you omit the \texttt{-r dir} \eups{} will attempt to guess it for you based
+If you omit the \texttt{-r dir}, \eups{} will attempt to guess it for you based
 on your products directory, flavor, product and version; alternatively,
 if you omit both \texttt{product} and \texttt{version}, but provide \texttt{-r dir},
 the product and version will be guessed from the last two parts of the directory
