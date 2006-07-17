@@ -1,0 +1,15 @@
+#!/usr/bin/env perl
+#
+# Run pkg-config for a product that's set up
+#
+if (!defined($ARGV[0])) {
+   die "Please specify a product\n";
+}
+
+$product = $ARGV[0]; @ARGV = pop(@ARGV);
+if (!defined($ENV{"\U$product" . "_DIR"})) {
+   die "product $product is not setup\n";
+}
+
+!system("env PKG_CONFIG_PATH=" . $ENV{"\U${product}_DIR"} . "/etc" .
+	" pkg-config " . $product . " " . join(" ", @ARGV)) or warn "Failed to run pkg-config: $!\n";
