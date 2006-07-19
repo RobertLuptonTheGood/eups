@@ -55,7 +55,7 @@ endif
 
 setenv EUPS_DIR $eupsdir
 setenv PROD_DIR_PREFIX $prefix
-setenv PRODUCTS $db
+unsetenv PRODUCTS
 
 setenv PATH \${PATH}:$bindir
 
@@ -73,7 +73,7 @@ fi
 
 export EUPS_DIR=$eupsdir
 export PROD_DIR_PREFIX=$prefix
-export PRODUCTS=$db
+unset PRODUCTS
 
 export PATH="\$PATH:$bindir"
 
