@@ -1,15 +1,19 @@
-#!/usr/bin/env perl
+#!/bin/sh
 #
 # Run pkg-config for a product that's set up
 #
-if (!defined($ARGV[0])) {
-   die "Please specify a product\n";
-}
+if [ X"$1" = X"" ];then
+   echo "Please specify a product" >&2
+   exit 1
+fi
 
-$product = $ARGV[0]; @ARGV = pop(@ARGV);
-if (!defined($ENV{"\U$product" . "_DIR"})) {
-   die "product $product is not setup\n";
-}
+product=$1; shift
+product_dir=$(setup -l -s $product -v 2>&1 | awk '{print $2}')
+if [ X"$product_dir" = X"" ]; then
+   echo "product $product is not setup" >&2
+   exit 1
+fi
 
-!system("env PKG_CONFIG_PATH=" . $ENV{"\U${product}_DIR"} . "/etc" .
-	" pkg-config " . $product . " " . join(" ", @ARGV)) or warn "Failed to run pkg-config: $!\n";
+echo env PKG_CONFIG_PATH=$product_dir/etc pkg-config $product "$@" | sed -e 's/%/$/g'
+env PKG_CONFIG_PATH=$product_dir/etc pkg-config $product "$@" | sed -e 's/%/$/g'
+
