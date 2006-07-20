@@ -14,6 +14,5 @@ if [ X"$product_dir" = X"" ]; then
    exit 1
 fi
 
-echo env PKG_CONFIG_PATH=$product_dir/etc pkg-config $product "$@" | sed -e 's/%/$/g'
 env PKG_CONFIG_PATH=$product_dir/etc pkg-config $product "$@" | sed -e 's/%/$/g'
 
