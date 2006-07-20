@@ -56,8 +56,8 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 	AC_ARG_WITH(ups,
 	   [AS_HELP_STRING(--with-ups=DIR,Use DIR as base for installation directories)],
 	   [prefix=$withval],
-	   [if [[ X"$EUPS_ROOT" != X"" ]]; then
-	       prefix=$(echo $EUPS_ROOT | perl -pe 's/:.*//')
+	   [if [[ X"$EUPS_PATH" != X"" ]]; then
+	       prefix=$(echo $EUPS_PATH | perl -pe 's/:.*//')
 	    fi])
 	   if [[ X"$prefix" != X"NONE" ]]; then
 	   	   prefix=$prefix/$ups_flavor/ups_product/$(echo ups_version | perl -pe 's/\./_/g')
