@@ -23,6 +23,8 @@ dnl and
 dnl   --with-ups=DIR
 dnl are equivalent to
 dnl   --prefix=DIR/flavor/product/version
+dnl If you don't specify --with-ups, it'll be taken from the first element of EUPS_PATH,
+dnl if set
 dnl
 dnl The version is set based on $1 (which may from dollar-Name: version dollar), or
 dnl failing that, from the version given to AC_INIT. If $1 is of the form dollar-Name dollar
@@ -53,8 +55,14 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 	AC_SUBST(ups_flavor)
 	AC_ARG_WITH(ups,
 	   [AS_HELP_STRING(--with-ups=DIR,Use DIR as base for installation directories)],
-	   [prefix=$withval/$ups_flavor/ups_product/$(echo ups_version | perl -pe 's/\./_/g')]
-	   AC_MSG_NOTICE(Setting \$prefix to $prefix))
+	   [prefix=$withval],
+	   [if [[ X"$EUPS_ROOT" != X"" ]]; then
+	       prefix=$(echo $EUPS_ROOT | perl -pe 's/:.*//')
+	    fi])
+	   if [[ X"$prefix" != X"NONE" ]]; then
+	   	   prefix=$prefix/$ups_flavor/ups_product/$(echo ups_version | perl -pe 's/\./_/g')
+		   AC_MSG_NOTICE(Setting \$prefix to $prefix)
+	   fi
    ])
 dnl
 dnl Define extra installation directories (not expanding $prefix)
