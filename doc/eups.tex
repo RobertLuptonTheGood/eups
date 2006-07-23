@@ -3,6 +3,7 @@
 %
 \newcommand{\XXX}[1]{\textbf{XXX} #1}
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\file}[1]{\texttt{#1}}
 \newcommand{\eups}{\code{ExtUPS}}
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -42,7 +43,7 @@ flux.  In order to bring order out of chaos, we need to be able to:
 
 We assume that the task of actually managing individual components
 (e.g. tracking code versions) is being handled with some other system,
-such as \texttt{cvs} or \texttt{svn}.
+such as \code{cvs} or \code{svn}.
 
 \section{The \code{setup} command}
 
@@ -162,11 +163,9 @@ run this version of \code{photo} by examining the \eups{} database.
 
 \section{How do I Actually Use this System to Manage Code?}
 
-\textbf{RHL is working on this section, and it's getting simpler}
-
-The \code{setup} command set a number of environment variables,
-such as \code{PHOTO\_DIR} and \code{ASTROTOOLS\_DIR}. These can
-be used in Makefiles, e.g.
+All that the \code{setup} command did was to set or append to a number of environment variables,
+such as \code{PHOTO\_DIR}, \code{ASTROTOOLS\_DIR}, and (often) \code{LD\_LIBRARY\_PATH}.
+These can be used in Makefiles, e.g.
 \begin{verbatim}
 CFLAGS = -g $(INCS)
 INCS = -I$(ASTROTOOLS_DIR)/include \
@@ -186,10 +185,10 @@ If you're a user, you don't need to understand this section. If
 you're creating new products, you may need to.
 
 The \eups{} distribution includes a set of autoconf macros
-in the file \texttt{etc/ac\_eups.m4}. Once you've arranged for
-autoconf to know about his file,\footnote{e.g. by copying the
+in the file \file{etc/ac\_eups.m4}. Once you've arranged for
+autoconf to know about this file,\footnote{e.g. by copying the
   file into your top level directory} you can write a
-\texttt{configure.ac} file that looks something like
+\file{configure.ac} file that looks something like
 \begin{quote}
 \obeylines\tt\small\parskip=0pt
 AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
@@ -201,92 +200,92 @@ AC\_CONFIG\_FILES([etc/Makefile.global])
 AC\_OUTPUT
 \end{quote}
 
-Once you've generated a configure file (i.e. typed \texttt{autoconf})%
+Once you've generated a configure file (i.e. typed \code{autoconf})%
 \footnote{You'll check the resulting configure file in, so users won't
   need to have autoconf on their machines}
 you can say\hfil\break
-\texttt{cd \$HOME/myProduct}\hfil\break
-\texttt{setup gsl; setup fftw3}\hfil\break
-\texttt{./configure --with-ups=/u/act/products --with-flavor=Linux64}\hfil\break
-\texttt{make}\hfil\break
-\texttt{make install}\hfil\break
-\texttt{make declare}\hfil\break
-\texttt{setup myProduct v2\_4}\hfil\break
+\code{cd \$HOME/myProduct}\hfil\break
+\code{setup gsl; setup fftw3}\hfil\break
+\code{./configure --with-ups=/u/act/products --with-flavor=Linux64}\hfil\break
+\code{make}\hfil\break
+\code{make install}\hfil\break
+\code{make declare}\hfil\break
+\code{setup myProduct v2\_4}\hfil\break
 
 You might wonder how you were supposed to know that you had to type
-\texttt{setup gsl} and \texttt{setup fftw3} in order to build
-\texttt{myProduct}. The answer, is: ``It depends''.  If you're
-\texttt{myProduct}'s loving author, you knew that you needed
-\texttt{gsl} as you included e.g. \texttt{gsl/gsl\_rng.h} in your
-source. If you're not the author, then \texttt{myProduct} presumably
+\code{setup gsl} and \code{setup fftw3} in order to build
+\code{myProduct}. The answer, is: ``It depends''.  If you're
+\code{myProduct}'s loving author, you knew that you needed
+\code{gsl} as you included e.g. \code{gsl/gsl\_rng.h} in your
+source. If you're not the author, then \code{myProduct} presumably
 includes a properly written table file (probably called
-\texttt{myProduct/ups/myProduct.table}) which knows about
-\texttt{gsl} and \texttt{fftw3}:
+\code{myProduct/ups/myProduct.table}) which knows about
+\code{gsl} and \code{fftw3}:
 \begin{verbatim}
 setupRequired("fftw3")
 setupRequired("gsl")
 \end{verbatim}
 in this case what you \textit{really} typed was:\hfil\break
-\texttt{setup --root \$HOME/myProduct myProduct}\hfil\break
-which setup \texttt{gsl} and \texttt{fftw3} for you:
+\code{setup --root \$HOME/myProduct myProduct}\hfil\break
+which setup \code{gsl} and \code{fftw3} for you:
 \begin{verbatim}
 Setting up:      fftw3               Flavor: Linux      Version: v3_0_1
 Setting up:      gsl                 Flavor: Linux      Version: v1_8
 \end{verbatim}
 
-The \texttt{make declare} command told \eups{} about your newly built
-product; the \texttt{setup myProduct v2\_4} command told the system
+The \code{make declare} command told \eups{} about your newly built
+product; the \code{setup myProduct v2\_4} command told the system
 that you wanted to use it.
 
-How did your \texttt{configure.ac} file achieve this magic?
+How did your \file{configure.ac} file achieve this magic?
 
 \begin{itemize}
-  \item{\texttt{AC\_INIT}
+  \item{\code{AC\_INIT}
 
-    This is a standard autoconf line, but with an invalid version name (\texttt{X.Y}).
+    This is a standard autoconf line, but with an invalid version name (\code{X.Y}).
 
-  \item{\texttt{AC\_DEFINE\_ROOT}}
+  \item{\code{AC\_DEFINE\_ROOT}}
 
-    Define the \texttt{configure} options \texttt{--with-ups=dir}} and \texttt{--with-flavor=XXX}.
-    The version comes from the \texttt{\${Name}: v2\_4 \$} --- if the \texttt{v2\_4} were
-    absent the value \texttt{cvs} would have been used instead.
+    Define the \code{configure} options \code{--with-ups=dir}} and \code{--with-flavor=XXX}.
+    The version comes from the \code{\${Name}: v2\_4 \$} --- if the \code{v2\_4} were
+    absent the value \code{cvs} would have been used instead.
 
-  \item\texttt{AC\_PROG\_CC(cc)}
+  \item\code{AC\_PROG\_CC(cc)}
 
     Find the C compiler    
 
-  \item\texttt{UPS\_WITH\_CONFIGURE([gsl])}
+  \item\code{UPS\_WITH\_CONFIGURE([gsl])}
 
-    Tell configure that we need the product \texttt{gsl}, and that it
+    Tell configure that we need the product \code{gsl}, and that it
     comes with a pkg-config script.\footnote{%
-      I.e. a script \texttt{gsl-config} which accepts arguments \texttt{--cflags}
-      and \texttt{--libs} to print out the options that you should pass to the
-      compiler and linker to use the \texttt{gsl} libraries. For example,
-      \texttt{--libs} $\rightarrow$ \texttt{-I/usr/local/include} and
-      \texttt{--cflags} $\rightarrow$ \texttt{-L/usr/local/lib -lgsl -lgslcblas -lm}
+      I.e. a script \code{gsl-config} which accepts arguments \code{--cflags}
+      and \code{--libs} to print out the options that you should pass to the
+      compiler and linker to use the \code{gsl} libraries. For example,
+      \code{--libs} $\rightarrow$ \code{-I/usr/local/include} and
+      \code{--cflags} $\rightarrow$ \code{-L/usr/local/lib -lgsl -lgslcblas -lm}
       }
     In this case, it came from ups,
-    but the macro also supports \texttt{--with-gsl=DIR}; there are
+    but the macro also supports \code{--with-gsl=DIR}; there are
     other possibilies (see the reference manual,
     Sec. \ref{autoconfReference}).  If all goes well the macro macro sets (in the
-    case of \texttt{gsl}) the variables \texttt{GSL\_CFLAGS} and \texttt{GSL\_LIBS}.
+    case of \code{gsl}) the variables \code{GSL\_CFLAGS} and \code{GSL\_LIBS}.
 
-  \item\texttt{UPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
+  \item\code{UPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
 
-    This macro is similar to \texttt{UPS\_WITH\_CONFIGURE}, and sets
-    \texttt{FFTW\_CFLAGS} and \texttt{FFTW\_LIBS}, armed with knowledge of
-    \eups{} and  \texttt{--with-fftw3=DIR}.
+    This macro is similar to \code{UPS\_WITH\_CONFIGURE}, and sets
+    \code{FFTW\_CFLAGS} and \code{FFTW\_LIBS}, armed with knowledge of
+    \eups{} and  \code{--with-fftw3=DIR}.
 
     The difference is that this time configure has to probe the system
     to find the include files and libraries.  More specifically, it
-    checks that it can find \texttt{fftw3.h} and that \texttt{-lfftw3f} provides the symbol
-    \texttt{fftwf\_plan\_dft\_2d}.
+    checks that it can find \code{fftw3.h} and that \code{-lfftw3f} provides the symbol
+    \code{fftwf\_plan\_dft\_2d}.
     
-  \item\texttt{AC\_CONFIG\_FILES}
-  \item\texttt{AC\_OUTPUT}
+  \item\code{AC\_CONFIG\_FILES}
+  \item\code{AC\_OUTPUT}
 
     The standard autoconf macro to interpolate derived values
-    into \texttt{Makefile.global}.  What does this mean?
+    into \file{Makefile.global}.  What does this mean?
     \XXX{Describe Makefile.global.in}
 \end{itemize}
 
@@ -340,7 +339,7 @@ AC\_OUTPUT
 
 %------------------------------------------------------------------------------
 
-\item \texttt{eups\_declare}
+\item \code{eups\_declare}
 \begin{verbatim}
 Usage:
    eups_declare [options] product version
@@ -360,30 +359,30 @@ Options:
                         (default: $EUPS_PATH)
 \end{verbatim}
 
-Declares \texttt{version} of \texttt{product} into the database given by \texttt{\$EUPS\_PATH/ups\_db}.
+Declares \code{version} of \code{product} into the database given by \code{\$EUPS\_PATH/ups\_db}.
 The product root directory is where the product has been installed, and can either
-be an absolute pathname or specified relative to \texttt{\$EUPS\_PATH}.
+be an absolute pathname or specified relative to \code{\$EUPS\_PATH}.
 
 The flavor is usually determined from the
-environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
+environment variable \code{\$EUPS\_FLAVOR}, but \code{-f}
 overrides this. The database used is defined by the environment
-variable \texttt{EUPS\_PATH/ups\_db} (or the \texttt{-Z} option).
-The \texttt{-m} option specifies the table
+variable \code{EUPS\_PATH/ups\_db} (or the \code{-Z} option).
+The \code{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
-If you omit the \texttt{-r dir}, \eups{} will attempt to guess it for you based
+If you omit the \code{-r dir}, \eups{} will attempt to guess it for you based
 on your products directory, flavor, product and version; alternatively,
-if you omit both \texttt{product} and \texttt{version}, but provide \texttt{-r dir},
+if you omit both \code{product} and \code{version}, but provide \code{-r dir},
 the product and version will be guessed from the last two parts of the directory
-name (e.g. \texttt{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
-declaring version \texttt{v2\_1\_6} of product \texttt{xpa}).
+name (e.g. \code{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
+declaring version \code{v2\_1\_6} of product \code{xpa}).
 
-If you specify \texttt{-c} then it leaves the currently declared version alone, and
+If you specify \code{-c} then it leaves the currently declared version alone, and
 only updates the current.chain.
 
 %------------------------------------------------------------------------------
 
-  \item \texttt{eups\_undeclare}
+  \item \code{eups\_undeclare}
 \begin{verbatim}
 Usage:
    eups_undeclare [options] product version
@@ -395,16 +394,16 @@ Options:
         -Z, --database  Use this products directory (default: $EUPS_PATH)
 \end{verbatim}
   
-Undeclares \texttt{version} of \texttt{product} from the
+Undeclares \code{version} of \code{product} from the
 database. Also removes any declarations of this version from
-\texttt{current.chain}. The flavor is usually determined from the
-environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
+\code{current.chain}. The flavor is usually determined from the
+environment variable \code{\$EUPS\_FLAVOR}, but \code{-f}
 overrides this. The database used is defined by the environment
-variable \texttt{EUPS\_PATH/ups\_db} (or the \texttt{-Z} option).
+variable \code{EUPS\_PATH/ups\_db} (or the \code{-Z} option).
 
 %------------------------------------------------------------------------------
 
-\item \texttt{setup}
+\item \code{setup}
 \begin{verbatim}
 Usage:
    setup [options] [product [version]]
@@ -422,26 +421,26 @@ Options:
         -Z, --database  Use this products directory (default: $EUPS_PATH)
 \end{verbatim}
 
-This is the workhorse routine. It sets up \texttt{version} of \texttt{product}.
+This is the workhorse routine. It sets up \code{version} of \code{product}.
 
 \textbf{Important}: Since the commands to set environment variables differ across shells,
-it is essential that \texttt{\$SHELL} reflects the current shell.
+it is essential that \code{\$SHELL} reflects the current shell.
 
-Options \texttt{--current} and \texttt{--setup} are only relevant with \texttt{--list}.
+Options \code{--current} and \code{--setup} are only relevant with \code{--list}.
 
 (N.b. setup is really an alias or shell function that runs the command\hfil\break
-\texttt{source `eups\_setup [options] "setup" product [version]`}\hfil\break
-\texttt{eups\_setup} writes a shell script that is then sourced into the
+\code{source `eups\_setup [options] "setup" product [version]`}\hfil\break
+\code{eups\_setup} writes a shell script that is then sourced into the
 current shell.
 )
 
-With the \texttt{--list} option, \texttt{setup} can be used to list the available
-products; for example \texttt{setup --list --current} will list all products that
+With the \code{--list} option, \code{setup} can be used to list the available
+products; for example \code{setup --list --current} will list all products that
 are declared current.
 
 %------------------------------------------------------------------------------
 
-\item \texttt{unsetup}
+\item \code{unsetup}
 \begin{verbatim}
 Usage:
    unsetup [options] product
@@ -449,9 +448,9 @@ Options:
 (same as setup)
 \end{verbatim}
   
-All the notes under \texttt{setup} apply to
-\texttt{unsetup}. Unsetting up a product relies on the environment
-variable \texttt{\$SETUP\_$<$product$>$}, so it fails if the variable
+All the notes under \code{setup} apply to
+\code{unsetup}. Unsetting up a product relies on the environment
+variable \code{\$SETUP\_$<$product$>$}, so it fails if the variable
 isn't set.
 
 \end{itemize}
@@ -461,34 +460,34 @@ isn't set.
 Required variables -
 
 \begin{itemize}
-  \item \texttt{SHELL}
+  \item \code{SHELL}
     This must be set to the shell that you're running. This is
     generally set correctly for you, unless you run a shell script, or
     change your shell.
 
-  \item \texttt{EUPS\_DIR}
+  \item \code{EUPS\_DIR}
     Where \eups{} is installed.
 
-  \item \texttt{EUPS\_PATH}
+  \item \code{EUPS\_PATH}
     The root directory under which all products are installed.
     \footnote{
-      Despite the name, \texttt{\$EUPS\_PATH} (currently) only allows you to specify a
+      Despite the name, \code{\$EUPS\_PATH} (currently) only allows you to specify a
       single directory rather than a :-separated list.  We intend to fix this in a future
       release}
-    The UPS database is \texttt{EUPS\_PATH/ups\_db}
+    The UPS database is \code{EUPS\_PATH/ups\_db}
 \end{itemize}
 
 Optional Variables -
 
 \begin{itemize}
-  \item \texttt{EUPS\_FLAVOR}
+  \item \code{EUPS\_FLAVOR}
     Set to the default flavor.
 
-  \item \texttt{EUPS\_DEBUG}
-    This sets the verbosity; equal to the difference beteween the number of \texttt{-v}s
-    and \texttt{-q}s.
+  \item \code{EUPS\_DEBUG}
+    This sets the verbosity; equal to the difference between the number of \code{-v}s
+    and \code{-q}s.
 
-    If you are confused by some error, or simply nosy, try adding a \texttt{-v}.
+    If you are confused by some error, or simply nosy, try adding a \code{-v}.
 \end{itemize}
 
 \subsection{The Database}
@@ -496,7 +495,7 @@ Optional Variables -
 \subsubsection{\eups{} Files}
 
 This section briefly describes the structure of the UPS database. The UPS database
-consists of a directory \texttt{\$EUPS\_PATH/ups\_db}, with a subdirectory for each declared product.
+consists of a directory \code{\$EUPS\_PATH/ups\_db}, with a subdirectory for each declared product.
 Each of these product directories contain a series of product definitions, specified
 by three types of files:
 
@@ -511,13 +510,13 @@ by three types of files:
   \item Version files
 
     There is one of these for every declared version of the product,
-    named \texttt{<version>.version}. The file specifies basic information
+    named \file{<version>.version}. The file specifies basic information
     about the version of the product, including where it is installed.
 
   \item Table files
 
     These specify the dependencies of the product. The default name
-    for these is \texttt{<version>.table} although a specific name can be specified in the
+    for these is \file{<version>.table} although a specific name can be specified in the
     version file.
 
     Table files use a series of commands to specify the dependencies. These are
@@ -533,42 +532,42 @@ The following table commands are supported by \eups{}: ($<$NAME$>$ either specif
 alias or an environment variable - clear from the context.)
 
 \begin{itemize}
-   \item \texttt{addAlias($<$NAME$>$,$<$Value$>$)}
+   \item \code{addAlias($<$NAME$>$,$<$Value$>$)}
      Defines a function or an alias.
     
-   \item \texttt{envAppend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
+   \item \code{envAppend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
      Appends $<$Value$>$ to $<$NAME$>$. The default delimiter is `:'.
      
-   \item \texttt{envPrepend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
+   \item \code{envPrepend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
      Similar to envAppend
      
-   \item \texttt{envSet($<$NAME$>$,$<$Value$>$)}
+   \item \code{envSet($<$NAME$>$,$<$Value$>$)}
      Set $<$NAME$>$ to $<$Value$>$
      
-   \item \texttt{setupRequired($<$args$>$)}
+   \item \code{setupRequired($<$args$>$)}
      Run setup with arguments args. Fail if unable to setup.
      
-   \item \texttt{setupOptional($<$args$>$)}
+   \item \code{setupOptional($<$args$>$)}
      Same as setupRequired except that it does not fail if unable to setup.
 \end{itemize}
 
-There are also \texttt{envRemove} and \texttt{envUnset()} commands, which
-are the inverse of \texttt{env\{Ap,Pre\}pend} and \texttt{envSet()}; I have
+There are also \code{envRemove} and \code{envUnset()} commands, which
+are the inverse of \code{env\{Ap,Pre\}pend} and \code{envSet()}; I have
 never used either.     
 
 \subsubsection{Obselete table commands}
 
 \begin{itemize}
-   \item \texttt{pathAppend}, \texttt{pathPrepend}, \texttt{pathRemove}, \texttt{pathSet}
-     Aliases for the \texttt{env} commands.
+   \item \code{pathAppend}, \code{pathPrepend}, \code{pathRemove}, \code{pathSet}
+     Aliases for the \code{env} commands.
      
-   \item \texttt{prodDir()}
-     Sets \texttt{$<$PRODUCT$>$\_DIR} to the directory where the product is installed;
-     this directive is ignored as \texttt{$<$PRODUCT$>$\_DIR} is automatically set for you.
+   \item \code{prodDir()}
+     Sets \code{$<$PRODUCT$>$\_DIR} to the directory where the product is installed;
+     this directive is ignored as \code{$<$PRODUCT$>$\_DIR} is automatically set for you.
      
-   \item \texttt{setupEnv()}
-     Sets \texttt{SETUP\_$<$PRODUCT$>$} so that product can be unsetup.
-     this directive is ignored as \texttt{$<$PRODUCT$>$\_DIR} is automatically set for you.
+   \item \code{setupEnv()}
+     Sets \code{SETUP\_$<$PRODUCT$>$} so that product can be unsetup.
+     this directive is ignored as \code{$<$PRODUCT$>$\_DIR} is automatically set for you.
 \end{itemize}
         
 \subsubsection{Variables}
@@ -578,24 +577,24 @@ variables can be used as \${$<$ENV\_VARIABLE$>$}. In addition, the following spe
 variables are defined;
 
 \begin{itemize}
-  \item \texttt{\${PRODUCTS}}
+  \item \code{\${PRODUCTS}}
     The database
     
-  \item \texttt{\${PRODUCT\_DIR}}
+  \item \code{\${PRODUCT\_DIR}}
     Where the product is installed.
     
-  \item \texttt{\${PRODUCT\_FLAVOR}}
+  \item \code{\${PRODUCT\_FLAVOR}}
     The product flavor.
     
-  \item \texttt{\${PRODUCT\_NAME}}
+  \item \code{\${PRODUCT\_NAME}}
     The product name
     
-  \item \texttt{\${PRODUCT\_VERSION}}
+  \item \code{\${PRODUCT\_VERSION}}
     The product version
     
-  \item \texttt{\${UPS\_DIR}}
+  \item \code{\${UPS\_DIR}}
     The ups directory of the product (distinct from the directory
-    in \texttt{\$PRODUCTS} - this is often where the table file will be stored).
+    in \code{\$PRODUCTS} - this is often where the table file will be stored).
 \end{itemize}
 
 \subsection{\eups{} autoconf commands}
@@ -604,17 +603,17 @@ variables are defined;
 \XXX{Finish me}
 
 \begin{itemize}
-  \item{\texttt{AC\_INIT(product, version, ...}}
-    This is a standard autoconf line, but with an invalid version name (\texttt{X.Y}).
+  \item{\code{AC\_INIT(product, version, ...}}
+    This is a standard autoconf line, but with an invalid version name (\code{X.Y}).
 
-  \item{\texttt{AC\_DEFINE\_ROOT(version [, flavor])}}
-    Define the \texttt{configure} options
+  \item{\code{AC\_DEFINE\_ROOT(version [, flavor])}}
+    Define the \code{configure} options
     \begin{itemize}
-      \item{\texttt{--with-ups=dir}}
-        Specify the value of \texttt{EUPS\_PATH}
-        (default: \texttt{\$EUPS\_PATH} if set, or \texttt{\$prefix/share}).
-      \item{\texttt{--with-flavor=XXX}}
-        Set the value of \texttt{EUPS\_FLAVOR}
+      \item{\code{--with-ups=dir}}
+        Specify the value of \code{EUPS\_PATH}
+        (default: \code{\$EUPS\_PATH} if set, or \code{\$prefix/share}).
+      \item{\code{--with-flavor=XXX}}
+        Set the value of \code{EUPS\_FLAVOR}
         (default: flavor, or, failing that, the value of uname).
     \end{itemize}
 \end{itemize}
@@ -630,7 +629,7 @@ RANLIB = ranlib
 \end{verbatim}
   
    \item{etc/installdefs}
-     Supports the \texttt{make install} and \texttt{make declare} targets.
+     Supports the \code{make install} and \code{make declare} targets.
   
    \item{etc/makedefs}
      Supports building and linking products (GSL in this case). After
@@ -648,15 +647,15 @@ GSL_LIBS = -L$(GSL_DIR)/lib -lgsl -lgslcblas -lm
 ./configure && make install
 \end{verbatim}
 
-You can say \texttt{make show} to show you where things are
+You can say \code{make show} to show you where things are
 going to be installed:
 \begin{verbatim}
 $ make show
 You will be installing ups in $EUPS_DIR  = /usr/local/share/eups
 Ups will look for products in $EUPS_PATH = /usr/local/share
 \end{verbatim} %$
-If you have defined \texttt{\$EUPS\_PATH}, it'll be used as the default
-value instead of \texttt{/usr/local/share}.
+If you have defined \code{\$EUPS\_PATH}, it'll be used as the default
+value instead of \code{/usr/local/share}.
 
 You can control where files are put with the following configure options:
 \begin{verbatim}
@@ -666,9 +665,9 @@ You can control where files are put with the following configure options:
 --with-ups_db=DIR       Use DIR as the UPS database directory
 --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 \end{verbatim}
-The difference between \texttt{--prefix} and \texttt{--with-ups}
-is that the former appends \texttt{/share} to the specified directory, to
-be consistent with the standard default value, \texttt{/usr/local}.
+The difference between \code{--prefix} and \code{--with-ups}
+is that the former appends \code{/share} to the specified directory, to
+be consistent with the standard default value, \code{/usr/local}.
   
 As an alternative to
 \begin{verbatim}
@@ -680,18 +679,18 @@ you can say
 \begin{verbatim}
 make install prefix=/foo/bar
 \end{verbatim}
-\texttt{EUPS\_PATH=...} also works as an alternative to \texttt{--with-ups=...};
+\code{EUPS\_PATH=...} also works as an alternative to \code{--with-ups=...};
 note upper case.
 
 \subsection{Obselete features}
 
 \begin{itemize}
-  \item The environment variable \texttt{\$EUPS\_PATH} used to be known as \texttt{\$PROD\_DIR\_PREFIX}.
+  \item The environment variable \code{\$EUPS\_PATH} used to be known as \code{\$PROD\_DIR\_PREFIX}.
 
-  \item The \eups{} database used to be given by the environment variable \texttt{\$PRODUCTS}
-    with a default value of \texttt{\$PROD\_DIR\_PREFIX/ups\_db}.
+  \item The \eups{} database used to be given by the environment variable \code{\$PRODUCTS}
+    with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}.
 
-  \item There used to be an option \texttt{-z} to set the value of \texttt{\$PRODUCTS}.
+  \item There used to be an option \code{-z} to set the value of \code{\$PRODUCTS}.
 \end{itemize}
 
 
