@@ -37,7 +37,7 @@
 export SHELL=/bin/bash
 
 # Demand that both a product and version name are on the command line,
-# and that the version name either be "cvs" or begin with the character "c".
+# and that the version name either be "cvs" or begin with the character "v".
 if [ $# != 2 ] ; then
   echo
   echo "ABORT: Need to specify product and version on command line, i.e."
@@ -69,9 +69,9 @@ fi
 DECLAREFLAVOR=$EUPS_FLAVOR
 echo Setting from environment variable EUPS_FLAVOR=$EUPS_FLAVOR
 
-if [ -z $PROD_DIR_PREFIX ]; then
+if [ -z $EUPS_PATH ]; then
     echo
-    echo "ABORT: PROD_DIR_PREFIX not set."
+    echo "ABORT: EUPS_PATH not set."
     exit
 fi
 
@@ -89,21 +89,21 @@ fi
 # Make sure this product+version isn't already declared, either in the
 # current flavor or in the NULL flavor.
 
-if [ -e $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS ] ; then
+if [ -e $EUPS_PATH/$DECLAREFLAVOR/$PRODNAME/$PRODVERS ] ; then
    echo
-   echo "This installation already appears to exist in " $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
-   eups_make_table $PRODNAME $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
+   echo "This installation already appears to exist in " $EUPS_PATH/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
+   eups_make_table $PRODNAME $EUPS_PATH/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
    echo "Now declaring this version current."
    eups_declare -f $DECLAREFLAVOR \
-    -r $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+    -r $EUPS_PATH/$DECLAREFLAVOR/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
    exit
-elif [ -e $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS ] ; then
+elif [ -e $EUPS_PATH/NULL/$PRODNAME/$PRODVERS ] ; then
    echo
-   echo "This installation already appears to exist in " $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS
-   eups_make_table $PRODNAME $PROD_DIR_PREFIX/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
+   echo "This installation already appears to exist in " $EUPS_PATH/NULL/$PRODNAME/$PRODVERS
+   eups_make_table $PRODNAME $EUPS_PATH/$DECLAREFLAVOR/$PRODNAME/$PRODVERS
    echo "Now declaring this version current."
    eups_declare -f $DECLAREFLAVOR \
-    -r $PROD_DIR_PREFIX/NULL/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
+    -r $EUPS_PATH/NULL/$PRODNAME/$PRODVERS -c $PRODNAME $PRODVERS
    exit
 fi
 
@@ -197,7 +197,7 @@ fi
 # Create the top-level directory of the appropriate flavor in which
 # to install this product (if it does not yet exist).
 
-MYSDSS_ROOT=$PROD_DIR_PREFIX/$INSTALLFLAVOR/$PRODNAME
+MYSDSS_ROOT=$EUPS_PATH/$INSTALLFLAVOR/$PRODNAME
 echo "Installing PRODNAME=$PRODNAME PRODVERS=$PRODVERS FLAVOR=$DECLAREFLAVOR".
 echo "Installing in the directory $MYSDSS_ROOT"
 
