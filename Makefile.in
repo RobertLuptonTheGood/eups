@@ -10,26 +10,27 @@ SHELL = /bin/sh
 prefix = @prefix@
 EUPS_PATH = @EUPS_PATH@
 EUPS_DIR = @EUPS_DIR@
+EUPS_DB = $(EUPS_PATH)/ups_db
 #
-export prefix PROD_DIR_PREFIX PRODUCTS EUPS_DIR
+export prefix EUPS_PATH EUPS_DIR
 #
 SUBDIRS = bin doc etc
 
 .PHONY : show install clean
 install : show
-	@if [ "$(PROD_DIR_PREFIX)" = "" ]; then \
-		echo You have not specified PROD_DIR_PREFIX >&2; \
+	@if [ "$(EUPS_PATH)" = "" ]; then \
+		echo You have not specified EUPS_PATH >&2; \
 		exit 1; \
 	fi 
 
-	@ if [ ! -d $(PROD_DIR_PREFIX) ]; then \
-		mkdir -p $(PROD_DIR_PREFIX); \
+	@ if [ ! -d $(EUPS_PATH) ]; then \
+		mkdir -p $(EUPS_PATH); \
 	fi
 
-	@ if [ -d $(PRODUCTS) ]; then \
-		echo "UPS database $(PRODUCTS) already exists"; \
+	@ if [ -d $(UPS_DB) ]; then \
+		echo "UPS database $(UPS_DB) already exists"; \
 	else \
-		mkdir -p $(PRODUCTS); \
+		mkdir -p $(UPS_DB); \
 	fi
 
 	@ $(RM) -r $(EUPS_DIR)
@@ -42,6 +43,7 @@ install : show
 show :
 	@echo "You will be installing ups in \$$EUPS_DIR  = $(EUPS_DIR)"
 	@echo "Ups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
+	@echo "Your EUPS database will be                 $(EUPS_DB)"
 #
 # Rebuild configure; almost no-one should need to do this
 #
