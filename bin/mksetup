@@ -35,11 +35,6 @@ die "$syntax" if ($eupsdir eq "");
 die "$syntax" if ($prefix eq "");
 die "$syntax" if ($db eq "");
 
-print "Installing EUPS:\n";
-print "EUPS directory:      $eupsdir\n";
-print "EUPS database:       $db\n";
-print "Products location:   $prefix\n";
-
 $bindir = catfile('$EUPS_DIR',"bin");
 $binname = catfile('$EUPS_DIR',"bin","eups_setup");
 
