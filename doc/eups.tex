@@ -453,6 +453,20 @@ All the notes under \code{setup} apply to
 variable \code{\$SETUP\_$<$product$>$}, so it fails if the variable
 isn't set.
 
+\item \code{eups\_pkg-config}
+\begin{verbatim}
+Usage:
+   eups_pkg-config product [flags]
+Flags:
+(same as pkg-config)
+\end{verbatim}
+
+The same as the standard \code{pkg-config} command, except that it
+searches \code{\$PRODUCT\_DIR/etc} for the \code{.pc} file.  It also
+works around the problem that quoted variables \code{\$\$\{...\}}
+in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\footnote{
+  Yes; I have filed a bug report.}
+
 \end{itemize}
 
 \subsection{Environment Variables}
