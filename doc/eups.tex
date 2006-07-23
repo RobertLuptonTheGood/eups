@@ -655,15 +655,12 @@ You will be installing ups in $EUPS_DIR  = /usr/local/share/eups
 Ups will look for products in $EUPS_PATH = /usr/local/share
 Your EUPS database will be                 /usr/local/share/ups_db
 \end{verbatim} %$
-If you have defined \code{\$EUPS\_PATH}, it'll be used as the default
-value instead of \code{/usr/local/share}.
 
 You can control where files are put with the following configure options:
 \begin{verbatim}
 --prefix=PREFIX         install architecture-independent files in PREFIX
                         [default: /usr/local]
 --with-ups=DIR          Use DIR as root for installed products
---with-ups_db=DIR       Use DIR as the UPS database directory
 --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 \end{verbatim}
 The difference between \code{--prefix} and \code{--with-ups}
