@@ -175,7 +175,7 @@ INCS = -I$(ASTROTOOLS_DIR)/include \
 LIBS =   -L$(ASTROTOOLS_DIR)/lib -lastrom \
          -L$(PHOTO_DIR)/lib -lphoto -lmeasureObj \
          ...
-\end{verbatim}
+\end{verbatim} %$
 
 The next section discusses a strategy for managing include files
 and libraries using configure and make.
@@ -357,21 +357,17 @@ Options:
         -V, --version   Print version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products prefix
-                        (default: $PROD_DIR_PREFIX)
-        -z              Use this products database
-                        (default: $PRODUCTS)
+                        (default: $EUPS_PATH)
 \end{verbatim}
 
-Declares \texttt{version} of \texttt{product} into the database defined by \texttt{\$PRODUCTS}.
+Declares \texttt{version} of \texttt{product} into the database given by \texttt{\$EUPS\_PATH/ups\_db}.
 The product root directory is where the product has been installed, and can either
-be an absolute pathname or specified relative to \texttt{\$PROD\_DIR\_PREFIX}.
-\textbf{N.b. \texttt{PRODUCTS} is going to be retired, and  \texttt{\$PROD\_DIR\_PREFIX} is
-going to be renamed  \texttt{\$EUPS\_PATH}.}
+be an absolute pathname or specified relative to \texttt{\$EUPS\_PATH}.
 
 The flavor is usually determined from the
 environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
 overrides this. The database used is defined by the environment
-variable \texttt{PROD\_DIR\_PREFIX/ups\_db} (or the \texttt{-z} or \texttt{-Z} option).
+variable \texttt{EUPS\_PATH/ups\_db} (or the \texttt{-Z} option).
 The \texttt{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
@@ -396,8 +392,7 @@ Options:
         -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
         -V, --version   Print version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
-        -Z, --database  Use this products prefix (default: $PROD_DIR_PREFIX)
-        -z              Use this products database (default: $PRODUCTS)
+        -Z, --database  Use this products directory (default: $EUPS_PATH)
 \end{verbatim}
   
 Undeclares \texttt{version} of \texttt{product} from the
@@ -405,7 +400,7 @@ database. Also removes any declarations of this version from
 \texttt{current.chain}. The flavor is usually determined from the
 environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
 overrides this. The database used is defined by the environment
-variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
+variable \texttt{EUPS\_PATH/ups\_db} (or the \texttt{-Z} option).
 
 %------------------------------------------------------------------------------
 
@@ -424,8 +419,7 @@ Options:
         -s, --setup     Show which version is setup
         -V, --version   Print version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
-        -Z, --database  Use this products prefix (default: $PROD_DIR_PREFIX)
-        -z              Use this products database (default: $PRODUCTS)
+        -Z, --database  Use this products directory (default: $EUPS_PATH)
 \end{verbatim}
 
 This is the workhorse routine. It sets up \texttt{version} of \texttt{product}.
@@ -468,17 +462,20 @@ Required variables -
 
 \begin{itemize}
   \item \texttt{SHELL}
-    This must be set to the shell running. This is true in general, unless
-    you run a shell script, or change your shell.
+    This must be set to the shell that you're running. This is
+    generally set correctly for you, unless you run a shell script, or
+    change your shell.
 
   \item \texttt{EUPS\_DIR}
-    Where EUPS\_DIR is installed.
+    Where \eups{} is installed.
 
-  \item \texttt{PROD\_DIR\_PREFIX}
+  \item \texttt{EUPS\_PATH}
     The root directory under which all products are installed.
-
-  \item \texttt{PRODUCTS}
-    The path to the UPS database.
+    \footnote{
+      Despite the name, \texttt{\$EUPS\_PATH} (currently) only allows you to specify a
+      single directory rather than a :-separated list.  We intend to fix this in a future
+      release}
+    The UPS database is \texttt{EUPS\_PATH/ups\_db}
 \end{itemize}
 
 Optional Variables -
@@ -499,7 +496,7 @@ Optional Variables -
 \subsubsection{\eups{} Files}
 
 This section briefly describes the structure of the UPS database. The UPS database
-consists of a directory \$PRODUCTS, with a subdirectory for each declared product.
+consists of a directory \texttt{\$EUPS\_PATH/ups\_db}, with a subdirectory for each declared product.
 Each of these product directories contain a series of product definitions, specified
 by three types of files:
 
@@ -526,7 +523,7 @@ by three types of files:
     Table files use a series of commands to specify the dependencies. These are
     discussed in the next subsection.
 
-    NOTE: See Section 5 for a note on the search algorithm that EUPS uses for 
+    NOTE: See Section 5 for a note on the search algorithm that \eups{} uses for 
     locating table files.
 \end{itemize}
 
@@ -614,9 +611,8 @@ variables are defined;
     Define the \texttt{configure} options
     \begin{itemize}
       \item{\texttt{--with-ups=dir}}
-        Specify the value of \texttt{PROD\_DIR\_PREFIX}
-        (default: \texttt{\$prefix/share}).
-        \XXX{This is scheduled to be renamed to \texttt{UPS\_ROOT}}
+        Specify the value of \texttt{EUPS\_PATH}
+        (default: \texttt{\$EUPS\_PATH} if set, or \texttt{\$prefix/share}).
       \item{\texttt{--with-flavor=XXX}}
         Set the value of \texttt{EUPS\_FLAVOR}
         (default: flavor, or, failing that, the value of uname).
@@ -656,10 +652,11 @@ You can say \texttt{make show} to show you where things are
 going to be installed:
 \begin{verbatim}
 $ make show
-You will be installing ups in $EUPS_DIR        = /usr/local/share/eups
-Ups will look for products in $PROD_DIR_PREFIX = /usr/local/share
-The products database will be $PRODUCTS        = /usr/local/share/ups_db
-\end{verbatim}
+You will be installing ups in $EUPS_DIR  = /usr/local/share/eups
+Ups will look for products in $EUPS_PATH = /usr/local/share
+\end{verbatim} %$
+If you have defined \texttt{\$EUPS\_PATH}, it'll be used as the default
+value instead of \texttt{/usr/local/share}.
 
 You can control where files are put with the following configure options:
 \begin{verbatim}
@@ -683,6 +680,19 @@ you can say
 \begin{verbatim}
 make install prefix=/foo/bar
 \end{verbatim}
-\texttt{PROD\_DIR\_PREFIX=...} also works as an alternative to \texttt{--with-ups=...};
+\texttt{EUPS\_PATH=...} also works as an alternative to \texttt{--with-ups=...};
 note upper case.
+
+\subsection{Obselete features}
+
+\begin{itemize}
+  \item The environment variable \texttt{\$EUPS\_PATH} used to be known as \texttt{\$PROD\_DIR\_PREFIX}.
+
+  \item The \eups{} database used to be given by the environment variable \texttt{\$PRODUCTS}
+    with a default value of \texttt{\$PROD\_DIR\_PREFIX/ups\_db}.
+
+  \item There used to be an option \texttt{-z} to set the value of \texttt{\$PRODUCTS}.
+\end{itemize}
+
+
 \end{document}

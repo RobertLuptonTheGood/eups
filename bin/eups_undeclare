@@ -74,15 +74,14 @@ if ($options eq "-h") {
 #
 # Process those arguments
 #
-# Is the product database specified in $PRODUCTS
+# Is the product database to be found in $EUPS_PATH
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
 
 $db = eups_find_products();
 if (!$db) {
-   die "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
+   die "ERROR: No database specified, Use -z or set EUPS_PATH\n";
 }
-$ENV{"PRODUCTS"} = $db;
 
 if (defined($$options{-f})) {
    $flavor = $$options{-f}

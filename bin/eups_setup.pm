@@ -312,7 +312,7 @@ setupenv => \&envSet,
     $qaz = $prod;
     $qaz =~ tr/[a-z]/[A-Z]/;
     $arg[0] = "SETUP_$qaz";
-    $arg[1] = "$prod $vers -f $flavor -Z $ENV{PROD_DIR_PREFIX}";
+    $arg[1] = "$prod $vers -f $flavor -Z $ENV{EUPS_PATH}";
     if ($fwd == 0) {
 	$switchback{$comm}->(@arg);
     } else {
@@ -409,15 +409,15 @@ sub eups_unsetup {
    local $indent = $indent + 1;
    
    #Some more environment variables
-   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   $prodprefix = $ENV{"EUPS_PATH"};
    if ($prodprefix eq "") {		# 
-      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      print STDERR  "ERROR: EUPS_PATH not specified\n";
       return -1;			# 
 			  }
    
    # Need to extract the parameters carefully
    local ($args,$outfile,$debug,$quiet) = @_;
-   $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
+   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    my($prod) = $args[0];
    if ($prod eq "") {
@@ -478,9 +478,9 @@ sub eups_setup {
    local $indent = $indent + 1;
    
    #Some more environment variables
-   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   $prodprefix = $ENV{"EUPS_PATH"};
    if ($prodprefix eq "") {
-      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      print STDERR  "ERROR: EUPS_PATH not specified\n";
       return -1;
    }
    
@@ -488,14 +488,14 @@ sub eups_setup {
    local ($args,$outfile,$debug,$quiet,$optional) = @_;
    
    my $qaz = $args;
-   $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
+   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    $prod = $args[0];
    # Extract version info if any
    $vers = $args[1]; 
    if ($prod eq "") {
       print STDERR  "ERROR: Product not specified\n";
-      print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-z <database>]\n";
+      print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-Z <path>]\n";
       return -1;
    }
    
@@ -521,20 +521,13 @@ sub eups_setup {
    }
    $ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
 
-   #Determine database - or get it from environment PRODUCTS
-   #We want this to propagate to subproducts
+   #Determine database 
    my $db = "";
    my $db_old = "";
-   ($db) = $qaz =~ m/\-z  *([^ ]+)/;
-   if ($db eq "") {
-      $db = eups_find_products();
-   } else {
-      $db_old = eups_find_products();
-      $ENV{"PRODUCTS"} = $db;
-   }
+   $db = eups_find_products();
    
    if ($db eq "") {
-      print STDERR "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
+      print STDERR "ERROR: No database specified, Use -Z or set EUPS_PATH\n";
       return -1;
    }
 
@@ -638,9 +631,9 @@ sub eups_find_prod_dir {
    
    $fn = catfile($db,$prod,"$vers.version");
 
-   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   $prodprefix = $ENV{"EUPS_PATH"};
    if ($prodprefix eq "") {
-      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      print STDERR  "ERROR: EUPS_PATH not specified\n";
       return -1;
    }
 
@@ -659,9 +652,9 @@ sub eups_list {
    use File::Basename;
 
 #Some more environment variables
-   $prodprefix = $ENV{"PROD_DIR_PREFIX"};
+   $prodprefix = $ENV{"EUPS_PATH"};
    if ($prodprefix eq "") {
-      print STDERR  "ERROR: PROD_DIR_PREFIX not specified\n";
+      print STDERR  "ERROR: EUPS_PATH not specified\n";
       return -1;
    }
 
@@ -669,7 +662,7 @@ sub eups_list {
    local ($args,$debug,$quiet,$current, $setup) = @_;
 
    my $qaz = $args;
-   $args =~ s/\-[a-zA-Z]  *[^ ]+//g;
+   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    $prod = $args[0];
 
@@ -683,20 +676,13 @@ sub eups_list {
       return -1;			# 
    }					# 
 
-#Determine database - or get it from environment PRODUCTS
-#We want this to propagate to subproducts
+#Determine database
    my $db = "";
    my $db_old = "";
-   ($db) = $qaz =~ m/\-z  *([^ ]+)/;
-   if ($db eq "") {
-      $db = eups_find_products();
-   } else {
-      $db_old = eups_find_products();
-      $ENV{"PRODUCTS"} = $db;
-   }
+   $db = eups_find_products();
 
    if ($db eq "") {
-      warn "ERROR: No database specified, Use -z, -Z, or set PROD_DIR_PREFIX or PRODUCTS\n";
+      warn "ERROR: No database specified, Use -Z or set EUPS_PATH\n";
       return;
    }
    #
@@ -892,13 +878,11 @@ sub read_version_file
 
 ###############################################################################
 #
-# Try to find the PRODUCTS directory
+# Try to find the eups database directory
 #
 sub eups_find_products {
-   if (defined($ENV{"PRODUCTS"})) {
-      return $ENV{"PRODUCTS"};
-   } elsif (defined($ENV{PROD_DIR_PREFIX}) && -d $ENV{PROD_DIR_PREFIX} . "/ups_db") {
-      return $ENV{PROD_DIR_PREFIX} . "/ups_db";
+   if (defined($ENV{EUPS_PATH}) && -d $ENV{EUPS_PATH} . "/ups_db") {
+      return $ENV{EUPS_PATH} . "/ups_db";
    } else {
       return "";
    }
@@ -968,10 +952,7 @@ sub eups_parse_argv
 	    warn "Version: $version\n";
 	    return -1;
 	 } elsif ($opt eq "-Z") {
-	    $ENV{"PROD_DIR_PREFIX"} = $val;
-	    if (!defined($ENV{PRODUCTS})) {
-	       $ENV{"PRODUCTS"} = $ENV{"PROD_DIR_PREFIX"} . "/ups_db";
-	    }
+	    $ENV{"EUPS_PATH"} = $val;
 	 } else {
 	    if ($$opts{$opt}) {	# push argument
 	       push(@$args, $opt);
@@ -1028,8 +1009,7 @@ sub eups_show_options
        -s => "Show which version is setup",
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print version number and exit",
-       -z => "Use this products database (default: \$PRODUCTS)",
-       -Z => "Use this products prefix (default: \$PROD_DIR_PREFIX)",
+       -Z => "Use this products path (default: \$EUPS_PATH)",
     };
 
    foreach $key (keys %longopts) { # inverse of longopts table

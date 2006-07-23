@@ -25,14 +25,11 @@
 
 use File::Spec::Functions;
 
-$syntax = "install <eups dir> <prod_dir_prefix> [<product database>]\n";
+$syntax = "install <eups dir> <prod_dir_prefix>\n";
 
 $eupsdir = $ARGV[0];
 $prefix = $ARGV[1];
-$db = $ARGV[2];
-if ($db eq "") {
-   $db = $prefix . "/ups_db";
-}
+$db = $prefix . "/ups_db";
 
 die "$syntax" if ($eupsdir eq "");
 die "$syntax" if ($prefix eq "");
@@ -54,7 +51,9 @@ if ("\$EUPS_DIR" != "" ) then
 endif
 
 setenv EUPS_DIR $eupsdir
-setenv PROD_DIR_PREFIX $prefix
+setenv EUPS_PATH $prefix
+# Deprecated variables
+unsetenv PROD_DIR_PREFIX
 unsetenv PRODUCTS
 
 setenv PATH \${PATH}:$bindir
@@ -72,7 +71,9 @@ if [ "\$EUPS_DIR" != "" ]; then
 fi
 
 export EUPS_DIR=$eupsdir
-export PROD_DIR_PREFIX=$prefix
+export EUPS_PATH=$prefix
+# Deprecated variables
+unset PROD_DIR_PREFIX
 unset PRODUCTS
 
 export PATH="\$PATH:$bindir"

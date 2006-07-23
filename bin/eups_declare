@@ -93,7 +93,7 @@ $debug = 0 if ($debug eq "");
 # Process those arguments
 #
 $db = eups_find_products();
-die "ERROR: PRODUCTS not defined\n" if ($db eq "");
+die "ERROR: products database not defined\n" if ($db eq "");
 
 if (defined($$options{-f})) {
    $flavor = $$options{-f}
@@ -157,13 +157,13 @@ if ($tablefile ne "none" && ! -e $tablefile) {
    }
 }
 #
-# Make path relative to PROD_DIR_PREFIX
+# Make path relative to EUPS_PATH
 #
-$proddirprefix = "$ENV{'PROD_DIR_PREFIX'}";
+$proddirprefix = "$ENV{'EUPS_PATH'}";
 if ($prodroot =~ m/$proddirprefix/) {
    $prodroot =~ s|$proddirprefix/*||;
 } else {
-   print STDERR "WARNING : Not making PROD_DIR relative to PROD_DIR_PREFIX\n";
+   print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
 }
 
 # Check to see if an entry exists in the database

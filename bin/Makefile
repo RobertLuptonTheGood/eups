@@ -8,7 +8,7 @@ SHELL = /bin/sh
 all :;
 
 install :
-	@ ./mksetup $(EUPS_DIR) $(PROD_DIR_PREFIX) $(PRODUCTS)
+	@ ./mksetup $(EUPS_DIR) $(PROD_DIR_PREFIX)
 	cp Makefile mksetup {evil,eups_,setups}*[a-z] $(EUPS_DIR)/bin
 
 clean :
