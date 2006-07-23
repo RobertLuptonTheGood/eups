@@ -156,7 +156,7 @@ sub envRemove {
     $delim = ":" if ($delim eq "");
     my $sdelim = fix_special($delim);
     $curval = $ENV{$var};
-    $curval =~ s/$sval//;
+    $curval =~ s/$sval//g;
     $curval =~ s/$sdelim$sdelim/$sdelim/;
     $curval =~ s/^$sdelim//;
     $curval =~ s/$sdelim$//;
