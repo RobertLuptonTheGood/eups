@@ -162,6 +162,8 @@ run this version of \code{photo} by examining the \eups{} database.
 
 \section{How do I Actually Use this System to Manage Code?}
 
+\textbf{RHL is working on this section, and it's getting simpler}
+
 The \code{setup} command set a number of environment variables,
 such as \code{PHOTO\_DIR} and \code{ASTROTOOLS\_DIR}. These can
 be used in Makefiles, e.g.
@@ -194,7 +196,7 @@ AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
 UPS\_DEFINE\_ROOT(\${Name}: v2\_4 \$)
 AC\_PROG\_CC(cc)
 UPS\_WITH\_CONFIGURE([gsl])
-UPS\_WITHOUT\_CONFIGURE([fftw], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
+UPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
 AC\_CONFIG\_FILES([etc/Makefile.global])
 AC\_OUTPUT
 \end{quote}
@@ -203,12 +205,38 @@ Once you've generated a configure file (i.e. typed \texttt{autoconf})%
 \footnote{You'll check the resulting configure file in, so users won't
   need to have autoconf on their machines}
 you can say\hfil\break
-\texttt{setup gsl}\hfil\break
+\texttt{cd \$HOME/myProduct}\hfil\break
+\texttt{setup gsl; setup fftw3}\hfil\break
 \texttt{./configure --with-ups=/u/act/products --with-flavor=Linux64}\hfil\break
 \texttt{make}\hfil\break
 \texttt{make install}\hfil\break
 \texttt{make declare}\hfil\break
 \texttt{setup myProduct v2\_4}\hfil\break
+
+You might wonder how you were supposed to know that you had to type
+\texttt{setup gsl} and \texttt{setup fftw3} in order to build
+\texttt{myProduct}. The answer, is: ``It depends''.  If you're
+\texttt{myProduct}'s loving author, you knew that you needed
+\texttt{gsl} as you included e.g. \texttt{gsl/gsl\_rng.h} in your
+source. If you're not the author, then \texttt{myProduct} presumably
+includes a properly written table file (probably called
+\texttt{myProduct/ups/myProduct.table}) which knows about
+\texttt{gsl} and \texttt{fftw3}:
+\begin{verbatim}
+setupRequired("fftw3")
+setupRequired("gsl")
+\end{verbatim}
+in this case what you \textit{really} typed was:\hfil\break
+\texttt{setup --root \$HOME/myProduct myProduct}\hfil\break
+which setup \texttt{gsl} and \texttt{fftw3} for you:
+\begin{verbatim}
+Setting up:      fftw3               Flavor: Linux      Version: v3_0_1
+Setting up:      gsl                 Flavor: Linux      Version: v1_8
+\end{verbatim}
+
+The \texttt{make declare} command told \eups{} about your newly built
+product; the \texttt{setup myProduct v2\_4} command told the system
+that you wanted to use it.
 
 How did your \texttt{configure.ac} file achieve this magic?
 
@@ -243,11 +271,11 @@ How did your \texttt{configure.ac} file achieve this magic?
     Sec. \ref{autoconfReference}).  If all goes well the macro macro sets (in the
     case of \texttt{gsl}) the variables \texttt{GSL\_CFLAGS} and \texttt{GSL\_LIBS}.
 
-  \item\texttt{UPS\_WITHOUT\_CONFIGURE([fftw], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
+  \item\texttt{UPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
 
     This macro is similar to \texttt{UPS\_WITH\_CONFIGURE}, and sets
     \texttt{FFTW\_CFLAGS} and \texttt{FFTW\_LIBS}, armed with knowledge of
-    \eups{} and  \texttt{--with-fftw=DIR}.
+    \eups{} and  \texttt{--with-fftw3=DIR}.
 
     The difference is that this time configure has to probe the system
     to find the include files and libraries.  More specifically, it
@@ -291,7 +319,7 @@ UPS\_WITH\_CONFIGURE([pslib])
 \vspace{5pt}
 UPS\_WITHOUT\_CONFIGURE([cfitsio], [fitsio.h],
                         -lcfitsio, [cfitsio,ffopen])
-UPS\_WITHOUT\_CONFIGURE([fftw],    [fftw3.h],
+UPS\_WITHOUT\_CONFIGURE([fftw3],   [fftw3.h],
                         -lfftw3f,  [fftw3f,fftwf\_plan\_dft\_2d])
 UPS\_WITHOUT\_CONFIGURE([wcslib],  [wcslib/wcslib.h],
                         -lwcs,     [wcs,wcsini])
@@ -337,11 +365,13 @@ Options:
 Declares \texttt{version} of \texttt{product} into the database defined by \texttt{\$PRODUCTS}.
 The product root directory is where the product has been installed, and can either
 be an absolute pathname or specified relative to \texttt{\$PROD\_DIR\_PREFIX}.
+\textbf{N.b. \texttt{PRODUCTS} is going to be retired, and  \texttt{\$PROD\_DIR\_PREFIX} is
+going to be renamed  \texttt{\$EUPS\_PATH}.}
 
 The flavor is usually determined from the
 environment variable \texttt{\$EUPS\_FLAVOR}, but \texttt{-f}
 overrides this. The database used is defined by the environment
-variable \texttt{PRODUCTS} (or the \texttt{-z} or \texttt{-Z} option).
+variable \texttt{PROD\_DIR\_PREFIX/ups\_db} (or the \texttt{-z} or \texttt{-Z} option).
 The \texttt{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
