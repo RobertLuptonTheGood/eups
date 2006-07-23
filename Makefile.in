@@ -8,8 +8,7 @@ SHELL = /bin/sh
 # Set by configure
 #
 prefix = @prefix@
-PROD_DIR_PREFIX = @PROD_DIR_PREFIX@
-PRODUCTS = @PRODUCTS@
+EUPS_PATH = @EUPS_PATH@
 EUPS_DIR = @EUPS_DIR@
 #
 export prefix PROD_DIR_PREFIX PRODUCTS EUPS_DIR
