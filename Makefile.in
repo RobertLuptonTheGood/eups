@@ -27,10 +27,10 @@ install : show
 		mkdir -p $(EUPS_PATH); \
 	fi
 
-	@ if [ -d $(UPS_DB) ]; then \
-		echo "UPS database $(UPS_DB) already exists"; \
+	@ if [ -d $(EUPS_DB) ]; then \
+		echo "EUPS database $(EUPS_DB) already exists"; \
 	else \
-		mkdir -p $(UPS_DB); \
+		mkdir -p $(EUPS_DB); \
 	fi
 
 	@ $(RM) -r $(EUPS_DIR)
