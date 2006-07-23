@@ -40,8 +40,8 @@ install : show
 	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
 	@echo "Remember to source $(EUPS_DIR)/bin/setups.[c]sh"
 show :
-	@echo "You will be installing ups in \$$EUPS_DIR  = $$EUPS_DIR"
-	@echo "Ups will look for products in \$$EUPS_PATH = $$EUPS_PATH"
+	@echo "You will be installing ups in \$$EUPS_DIR  = $(EUPS_DIR)"
+	@echo "Ups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 #
 # Rebuild configure; almost no-one should need to do this
 #
