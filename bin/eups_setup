@@ -153,27 +153,8 @@ if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{-f}))
     goto CLEAN;
 }
 
-# Support PROD_DIR_PREFIX as a synonym for EUPS_PATH
-
-if(defined($ENV{'EUPS_PATH'})) { # new-style environment variables
-   if(defined($ENV{'PRODUCTS'})) {
-      if($debug > 0) {
-	 warn "Variable PRODUCTS is set but will be ignored\n";
-      }
-   }
-   if(defined($ENV{'PROD_DIR_PREFIX'})) {
-      if($debug > 0) {
-	 warn "PROD_DIR_PREFIX is set; ignoring (use EUPS_PATH)\n";
-      }
-   }
-} elsif(defined($ENV{'PROD_DIR_PREFIX'})) {
-   if($debug > 0) {
-      warn "Compatibility mode: setting EUPS_PATH from PROD_DIR_PREFIX\n";
-   }
-   $ENV{'EUPS_PATH'} = $ENV{'PROD_DIR_PREFIX'};
-} else {
-    print STDERR "ERROR: path is not set; use -z or set EUPS_PATH\n";
-    goto CLEAN;   
+if (!defined(check_eups_path())) {
+   goto CLEAN;
 }
 
 #Get the environment variables

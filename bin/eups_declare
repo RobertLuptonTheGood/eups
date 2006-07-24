@@ -43,6 +43,10 @@ if ($ENV{'EUPS_DIR'} eq "") {
 require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
 import eups_setup;
 
+if (!defined(check_eups_path())) {
+   exit(1);
+}
+
 ###############################################################################
 
 sub fix_special {

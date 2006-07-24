@@ -27,7 +27,7 @@ package eups_setup;
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw(eups_list eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options eups_find_prod_dir);
+our @EXPORT = qw(eups_list eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options eups_find_prod_dir check_eups_path);
 our $VERSION = 1.1;
 
 #Subroutines follow
@@ -874,6 +874,37 @@ sub read_version_file
    }
 
    return 0;
+}
+
+###############################################################################
+#
+# Check that EUPS_PATH is set
+#
+sub check_eups_path {
+   # Support PROD_DIR_PREFIX as a synonym for EUPS_PATH
+   
+   if(defined($ENV{'EUPS_PATH'})) { # new-style environment variables
+      if(defined($ENV{'PRODUCTS'})) {
+	 if($debug > 0) {
+	    warn "Variable PRODUCTS is set but will be ignored\n";
+	 }
+      }
+      if(defined($ENV{'PROD_DIR_PREFIX'})) {
+	 if($debug > 0) {
+	    warn "PROD_DIR_PREFIX is set; ignoring (use EUPS_PATH)\n";
+	 }
+      }
+   } elsif(defined($ENV{'PROD_DIR_PREFIX'})) {
+      if($debug > 0) {
+	 warn "Compatibility mode: setting EUPS_PATH from PROD_DIR_PREFIX\n";
+      }
+      $ENV{'EUPS_PATH'} = $ENV{'PROD_DIR_PREFIX'};
+   } else {
+      warn "ERROR: path is not set; use -z or set EUPS_PATH\n";
+      return undef;
+   }
+
+   return $ENV{'EUPS_PATH'};
 }
 
 ###############################################################################
