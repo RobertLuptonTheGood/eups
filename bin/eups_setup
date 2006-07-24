@@ -170,7 +170,7 @@ if(defined($ENV{'EUPS_PATH'})) { # new-style environment variables
    if($debug > 0) {
       warn "Compatibility mode: setting EUPS_PATH from PROD_DIR_PREFIX\n";
    }
-   $env{'EUPS_PATH'} = $env{'PROD_DIR_PREFIX'};
+   $ENV{'EUPS_PATH'} = $ENV{'PROD_DIR_PREFIX'};
 } else {
     print STDERR "ERROR: path is not set; use -z or set EUPS_PATH\n";
     goto CLEAN;   
