@@ -1029,7 +1029,7 @@ sub eups_show_options
 
    my $strings = {
        -h => "Print this help message",
-       -c => "Declare this product current, or show current version",
+       -c => "[Un]declare this product current, or show current version",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
@@ -1039,7 +1039,7 @@ sub eups_show_options
        -r => "Location of product being declared",
        -s => "Show which version is setup",
        -v => "Be chattier (repeat for even more chat)",
-       -V => "Print version number and exit",
+       -V => "Print eups version number and exit",
        -Z => "Use this products path (default: \$EUPS_PATH)",
     };
 
