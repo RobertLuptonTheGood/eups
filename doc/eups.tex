@@ -345,7 +345,7 @@ Usage:
    eups_declare [options] product version
 Options:
         -h, --help      Print this help message
-        -c, --current   Declare this product current
+        -c, --current   Declare this version current
         -F, --force     Force requested behaviour, for example
                         to redeclare a product
         -f, --flavor    Use this flavor
@@ -353,7 +353,7 @@ Options:
         -m              Use this table file (may be "none")
                         (default: product.table)
         -r, --root      Location of product being declared
-        -V, --version   Print version number and exit
+        -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products prefix
                         (default: $EUPS_PATH)
@@ -388,18 +388,20 @@ Usage:
    eups_undeclare [options] product version
 Options:
         -h, --help      Print this help message
+        -c, --current   Make no version of product current
         -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
-        -V, --version   Print version number and exit
+        -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products directory (default: $EUPS_PATH)
 \end{verbatim}
   
-Undeclares \code{version} of \code{product} from the
-database. Also removes any declarations of this version from
-\code{current.chain}. The flavor is usually determined from the
-environment variable \code{\$EUPS\_FLAVOR}, but \code{-f}
-overrides this. The database used is defined by the environment
-variable \code{EUPS\_PATH/ups\_db} (or the \code{-Z} option).
+Undeclares \code{version} of \code{product} from the database. Also
+removes any declarations of this version from \code{current.chain}; if
+you just want to stop any version from being declared current, use
+\code{--current}. The flavor is usually determined from the
+environment variable \code{\$EUPS\_FLAVOR}, but \code{-f} overrides
+this. The database used is defined by the environment variable
+\code{EUPS\_PATH/ups\_db} (or the \code{-Z} option).
 
 %------------------------------------------------------------------------------
 
@@ -416,7 +418,7 @@ Options:
         -q, --quiet     Be extra quiet (the opposite of -v)
         -r, --root      Location of product being declared
         -s, --setup     Show which version is setup
-        -V, --version   Print version number and exit
+        -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products directory (default: $EUPS_PATH)
 \end{verbatim}
