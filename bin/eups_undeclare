@@ -65,7 +65,7 @@ if (!defined(check_eups_path())) {
 use File::Spec::Functions;
 
 # Get the command line parameters
-$opts = {-f => 1, -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
+$opts = {-c => 0, -f => 1, -v => 0, -V => 0, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
 # 
@@ -84,8 +84,10 @@ $debug = 0 if ($debug eq "");
 
 $db = eups_find_products();
 if (!$db) {
-   die "ERROR: No database specified, Use -z or set EUPS_PATH\n";
+   die "ERROR: No database specified, Use -Z or set EUPS_PATH\n";
 }
+
+$just_undeclare_current = defined($$options{-c});
 
 if (defined($$options{-f})) {
    $flavor = $$options{-f}
@@ -100,7 +102,49 @@ $vers = $words[1];
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
 
-# Now open the version file
+# Open the current.chain file
+
+$fn = catfile($db,$prod,"current.chain");
+if (-e $fn ) {
+    open FILE, "<$fn";
+    read FILE, $versinfo, 100000;
+    close FILE;
+# Now strip out all comments
+    $versinfo =~ s/\#.*\n//g;
+    $versinfo =~ s/flavor/##FLAVOR/gsi;
+    @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+# Match the last flavor
+    @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+    @group = (@groups2,@groups3);
+
+    open FILE, ">$fn";
+    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
+#Now enter in all groups that don't match the flavor
+    $flavor = fix_special($flavor);
+    $verss = fix_special($vers);
+    $pattern = "FLAVOR *= *$flavor( |\n)";
+    $pattern2 = "VERSION *= *$verss( |\n)";
+    $pos = 0;
+    for ($i = 0; ($i<@group);$i++) {
+# Both the flavor and the version must match
+       if (($group[$i] =~ m/$pattern/gsi)&&($group[$i] =~ m/$pattern2/gsi)) {
+	  $pos++;
+       } else {
+	  print FILE "$group[$i]\n$sep\n";
+       }
+    }
+    close FILE;
+
+    if ($pos == @group) {
+       unlink $fn or warn "Failed to delete $fn: $!\n";
+    }
+}
+
+if($just_undeclare_current) {
+   exit 0;
+}
+
+# Open the version file
 $fn = catfile($db,$prod,"$vers.version");
 die "ERROR : Cannot open version file $fn\n" if (!(open FILE, "<$fn"));
 read FILE, $versinfo, 100000;
@@ -135,47 +179,7 @@ if ($pos == @group) {
    unlink $fn or warn "Failed to delete $fn: $!\n";
 }
 
-#Now do the same to the current.chain file
-
-# Now open the version file
-$fn = catfile($db,$prod,"current.chain");
-if (-e $fn ) {
-
-    open FILE, "<$fn";
-    read FILE, $versinfo, 100000;
-    close FILE;
-# Now strip out all comments
-    $versinfo =~ s/\#.*\n//g;
-    $versinfo =~ s/flavor/##FLAVOR/gsi;
-    @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
-# Match the last flavor
-    @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
-    @group = (@groups2,@groups3);
-
-    open FILE, ">$fn";
-    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
-#Now enter in all groups that don't match the flavor
-    $flavor = fix_special($flavor);
-    $verss = fix_special($vers);
-    $pattern = "FLAVOR *= *$flavor( |\n)";
-    $pattern2 = "VERSION *= *$verss( |\n)";
-    $pos = 0;
-    for ($i = 0; ($i<@group);$i++) {
-# Both the flavor and the version must match
-    if (($group[$i] =~ m/$pattern/gsi)&&($group[$i] =~ m/$pattern2/gsi)) {
-	$pos++;
-    } else {
-	print FILE "$group[$i]\n$sep\n";
-    }
-    }
-    close FILE;
-
-    if ($pos == @group) {
-       unlink $fn or warn "Failed to delete $fn: $!\n";
-    }
-}
-
-exit;
+exit 0;
 
 ###############################################################################
 #
