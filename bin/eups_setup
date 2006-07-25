@@ -95,7 +95,7 @@ import eups_setup;
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
 $opts = {-c => 0, -f => 1, -l => 0, -n => 0, -q => 0, -r => 1, -s => 0,
-	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
+	 -v => 0, -V => 0, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
 # 

@@ -555,7 +555,7 @@ sub eups_setup {
 	 } else {
 	    print STDERR "ERROR: chain file $fn does not exist\n"
 		if ($debug >= 2 + $optional);
-	    print STDERR "ERROR: Product $prod doesn't seem to have been declared\n"
+	    print STDERR "ERROR: No version of product $prod has been declared current\n"
 		if ($debug >= 1 + $optional);
 	    return -1;
 	 }
@@ -900,7 +900,7 @@ sub check_eups_path {
       }
       $ENV{'EUPS_PATH'} = $ENV{'PROD_DIR_PREFIX'};
    } else {
-      warn "ERROR: path is not set; use -z or set EUPS_PATH\n";
+      warn "ERROR: path is not set; use -Z or set EUPS_PATH\n";
       return undef;
    }
 
