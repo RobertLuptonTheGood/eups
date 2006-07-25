@@ -1241,7 +1241,12 @@ if test "${with_ups+set}" = set; then
   withval="$with_ups"
   EUPS_PATH=$withval
 else
-  EUPS_PATH=\${prefix}/share
+  if [ -z $EUPS_PATH ]; then
+       EUPS_PATH=\${prefix}/share
+    else
+       EUPS_PATH=$EUPS_PATH
+    fi
+
 fi;
 
 

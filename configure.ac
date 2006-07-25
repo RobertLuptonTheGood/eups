@@ -5,7 +5,12 @@ dnl
 AC_ARG_WITH(ups,
    [AS_HELP_STRING(--with-ups=DIR, [Use DIR as root for installed products (EUPS_PATH)])],
    [EUPS_PATH=$withval],
-   [EUPS_PATH=\${prefix}/share])
+   [if [[ -z $EUPS_PATH ]]; then
+       EUPS_PATH=\${prefix}/share
+    else
+       EUPS_PATH=$EUPS_PATH
+    fi
+   ])
 AC_SUBST(EUPS_PATH)
 
 AC_ARG_WITH(eups_dir,
