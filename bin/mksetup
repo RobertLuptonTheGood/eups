@@ -41,7 +41,7 @@ $binname = catfile('$EUPS_DIR',"bin","eups_setup");
 print "Writing a csh startup script\n";
 open FILE, ">setups.csh" or die "Unable to open setups.csh";
 print FILE <<"EOT";
-if ("\$EUPS_DIR" != "" ) then
+if ("\$?EUPS_DIR" == "1" ) then
    setenv PATH `echo \$PATH | perl -pe "s|:$bindir||g"`
 endif
 
