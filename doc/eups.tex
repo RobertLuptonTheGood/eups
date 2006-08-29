@@ -357,6 +357,8 @@ Options:
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products prefix
                         (default: $EUPS_PATH)
+        -z, --select-db Select the product paths which contain this directory 
+                        (default: all)
 \end{verbatim}
 
 Declares \code{version} of \code{product} into the database given by \code{\$EUPS\_PATH/ups\_db}.
@@ -365,8 +367,15 @@ be an absolute pathname or specified relative to \code{\$EUPS\_PATH}.
 
 The flavor is usually determined from the
 environment variable \code{\$EUPS\_FLAVOR}, but \code{-f}
-overrides this. The database used is defined by the environment
-variable \code{EUPS\_PATH/ups\_db} (or the \code{-Z} option).
+overrides this. 
+
+The database used is the first element in the environment
+variable \code{EUPS\_PATH}. That path list can also be specified or
+overwritten with the \code{-Z} option. And if the \code{-z} option is
+used, it selects the paths in the list which have a matching directory
+name. (e.g. \code{-Z /home/proj1/eups:/home/proj2/eups -z proj2} would
+yield \code{/home/proj2/eups}).
+
 The \code{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
@@ -393,6 +402,8 @@ Options:
         -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products directory (default: $EUPS_PATH)
+        -z, --select-db Select the product paths which contain this directory 
+                        (default: all)
 \end{verbatim}
   
 Undeclares \code{version} of \code{product} from the database. Also
@@ -400,8 +411,14 @@ removes any declarations of this version from \code{current.chain}; if
 you just want to stop any version from being declared current, use
 \code{--current}. The flavor is usually determined from the
 environment variable \code{\$EUPS\_FLAVOR}, but \code{-f} overrides
-this. The database used is defined by the environment variable
-\code{EUPS\_PATH/ups\_db} (or the \code{-Z} option).
+this. 
+
+The database used is the first element in the environment
+variable \code{EUPS\_PATH}. That path list can also be specified or
+overwritten with the \code{-Z} option. And if the \code{-z} option is
+used, it selects the paths in the list which have a matching directory
+name. (e.g. \code{-Z /home/proj1/eups:/home/proj2/eups -z proj2} would
+yield \code{/home/proj2/eups}).
 
 %------------------------------------------------------------------------------
 
@@ -421,6 +438,8 @@ Options:
         -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products directory (default: $EUPS_PATH)
+        -z, --select-db Select the product paths which contain this directory 
+                        (default: all)
 \end{verbatim}
 
 This is the workhorse routine. It sets up \code{version} of \code{product}.
@@ -438,7 +457,8 @@ current shell.
 
 With the \code{--list} option, \code{setup} can be used to list the available
 products; for example \code{setup --list --current} will list all products that
-are declared current.
+are declared current. Adding the \code{--verbose} option will also
+list the database root and product root paths.
 
 %------------------------------------------------------------------------------
 
@@ -485,12 +505,8 @@ Required variables -
     Where \eups{} is installed.
 
   \item \code{EUPS\_PATH}
-    The root directory under which all products are installed.
-    \footnote{
-      Despite the name, \code{\$EUPS\_PATH} (currently) only allows you to specify a
-      single directory rather than a :-separated list.  We intend to fix this in a future
-      release}
-    The UPS database is \code{EUPS\_PATH/ups\_db}
+    The root directories under which all products are installed.
+    Each root directory has a UPS database in a top-level \code{ups\_db} directory.
 \end{itemize}
 
 Optional Variables -
@@ -510,10 +526,11 @@ Optional Variables -
 
 \subsubsection{\eups{} Files}
 
-This section briefly describes the structure of the UPS database. The UPS database
-consists of a directory \code{\$EUPS\_PATH/ups\_db}, with a subdirectory for each declared product.
-Each of these product directories contain a series of product definitions, specified
-by three types of files:
+This section briefly describes the structure of the UPS database. Each
+EUPS root directory in \code{EUPS\_PATH} contains a database directory
+\code{ups\_db}, with a subdirectory for each declared product.  Each
+of these product directories contain a series of product definitions,
+specified by three types of files:
 
 \begin{itemize}
   \item current.chain
@@ -702,12 +719,11 @@ or implicitly via an environment variable; \code{make show} is your friend.
 \subsection{Obselete features}
 
 \begin{itemize}
-  \item The environment variable \code{\$EUPS\_PATH} used to be known as \code{\$PROD\_DIR\_PREFIX}.
+  \item The environment variable \code{\$EUPS\_PATH} used to be known
+  as \code{\$PROD\_DIR\_PREFIX}. This is no longer supported.
 
   \item The \eups{} database used to be given by the environment variable \code{\$PRODUCTS}
-    with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}.
-
-  \item There used to be an option \code{-z} to set the value of \code{\$PRODUCTS}.
+    with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}. This is no longer supported.
 \end{itemize}
 
 

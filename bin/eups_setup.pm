@@ -24,11 +24,14 @@
 ############################
 
 package eups_setup;
-require Exporter;
 
-our @ISA = qw(Exporter);
-our @EXPORT = qw(eups_list eups_unsetup eups_setup eups_find_products eups_parse_argv eups_show_options eups_find_prod_dir check_eups_path);
-our $VERSION = 1.1;
+BEGIN {
+    use Exporter ();
+    our @ISA = qw(Exporter);
+    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots);
+    our $VERSION = 1.1;
+    our @EXPORT_OK = ();
+}
 
 #Subroutines follow
 
@@ -231,7 +234,7 @@ sub parse_table {
     my $prod = $_[3];
     my $vers = $_[4];
     my $flavor = $_[5];
-    my $db = $_[6];
+    my $root = $_[6];
     my $fwd = $_[7];
     our $outfile = $_[8];
     my $quiet = $_[9];
@@ -239,6 +242,8 @@ sub parse_table {
 
 # Define the return value
     my $retval = 0;
+
+    my $db = catfile($root,'ups_db');
 
 # Define the command hashes
 
@@ -312,7 +317,7 @@ setupenv => \&envSet,
     $qaz = $prod;
     $qaz =~ tr/[a-z]/[A-Z]/;
     $arg[0] = "SETUP_$qaz";
-    $arg[1] = "$prod $vers -f $flavor -Z $ENV{EUPS_PATH}";
+    $arg[1] = "$prod $vers -f $flavor -Z $root";
     if ($fwd == 0) {
 	$switchback{$comm}->(@arg);
     } else {
@@ -403,17 +408,12 @@ sub eups_unsetup {
    use File::Basename;
    
    my $eups_dir = $ENV{"EUPS_DIR"};
+   my ($prod_dir, $table_file);
+
    # We don't need error checking here since that 
    # is already done in eups_setup
    
    local $indent = $indent + 1;
-   
-   #Some more environment variables
-   $prodprefix = $ENV{"EUPS_PATH"};
-   if ($prodprefix eq "") {		# 
-      print STDERR  "ERROR: EUPS_PATH not specified\n";
-      return -1;			# 
-			  }
    
    # Need to extract the parameters carefully
    local ($args,$outfile,$debug,$quiet) = @_;
@@ -425,7 +425,8 @@ sub eups_unsetup {
       return -1;
    }
    
-   my($status, $vers, $flavor, $db) = parse_setup_prod($prod);
+   my($status, $vers, $flavor, $root) = parse_setup_prod($prod);
+   my $db = catfile($root, 'ups_db');
 
    if($status ne "ok") {
       print STDERR "WARNING: $prod is not setup\n" if ($debug > 1);
@@ -452,7 +453,8 @@ sub eups_unsetup {
       }
    } else {
       $fn = catfile($db,$prod,"$vers.version");
-      if (read_version_file($fn, $prod, $flavor, 0) < 0) {
+      ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 0);
+      if (not $prod_dir) {
 	 return -1;
       }
    }
@@ -467,8 +469,80 @@ sub eups_unsetup {
    #prod_dir,ups_dir,verbosity
 
    $fwd = 0;
-   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
+   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$root,$fwd,$outfile,$quiet);
 }
+
+# Search for the best version for a given product, return the essential paths.
+#
+# Returns:
+#   - the selected root path
+#   - the product directory
+#   - the product version
+#   - the table file name
+#
+sub find_best_version(\@$$$) {
+    my ($roots, $prod, $vers,$flavor) = @_;
+    my $matchroot = "";
+
+    if ($vers eq "") {
+	# If no version explicitly specified, get the first db with a current one.
+	foreach $root (@{$roots}) {
+	    $fn = catfile($root,'ups_db',$prod,"current.chain");
+	    if (-e $fn) {
+		$vers = read_chain_file($fn, $flavor, $optional);
+	    
+		if ($vers eq "") {
+		    print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1 + $optional);
+		    return undef, undef, undef, undef;
+		}
+		$matchroot = $root;
+		last;
+	    }
+	}
+	if ($vers eq "") {
+	    print STDERR "ERROR: No version of product $prod has been declared current\n"
+		if ($debug >= 1 + $optional);
+	    return undef, undef, undef, undef;
+	}
+    } else {
+	# Find the first db with a matching prod:version
+	foreach $root (@{$roots}) {
+	    $fn = catfile($root,'ups_db',$prod,"$vers.version");
+	    if (-e $fn) {
+		$matchroot = $root;
+		last;
+	    }
+	}
+    
+	if ($matchroot eq "") {
+	    print STDERR "ERROR: product $prod with version $vers cannot be found.\n"
+		if ($debug >= 1 + $optional);
+	    return undef, undef, undef, undef;
+	}
+    }
+    
+    my $matchdb = catfile($matchroot, 'ups_db');
+
+    # Now construct the version file's name, then read and parse it
+    $fn = catfile($matchdb,$prod,"$vers.version");
+    my ($prod_dir, $table_file) = read_version_file($matchroot, $fn, $prod, $flavor, 0);
+    if (not $prod_dir) {
+	return undef, undef, undef, undef;
+    }
+    
+    # Clean up any truncated paths [??? CPL]
+    if (!($prod_dir =~ m"^/")) {
+	$prod_dir = catfile($matchroot,$prod_dir);
+    }
+    if (!($table_file =~ m"^/")) {
+	$table_file = catfile($prod_dir,$table_file);
+    }
+      
+    # print STDERR "found: $matchroot, $prod_dir, $vers, $table_file\n";
+    return $matchroot, $prod_dir, $vers, $table_file;
+}
+      
+    
 
 sub eups_setup {
 
@@ -476,13 +550,6 @@ sub eups_setup {
    use File::Basename;
    
    local $indent = $indent + 1;
-   
-   #Some more environment variables
-   $prodprefix = $ENV{"EUPS_PATH"};
-   if ($prodprefix eq "") {
-      print STDERR  "ERROR: EUPS_PATH not specified\n";
-      return -1;
-   }
    
    # Need to extract the parameters carefully
    local ($args,$outfile,$debug,$quiet,$optional) = @_;
@@ -521,16 +588,10 @@ sub eups_setup {
    }
    $ENV{"EUPS_FLAVOR"} = $flavor; 	# propagate to sub-products
 
-   #Determine database 
-   my $db = "";
-   my $db_old = "";
-   $db = eups_find_products();
+   #Fetch all the eups roots
+   my $root = "";
+   @roots = eups_find_roots();
    
-   if ($db eq "") {
-      print STDERR "ERROR: No database specified, Use -Z or set EUPS_PATH\n";
-      return -1;
-   }
-
    # Now check to see if the table file and product directory are 
    # specified. If so, extract these and immediately start, else 
    # complain 
@@ -543,39 +604,20 @@ sub eups_setup {
       #Determine version - check to see if already defined, otherwise
       #determine it from current.chain
       #Also construct the full version file and check if it exists.
-      if ($vers eq "") {
-	 $fn = catfile($db,$prod,"current.chain");
-	 if (-e $fn) {
-	    $vers = read_chain_file($fn, $flavor, $optional);
-	    
-	    if ($vers eq "") {
-	       print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1 + $optional);
-	       return -1;
-	    }
-	 } else {
-	    print STDERR "ERROR: chain file $fn does not exist\n"
-		if ($debug >= 2 + $optional);
-	    print STDERR "ERROR: No version of product $prod has been declared current\n"
-		if ($debug >= 1 + $optional);
-	    return -1;
-	 }
-      }
-      
-      # Now construct the version file\'s name, then read and parse it
-      $fn = catfile($db,$prod,"$vers.version");
-      if (read_version_file($fn, $prod, $flavor, 0) < 0) {
-	 return -1;
-      }
+      ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor);
    } else {
       if (! -d $prod_dir) {
 	 warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
 	 return -1;
       }
-      
+
+      # Overwriting prod_dir is weird: we need the 
+      ($root, $Xprod_dir, $vers, $Xtable_file) = find_best_version(@roots, $prod, $vers,$flavor);
+
       $table_file = "$prod.table";
       $table_file = catfile("ups",$table_file);
       if (!($prod_dir =~ m"^/")) {
-	 $prod_dir = catfile($prodprefix,$prod_dir);
+	 $prod_dir = catfile($root,$prod_dir);
       }
       if (!($table_file =~ m"^/")) {
 	 $table_file = catfile($prod_dir,$table_file);
@@ -585,6 +627,8 @@ sub eups_setup {
 	 print STDERR "WARNING : Using table file $table_file\n";
       }
    } 
+
+   return undef if (not defined($root));
 
    if (($debug >= 1 && !$quiet) || $debug > 1) {
       show_product_version("Setting up", $indent, $prod, $vers, $flavor);
@@ -596,9 +640,9 @@ sub eups_setup {
    }
 
    #Call the table parser here 
-
+   $db = catfile($root, 'up_db');
    $fwd = 1;
-   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$db,$fwd,$outfile,$quiet);
+   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$root,$fwd,$outfile,$quiet);
 }
 
 ###############################################################################
@@ -615,32 +659,19 @@ sub parse_setup_prod {
    }
 
    # Now parse the string
-   my($prod, $vers, $flavor, $z, $db) = ($args =~ /^\s*(\S+)\s+(\S*)\s*-f\s+(\S+)\s+-([zZ])\s+(\S+)/);
+   my($prod, $vers, $flavor, $z, $root) = ($args =~ /^\s*(\S+)\s+(\S*)\s*-f\s+(\S+)\s+-([zZ])\s+(\S+)/);
 
-   if ($z eq "Z") {
-      $db = catfile($db, "ups_db");
-   }
-
-   return ("ok", $vers, $flavor, $db);
+   return ("ok", $vers, $flavor, $root);
 }
 
 ###############################################################################
 
 sub eups_find_prod_dir {
-   my($db, $flavor, $prod, $vers) = @_;
+   my($root, $flavor, $prod, $vers) = @_;
    
-   $fn = catfile($db,$prod,"$vers.version");
+   $fn = catfile($root,'ups_db',$prod,"$vers.version");
 
-   $prodprefix = $ENV{"EUPS_PATH"};
-   if ($prodprefix eq "") {
-      print STDERR  "ERROR: EUPS_PATH not specified\n";
-      return -1;
-   }
-
-   if (read_version_file($fn, $prod, $flavor, 0) < 0) {
-      return undef;
-   }
-
+   my ($prod_dir, $table_file) = read_version_file($root,$fn, $prod, $flavor, 0);
    return $prod_dir;
 }
 
@@ -650,13 +681,6 @@ sub eups_list {
 
    use File::Spec::Functions;
    use File::Basename;
-
-#Some more environment variables
-   $prodprefix = $ENV{"EUPS_PATH"};
-   if ($prodprefix eq "") {
-      print STDERR  "ERROR: EUPS_PATH not specified\n";
-      return -1;
-   }
 
 # Need to extract the parameters carefully
    local ($args,$debug,$quiet,$current, $setup) = @_;
@@ -677,77 +701,74 @@ sub eups_list {
    }					# 
 
 #Determine database
-   my $db = "";
-   my $db_old = "";
-   $db = eups_find_products();
+   foreach $root (eups_find_roots()) {
+       $db = catfile($root, 'ups_db');
 
-   if ($db eq "") {
-      warn "ERROR: No database specified, Use -Z or set EUPS_PATH\n";
-      return;
-   }
-   #
-   # Did they specify a product?
-   #
-   if ($prod eq "") {
-      if (!opendir(DB, $db)) {
-	 warn "ERROR Unable to get list of products from $db\n";
-	 return;
-      }
-      @products = sort(readdir DB);
-      closedir DB;
-   } else {
-      @products = ($prod);
-   }
-   #
-   # Find the current version
-   #
-   foreach $prod (@products) {
-      $fn = catfile($db,$prod,"current.chain");
-      if (-e $fn) {
-	 $current_vers = read_chain_file($fn, $flavor, $quiet);
-      }
-      if($current && !defined($current_vers)) {
-	 if (@products == 1) {
-	    warn "No version is declared current\n";
-	    return;
-	 }
-      }
-      
-      # Look through directory searching for version files
-      my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
-      foreach $file (glob(catfile($db,$prod,"*.version"))) {
-	 ($vers = basename($file)) =~ s/\.version$//;
-	 
-	 if (read_version_file($file, $prod, $flavor, 1) < 0) {
-	    next;
-	 }
-
-	 $info = "";
-	 if (defined($current_vers) && $vers eq $current_vers) {
-	    $info .= " Current";
-	 } elsif($current) {
-	    next;
-	 }
-	 if ($prod_dir eq $setup_prod_dir) {
-	    $info .= " Setup";
-	 } elsif($setup) {
-	    next;
-	 }
-	 
-	 $vers = sprintf("%-10s", $vers);
-	 if ($debug) {
-	    $vers .= sprintf("\t%-40s", $prod_dir);
-	 }
-	 
-	 if ($info) {
-	    $info = "\t\t$info";
-	 }
-
-	 if(@products > 1) {
-	    printf STDERR "%-20s", $prod;
-	 }
-	 warn "   ${vers}$info\n";
-      }
+       #
+       # Did they specify a product?
+       #
+       if ($prod eq "") {
+	   if (!opendir(DB, $db)) {
+	       warn "ERROR Unable to get list of products from $db\n";
+	       return;
+	   }
+	   @products = sort(readdir DB);
+	   closedir DB;
+       } else {
+	   @products = ($prod);
+       }
+       #
+       # Find the current version
+       #
+       foreach $prod (@products) {
+	   $fn = catfile($db,$prod,"current.chain");
+	   if (-e $fn) {
+	       $current_vers = read_chain_file($fn, $flavor, $quiet);
+	   }
+	   if($current && !defined($current_vers)) {
+	       if (@products == 1) {
+		   warn "No version is declared current\n";
+		   return;
+	       }
+	   }
+	   
+	   # Look through directory searching for version files
+	   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
+	   foreach $file (glob(catfile($db,$prod,"*.version"))) {
+	       ($vers = basename($file)) =~ s/\.version$//;
+	       
+	       my ($prod_dir, $table_file) = read_version_file($root, $file, $prod, $flavor, 1);
+	       if (not $prod_dir) {
+		   next;
+	       }
+	       
+	       $info = "";
+	       if (defined($current_vers) && $vers eq $current_vers) {
+		   $info .= " Current";
+	       } elsif($current) {
+		   next;
+	       }
+	       if ($prod_dir eq $setup_prod_dir) {
+		   $info .= " Setup";
+	       } elsif($setup) {
+		   next;
+	       }
+	       
+	       $vers = sprintf("%-10s", $vers);
+	       if ($debug) {
+		   $vers .= sprintf("\t%-30s\t%-40s", $root, $prod_dir);
+	       }
+	       
+	       if ($info) {
+		   $info = "\t\t$info";
+	       }
+	       
+	       if(@products > 1) {
+		   printf STDERR "%-20s", $prod;
+	       }
+	       warn "   ${vers}$info\n";
+	   }
+       }
    }
 }
 
@@ -799,17 +820,19 @@ sub read_chain_file
 ###############################################################################
 # read in the version file and start to parse it
 #
-sub read_version_file
+sub read_version_file($$$$$)
 {
-   my($fn, $prod, $flavor, $quiet) = @_;
+   my ($root, $fn, $prod, $flavor, $quiet) = @_;
 
    if (!(open FILE,"<$fn")) {
       print STDERR "ERROR: Cannot open version file $fn\n" if ($debug >= 1);
-      return -1;
+      return undef, undef;
    }
    my @size = stat($fn);
    my $versinfo;
    
+   # print STDERR "reading version file: $root, $fn, $prod, $flavor, $quiet\n";
+
    read FILE,$versinfo,$size[7];
    close FILE;
    # Now strip out all comments
@@ -836,14 +859,14 @@ sub read_version_file
    }
    if ($pos == -1) {
       print STDERR "ERROR: Flavor $flavor not found in version file $fn\n" if (!$quiet && $debug >= 1);
-      return -1;
+      return undef, undef;
    }
 
    # Now extract the prod_dir and table_file
    my($ups_dir) = "ups";
    my($table_dir) = "ups";
-   ($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
-   ($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
+   my($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
+   my($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
 
    if ($table_file ne "$prod.table" && $table_file !~ /^none$/i) {
       my $otable_file = $table_file;
@@ -862,7 +885,7 @@ sub read_version_file
    }
    
    if (!($prod_dir =~ m"^/")) {
-      $prod_dir = catfile($prodprefix,$prod_dir);
+      $prod_dir = catfile($root,$prod_dir);
    }
    
    if (!($ups_dir =~ m"^/")) {
@@ -873,50 +896,45 @@ sub read_version_file
       $table_file = catfile($ups_dir,$table_file);
    }
 
-   return 0;
+   return ($prod_dir, $table_file);
 }
 
 ###############################################################################
 #
-# Check that EUPS_PATH is set
+# List (and mildly check) the eups directories
+#   If the match argument is a fully specified path, use that.
+#   If the match argument is just a string, use it to select parts of the EUPS_PATH 
+#     environment variable which contain the $match string as a complete directory name.
 #
-sub check_eups_path {
-   # Support PROD_DIR_PREFIX as a synonym for EUPS_PATH
-   
-   if(defined($ENV{'EUPS_PATH'})) { # new-style environment variables
-      if(defined($ENV{'PRODUCTS'})) {
-	 if($debug > 0) {
-	    warn "Variable PRODUCTS is set but will be ignored\n";
-	 }
-      }
-      if(defined($ENV{'PROD_DIR_PREFIX'})) {
-	 if($debug > 0) {
-	    warn "PROD_DIR_PREFIX is set; ignoring (use EUPS_PATH)\n";
-	 }
-      }
-   } elsif(defined($ENV{'PROD_DIR_PREFIX'})) {
-      if($debug > 0) {
-	 warn "Compatibility mode: setting EUPS_PATH from PROD_DIR_PREFIX\n";
-      }
-      $ENV{'EUPS_PATH'} = $ENV{'PROD_DIR_PREFIX'};
-   } else {
-      warn "ERROR: path is not set; use -Z or set EUPS_PATH\n";
-      return undef;
-   }
+sub eups_find_roots() {
+    my $rootstring = "";
+    my @rootlist = ();
 
-   return $ENV{'EUPS_PATH'};
-}
+    if ($match ne "") {
+	if ($match[0] == '/') {
+	    $rootstring = $match;
+	} else {
+	}
+    } else {
+	$rootstring = $ENV{EUPS_PATH};
+    }
 
-###############################################################################
-#
-# Try to find the eups database directory
-#
-sub eups_find_products {
-   if (defined($ENV{EUPS_PATH}) && -d $ENV{EUPS_PATH} . "/ups_db") {
-      return $ENV{EUPS_PATH} . "/ups_db";
-   } else {
-      return "";
-   }
+    if ($rootstring eq "") {
+	return ();
+    }
+
+    foreach $part (split(/:/, $rootstring)) {
+	my $dbdir = $part . "/ups_db";
+	if (not -d $dbdir) {
+	    warn "ERROR: $part in \$EUPS_PATH does not contain a ups_db directory, and is being ignored";
+	    next;
+	}
+	push(@rootlist, $part);
+    }
+
+    die "ERROR: no valid products root directory is defined\n" if ($#rootlist eq -1);
+
+    return @rootlist;
 }
 
 ###############################################################################
@@ -936,6 +954,7 @@ sub show_product_version
 %longopts = (
 	     '--current',	'-c',
 	     '--database',	'-Z',
+	     '--select-db',	'-z',
 	     '--flavor',	'-f',
 	     '--force',		'-F',
 	     '--help',		'-h',
@@ -984,6 +1003,15 @@ sub eups_parse_argv
 	    return -1;
 	 } elsif ($opt eq "-Z") {
 	    $ENV{"EUPS_PATH"} = $val;
+	 } elsif ($opt eq "-z") {
+	    # filter to PATH parts which contain a complete directory matching $match
+	     my @newpath = ();
+	     foreach $part (split(/:/, $ENV{EUPS_PATH})) {
+		 if (index($part, "/$val/") >= 0) {
+		     push(@newpath, $part);
+		 }
+	     }
+	     $ENV{"EUPS_PATH"} = join(':', @newpath);
 	 } else {
 	    if ($$opts{$opt}) {	# push argument
 	       push(@$args, $opt);
@@ -999,6 +1027,12 @@ sub eups_parse_argv
 	 return -1;
       }
    }
+
+   if ($ENV{"EUPS_PATH"} eq "") {
+       warn("ERROR: no product directories available (check \$EUPS_PATH and the -Z/-z options)\n");
+       return -1;
+   }
+
 
    return \%opts;
 }
@@ -1041,6 +1075,7 @@ sub eups_show_options
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print eups version number and exit",
        -Z => "Use this products path (default: \$EUPS_PATH)",
+       -z => "Select the product paths which contain this disrectory (default: all)",
     };
 
    foreach $key (keys %longopts) { # inverse of longopts table
@@ -1059,3 +1094,5 @@ sub eups_show_options
       printf STDERR "\t$$strings{$opt}\n";
    }
 }
+
+1;

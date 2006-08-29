@@ -32,40 +32,19 @@
 #Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #############################
 
-
-sub fix_special {
-# This is essential since some of the flavors have special characters in 
-# them.
-    my $arg = $_[0];
-    $arg =~ s/\\/\\\\/g;
-    $arg =~ s/\./\\\./g;
-    $arg =~ s/\+/\\\+/g;
-    $arg =~ s/\(/\\\(/g;
-    $arg =~ s/\)/\\\)/g;
-    $arg =~ s/\{/\\\{/g;
-    $arg =~ s/\}/\\\}/g;
-    $arg =~ s/\^/\\\^/g;
-    $arg =~ s/\*/\\\*/g;
-    $arg =~ s/\?/\\\?/g;
-    $arg =~ s/\[/\\\[/g;
-    $arg =~ s/\|/\\\|/g;
-    return $arg;
-}
-
-if ($ENV{'EUPS_DIR'} eq "") {
-    die "ERROR: EUPS_DIR not set\n";
-}
-require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
-import eups_setup;
-
-if (!defined(check_eups_path())) {
-   exit(1);
+BEGIN {
+    if ($ENV{'EUPS_DIR'} eq "") {
+	die "ERROR: EUPS_DIR not set\n";
+    }
+    require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
+    import eups_setup;
 }
 
 use File::Spec::Functions;
 
 # Get the command line parameters
-$opts = {-c => 0, -f => 1, -v => 0, -V => 0, -Z => 1}; # permitted options (1: requires argument)
+$opts = {-c => 0, -f => 1, -v => 0, -V => 0, 
+	 -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
 # 
@@ -78,14 +57,8 @@ if ($options eq "-h") {
 #
 # Process those arguments
 #
-# Is the product database to be found in $EUPS_PATH
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
-
-$db = eups_find_products();
-if (!$db) {
-   die "ERROR: No database specified, Use -Z or set EUPS_PATH\n";
-}
 
 $just_undeclare_current = defined($$options{-c});
 
@@ -101,6 +74,12 @@ $vers = $words[1];
 
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
+
+my @roots = eups_find_roots();
+
+my ($root, $prod_dir, $Xversion, $table_file) = find_best_version(@roots, $prod, $vers, $flavor);
+die "ERROR : No matching version found\n" if (not $root);
+$db = catfile($root, "ups_db");
 
 # Open the current.chain file
 

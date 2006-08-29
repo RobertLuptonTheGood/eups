@@ -37,36 +37,16 @@
 
 #############################
 
-if ($ENV{'EUPS_DIR'} eq "") {
-    die "ERROR: EUPS_DIR not set\n";
-}
-require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
-import eups_setup;
+BEGIN {
+    if ($ENV{'EUPS_DIR'} eq "") {
+	die "ERROR: EUPS_DIR not set\n";
+    }
 
-if (!defined(check_eups_path())) {
-   exit(1);
+    require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
+    import eups_setup;
 }
 
 ###############################################################################
-
-sub fix_special {
-# This is essential since some of the flavors have special characters in 
-# them.
-    my $arg = $_[0];
-    $arg =~ s/\\/\\\\/g;
-    $arg =~ s/\./\\\./g;
-    $arg =~ s/\+/\\\+/g;
-    $arg =~ s/\(/\\\(/g;
-    $arg =~ s/\)/\\\)/g;
-    $arg =~ s/\{/\\\{/g;
-    $arg =~ s/\}/\\\}/g;
-    $arg =~ s/\^/\\\^/g;
-    $arg =~ s/\*/\\\*/g;
-    $arg =~ s/\?/\\\?/g;
-    $arg =~ s/\[/\\\[/g;
-    $arg =~ s/\|/\\\|/g;
-    return $arg;
-}
 
 use File::Spec::Functions;
 use POSIX qw(strftime);
@@ -78,7 +58,7 @@ $now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
 
 # Get the command line parameters
 $opts = {-f => 1, -F => 0, -c => 0, -m => 1, -r => 1,
-	 -v => 0, -V => 0, -Z => 1}; # permitted options (1: requires argument)
+	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
 my $debug = $ENV{"EUPS_DEBUG"};
@@ -94,8 +74,9 @@ if ($options eq "-h") {
 #
 # Process those arguments
 #
-$db = eups_find_products();
-die "ERROR: products database not defined\n" if ($db eq "");
+my @roots = eups_find_roots();
+my $root = $roots[0];		# Just use the first one.
+my $db = catfile($root, 'ups_db');
 
 if (defined($$options{-f})) {
    $flavor = $$options{-f}
@@ -135,7 +116,7 @@ if (defined($$options{-r})) {
    $prodroot = $$options{-r};
 } else {
    $new_root = 0;
-   $prodroot = eups_find_prod_dir($db, $flavor, $prod, $vers);
+   $prodroot = eups_find_prod_dir($root, $flavor, $prod, $vers);
    if (!$prodroot) {
       die "Failed to find version $vers of $prod for flavor $flavor\n";
    }
@@ -159,11 +140,10 @@ if ($tablefile ne "none" && ! -e $tablefile) {
    }
 }
 #
-# Make path relative to EUPS_PATH
+# Make path relative to selected EUPS_PATH
 #
-$proddirprefix = "$ENV{'EUPS_PATH'}";
-if ($prodroot =~ m/$proddirprefix/) {
-   $prodroot =~ s|$proddirprefix/*||;
+if ($prodroot =~ m/$root/) {
+   $prodroot =~ s|$root/*||;
 } else {
    print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
 }
@@ -181,12 +161,12 @@ $fn = catfile($db,$prod,"$vers.version");
 #
 # Is this version already declared?
 #
-if (eups_find_prod_dir($db, $flavor, $prod, $vers)) { # it's already declared
+if (eups_find_prod_dir($root, $flavor, $prod, $vers)) { # it's already declared
    if ($new_root || !$make_current) {		      # A redeclaration
       if ($force) {
 	 warn "Version $vers is already declared for flavour $flavor; redeclaring\n";
       } else {
-	 die "Version $vers is already declared; not modifying (use --force to override)\n";
+	 die "Version $vers is already declared for flavour $flavor; not modifying (use --force to override)\n";
       }
    }
 

@@ -24,6 +24,14 @@
 #Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ####################
 
+BEGIN {
+    if ($ENV{'EUPS_DIR'} eq "") {
+	print STDERR "ERROR: EUPS_DIR is not set\n";
+	goto CLEAN;
+    }
+    require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
+    import eups_setup;
+}
 
 use POSIX;
 
@@ -82,20 +90,13 @@ sub setshell {
     return $retval;
 }
 
-if ($ENV{'EUPS_DIR'} eq "") {
-    print STDERR "ERROR: EUPS_DIR is not set\n";
-    goto CLEAN;
-}
-require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
-import eups_setup;
-
 #
 # Parse arguments. Many are actually interpreted by eups_setup.pm
 #
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
 $opts = {-c => 0, -f => 1, -l => 0, -n => 0, -q => 0, -r => 1, -s => 0,
-	 -v => 0, -V => 0, -Z => 1}; # permitted options (1: requires argument)
+	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
 # 
@@ -151,10 +152,6 @@ print STDERR "eups -- using shell : $shell\n" if ($debug > 2);
 if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{-f}))) {
     print STDERR "ERROR: No flavor specified; use -f or set EUPS_FLAVOR\n";
     goto CLEAN;
-}
-
-if (!defined(check_eups_path())) {
-   goto CLEAN;
 }
 
 #Get the environment variables
