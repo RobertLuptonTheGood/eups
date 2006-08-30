@@ -279,7 +279,6 @@ setupenv => \&envSet,
     my $pos; my $i;
     my $comm; my $arg; my $qaz;
 
-
 # Read in the table file
     if ($fn eq "none") {
        $data = "";
@@ -611,9 +610,16 @@ sub eups_setup {
 	 return -1;
       }
 
-      # Overwriting prod_dir is weird: we need the 
-      ($root, $Xprod_dir, $vers, $Xtable_file) = find_best_version(@roots, $prod, $vers,$flavor);
-
+      # In case anyone cares which root -r shadows, try to find a matching version.
+      ($Xroot, $Xprod_dir, $Xvers, $Xtable_file) = find_best_version(@roots, $prod, $vers, $flavor);
+      if (not $root) {
+	  $root = $roots[0];
+      } else {
+	  $vers = $Xvers;
+	  $root = $Xroot;
+      }
+      
+      # Yuck. All this should be controllable with eups_declare's table file machinery.
       $table_file = "$prod.table";
       $table_file = catfile("ups",$table_file);
       if (!($prod_dir =~ m"^/")) {
@@ -640,7 +646,6 @@ sub eups_setup {
    }
 
    #Call the table parser here 
-   $db = catfile($root, 'up_db');
    $fwd = 1;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$root,$fwd,$outfile,$quiet);
 }
@@ -1075,7 +1080,7 @@ sub eups_show_options
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print eups version number and exit",
        -Z => "Use this products path (default: \$EUPS_PATH)",
-       -z => "Select the product paths which contain this disrectory (default: all)",
+       -z => "Select the product paths which contain this directory (default: all)",
     };
 
    foreach $key (keys %longopts) { # inverse of longopts table
