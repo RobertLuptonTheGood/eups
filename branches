@@ -82,8 +82,10 @@ Thu Nov  3 11:55:58 EST 2005
     cvs rtag v0_7_15 eups
     Support setup --list --current --setup <prod>
 
+v0_7_16?? Part of the GNU configure work, I believe.
+
 Mon Sep 11 10:10:10 EDT 2006
-    cvs rtag v0_7_16 eups
+    cvs rtag v0_7_17 eups
     Support colon-delimited EUPS_PATH elements. Added -z to allow specify 
     one such element.
 
