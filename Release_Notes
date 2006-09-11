@@ -21,7 +21,7 @@ These are the Release Notes for EUPS
 and David Schlegel for testing the code out, and finding 
 all the various problems with it.)
 
-v0_7_15: New features:
+v0_7_16: New features:
 	   - Added GNU configure support. (RHL)
 	   - Added support for colon-delimited $EUPS_PATHs (CPL)
 
