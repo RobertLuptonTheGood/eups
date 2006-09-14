@@ -206,7 +206,7 @@ Once you've generated a configure file (i.e. typed \code{autoconf})%
 you can say\hfil\break
 \code{cd \$HOME/myProduct}\hfil\break
 \code{setup gsl; setup fftw3}\hfil\break
-\code{./configure --with-ups=/u/act/products --with-flavor=Linux64}\hfil\break
+\code{./configure --with-eups=/u/act/products --with-flavor=Linux64}\hfil\break
 \code{make}\hfil\break
 \code{make install}\hfil\break
 \code{make declare}\hfil\break
@@ -246,7 +246,7 @@ How did your \file{configure.ac} file achieve this magic?
 
   \item{\code{AC\_DEFINE\_ROOT}}
 
-    Define the \code{configure} options \code{--with-ups=dir}} and \code{--with-flavor=XXX}.
+    Define the \code{configure} options \code{--with-eups=path}} and \code{--with-flavor=XXX}.
     The version comes from the \code{\${Name}: v2\_4 \$} --- if the \code{v2\_4} were
     absent the value \code{cvs} would have been used instead.
 
@@ -642,7 +642,7 @@ variables are defined;
   \item{\code{AC\_DEFINE\_ROOT(version [, flavor])}}
     Define the \code{configure} options
     \begin{itemize}
-      \item{\code{--with-ups=dir}}
+      \item{\code{--with-eups=path}}
         Specify the value of \code{EUPS\_PATH}
         (default: \code{\$EUPS\_PATH} if set, or \code{\$prefix/share}).
       \item{\code{--with-flavor=XXX}}
@@ -695,12 +695,15 @@ You can control where files are put with the following configure options:
 \begin{verbatim}
 --prefix=PREFIX         install architecture-independent files in PREFIX
                         [default: /usr/local]
---with-ups=DIR          Use DIR as root for installed products
+--with-eups=PATH        Use PATH as root for installed products
 --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 \end{verbatim}
-The difference between \code{--prefix} and \code{--with-ups}
+The difference between \code{--prefix} and \code{--with-eups}
 is that the former appends \code{/share} to the specified directory, to
 be consistent with the standard default value, \code{/usr/local}.
+
+If you omit \code{--with-eups\_dir} the first element of the \code{PATH}
+will be used, with \code{/eups} appended.
   
 As an alternative to
 \begin{verbatim}
