@@ -349,7 +349,7 @@ Options:
         -F, --force     Force requested behaviour, for example
                         to redeclare a product
         -f, --flavor    Use this flavor
-                        (default: $EUPS_FLAVOR)
+                        (default: $EUPS_FLAVOR or `eups_flavor`)
         -m              Use this table file (may be "none")
                         (default: product.table)
         -r, --root      Location of product being declared
@@ -365,9 +365,12 @@ Declares \code{version} of \code{product} into the database given by \code{\$EUP
 The product root directory is where the product has been installed, and can either
 be an absolute pathname or specified relative to \code{\$EUPS\_PATH}.
 
-The flavor is usually determined from the
-environment variable \code{\$EUPS\_FLAVOR}, but \code{-f}
-overrides this. 
+The flavor is usually determined by the value of \code{\$EUPS\_DIR/bin/eups\_flavor},
+but may be set using the
+environment variable \code{\$EUPS\_FLAVOR}, or \code{-f} (which has the highest
+precedence).  The \code{eups\_flavor} is basically the value of the system \code{uname}
+command, but with a little more information where it's important (e.g. Linux boxes
+can have flavor \code{Linux} or \code{Linux64}).
 
 The database used is the first element in the environment
 variable \code{EUPS\_PATH}. That path list can also be specified or
@@ -650,7 +653,7 @@ variables are defined;
         (default: \code{\$EUPS\_PATH} if set, or \code{\$prefix/share}).
       \item{\code{--with-flavor=XXX}}
         Set the value of \code{EUPS\_FLAVOR}
-        (default: flavor, or, failing that, the value of uname).
+        (default: flavor, or, failing that, the value of eups\_flavor and, failing \textbf{that},uname).
     \end{itemize}
 \end{itemize}
 

@@ -156,8 +156,13 @@ print STDERR "eups -- using shell : $shell\n" if ($debug > 2);
 # Die if EUPS_FLAVOR is not set and -f not used... this is so that
 # a major failure mode gets a decent error message.
 if (($select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{-f}))) {
-    print STDERR "ERROR: No flavor specified; use -f or set EUPS_FLAVOR\n";
-    goto CLEAN;
+   chomp($flavor = `$ENV{"EUPS_DIR"}/bin/eups_flavor`);
+   if ($flavor) {
+      $ENV{"EUPS_FLAVOR"} = $flavor;
+   } else {
+      print STDERR "ERROR: No flavor guessable or specified; use -f or set EUPS_FLAVOR\n";
+      goto CLEAN;
+   }
 }
 
 #Get the environment variables
