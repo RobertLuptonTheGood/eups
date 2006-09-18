@@ -1,0 +1,26 @@
+#!/usr/bin/env perl
+#
+# These are all the posix-defined uname options
+#
+chomp($uname = `uname -s`);
+chomp($mach = `uname -m`);
+chomp($net = `uname -n`);
+chomp($release = `uname -r`);
+chomp($version = `uname -v`);
+
+if ($uname eq "Linux") {
+   if ($mach =~ /_64$/) {
+      $flav = "Linux64";
+   } else {
+      $flav = "Linux";
+   }
+} elsif ($uname eq "Darwin") {
+   $flav = "Darwin";
+}
+
+if (defined($flav)) {
+   print "$flav\n";
+} else {
+   die "Unknown flavor: $uname :: $mach :: $net :: $release :: $version\n";
+}
+exit 0;
