@@ -83,6 +83,9 @@ if (defined($$options{-f})) {
 } elsif (defined($ENV{"EUPS_FLAVOR"})) {
    $flavor = $ENV{"EUPS_FLAVOR"};
 }
+if(!$flavor) {
+   chomp($flavor = `$ENV{"EUPS_DIR"}/bin/eups_flavor`);
+}
 die "ERROR: No flavor specified\n" if ($flavor eq "");
 
 # Do we make this current - and update?
