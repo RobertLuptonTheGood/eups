@@ -533,7 +533,7 @@ sub find_best_version(\@$$$) {
     if (!($prod_dir =~ m"^/")) {
 	$prod_dir = catfile($matchroot,$prod_dir);
     }
-    if (!($table_file =~ m"^/")) {
+    if (!($table_file =~ m"^/" || $table_file =~ m/^none$/)) {
 	$table_file = catfile($prod_dir,$table_file);
     }
       
