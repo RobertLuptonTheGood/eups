@@ -786,7 +786,9 @@ if test -n "$ac_init_help"; then
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-ups=DIR          Use DIR as root for installed products (EUPS_PATH)
+  --with-ups=DIR          Typo for --with-eups=DIR
+  --with-ups_dir=DIR      Typo for --with-eups_dir=DIR
+  --with-eups=DIR         Use DIR as root for installed products (EUPS_PATH)
   --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 
 Report bugs to <rhl@astro.princeton.edu>.
@@ -1239,6 +1241,22 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # Check whether --with-ups or --without-ups was given.
 if test "${with_ups+set}" = set; then
   withval="$with_ups"
+  { { echo "$as_me:$LINENO: error: Please use --with-eups" >&5
+echo "$as_me: error: Please use --with-eups" >&2;}
+   { (exit 1); exit 1; }; }
+fi;
+
+# Check whether --with-ups_dir or --without-ups_dir was given.
+if test "${with_ups_dir+set}" = set; then
+  withval="$with_ups_dir"
+  { { echo "$as_me:$LINENO: error: Please use --with-eups_dir" >&5
+echo "$as_me: error: Please use --with-eups_dir" >&2;}
+   { (exit 1); exit 1; }; }
+fi;
+
+# Check whether --with-eups or --without-eups was given.
+if test "${with_eups+set}" = set; then
+  withval="$with_eups"
   EUPS_PATH=$withval
 else
   if [ -z $EUPS_PATH ]; then
@@ -1256,7 +1274,7 @@ if test "${with_eups_dir+set}" = set; then
   withval="$with_eups_dir"
   EUPS_DIR=$withval
 else
-  EUPS_DIR=\${EUPS_PATH}/eups
+  EUPS_DIR=$(echo ${EUPS_PATH} | perl -pe 's/:.*$//')/eups
 fi;
 
           ac_config_files="$ac_config_files Makefile"

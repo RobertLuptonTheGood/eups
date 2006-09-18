@@ -688,7 +688,7 @@ sub eups_list {
    use File::Basename;
 
 # Need to extract the parameters carefully
-   local ($args,$debug,$quiet,$current, $setup) = @_;
+   local ($args,$debug,$quiet,$current, $setup, $just_directory) = @_;
 
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
@@ -768,10 +768,14 @@ sub eups_list {
 		   $info = "\t\t$info";
 	       }
 	       
-	       if(@products > 1) {
-		   printf STDERR "%-20s", $prod;
+	       if ($just_directory) {
+		  warn "$prod_dir\n";
+	       } else {
+		  if(@products > 1) {
+		     printf STDERR "%-20s", $prod;
+		  }
+		  warn "   ${vers}$info\n";
 	       }
-	       warn "   ${vers}$info\n";
 	   }
        }
    }
@@ -959,6 +963,7 @@ sub show_product_version
 %longopts = (
 	     '--current',	'-c',
 	     '--database',	'-Z',
+	     '--directory',	'-d',
 	     '--select-db',	'-z',
 	     '--flavor',	'-f',
 	     '--force',		'-F',
@@ -1069,6 +1074,7 @@ sub eups_show_options
    my $strings = {
        -h => "Print this help message",
        -c => "[Un]declare this product current, or show current version",
+       -d => "Print product directory to stderr",
        -f => "Use this flavor (default: \$EUPS_FLAVOR)",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",

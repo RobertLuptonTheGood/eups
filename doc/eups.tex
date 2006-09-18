@@ -429,6 +429,7 @@ Usage:
 Options:
         -h, --help      Print this help message
         -c, --current   Show current version
+	-d  --directory Print product directory to stderr
         -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
         -l, --list      List available versions (-v => include root directories)
         -n              Don't actually do anything
@@ -447,7 +448,8 @@ This is the workhorse routine. It sets up \code{version} of \code{product}.
 \textbf{Important}: Since the commands to set environment variables differ across shells,
 it is essential that \code{\$SHELL} reflects the current shell.
 
-Options \code{--current} and \code{--setup} are only relevant with \code{--list}.
+Options \code{--current} and \code{--setup} are only relevant with \code{--directory}
+or \code{--list}.
 
 (N.b. setup is really an alias or shell function that runs the command\hfil\break
 \code{source `eups\_setup [options] "setup" product [version]`}\hfil\break
@@ -458,7 +460,8 @@ current shell.
 With the \code{--list} option, \code{setup} can be used to list the available
 products; for example \code{setup --list --current} will list all products that
 are declared current. Adding the \code{--verbose} option will also
-list the database root and product root paths.
+list the database root and product root paths.  If you only want the product's
+directory, you can use \code{--directory}.
 
 %------------------------------------------------------------------------------
 

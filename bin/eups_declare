@@ -146,6 +146,7 @@ if ($prodroot =~ m/$root/) {
    $prodroot =~ s|$root/*||;
 } else {
    print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
+   print STDERR "          $prodroot : $root\n";
 }
 
 # Check to see if an entry exists in the database
