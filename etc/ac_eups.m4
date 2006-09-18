@@ -30,7 +30,7 @@ dnl The version is set based on $1 (which may from dollar-Name: version dollar),
 dnl failing that, from the version given to AC_INIT. If $1 is of the form dollar-Name dollar
 dnl but no version is specified, the value of $3 is used (default: cvs)
 dnl
-dnl The flavor is set based on --with-flavor, $2, or uname (in that order)
+dnl The flavor is set based on --with-flavor, $2, eups_flavor, or uname (in that order)
 dnl
 dnl The variables eups_flavor and eups_version are AC_SUBSTed
 dnl
@@ -51,7 +51,10 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 	      [AS_HELP_STRING(--with-flavor=FLAVOR,Use FLAVOR as eups flavor)],
 	      eups_flavor="$withval"
 	      AC_MSG_NOTICE(Setting flavor to $eups_flavor),
-	      eups_flavor="ifelse($2, , [$(uname)], [$2])")
+	      eups_flavor="ifelse($2, ,
+				        ifelse([$(eups_flavor)], , [$(uname)], [$(eups_flavor)]),
+					[$2])"
+	                   AC_MSG_NOTICE(Setting flavor to $eups_flavor))
 	AC_SUBST(eups_flavor)
 	AC_ARG_WITH(eups,
 	   [AS_HELP_STRING(--with-eups=DIR,Use DIR as base for installation directories)],
