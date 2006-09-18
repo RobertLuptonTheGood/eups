@@ -1,3 +1,2 @@
 *.aux *.dvi *.log
-eups.html
-
+eups.{html,pdf}
