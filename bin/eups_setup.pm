@@ -706,6 +706,9 @@ sub eups_list {
    }					# 
 
 #Determine database
+   if ($just_directory) {
+      $printed_dir = 0;		# did I print a directory for them?
+   }
    foreach $root (eups_find_roots()) {
        $db = catfile($root, 'ups_db');
 
@@ -769,6 +772,7 @@ sub eups_list {
 	       }
 	       
 	       if ($just_directory) {
+		  $printed_dir = 1;
 		  warn "$prod_dir\n";
 	       } else {
 		  if(@products > 1) {
@@ -778,6 +782,13 @@ sub eups_list {
 	       }
 	   }
        }
+   }
+
+   if ($just_directory && !$printed_dir) { # Oh dear; must have been setup -r
+      my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
+      if($setup_prod_dir) {
+	 warn $setup_prod_dir . "\n";
+      }
    }
 }
 
