@@ -118,7 +118,7 @@ if (-e $fn ) {
     close FILE;
 
     if ($pos == @group) {
-       unlink $fn or warn "Failed to delete $fn: $!\n";
+       unlink $fn or warn "WARNING : failed to delete $fn: $!\n";
     }
 }
 
@@ -150,6 +150,7 @@ $pattern = "FLAVOR *= *$flavor( |\n)";
 $pos = 0;
 for ($i = 0; ($i<@group);$i++) {
     if ($group[$i] =~ m/$pattern/gsi) {
+	$ourgroup = $i;
 	$pos++;
     } else {
 	print FILE "$group[$i]\n$sep\n";
@@ -157,8 +158,18 @@ for ($i = 0; ($i<@group);$i++) {
 }
 close FILE;
 
+# Now optionally remove the ups_db table file. Yuck.
+if (defined($ourgroup)) {
+    $pattern = q{\s*UPS_DIR\s*=\s*(\$UPS_DB/\S*)};
+    if (($tablepath) = ($group[$ourgroup] =~ m/$pattern/gsi)) {
+	$tablepath =~ s/\${?UPS_DB}?/$db/g;
+	$tablepath = catfile($tablepath, "$vers.table");
+	warn "INFO : would delete internal table file $tablepath if I had the courage"
+    }
+}
+
 if ($pos == @group) {
-   unlink $fn or warn "Failed to delete $fn: $!\n";
+   unlink $fn or warn "WARNING : failed to delete $fn: $!\n";
 }
 
 exit 0;

@@ -49,6 +49,7 @@ BEGIN {
 ###############################################################################
 
 use File::Spec::Functions;
+use File::Copy;
 use POSIX qw(strftime);
 
 #Define a seperator
@@ -57,7 +58,7 @@ $name = $ENV{"LOGNAME"};
 $now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
 
 # Get the command line parameters
-$opts = {-f => 1, -F => 0, -c => 0, -m => 1, -r => 1,
+$opts = {-f => 1, -F => 0, -c => 0, -m => 1, -M => 1, -r => 1,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -74,10 +75,6 @@ if ($options eq "-h") {
 #
 # Process those arguments
 #
-my @roots = eups_find_roots();
-my $root = $roots[0];		# Just use the first one.
-my $db = catfile($root, 'ups_db');
-
 if (defined($$options{-f})) {
    $flavor = $$options{-f}
 } elsif (defined($ENV{"EUPS_FLAVOR"})) {
@@ -92,71 +89,113 @@ die "ERROR: No flavor specified\n" if ($flavor eq "");
 $make_current = defined($$options{-c});
 $force = defined($$options{-F}); # redeclare if needs be
 
-# Is there a table file?
-if (defined($$options{-m})) {
-   $tablefile = $$options{-m};
-}
-
 $prod = $words[0];
 $vers = $words[1];
-
 if (($prod eq "" && $vers eq "") && ($$options{-r} =~ m|([^/]+)/([^/]+)$|)) {
    ($prod, $vers) = ($1, $2);
-   warn "Guessing product = $prod; version = $vers\n" if($debug > 0);
+   warn "INFO : Guessing product = $prod; version = $vers\n" if($debug > 0);
 }
-
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
-if ($tablefile eq "") {
-   $tablefile = "$prod.table";
-}
-die "ERROR : Incorrect table file -- must use $prod.table\n" if (($tablefile ne "$prod.table")&&($tablefile !~ /^none$/i));
 
-# Get the root directory
+# Get the DB and product root directory
+my @dbroots = eups_find_roots();
+my ($dbroot, $prodroot, $Xversion, $Xtablefile) = find_best_version(@dbroots, $prod, $vers, $flavor);
+if (not $dbroot) {
+    my $dbroot = $dbroots[0];		# Just use the first one.
+    
+}
+my ($prodfound) = $Xversion;
 
 if (defined($$options{-r})) {
    $new_root = 1;		# they specified a new root
    $prodroot = $$options{-r};
+   die "-r argument $prodroot is not a directory\n" if (not -d $prodroot);
 } else {
    $new_root = 0;
-   $prodroot = eups_find_prod_dir($root, $flavor, $prod, $vers);
    if (!$prodroot) {
       die "Failed to find version $vers of $prod for flavor $flavor\n";
    }
+}
+if ($debug) {
+    warn "INFO : Root = $prodroot\n";
+}
 
-   if ($debug) {
-      warn "Root = $prodroot\n";
-   }
-}
 die "ERROR: No product directory specified, and version \"$vers\" isn't declared\n" if (!$prodroot);
-#
-# Check that the table file exists
-#
-if ($tablefile ne "none" && ! -e $tablefile) {
-   if ($tablefile =~ m|^/|) {	# absolute name
-      warn "Warning: failed to find \"$tablefile\"\n";
-   } else {
-      if (! -e "$prodroot/$tablefile" && ! -e "$prodroot/ups/$tablefile") {
-	 warn "Warning: \"$tablefile\" is in neither\n" .
-	     "\t$prodroot\nnor\n\t$prodroot/ups\n";
-      }
-   }
+
+# Resolve which table file to use...
+if (defined($$options{-m}) and defined($$options{-M})) {
+    die("Only one of -M and -m can be specified.");
 }
-#
-# Make path relative to selected EUPS_PATH
-#
-if ($prodroot =~ m/$root/) {
-   $prodroot =~ s|$root/*||;
+# ... a file to be copied into the DB
+if (defined($$options{-M})) {
+   $copytable_from = $$options{-M};
+   $copytable_from = "/dev/stdin" if ($copytable_from eq "-"); # Can we assume /dev/stdin exists?
+   $tabledir = "\$UPS_DB/$prod/$flavor";
+   $tablefile = "$vers.table";
+
+   die "ERROR : input table file does not exist or is not readable" 
+       if (not -r $copytable_from);
 } else {
-   print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
-   print STDERR "          $prodroot : $root\n";
+    # ... "none" or ups/$prod.table
+    if (defined($$options{-m})) {
+	$tablefile = $$options{-m};
+    } else {			# The default.
+	$tablefile = "$prod.table" if (not defined($tablefile));
+    }
+    $tabledir = "\$PROD_DIR/ups";
+    $copytable_from = undef;
+    
+    # Can we declare that the table file _must_ be "ups/$prod.table"? Would make 
+    # thing simpler ("none" or default).
+    die "ERROR : Incorrect table file name -- must use $prod.table or \"none\"\n" 
+	if (($tablefile ne "$prod.table") and ($tablefile ne "none"));
+    if ($tablefile ne "none" and $new_root) {
+	if ($tablefile =~ m|^/|) {
+	    $tablepath = $tablefile;
+	} else {
+	    $tablepath = "$prodroot/ups/$tablefile";
+	}
+	die "ERROR : Cannot read required table file \"ups/$tablefile\"."
+	    if (not -r "$tablepath");
+    }
+}
+
+#
+# Try hard to make path relative to selected EUPS_PATH
+#
+if ($prodfound) {
+    if ($prodroot =~ m/$dbroot/) {
+	$prodroot =~ s|$dbroot/*||;
+    } else {
+	print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
+	print STDERR "          $prodroot : $dbroot\n";
+    }
+} else {
+    foreach $dbr (@dbroots) {
+	if (substr($prodroot, 0, length($dbr)) == $dbr) {
+	    $prodroot =~ s|$dbr/*||;
+	    $foundit = 1;
+
+	    # Fixup db to match. If -z or -Z was specified this should still
+	    # be OK. But I worry a bit..
+	    $dbroot = $dbr;
+
+	    last;
+	}
+    }
+    if (not $foundit) {
+	print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
+	print STDERR "          $prodroot : @dbroots\n";
+    }
 }
 
 # Check to see if an entry exists in the database
 # create if not.
-$fn = catfile($db,$prod);
-if (!(-d $fn)) {
-    $retval = mkdir $fn;
+my $db = catfile($dbroot, 'ups_db');
+$dbprod = catfile($db,$prod);
+if (!(-d $dbprod)) {
+    $retval = mkdir $dbprod;
     die "ERROR : Unable to create entry in database $fn\n" if (!($retval));
 }
 
@@ -165,7 +204,7 @@ $fn = catfile($db,$prod,"$vers.version");
 #
 # Is this version already declared?
 #
-if (eups_find_prod_dir($root, $flavor, $prod, $vers)) { # it's already declared
+if (eups_find_prod_dir($dbroot, $flavor, $prod, $vers)) { # it's already declared
    if ($new_root || !$make_current) {		      # A redeclaration
       if ($force) {
 	 warn "Version $vers is already declared for flavour $flavor; redeclaring\n";
@@ -175,10 +214,24 @@ if (eups_find_prod_dir($root, $flavor, $prod, $vers)) { # it's already declared
    }
 
    if ($debug) {
-      warn "Undeclaring $prod $vers (flavor: $flavor)\n";
+      warn "INFO : Undeclaring $prod $vers (flavor: $flavor)\n";
    }
    $comm = "eups_undeclare -f $flavor $prod $vers";
    system($comm);
+}
+
+if ($copytable_from) {
+    # Walk down the product ups_db directory:
+    # Create a per-flavor directory if necessary.
+    $tablepath = catfile($dbprod, $flavor);
+    if (not -d catfile($tablepath)) {
+	$retval = mkdir $tablepath;
+	die "ERROR : Unable to create directory for product $prod ups file\n" if (not $retval);
+    }
+
+    # And put the table file into that directory.
+    $tablepath = catfile($tablepath, $tablefile);
+    copy($copytable_from, $tablepath);
 }
 
 # Now that any previous declarations are removed simply create/append
@@ -195,10 +248,12 @@ if (eups_find_prod_dir($root, $flavor, $prod, $vers)) { # it's already declared
 #  UPS_DIR = ups
 #  TABLE_FILE = foobar.table
 if (-e $fn) {
-   die "ERROR opening file $fn\n" if (!(open FILE, ">>$fn"));
+    warn "INFO : modifying version file $fn for $prod $vers (flavor: $flavor)\n" if ($debug);
+    die "ERROR opening file $fn\n" if (!(open FILE, ">>$fn"));
 } else {
-   die "ERROR creating file $fn\n" if (!(open FILE, ">$fn"));
-   print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
+    warn "INFO : creating version file $fn for $prod $vers (flavor: $flavor)\n" if ($debug);
+    die "ERROR creating file $fn\n" if (!(open FILE, ">$fn"));
+    print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
 }
 
 print FILE "FLAVOR = $flavor\n";
@@ -208,7 +263,7 @@ print FILE "   DECLARED = $now_string\n";
 print FILE "   MODIFIER = $name\n";
 print FILE "   MODIFIED = $now_string\n";
 print FILE "   PROD_DIR = $prodroot\n";
-print FILE "   UPS_DIR = ups\n";
+print FILE "   UPS_DIR = $tabledir\n";
 print FILE "   TABLE_FILE = $tablefile\n";
 print FILE "$sep\n";
 close FILE;
@@ -225,6 +280,7 @@ $fn = catfile($db,$prod,"current.chain");
 # or add one.
 
 if (-e $fn) {
+    warn "INFO : Modifying current.chain for $prod $vers (flavor: $flavor)\n" if ($debug);
 # Similar code to that in ups_undeclare
     open FILE, "<$fn" or die "Error reading $fn\n";;
     read FILE, $versinfo, 100000;
@@ -271,6 +327,7 @@ if (-e $fn) {
     close FILE;
 
 } else {
+    warn "INFO : Creating current.chain for $prod $vers (flavor: $flavor)\n" if ($debug);
     die "ERROR : opening current chain $fn\n" if (!(open FILE, ">$fn"));
     print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
 # Another example

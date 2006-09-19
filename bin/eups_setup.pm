@@ -297,13 +297,17 @@ setupenv => \&envSet,
 	return $retval;
     }
 
+    my $dbdir = catfile($upsdir, "ups_db");
+
 # Replace certain variables
     $group =~ s/\$\{PRODUCTS\}/$db/g;
     $group =~ s/\$\{PRODUCT_DIR\}/$proddir/g;
+    $group =~ s/\$\{PROD_DIR\}/$proddir/g;
     $group =~ s/\$\{PRODUCT_FLAVOR\}/$flavor/g;
     $group =~ s/\$\{PRODUCT_NAME\}/$prod/g;
     $group =~ s/\$\{PRODUCT_VERSION\}/$vers/g;
     $group =~ s/\$\{UPS_DIR\}/$upsdir/g;
+    $group =~ s/\$\{UPS_DB\}/$dbdir/g;
     # Older synonyms
     $group =~ s/\$\{UPS_PROD_DIR\}/$proddir/g;
     $group =~ s/\$\{UPS_PROD_FLAVOR\}/$flavor/g;
@@ -514,8 +518,6 @@ sub find_best_version(\@$$$) {
 	}
     
 	if ($matchroot eq "") {
-	    print STDERR "ERROR: product $prod with version $vers cannot be found.\n"
-		if ($debug >= 1 + $optional);
 	    return undef, undef, undef, undef;
 	}
     }
@@ -604,6 +606,8 @@ sub eups_setup {
       #determine it from current.chain
       #Also construct the full version file and check if it exists.
       ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor);
+      die "ERROR : product $prod with version $vers cannot be found.\n" if (not $root and not $optional);
+      warn "WARNING : product $prod with version $vers cannot be found.\n" if (not $root and $debug);
    } else {
       if (! -d $prod_dir) {
 	 warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
@@ -843,6 +847,7 @@ sub read_chain_file
 sub read_version_file($$$$$)
 {
    my ($root, $fn, $prod, $flavor, $quiet) = @_;
+   my $dbdir = "$root/ups_db";
 
    if (!(open FILE,"<$fn")) {
       print STDERR "ERROR: Cannot open version file $fn\n" if ($debug >= 1);
@@ -883,19 +888,10 @@ sub read_version_file($$$$$)
    }
 
    # Now extract the prod_dir and table_file
-   my($ups_dir) = "ups";
-   my($table_dir) = "ups";
    my($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
    my($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-
-   if ($table_file ne "$prod.table" && $table_file !~ /^none$/i) {
-      my $otable_file = $table_file;
-      $table_file = "$prod.table";
-
-      if ($debug > 1) {
-	 warn "WARNING: table file name $otable_file is invalid; using $table_file\n";
-      }
-   }
+   my($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
+   $ups_dir = "ups" if (not $ups_dir);
 
    # Does the product directory have an environment variable set in it?
    @env = $prod_dir =~ m/\$\{(.+?)\}/g;
@@ -908,12 +904,20 @@ sub read_version_file($$$$$)
       $prod_dir = catfile($root,$prod_dir);
    }
    
+   # Disgustingly specific interpolation. Do this after we have nailed down $prod_dir. 
+   $ups_dir =~ s/\$UPS_DB/$dbdir/g;
+   $ups_dir =~ s/\$PROD_DIR/$prod_dir/g;
+   
    if (!($ups_dir =~ m"^/")) {
       $ups_dir = catfile($prod_dir,$ups_dir);
    }
    
    if ($table_file !~ /^none$/i) {
       $table_file = catfile($ups_dir,$table_file);
+   }
+
+   if ($table_file !~ /^none$/i and not -r $table_file) {
+       warn "ERROR: table file $table_file is invalid or unreadable\n";
    }
 
    return ($prod_dir, $table_file);
