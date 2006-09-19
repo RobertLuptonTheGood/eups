@@ -56,11 +56,26 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 					[$2])"
 	                   AC_MSG_NOTICE(Setting flavor to $eups_flavor))
 	AC_SUBST(eups_flavor)
+	AC_ARG_WITH(eups-db,
+	   [AS_HELP_STRING(--with-eups-db=name,Select directory containing NAME from $EUPS_PATH)],
+	   [eups_db=$withval])
 	AC_ARG_WITH(eups,
 	   [AS_HELP_STRING(--with-eups=DIR,Use DIR as base for installation directories)],
 	   [prefix=$withval],
 	   [if [[ X"$EUPS_PATH" != X"" ]]; then
-	       prefix=$(echo $EUPS_PATH | perl -pe 's/:.*//')
+	       if [[ X"$eups_db" = X"" ]]; then
+		       prefix=$(echo $EUPS_PATH | perl -pe 's/:.*//')
+	       else
+		       for d in $(echo $EUPS_PATH | perl -pe 's/:/\n/g'); do
+			       case $d in
+				  */$eups_db$|$eups_db/*|*/$eups_db/*)
+				       prefix=$d
+			       esac
+		       done			
+		       if [[ X"$prefix" = X"NONE" ]]; then
+			      AC_MSG_ERROR([I can't find DB $eups_db in $EUPS_PATH])
+		       fi
+		fi
 	    fi])
 	   if [[ X"$prefix" != X"NONE" ]]; then
 	   	   prefix=$prefix/$eups_flavor/eups_product/$(echo eups_version | perl -pe 's/\./_/g')
