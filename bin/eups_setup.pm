@@ -1075,7 +1075,7 @@ sub eups_show_options
        -h => "Print this help message",
        -c => "[Un]declare this product current, or show current version",
        -d => "Print product directory to stderr",
-       -f => "Use this flavor (default: \$EUPS_FLAVOR)",
+       -f => "Use this flavor (default: \`eups_flavor\` or \$EUPS_FLAVOR)",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
