@@ -240,15 +240,17 @@ that you wanted to use it.
 How did your \file{configure.ac} file achieve this magic?
 
 \begin{itemize}
-  \item{\code{AC\_INIT}
+  \item{\code{AC\_INIT}}
 
     This is a standard autoconf line, but with an invalid version name (\code{X.Y}).
 
   \item{\code{AC\_DEFINE\_ROOT}}
 
-    Define the \code{configure} options \code{--with-eups=path}} and \code{--with-flavor=XXX}.
-    The version comes from the \code{\${Name}: v2\_4 \$} --- if the \code{v2\_4} were
-    absent the value \code{cvs} would have been used instead.
+    Define the \code{configure} options \code{--with-eups=path},
+    \code{--with-eups-db=DB}, and \code{--with-flavor=XXX}. The
+    version comes from the \code{\${Name}: v2\_4 \$} --- if the
+    \code{v2\_4} were absent the value \code{cvs} would have been used
+    instead.
 
   \item\code{AC\_PROG\_CC(cc)}
 
@@ -365,7 +367,7 @@ Declares \code{version} of \code{product} into the database given by \code{\$EUP
 The product root directory is where the product has been installed, and can either
 be an absolute pathname or specified relative to \code{\$EUPS\_PATH}.
 
-The flavor is usually determined by the value of \code{\$EUPS\_DIR/bin/eups\_flavor},
+The flavor is usually determined by the command \code{\$EUPS\_DIR/bin/eups\_flavor},
 but may be set using the
 environment variable \code{\$EUPS\_FLAVOR}, or \code{-f} (which has the highest
 precedence).  The \code{eups\_flavor} is basically the value of the system \code{uname}
@@ -401,7 +403,7 @@ Usage:
 Options:
         -h, --help      Print this help message
         -c, --current   Make no version of product current
-        -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
+        -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products directory (default: $EUPS_PATH)
@@ -412,9 +414,10 @@ Options:
 Undeclares \code{version} of \code{product} from the database. Also
 removes any declarations of this version from \code{current.chain}; if
 you just want to stop any version from being declared current, use
-\code{--current}. The flavor is usually determined from the
-environment variable \code{\$EUPS\_FLAVOR}, but \code{-f} overrides
-this. 
+\code{--current}. The flavor is usually determined from the value
+of `eups\_flavor`, but can be set by the
+environment variable \code{\$EUPS\_FLAVOR}; \code{-f} overrides
+both of these.
 
 The database used is the first element in the environment
 variable \code{EUPS\_PATH}. That path list can also be specified or
@@ -433,7 +436,7 @@ Options:
         -h, --help      Print this help message
         -c, --current   Show current version
 	-d  --directory Print product directory to stderr
-        -f, --flavor    Use this flavor (default: $EUPS_FLAVOR)
+        -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -l, --list      List available versions (-v => include root directories)
         -n              Don't actually do anything
         -q, --quiet     Be extra quiet (the opposite of -v)
@@ -511,7 +514,7 @@ Required variables -
     Where \eups{} is installed.
 
   \item \code{EUPS\_PATH}
-    The root directories under which all products are installed.
+    The colon-separated path of root directories under which all products are installed.
     Each root directory has a UPS database in a top-level \code{ups\_db} directory.
 \end{itemize}
 
@@ -519,7 +522,8 @@ Optional Variables -
 
 \begin{itemize}
   \item \code{EUPS\_FLAVOR}
-    Set to the default flavor.
+    Set to the default flavor (if not set \eups{} will use the value returned
+    by \code{eups\_flavor}).
 
   \item \code{EUPS\_DEBUG}
     This sets the verbosity; equal to the difference between the number of \code{-v}s
@@ -649,11 +653,22 @@ variables are defined;
     Define the \code{configure} options
     \begin{itemize}
       \item{\code{--with-eups=path}}
-        Specify the value of \code{EUPS\_PATH}
-        (default: \code{\$EUPS\_PATH} if set, or \code{\$prefix/share}).
-      \item{\code{--with-flavor=XXX}}
+        Specify the value of \code{EUPS\_PATH} and the prefix
+        (defaults: \code{\$EUPS\_PATH} if set, or \code{\$prefix/share}. The
+	prefix is taken to be the first component of the prefix, unless
+	\code{--with-eups-db} is specified.
+
+	\item{\code{--with-eups-db=DB}}
+	  Select which component of the path is the prefix (just like setup's \code{-z}).
+	  For example, if \code{EUPS\_PATH} is
+    \code{/u/dss/products:/u/act/products} then the default prefix is
+    \code{/u/dss/products}, but with \code{\--with-eups-db=act} the
+    prefix becomes \code{/u/act/products}.
+    
+	\item{\code{--with-flavor=XXX}}
         Set the value of \code{EUPS\_FLAVOR}
-        (default: flavor, or, failing that, the value of eups\_flavor and, failing \textbf{that}, uname).
+        (default: \code{\$EUPS\_FLAVOR}, or the value returned by \code{eups\_flavor}
+	or, failing \textbf{that}, uname).
     \end{itemize}
 \end{itemize}
 
