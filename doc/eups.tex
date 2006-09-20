@@ -1,5 +1,6 @@
 \documentclass{article}
 \ExecuteOptions{dvips,color}
+\usepackage{fullpage}
 %
 \newcommand{\XXX}[1]{\textbf{XXX} #1}
 \newcommand{\code}[1]{\texttt{#1}}
@@ -133,7 +134,7 @@ the \code{declare} command,
 \end{itemize}
 
 If I now say \code{setup photo v5\_4\_25}, \eups{} will look for
-a table file in the directory \code{/u/products/Darwin/photo/v5\_4\_25/ups},
+a table file in the directory\hfil\break \code{/u/products/Darwin/photo/v5\_4\_25/ups},
 and obey whatever instructions it finds there.  For example,
 I will find that
 \code{PHOTO\_DIR} is set to \code{/u/products/Darwin/photo/v5\_4\_25}. If,
@@ -352,6 +353,7 @@ Options:
                         to redeclare a product
         -f, --flavor    Use this flavor
                         (default: $EUPS_FLAVOR or `eups_flavor`)
+        -M filename     Specify a non-standard location for table file
         -m              Use this table file (may be "none")
                         (default: product.table)
         -r, --root      Location of product being declared
@@ -396,6 +398,18 @@ only updates the current.chain.
 
 %------------------------------------------------------------------------------
 
+  \item \code{eups\_flavor}
+\begin{verbatim}
+Usage:
+   eups_flavor
+\end{verbatim}
+  
+Print your machine/operating system's flavor.  In simple cases, this'll
+be the same as \code{uname -m}, but in reality it has to worry about things
+like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
+
+%------------------------------------------------------------------------------
+
   \item \code{eups\_undeclare}
 \begin{verbatim}
 Usage:
@@ -435,7 +449,7 @@ Usage:
 Options:
         -h, --help      Print this help message
         -c, --current   Show current version
-	-d  --directory Print product directory to stderr
+        -d  --directory Print product directory to stderr
         -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -l, --list      List available versions (-v => include root directories)
         -n              Don't actually do anything
@@ -496,7 +510,7 @@ The same as the standard \code{pkg-config} command, except that it
 searches \code{\$PRODUCT\_DIR/etc} for the \code{.pc} file.  It also
 works around the problem that quoted variables \code{\$\$\{...\}}
 in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\footnote{
-  Yes; I have filed a bug report.}
+  Yes; I filed a Debian bug report (378570) and it's fixed in the next release, 0.21-1}
 
 \end{itemize}
 
@@ -734,7 +748,7 @@ make install
 \end{verbatim}
 you can say
 \begin{verbatim}
-make install EUPS\_PATH=/foo/bar/share
+make install EUPS_PATH=/foo/bar/share
 \end{verbatim}
 \code{make install prefix=...} also works as an alternative to \code{--prefix=...}.
 Note that \code{prefix} is ignored if you've set \code{EUPS\_PATH} either explicitly
