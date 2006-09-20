@@ -609,7 +609,7 @@ sub eups_setup {
       ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor);
       if (not $root) {
 	 if ($optional) {
-	    warn "WARNING : product $prod with version $ivers cannot be found.\n" if ($debug);
+	    warn "WARNING : product $prod with version $ivers cannot be found.\n" if ($debug > 1);
 	 } else {
 	    warn "ERROR : product $prod with version $ivers cannot be found.\n";
 	    return -1;
@@ -742,9 +742,11 @@ sub eups_list {
        foreach $prod (@products) {
 	   $fn = catfile($db,$prod,"current.chain");
 	   if (-e $fn) {
-	       $current_vers = read_chain_file($fn, $flavor, $quiet);
+	       $current_vers = read_chain_file($fn, $flavor, 1);
+	   } else {
+	      $current_vers = "";
 	   }
-	   if($current && !defined($current_vers)) {
+	   if($current && $current_vers) {
 	       if (@products == 1) {
 		   warn "No version is declared current\n";
 		   return;
@@ -762,7 +764,7 @@ sub eups_list {
 	       }
 	       
 	       $info = "";
-	       if (defined($current_vers) && $vers eq $current_vers) {
+	       if ($current_vers && $vers eq $current_vers) {
 		   $info .= " Current";
 	       } elsif($current) {
 		   next;
