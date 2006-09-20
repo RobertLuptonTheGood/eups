@@ -616,7 +616,7 @@ sub eups_setup {
 
       # In case anyone cares which root -r shadows, try to find a matching version.
       ($Xroot, $Xprod_dir, $Xvers, $Xtable_file) = find_best_version(@roots, $prod, $vers, $flavor);
-      if (not $root) {
+      if (not $Xroot) {
 	  $root = $roots[0];
       } else {
 	  $vers = $Xvers;
