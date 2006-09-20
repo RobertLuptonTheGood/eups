@@ -492,18 +492,22 @@ sub find_best_version(\@$$$) {
 	foreach $root (@{$roots}) {
 	    $fn = catfile($root,'ups_db',$prod,"current.chain");
 	    if (-e $fn) {
-		$vers = read_chain_file($fn, $flavor, $optional);
+		$vers = read_chain_file($fn, $flavor, $optional || $debug <= 1);
 	    
 		if ($vers eq "") {
-		    print STDERR "ERROR: No version found in chain file $fn\n" if ($debug >= 1 + $optional);
-		    return undef, undef, undef, undef;
+		   print STDERR "ERROR: No version found in chain file $fn for flavor $flavor\n" if ($debug >= 2 + $optional);
+		   if(0) {
+		      return undef, undef, undef, undef;
+		   } else {
+		      next;
+		   }
 		}
 		$matchroot = $root;
 		last;
 	    }
 	}
 	if ($vers eq "") {
-	    print STDERR "ERROR: No version of product $prod has been declared current\n"
+	    print STDERR "ERROR: No version of product $prod has been declared current for flavor $flavor\n"
 		if ($debug >= 1 + $optional);
 	    return undef, undef, undef, undef;
 	}
