@@ -605,9 +605,16 @@ sub eups_setup {
       #Determine version - check to see if already defined, otherwise
       #determine it from current.chain
       #Also construct the full version file and check if it exists.
+      my($ivers) = $vers;
       ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor);
-      die "ERROR : product $prod with version $vers cannot be found.\n" if (not $root and not $optional);
-      warn "WARNING : product $prod with version $vers cannot be found.\n" if (not $root and $debug);
+      if (not $root) {
+	 if ($optional) {
+	    warn "WARNING : product $prod with version $ivers cannot be found.\n" if ($debug);
+	 } else {
+	    warn "ERROR : product $prod with version $ivers cannot be found.\n";
+	    return -1;
+	 }
+      }
    } else {
       if (! -d $prod_dir) {
 	 warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
