@@ -164,7 +164,8 @@ if (defined($ourgroup)) {
     if (($tablepath) = ($group[$ourgroup] =~ m/$pattern/gsi)) {
 	$tablepath =~ s/\${?UPS_DB}?/$db/g;
 	$tablepath = catfile($tablepath, "$vers.table");
-	warn "INFO : would delete internal table file $tablepath if I had the courage"
+	warn "INFO : deleting internal table file $tablepath" if ($debug);
+	unlink($tablepath) or warn "WARNING : failed to delete internal table file $tablepath";
     }
 }
 
