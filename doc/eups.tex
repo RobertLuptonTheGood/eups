@@ -356,6 +356,8 @@ Options:
         -M filename     Specify a non-standard location for table file
         -m              Use this table file (may be "none")
                         (default: product.table)
+        -M              Import the given file (may be \"-\" for stdin)
+                        into the database as the table file
         -r, --root      Location of product being declared
         -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
@@ -385,6 +387,11 @@ yield \code{/home/proj2/eups}).
 
 The \code{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
+
+The \code{-M} option specifies a file which will be copied into the
+database as a table file. This lets you avoid putting EUPS data
+into products. You can pipe the table file to \{eups_declare} by
+specifying \code{-} as the filename.
 
 If you omit the \code{-r dir}, \eups{} will attempt to guess it for you based
 on your products directory, flavor, product and version; alternatively,

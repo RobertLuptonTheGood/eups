@@ -1112,6 +1112,7 @@ sub eups_show_options
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use this table file (may be \"none\") (default: product.table)",
+       -M => "Import the given file (may be \"-\" for stdin) into the database as the table file.",
        -q => "Be extra quiet (the opposite of -v)",
        -r => "Location of product being declared",
        -s => "Show which version is setup",
