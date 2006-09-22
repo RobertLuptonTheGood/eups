@@ -446,6 +446,7 @@ sub eups_unsetup {
       print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
       return -1;
    }
+   # Not necessarily correct anymore.
    $ups_dir = catfile($prod_dir,"ups");
 
    # Now construct the version file's name, then read and parse it
@@ -456,7 +457,7 @@ sub eups_unsetup {
       }
    } else {
       $fn = catfile($db,$prod,"$vers.version");
-      ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 0);
+      ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 1, 0);
       if (not $prod_dir) {
 	 return -1;
       }
@@ -530,7 +531,7 @@ sub find_best_version(\@$$$) {
 
     # Now construct the version file's name, then read and parse it
     $fn = catfile($matchdb,$prod,"$vers.version");
-    my ($prod_dir, $table_file) = read_version_file($matchroot, $fn, $prod, $flavor, 0);
+    my ($prod_dir, $table_file) = read_version_file($matchroot, $fn, $prod, $flavor, 0, 0);
     if (not $prod_dir) {
 	return undef, undef, undef, undef;
     }
@@ -691,7 +692,7 @@ sub eups_find_prod_dir {
    
    $fn = catfile($root,'ups_db',$prod,"$vers.version");
 
-   my ($prod_dir, $table_file) = read_version_file($root,$fn, $prod, $flavor, 0);
+   my ($prod_dir, $table_file) = read_version_file($root,$fn, $prod, $flavor, 0, 0);
    return $prod_dir;
 }
 
@@ -762,7 +763,7 @@ sub eups_list {
 	   foreach $file (glob(catfile($db,$prod,"*.version"))) {
 	       ($vers = basename($file)) =~ s/\.version$//;
 	       
-	       my ($prod_dir, $table_file) = read_version_file($root, $file, $prod, $flavor, 1);
+	       my ($prod_dir, $table_file) = read_version_file($root, $file, $prod, $flavor, 0, 1);
 	       if (not $prod_dir) {
 		   next;
 	       }
@@ -857,9 +858,9 @@ sub read_chain_file
 ###############################################################################
 # read in the version file and start to parse it
 #
-sub read_version_file($$$$$)
+sub read_version_file($$$$$$)
 {
-   my ($root, $fn, $prod, $flavor, $quiet) = @_;
+   my ($root, $fn, $prod, $flavor, $useenv, $quiet) = @_;
    my $dbdir = "$root/ups_db";
 
    if (!(open FILE,"<$fn")) {
@@ -912,11 +913,20 @@ sub read_version_file($$$$$)
       $val = $ENV{"$env[$i]"};
       $prod_dir =~ s/\$\{$env[$i]\}/$val/g;
    }
-   
    if (!($prod_dir =~ m"^/")) {
       $prod_dir = catfile($root,$prod_dir);
    }
    
+   # Should we overwrite anything we have learnt about $proddir
+   # from the PROD_DIR environment variable?
+   if ($useenv) {
+       my $proddir_envname = uc($prod) . "_DIR";
+       if ($ENV{$proddir_envname}) {
+	   $prod_dir = $ENV{$proddir_envname};
+	   warn "INFO : using PROD_DIR from the environment ($prod_dir)" if ($debug);
+       }
+   }
+
    # Disgustingly specific interpolation. Do this after we have nailed down $prod_dir. 
    $ups_dir =~ s/\$UPS_DB/$dbdir/g;
    $ups_dir =~ s/\$PROD_DIR/$prod_dir/g;
