@@ -923,7 +923,7 @@ sub read_version_file($$$$$$)
        my $proddir_envname = uc($prod) . "_DIR";
        if ($ENV{$proddir_envname}) {
 	   $prod_dir = $ENV{$proddir_envname};
-	   warn "INFO : using PROD_DIR from the environment ($prod_dir)" if ($debug);
+	   warn "INFO : using PROD_DIR from the environment ($prod_dir)" if ($debug > 1);
        }
    }
 
