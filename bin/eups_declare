@@ -196,7 +196,18 @@ if ($prodfound) {
     }
 }
 
-# Check to see if a product dirctory exists in the database
+#
+# If the product's already setup and they are now declaring in a
+# different DB it's probably an error; generate a warning
+#
+if (defined($ENV{uc($prod) . "_DIR"})) {
+   my($proddir) = $ENV{uc($prod) . "_DIR"};
+   if ($proddir !~ $dbroot) {
+      warn "WARNING: You are declaring in $dbroot but you have $proddir setup\n";
+   }
+}
+
+# Check to see if a product directory exists in the database
 # create if not.
 my $db = catfile($dbroot, 'ups_db');
 $dbprod = catfile($db,$prod);
