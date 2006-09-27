@@ -201,8 +201,17 @@ if ($prodfound) {
 #
 if (defined($ENV{uc($prod) . "_DIR"})) {
    my($proddir) = $ENV{uc($prod) . "_DIR"};
-   if ($proddir !~ $dbroot) {
-      warn "WARNING: You are declaring in $dbroot but you have $proddir setup\n";
+   if ($proddir !~ $dbroot) {	# maybe it's a private -r setup?
+      my($official_product) = 0;
+      foreach $dbr (@dbroots) {
+	 if ($proddir =~ /^$dbr/) {
+	    $official_product = 1;
+	    last;
+	 }
+      }
+      if ($official_product) {
+	 warn "WARNING: You are declaring in $dbroot but you have $proddir setup\n";
+      }
    }
 }
 
