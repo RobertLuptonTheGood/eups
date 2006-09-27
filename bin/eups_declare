@@ -179,8 +179,7 @@ if ($prodfound) {
     }
 } else {
     foreach $dbr (@dbroots) {
-	if (substr($prodroot, 0, length($dbr)) == $dbr) {
-	    $prodroot =~ s|$dbr/*||;
+	if ($prodroot =~ s|^$dbr/*||) {
 	    $foundroot = 1;
 
 	    # Fixup db to match. If -z or -Z was specified this should still
@@ -267,7 +266,7 @@ if (not -e $fn or $doredeclare) {
 	warn "INFO : modifying version file $fn for $prod $vers (flavor: $flavor)\n" if ($debug);
 	die "ERROR opening file $fn\n" if (!(open FILE, ">>$fn"));
     } else {
-	warn "INFO : creating version file $fn for $prod $vers (flavor: $flavor)\n" if ($debug);
+	warn "INFO : creating version file $fn for $prod $vers (flavor: $flavor, db: $dbroot)\n" if ($debug);
 	die "ERROR creating file $fn\n" if (!(open FILE, ">$fn"));
 	print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
     }
