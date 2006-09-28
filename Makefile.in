@@ -14,7 +14,7 @@ EUPS_DB = $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d/
 #
 export prefix EUPS_PATH EUPS_DIR
 #
-SUBDIRS = bin doc etc
+SUBDIRS = bin doc etc ups
 
 .PHONY : show install clean
 install : show
