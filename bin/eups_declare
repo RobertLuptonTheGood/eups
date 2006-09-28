@@ -109,7 +109,7 @@ die "ERROR : No version specified\n" if ($vers eq "");
 my @dbroots = eups_find_roots();
 my ($dbroot, $prodroot, $Xversion, $Xtablefile) = find_best_version(@dbroots, $prod, $vers, $flavor);
 if (not $dbroot) {
-    my $dbroot = $dbroots[0];		# Just use the first one.
+    $dbroot = $dbroots[0];		# Just use the first one.
 }
 my ($prodfound) = $prodroot;
 
@@ -221,7 +221,7 @@ my $db = catfile($dbroot, 'ups_db');
 $dbprod = catfile($db,$prod);
 if (!(-d $dbprod)) {
     $retval = mkdir $dbprod;
-    die "ERROR : Unable to create entry in database $fn\n" if (!($retval));
+    die "ERROR : Unable to create entry in database $dbroot ($!)\n" if (!($retval));
 }
 
 $fn = catfile($db,$prod,"$vers.version");
