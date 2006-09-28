@@ -91,7 +91,7 @@ sub addAlias {
 	print $outfile "alias $name \'$value\'\n";
     }
     if ($shell eq "sh") {
-	print $outfile "function $name \{ $value \; \} \n";
+	print $outfile "function $name \{ $value \; \}; export -f $name\n";
     }
 }
 
@@ -106,7 +106,7 @@ sub unAlias {
         print $outfile "unalias $name\n";
     }
     if ($shell eq "sh") {
-        print $outfile "unfunction $name\n";
+        print $outfile "unset $name\n";
     }
 }
 
@@ -170,7 +170,9 @@ sub envRemove {
 sub envUnset {
     our $outfile;
     my $var = $_[0];
-    delete $ENV{$var};
+    if ($var !~ /^EUPS_(DIR|PATH)$/) {
+       delete $ENV{$var};
+    }
 }
 
 sub extract_table_commands {
@@ -936,7 +938,7 @@ sub read_version_file($$$$$$)
        my $proddir_envname = uc($prod) . "_DIR";
        if ($ENV{$proddir_envname}) {
 	   $prod_dir = $ENV{$proddir_envname};
-	   warn "INFO : using PROD_DIR from the environment ($prod_dir)" if ($debug > 1);
+	   warn "INFO : using PROD_DIR from the environment ($prod_dir)\n" if ($debug > 1);
        }
    }
 
