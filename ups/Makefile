@@ -2,7 +2,7 @@ all :
 	@: no default actions
 
 install :
-	cp eups.table $(UPSDIR)
+	cp eups.table $(EUPS_DIR)/ups
 
 clean:
 	$(RM) *~ core*
