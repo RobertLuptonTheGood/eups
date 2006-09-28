@@ -100,6 +100,7 @@ multiple versions.
 \section{Declaring Products and Versions}
 
 Whence came \code{PHOTO\_DIR} in the example? From a command of the form
+\footnote{Actually, a simple \code{eups\_declare photo v5\_4\_25} would suffice}
 \begin{verbatim}
 eups_declare photo v5_4_25 -f Darwin -r /u/products/Darwin/photo/v5_4_25
 \end{verbatim}
@@ -353,11 +354,10 @@ Options:
                         to redeclare a product
         -f, --flavor    Use this flavor
                         (default: $EUPS_FLAVOR or `eups_flavor`)
-        -M filename     Specify a non-standard location for table file
-        -m              Use this table file (may be "none")
-                        (default: product.table)
         -M              Import the given file (may be \"-\" for stdin)
                         into the database as the table file
+        -m              Use this table file (may be "none")
+                        (default: product.table)
         -r, --root      Location of product being declared
         -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
@@ -378,19 +378,24 @@ precedence).  The \code{eups\_flavor} is basically the value of the system \code
 command, but with a little more information where it's important (e.g. Linux boxes
 can have flavor \code{Linux} or \code{Linux64}).
 
-The database used is the first element in the environment
-variable \code{EUPS\_PATH}. That path list can also be specified or
-overwritten with the \code{-Z} option. And if the \code{-z} option is
-used, it selects the paths in the list which have a matching directory
-name. (e.g. \code{-Z /home/proj1/eups:/home/proj2/eups -z proj2} would
-yield \code{/home/proj2/eups}).
+The \code{eups\_declare} command has to decide which database in the environment
+variable\code{EUPS\_PATH}
+to use.  If the product's already declared, use the database it's in (this is usually
+only relevant when you're declaring a product current).  Otherwise, if the specified root
+lies within a database in \code{EUPS\_PATH}, use that database; as a last resort use
+the database that's listed first in \code{EUPS\_PATH}.
+
+The desired database can also be specified
+explicitly with the \code{-Z} option (which overrides \code{EUPS\_PATH}), or by using \code{-z}
+to specify a path component; e.g.
+\code{-Z /home/proj1/eups:/home/proj2/eups -z proj2} would select \code{/home/proj2/eups}.
 
 The \code{-m} option specifies the table
 file to be used (either in the database, or in the ups directory of the product).
 
 The \code{-M} option specifies a file which will be copied into the
 database as a table file. This lets you avoid putting EUPS data
-into products. You can pipe the table file to \{eups_declare} by
+into products. You can pipe the table file to \code{eups\_declare} by
 specifying \code{-} as the filename.
 
 If you omit the \code{-r dir}, \eups{} will attempt to guess it for you based
@@ -456,7 +461,7 @@ Usage:
 Options:
         -h, --help      Print this help message
         -c, --current   Show current version
-        -d  --directory Print product directory to stderr
+        -d  --directory Print product directory to stderr (useful with -s)
         -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -l, --list      List available versions (-v => include root directories)
         -n              Don't actually do anything
@@ -597,7 +602,12 @@ alias or an environment variable - clear from the context.)
 
 \begin{itemize}
    \item \code{addAlias($<$NAME$>$,$<$Value$>$)}
-     Defines a function or an alias.
+     Defines a function or an alias.  Arguments should be written in
+     sh format (i.e. \code{\$@} not \code{$\backslash$!*}); don't worry,
+     the csh alias will be defined correctly.  E.g.
+     \begin{verbatim}
+     addAlias(foo, source `${PRODUCT_DIR}/bin/eups_setup setup $@`;);
+     \end{verbatim}
     
    \item \code{envAppend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
      Appends $<$Value$>$ to $<$NAME$>$. The default delimiter is `:'.
