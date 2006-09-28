@@ -86,8 +86,9 @@ sub addAlias {
     $shell = "csh" if ($shell eq "tcsh");
     my $name = $_[0];
     my $value = $_[1];
-    if ($shell eq "csh") { 
-	print $outfile "alias $name \"$value\"\n";
+    if ($shell eq "csh") {
+       $value =~ s/\$@/\\\!\*/g;
+	print $outfile "alias $name \'$value\'\n";
     }
     if ($shell eq "sh") {
 	print $outfile "function $name \{ $value \; \} \n";
@@ -563,9 +564,13 @@ sub eups_setup {
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
-   $prod = $args[0];
+   $prod = $args[0]; shift(@args);
    # Extract version info if any
-   $vers = $args[1]; 
+   $vers = $args[0]; shift(@args);
+   
+   if ($args[0]) {
+      warn "WARNING: ignoring extra arguments: @args\n";
+   }
    if ($prod eq "") {
       print STDERR  "ERROR: Product not specified\n";
       print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-Z <path>]\n";
@@ -709,7 +714,11 @@ sub eups_list {
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
-   $prod = $args[0];
+   $prod = $args[0]; shift(@args);
+   my($version) = $args[0]; shift(@args);
+   if ($args[0]) {
+      warn "WARNING: ignoring extra arguments: @args\n";
+   }
 
 #Determine flavor - first see if specified on command line
 #else get it from the environment EUPS_FLAVOR
@@ -762,6 +771,10 @@ sub eups_list {
 	   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
 	   foreach $file (glob(catfile($db,$prod,"*.version"))) {
 	       ($vers = basename($file)) =~ s/\.version$//;
+
+	       if ($version and $version ne $vers) {
+		  next;
+	       }
 	       
 	       my ($prod_dir, $table_file) = read_version_file($root, $file, $prod, $flavor, 0, 1);
 	       if (not $prod_dir) {
@@ -1116,7 +1129,7 @@ sub eups_show_options
    my $strings = {
        -h => "Print this help message",
        -c => "[Un]declare this product current, or show current version",
-       -d => "Print product directory to stderr",
+       -d => "Print product directory to stderr (useful with -s)",
        -f => "Use this flavor (default: \`eups_flavor\` or \$EUPS_FLAVOR)",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
