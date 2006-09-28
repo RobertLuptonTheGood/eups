@@ -2,7 +2,7 @@ all :
 	@: no default actions
 
 install :
-	cp moby.table $(UPSDIR)
+	cp eups.table $(UPSDIR)
 
 clean:
 	$(RM) *~ core*
