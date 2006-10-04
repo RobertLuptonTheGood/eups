@@ -123,10 +123,10 @@ for line in product_list:
             continue
         
         tarball = "%s-%s.tar.gz" % (product, version)
-        if verbose:
-            print >> sys.stderr, "Writing", tarball
             
-        if force or not os.access(tarball, os.R_OK):
+        if force or not os.access("%s/%s" % (package_base, tarball), os.R_OK):
+            if verbose:
+                print >> sys.stderr, "Writing", tarball
             try:
                 os.system("cd %s && tar -cf - %s | gzip > %s/%s" % \
                           (basedir, product_dir, package_base, tarball))
@@ -142,6 +142,8 @@ for line in product_list:
 # Time to write enough information to declare the products
 #
 manifest = "%s/%s-%s.manifest" % (package_base, top_product, top_version)
+if verbose:
+    print >> sys.stderr, "Manifest is", manifest
 try:
     ofd = open(manifest, "w")
 except:
@@ -150,7 +152,6 @@ except:
     
 for p in products:
     (product, flavor, version, pdb, pdir, tarball) = p
-    print p
     print >> ofd, str.join("\t", [product, flavor, version, tarball])
         
 
