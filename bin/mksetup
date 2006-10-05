@@ -47,6 +47,8 @@ endif
 
 setenv EUPS_DIR $eupsdir
 setenv EUPS_PATH $prefix
+# Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
+setenv SETUP_EUPS "eups"
 # Deprecated variables
 unsetenv PROD_DIR_PREFIX
 unsetenv PRODUCTS
@@ -67,6 +69,8 @@ fi
 
 export EUPS_DIR=$eupsdir
 export EUPS_PATH=$prefix
+# Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
+export SETUP_EUPS="eups"
 # Deprecated variables
 unset PROD_DIR_PREFIX
 unset PRODUCTS
