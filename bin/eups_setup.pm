@@ -742,12 +742,15 @@ sub eups_list {
        #
        # Did they specify a product?
        #
+       my($one_product) = 1;	# did they just ask about one product?
+
        if ($prod eq "") {
 	   if (!opendir(DB, $db)) {
 	       warn "ERROR Unable to get list of products from $db\n";
 	       return;
 	   }
 	   @products = sort(readdir DB);
+	   $one_product = 0;
 	   closedir DB;
        } else {
 	   @products = ($prod);
@@ -763,8 +766,8 @@ sub eups_list {
 	      $current_vers = "";
 	   }
 	   if($current && $current_vers) {
-	       if (@products == 1) {
-		   warn "No version is declared current\n";
+	       if (!$one_product) {
+		   warn "No version is declared current: @products\n";
 		   return;
 	       }
 	   }
