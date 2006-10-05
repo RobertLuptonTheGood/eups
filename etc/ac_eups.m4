@@ -69,11 +69,11 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 		       for d in $(echo $EUPS_PATH | perl -pe 's/:/\n/g'); do
 			       case $d in
 				  */$eups_db$|$eups_db/*|*/$eups_db/*)
-				       prefix=$d
+				       prefix=$d;;
 			       esac
 		       done			
 		       if [[ X"$prefix" = X"NONE" ]]; then
-			      AC_MSG_ERROR([I can't find DB $eups_db in $EUPS_PATH])
+			      AC_MSG_ERROR([I can't find DB \"$eups_db\" in $EUPS_PATH])
 		       fi
 		fi
 	    fi])

@@ -783,14 +783,19 @@ You can control where files are put with the following configure options:
 --prefix=PREFIX         install architecture-independent files in PREFIX
                         [default: /usr/local]
 --with-eups=PATH        Use PATH as root for installed products
+--with-eups-db=DB       Select component of path to use for EUPS_DIR;
+                        "/eups" will be appended [default: first]
 --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
 \end{verbatim}
 The difference between \code{--prefix} and \code{--with-eups}
 is that the former appends \code{/share} to the specified directory, to
 be consistent with the standard default value, \code{/usr/local}.
 
-If you omit \code{--with-eups\_dir} the first element of the \code{PATH}
-will be used, with \code{/eups} appended.
+If you don't explicitly choose a \code{EUPS\_DIR} with
+\code{--with-eups\_dir} or \code{--with-eups-db} the value from the
+environment will be adopted. If you don't have \code{EUPS\_DIR} set,
+the first component of the \code{PATH} will be used, with \code{/eups}
+appended.
   
 As an alternative to
 \begin{verbatim}

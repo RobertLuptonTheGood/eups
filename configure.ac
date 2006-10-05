@@ -1,4 +1,4 @@
-AC_INIT([eups], [X.Y], [rhl@astro.princeton.edu])
+AC_INIT([eups], "X.Y", [rhl@astro.princeton.edu])
 dnl
 dnl Protect against typos
 dnl
@@ -22,10 +22,37 @@ AC_ARG_WITH(eups,
    ])
 AC_SUBST(EUPS_PATH)
 
+AC_ARG_WITH(eups-db,
+   [AS_HELP_STRING(--with-eups-db=name,Select directory containing NAME from $EUPS_PATH)],
+   [eups_db=$withval])
+
 AC_ARG_WITH(eups_dir,
    [AS_HELP_STRING(--with-eups_dir=DIR, [Install eups into DIR/{bin,doc}])],
    [EUPS_DIR=$withval],
-   [EUPS_DIR=$(echo ${EUPS_PATH} | perl -pe 's/:.*$//')/eups])
+   [if [[ X"$eups_db" = X"" ]]; then
+      eups_dir_in_path=$(perl -e "(\$ed='$EUPS_DIR')=~s|/eups$||; @ep=split(':', '$EUPS_PATH'); print (grep(m|^\$ed\$|, @ep)) . \"\n\"")
+      if [[ X$eups_dir_in_path = X"" ]]; then
+          AC_MSG_WARN([Ignoring \$EUPS_DIR = $EUPS_DIR (not in EUPS_PATH = $EUPS_PATH)])
+	  EUPS_DIR=""         
+      fi
+      if [[ X"$EUPS_DIR" = X"" ]]; then
+         EUPS_DIR=$(echo $EUPS_PATH | perl -pe 's/:.*//')/eups
+      fi
+   else
+      OLD_EUPS_DIR=$EUPS_DIR; EUPS_DIR=NONE
+      for d in $(echo $EUPS_PATH | perl -pe 's/:/\n/g'); do
+	 case $d in
+	  */$eups_db$|$eups_db/*|*/$eups_db/*)
+	    EUPS_DIR=$d/eups;;
+	  esac
+       done			
+       if [[ X"$EUPS_DIR" = X"NONE" ]]; then
+          AC_MSG_ERROR([I can't find DB \"$eups_db\" in $EUPS_PATH])
+       fi
+       if [[ X"$OLD_EUPS_DIR" != X"$EUPS_DIR" ]]; then
+          AC_MSG_WARN([Ignoring \$EUPS_DIR = $OLD_EUPS_DIR])
+       fi       
+    fi])
 AC_SUBST(EUPS_DIR)
 dnl
 dnl Output
