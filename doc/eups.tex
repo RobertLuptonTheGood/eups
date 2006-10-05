@@ -356,7 +356,7 @@ Options:
                         (default: $EUPS_FLAVOR or `eups_flavor`)
         -M              Import the given file (may be \"-\" for stdin)
                         into the database as the table file
-        -m              Use this table file (may be "none")
+        -m, --table     Use this table file (may be "none")
                         (default: product.table)
         -r, --root      Location of product being declared
         -V, --version   Print eups version number and exit
@@ -420,6 +420,40 @@ Print your machine/operating system's flavor.  In simple cases, this'll
 be the same as \code{uname -m}, but in reality it has to worry about things
 like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 
+  
+%------------------------------------------------------------------------------
+
+  \item \code{eups\_pkg}
+\begin{verbatim}
+Usage:
+   eups_pkg [opts] product [version]
+Options:
+   -h         Print this message
+   -c         Create a package
+   -F         Force recreation of tarballs
+   -f flavor  Select a flavor (default: `eups_flavor`)
+   -i         Install a product from package
+   -n         Don't actually do anything
+   -r dir     Location of manifests and tarballs
+   -v         Be chatty
+   -z db      Select a database from $EUPS_PATH
+   -Z db      Use this directory as EUPS_PATH
+\end{verbatim}
+
+Handle the distribution of products and their dependencies as `packages'. A
+package is a set of tarballs (i.e. gzipped tar archives) and a file listing
+a products dependencies, including the names of the proper tarballs.
+
+Once you've created a package with \code{eups\_pkg -c} you can move the
+package directory to another machine and use \code{eups\_pkg -i} to
+recreate a working \eups{} installation.
+
+\begin{verbatim}
+eups_pkg -v -z act -c pslib RHL_v1_1
+configure --with-eups=/u/rhl/ppp; make install
+eups_pkg -Z /u/rhl/ppp -v -z rhl -i -r /u/act/products/packages/Darwin pslib RHL_v1_1
+\end{verbatim}
+  
 %------------------------------------------------------------------------------
 
   \item \code{eups\_undeclare}
@@ -464,6 +498,7 @@ Options:
         -d  --directory Print product directory to stderr (useful with -s)
         -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -l, --list      List available versions (-v => include root directories)
+        -m, --table     Print table file name to stderr (useful with -s)
         -n              Don't actually do anything
         -q, --quiet     Be extra quiet (the opposite of -v)
         -r, --root      Location of product being declared

@@ -15,16 +15,31 @@ def usage(msg = None):
 Usage:
    eups_pkg [opts] product [version]
 Options:
-   -h      Print this message
-   -c      Create a package
-   -f      Force recreation of tarballs
-   -i	   Install a product from package
-   -v	   Be chatty
-   -z db   Select a database from $EUPS_PATH
+   -h         Print this message
+   -c         Create a package
+   -F         Force recreation of tarballs
+   -f flavor  Select a flavor (default: `eups_flavor`)
+   -i	      Install a product from package
+   -n	      Don't actually do anything
+   -r dir     Location of manifests and tarballs
+   -v	      Be chatty
+   -z db      Select a database from $EUPS_PATH
+   -Z db      Use this directory as EUPS_PATH
 """)
 
+def manifestFile(product, version, base = None):
+    manifest = "%s-%s.manifest" % (product, version)
+    if base:
+        manifest = "%s/%s" % (base, manifest)
+
+    return manifest
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
 try:
-    (opts, args) = getopt.getopt(sys.argv[1:], "cfhivz:")
+    (opts, args) = getopt.getopt(sys.argv[1:], "cf:Fhim:nr:vZ:z:")
 except:
     print >>sys.stderr, "Error parsing arguments:", str.join(" ", sys.argv[1:])
     sys.exit(1)
@@ -36,10 +51,30 @@ if opts.has_key('-h'):
     sys.exit(0)
 
 create = opts.has_key('-c')
-force = opts.has_key('-f')
-install = opts.has_key('-i')
-verbose = opts.has_key('-v')
 
+if opts.has_key('-f'):
+    flavor = opts['-f']
+else:
+    flavor = str.split(os.popen('eups_flavor').readline(), "\n")[0]
+
+force = opts.has_key('-F')
+
+install = opts.has_key('-i')
+
+if opts.has_key('-m'):
+    manifest = opts['-m']
+
+noaction = opts.has_key('-n')
+
+if opts.has_key('-r'):
+    package_base = opts['-r']
+else:
+    package_base = None
+
+verbose = opts.has_key('-v')
+#
+# Either create or list
+#
 if create + install != 1:
     print >> sys.stderr, "Please specify exactly one of -c and -i"
     sys.exit(1)
@@ -47,8 +82,11 @@ if create + install != 1:
 try:
     top_product = args[0]
 except IndexError:
-    usage("Please specify a product")
-    sys.exit(1)
+    try:
+        manifest
+    except NameError:
+        usage("Please specify a product")
+        sys.exit(1)
 
 try:
     top_version = args[1]
@@ -57,6 +95,9 @@ except IndexError:
 #
 # Figure out which database to use
 #
+if opts.has_key('-Z'):
+    os.environ['EUPS_PATH'] = opts['-Z']
+    
 try:
     eups_path = str.split(os.environ['EUPS_PATH'], ":")
 except KeyError:
@@ -76,12 +117,31 @@ if opts.has_key('-z'):
 else:
     db = eups_path[0]
 
-if verbose:
-    print "Exporting products to", db
+if not os.path.isdir(db):
+    print >> sys.stderr, "Products directory %s doesn't exist" % db
+    sys.exit(1)
+#
+# Check that eups is installed in that db
+#
+if not os.path.isdir(db + "/ups_db"):
+    print >> sys.stderr, "Products database %s/ups_db doesn't exist; please install eups" % db
+    sys.exit(1)
+
+if not package_base:
+    package_base = str.join("/", [db, "packages", flavor])
 #
 # To work
 #
 if create:
+    if not os.path.isdir(package_base):
+        if verbose:
+            print >> sys.stderr, "Creating", package_base
+        try:
+            os.makedirs(package_base)
+        except:
+            print >> sys.stderr, "Failed to create", package_base
+            sys.exit(1)
+
     product_list = os.popen("setup -n -v %s %s 2>&1" % (top_product, top_version)).readlines()
 
     products = []
@@ -90,7 +150,7 @@ if create:
             print line
 
         if re.search("^FATAL ERROR:", line):
-            print >> sys.stderr, "Fatal error setting up %s:" % (product), \
+            print >> sys.stderr, "Fatal error setting up %s:" % (top_product), \
                   "\t".join(["\n"] + product_list),
             sys.exit(1)
 
@@ -101,11 +161,25 @@ if create:
                 print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
             try:
-                info = os.popen("setup -l -v %s %s 2>&1" % (product, version)).readlines()[0].split("\n")[0]
+                info = os.popen("setup --flavor %s --list --verbose %s %s 2>&1" % \
+                                (flavor, product, version)).readlines()[0].split("\n")[0]
                 info = re.findall(r"\S+", info)
                 (pversion, pdb, pdir) = info[0:3]
             except:
-                print >> sys.stderr, "Failed to lookup directory for", \
+                print >> sys.stderr, "WARNING: Failed to lookup directory for", \
+                      "product:", product, "  Flavor:", flavor, "  Version:", version
+                continue
+
+            try:
+                info = os.popen("setup --flavor %s --table %s %s 2>&1" % \
+                                (flavor, product, version)).readlines()[0].split("\n")[0]
+                info = re.findall(r"\S+", info)
+                (ptablefile) = info[0]
+                if ptablefile == "":
+                    ptablefile = " "
+                    
+            except:
+                print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
                       "product:", product, "  Flavor:", flavor, "  Version:", version
                 continue
 
@@ -114,22 +188,12 @@ if create:
             #
             # We have the product's directory, and which DB it's registered in
             #
-            package_base = str.join("/", [pdb, "packages", flavor])
-            if not os.path.isdir(package_base):
-                if verbose:
-                    print >> sys.stderr, "Creating", package_base
-                try:
-                    os.makedirs(package_base)
-                except:
-                    print >> sys.stderr, "Failed to create", package_base
-                    sys.exit(1)
-
             try:
                 (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
             except:
                 print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
                       % (pdir, product)
-                print >> sys.stderr, "Not creating package for %s" % (product)
+                print >> sys.stderr, "WARNING: not creating package for %s" % (product)
                 continue
 
             tarball = "%s-%s.tar.gz" % (product, version)
@@ -138,8 +202,12 @@ if create:
                 if verbose:
                     print >> sys.stderr, "Writing", tarball
                 try:
-                    os.system("cd %s && tar -cf - %s | gzip > %s/%s" % \
-                              (basedir, product_dir, package_base, tarball))
+                    if noaction:
+                        print "cd %s && tar -cf - %s | gzip > %s/%s" % \
+                                  (basedir, product_dir, package_base, tarball)
+                    else:
+                        os.system("cd %s && tar -cf - %s | gzip > %s/%s" % \
+                                  (basedir, product_dir, package_base, tarball))
                 except:
                     print >> sys.stderr, "Failed to write %s/%s" % (package_base, tarball)
                     sys.exit(1)
@@ -147,19 +215,135 @@ if create:
                 if verbose:
                     print >> sys.stderr, "Not recreating", tarball
 
-            products += [[product, flavor, version, pdb, pdir, tarball]]
+            ptablefile = os.path.basename(ptablefile)
+
+            products += [[product, flavor, version, pdb, pdir, ptablefile, tarball]]
     #
     # Time to write enough information to declare the products
     #
-    manifest = "%s/%s-%s.manifest" % (package_base, top_product, top_version)
+    try:
+        manifest
+    except:
+        manifest = manifestFile(top_product, top_version, package_base)
+        
     if verbose:
         print >> sys.stderr, "Manifest is", manifest
     try:
-        ofd = open(manifest, "w")
+        if not noaction:
+            ofd = open(manifest, "w")
     except:
         print >> sys.stderr, "Failed to open", manifest
         sys.exit(1)
 
     for p in products:
-        (product, flavor, version, pdb, pdir, tarball) = p
-        print >> ofd, str.join("\t", [product, flavor, version, tarball])
+        (product, flavor, version, pdb, pdir, ptablefile, tarball) = p
+        if not noaction:
+            print >> ofd, str.join(":", [product, flavor, version, ptablefile, tarball])
+#
+# Install a set of packages
+#
+elif install:
+    products_dir = "%s/%s" % (db, flavor)    # where to install
+    if os.path.isdir(db) and not os.path.isdir(products_dir):
+        print >> sys.stdout, "Creating %s" % (products_dir)
+        os.mkdir(products_dir)
+
+    try:
+        manifest
+    except NameError:
+        try:
+            manifest = manifestFile(top_product, top_version)
+        except NameError:
+            pass
+
+    try:
+        manifest
+    except NameError:
+        usage("Please specify a version or a manifest file with -m")
+        sys.exit(1)
+
+    if os.path.isfile(manifest):
+        mat = re.search(r"^(.*)/([^/]+)$", manifest)
+        if mat:
+            pb = mat.groups()[0]
+            if package_base and pb != package_base:
+                print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
+                      (manifest, package_base)
+            package_base = pb
+    else:
+        if not package_base:
+            package_base = "%s/packages/%s" % (db, flavor)
+        guess = "%s/%s" % (package_base, manifest)
+        if not os.path.isfile(guess):
+            guess = "%s/%s/%s" % (package_base, flavor, manifest)
+            if os.path.isfile(guess):
+                package_base += "/" + flavor
+            else:
+                print >> sys.stdout, "File %s doesn't exist, and isn't in %s" % (manifest, package_base)
+                sys.exit(1)
+        manifest = guess
+#
+# OK, we've found the manifest (phew)
+#
+    if verbose:
+        print >> sys.stderr, "Manifest is", manifest
+    try:
+        fd = open(manifest, "r")
+    except:
+        print >> sys.stderr, "Failed to open", manifest
+        sys.exit(1)
+
+    products = []
+    for line in fd:
+        line = line.split("\n")[0]
+        if re.search(r"^\s*#", line):
+            continue
+
+        try:
+            (product, flavor, version, tablefile, tarball) = re.findall(r"[^:]+", line)[0:5]
+        except:
+            print >> sys.stderr, "Failed to parse line", line,
+            sys.exit(1)
+
+        try:
+            info = os.popen("setup --list --flavor %s %s %s 2>&1" % \
+                            (flavor, product, version)).readlines()[0].split("\n")[0]
+            info = re.findall(r"\S+", info)
+        except IndexError:
+            info = []
+
+        if len(info) > 0 and not force:
+            print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
+                  (product, version, flavor)
+            continue
+        #
+        # We need to install and declare this product
+        #
+        tfile = "%s/%s" % (package_base, tarball)
+        if not os.access(tfile, os.R_OK):
+            print >> sys.stderr, "Unable to read %s" % (tfile)
+            sys.exit(1)
+
+        if verbose:
+            print >> sys.stderr, "installing %s into %s" % (tarball, products_dir)
+
+        try:
+            if noaction:
+                print "cd %s && zcat %s | tar -xf -" % (products_dir, tfile)
+            else:
+                os.system("cd %s && zcat %s | tar -xf -" % (products_dir, tfile))
+        except:
+            print >> sys.stderr, "Failed to read %s" % (tfile)
+            sys.exit(1)
+
+        try:
+            if noaction:
+                print "eups_declare --flavor %s --table %s --root %s/%s/%s" % \
+                          (flavor, tablefile, products_dir, product, version)
+            else:
+                os.system("eups_declare --flavor %s --table %s --root %s/%s/%s" % \
+                          (flavor, tablefile, products_dir, product, version))
+        except:
+            print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
+                  (product, version, flavor)
+
