@@ -711,7 +711,7 @@ sub eups_list {
    use File::Basename;
 
 # Need to extract the parameters carefully
-   local ($args,$debug,$quiet,$current, $setup, $just_directory) = @_;
+   local ($args,$debug,$quiet,$current, $setup, $just_directory, $just_tablefile) = @_;
 
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
@@ -733,8 +733,8 @@ sub eups_list {
    }					# 
 
 #Determine database
-   if ($just_directory) {
-      $printed_dir = 0;		# did I print a directory for them?
+   if ($just_directory || $just_tablefile) {
+      $printed_info = 0;	# did I print a directory/tablefile for them?
    }
    foreach $root (eups_find_roots()) {
        $db = catfile($root, 'ups_db');
@@ -804,9 +804,14 @@ sub eups_list {
 		   $info = "\t\t$info";
 	       }
 	       
-	       if ($just_directory) {
-		  $printed_dir = 1;
-		  warn "$prod_dir\n";
+	       if ($just_directory || $just_tablefile) {
+		  $printed_info = 1;
+		  if ($just_directory) {
+		     warn "$prod_dir\n";
+		  }
+		  if ($just_tablefile) {
+		     warn "$table_file\n";
+		  }
 	       } else {
 		  if(@products > 1) {
 		     printf STDERR "%-20s", $prod;
@@ -817,7 +822,7 @@ sub eups_list {
        }
    }
 
-   if ($just_directory && !$printed_dir) { # Oh dear; must have been setup -r
+   if ($just_directory && !$printed_info) { # Oh dear; must have been setup -r
       my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
       if($setup_prod_dir) {
 	 warn $setup_prod_dir . "\n";
@@ -1026,6 +1031,7 @@ sub show_product_version
 	     '--force',		'-F',
 	     '--help',		'-h',
 	     '--list'	,	'-l',
+	     '--table'	,	'-m',
 	     '--quiet',		'-q',
 	     '--root',		'-r',
 	     '--setup',		'-s',
@@ -1136,7 +1142,7 @@ sub eups_show_options
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
-       -m => "Use this table file (may be \"none\") (default: product.table)",
+       -m => "Use/print table file (may be \"none\") (default: product.table)",
        -M => "Import the given file (may be \"-\" for stdin) into the database as the table file.",
        -q => "Be extra quiet (the opposite of -v)",
        -r => "Location of product being declared",

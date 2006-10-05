@@ -95,7 +95,7 @@ sub setshell {
 #
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
-$opts = {-c => 0, -d => 0, -f => 1, -l => 0, -n => 0, -q => 0, -r => 1, -s => 0,
+$opts = {-c => 0, -d => 0, -f => 1, -l => 0, -n => 0, -m => 0, -q => 0, -r => 1, -s => 0,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -110,14 +110,20 @@ $current = defined($$options{-c}) ? 1 : 0; # Only process "current" version (def
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
 $noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
+$just_directory = 0;
+$just_tablefile = 0;
 if (defined($$options{-d})) {
    $noaction = 1;
    $just_directory = 1;
    $op = "list";
 }
+if (defined($$options{-m})) {
+   $noaction = 1;
+   $just_tablefile = 1;
+   $op = "list";
+}
 if (defined($$options{-l})) {
    $noaction = 1;
-   $just_directory = 0;
    $op = "list";
 }
 $setup = defined($$options{-s}) ? 1 : 0; # Only show setup version (default, except for -l)
@@ -172,7 +178,7 @@ if ((1 || $select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{
 # Call either setup or unsetup
 
 if ($select eq "list") {
-   eups_list($comm,$debug,0,$current,$setup,$just_directory);
+   eups_list($comm,$debug,0,$current,$setup,$just_directory,$just_tablefile);
 } else {
    if($current) {
       warn "Option --current is always assumed and may be omitted\n";
