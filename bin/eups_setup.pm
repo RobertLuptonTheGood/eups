@@ -963,11 +963,7 @@ sub read_version_file($$$$$$)
    }
 
    if ($table_file !~ /^none$/i and not -r $table_file) {
-      if (! -f $table_file) {
-	 warn "ERROR: table file $table_file is missing\n";
-      } else {
-	 warn "ERROR: table file $table_file is invalid or unreadable\n";
-      }
+      warn "ERROR: table file $table_file is invalid or unreadable (referenced in $fn)\n";
    }
 
    return ($prod_dir, $table_file);
