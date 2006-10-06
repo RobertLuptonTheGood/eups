@@ -9,6 +9,8 @@ import tempfile
 import shutil
 import urllib, urllib2
 
+eups_distrib_version = "1.0"
+
 def usage(msg = None):
     if msg:
         sys.stdout.write(msg + "\n\n")
@@ -21,10 +23,10 @@ Options:
    -c         Create a package
    -F         Force recreation of tarballs
    -f flavor  Select a flavor (default: `eups_flavor`)
-   -i	      Install a product from package
    -n	      Don't actually do anything
    -r dir     Location of manifests and tarballs
    -v	      Be chatty
+   -x         Extract and install a product from package
    -z db      Select a database from $EUPS_PATH
    -Z db      Use this directory as EUPS_PATH
 """)
@@ -59,8 +61,7 @@ def urlretrieve(file):
 #
 # Deal with arguments
 #
-try:
-    (opts, args) = getopt.getopt(sys.argv[1:], "cf:Fhim:nr:vZ:z:")
+try: (opts, args) = getopt.getopt(sys.argv[1:], "cf:Fhm:nr:vxZ:z:")
 except:
     print >>sys.stderr, "Error parsing arguments:", str.join(" ", sys.argv[1:])
     sys.exit(1)
@@ -80,7 +81,7 @@ else:
 
 force = opts.has_key('-F')
 
-install = opts.has_key('-i')
+extract = opts.has_key('-x')
 
 if opts.has_key('-m'):
     manifest = opts['-m']
@@ -91,7 +92,7 @@ url = None                              # retrieve tarballs from a url?
 if opts.has_key('-r'):
     package_base = opts['-r']
 
-    if install and re.search(r"^http://", package_base):
+    if extract and re.search(r"^http://", package_base):
         url = True
 else:
     package_base = None
@@ -100,7 +101,7 @@ verbose = opts.has_key('-v')
 #
 # Either create or list
 #
-if create + install != 1:
+if create + extract != 1:
     print >> sys.stderr, "Please specify exactly one of -c and -i"
     sys.exit(1)
 
@@ -268,6 +269,8 @@ if create:
         print >> sys.stderr, "Failed to open", manifest
         sys.exit(1)
 
+    print >> ofd, "EUPS distribution manifest for %s (%s). Version %s" % \
+          (top_product, top_version, eups_distrib_version)
     for p in products:
         (product, flavor, version, pdb, pdir, ptablefile, tarball) = p
         if not noaction:
@@ -275,7 +278,7 @@ if create:
 #
 # Install a set of packages
 #
-elif install:
+elif extract:
     products_dir = "%s/%s" % (db, flavor)    # where to install
     if os.path.isdir(db) and not os.path.isdir(products_dir):
         print >> sys.stdout, "Creating %s" % (products_dir)
@@ -341,6 +344,15 @@ elif install:
     except:
         print >> sys.stderr, "Failed to open", manifest
         sys.exit(1)
+
+    line = fd.readline()
+    mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
+    if not mat:
+        print >> sys.stderr, "First line of manifest is corrupted:\n\t%s" % (line),
+        sys.exit(1)
+    version = mat.groups()[2]
+    if version != eups_distrib_version:
+        print >> sys.stderr, "WARNING. Saw version %s; expected %s", version, eups_distrib_version
 
     products = []
     for line in fd:
@@ -408,4 +420,3 @@ elif install:
         except:
             print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
                   (product, version, flavor)
-

@@ -431,10 +431,10 @@ Options:
    -c         Create a package
    -F         Force recreation of tarballs
    -f flavor  Select a flavor (default: `eups_flavor`)
-   -i         Install a product from package
    -n         Don't actually do anything
    -r dir     Location of manifests and tarballs (may be URL)
    -v         Be chatty
+   -x         Extract and install a product from package
    -z db      Select a database from $EUPS_PATH
    -Z db      Use this directory as EUPS_PATH
 \end{verbatim} % $
@@ -444,16 +444,16 @@ package is a set of tarballs (i.e. gzipped tar archives) and a file listing
 a products dependencies, including the names of the proper tarballs.
 
 Once you've created a package with \code{eups\_distrib -c} you can move the
-package directory to another machine and use \code{eups\_distrib -i} to
+package directory to another machine and use \code{eups\_distrib -x} to
 recreate a working \eups{} installation.
 
 \begin{verbatim}
 eups_distrib -v -z act -c pslib RHL_v1_1
 ./configure --with-eups=/u/rhl/ppp; make install
-eups_distrib -Z /u/rhl/ppp -v -z rhl -i -r /u/act/products/packages pslib RHL_v1_1
+eups_distrib -Z /u/rhl/ppp -v -z rhl -x -r /u/act/products/packages pslib RHL_v1_1
 \end{verbatim}
 
-When installing (\code{-i}) the package root may be specified as a URL, e.g.
+When extracting (\code{-x}) the package root may be specified as a URL, e.g.
 \hfil\break\hspace*{2cm}
 \code{eups\_distrib -r http://www.astro.princeton.edu/$\sim$act/packages}
 
