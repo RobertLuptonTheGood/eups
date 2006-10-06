@@ -422,10 +422,10 @@ like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 
 %------------------------------------------------------------------------------
 
-  \item \code{eups\_pkg}
+  \item \code{eups\_distrib}
 \begin{verbatim}
 Usage:
-   eups_pkg [opts] product [version]
+   eups_distrib [opts] product [version]
 Options:
    -h         Print this message
    -c         Create a package
@@ -443,19 +443,19 @@ Handle the distribution of products and their dependencies as `packages'. A
 package is a set of tarballs (i.e. gzipped tar archives) and a file listing
 a products dependencies, including the names of the proper tarballs.
 
-Once you've created a package with \code{eups\_pkg -c} you can move the
-package directory to another machine and use \code{eups\_pkg -i} to
+Once you've created a package with \code{eups\_distrib -c} you can move the
+package directory to another machine and use \code{eups\_distrib -i} to
 recreate a working \eups{} installation.
 
 \begin{verbatim}
-eups_pkg -v -z act -c pslib RHL_v1_1
+eups_distrib -v -z act -c pslib RHL_v1_1
 ./configure --with-eups=/u/rhl/ppp; make install
-eups_pkg -Z /u/rhl/ppp -v -z rhl -i -r /u/act/products/packages pslib RHL_v1_1
+eups_distrib -Z /u/rhl/ppp -v -z rhl -i -r /u/act/products/packages pslib RHL_v1_1
 \end{verbatim}
 
 When installing (\code{-i}) the package root may be specified as a URL, e.g.
 \hfil\break\hspace*{2cm}
-\code{eups\_pkg -r http://www.astro.princeton.edu/$\sim$act/packages}
+\code{eups\_distrib -r http://www.astro.princeton.edu/$\sim$act/packages}
 
 %------------------------------------------------------------------------------
 

@@ -15,7 +15,7 @@ def usage(msg = None):
 
     sys.stdout.write("""\
 Usage:
-   eups_pkg [opts] product [version]
+   eups_distrib [opts] product [version]
 Options:
    -h         Print this message
    -c         Create a package
@@ -68,7 +68,7 @@ except:
 opts = dict(opts)
 
 if opts.has_key('-h'):
-    usage("Description of eups_pkg")
+    usage("Distribute eups products with their dependencies")
     sys.exit(0)
 
 create = opts.has_key('-c')
