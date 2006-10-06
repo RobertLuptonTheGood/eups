@@ -6,6 +6,7 @@
 import os, os.path
 import re, getopt, sys
 import tempfile
+import shutil
 import urllib, urllib2
 
 def usage(msg = None):
@@ -29,19 +30,30 @@ Options:
 """)
 
 def manifestFile(product, version, base = None):
+    """Return the name of a manifest file"""
     manifest = "%s-%s.manifest" % (product, version)
     if base:
         manifest = "%s/%s" % (base, manifest)
 
     return manifest
 
+def get_tabledir(package_base, url):
+    tabledir = "%s/tables" % (package_base)
+    if not url and not os.path.isdir(tabledir):
+        print >> sys.stdout, "Creating %s" % (tabledir)
+        os.mkdir(tabledir)
+
+    return tabledir
+
 def urlretrieve(file):
     """Like urllib's urlretrieve, except use urllib2 to detect 404 errors"""
 
-    fd = urllib2.urlopen(file); del fd
+    try:
+        fd = urllib2.urlopen(file); del fd
+    except urllib2.HTTPError:
+        raise RuntimeError, ("Failed to open URL %s" % file)
     return urllib.urlretrieve(file)
 
-HTTPError = urllib2.HTTPError
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -228,7 +240,15 @@ if create:
                 if verbose:
                     print >> sys.stderr, "Not recreating", tarball
 
-            ptablefile = os.path.basename(ptablefile)
+            if ptablefile != "none":
+                fulltablename = ptablefile
+                ptablefile = os.path.basename(ptablefile)
+                if ("%s.table" % (product)) != ptablefile:
+                    tabledir = get_tabledir(package_base, url)
+                    if verbose > 1:
+                        print >> sys.stderr, "Copying %s to %s/%s-%s" % \
+                              (fulltablename, tabledir, product, ptablefile)
+                    shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
 
             products += [[product, flavor, version, pdb, pdir, ptablefile, tarball]]
     #
@@ -251,7 +271,7 @@ if create:
     for p in products:
         (product, flavor, version, pdb, pdir, ptablefile, tarball) = p
         if not noaction:
-            print >> ofd, str.join(":", [product, flavor, version, ptablefile, tarball])
+            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, tarball])
 #
 # Install a set of packages
 #
@@ -287,7 +307,7 @@ elif install:
         tfile = None
         try:
             (tfile, msg) = urlretrieve("%s/%s" % (package_base, manifest))
-        except HTTPError:
+        except RuntimeError:
             try:
                 (tfile, msg) = urlretrieve("%s/%s/%s" % (package_base, flavor, manifest))
                 package_base += "/" + flavor
@@ -329,9 +349,9 @@ elif install:
             continue
 
         try:
-            (product, flavor, version, tablefile, tarball) = re.findall(r"[^:]+", line)[0:5]
+            (product, flavor, version, tablefile, tarball) = re.findall(r"\S+", line)[0:5]
         except:
-            print >> sys.stderr, "Failed to parse line", line,
+            print >> sys.stderr, "Failed to parse line:", line,
             sys.exit(1)
 
         try:
@@ -349,7 +369,7 @@ elif install:
         # We need to install and declare this product
         #
         tfile = "%s/%s" % (package_base, tarball)
-        if url:
+        if url and not noaction:
             (tfile, msg) = urlretrieve(tfile)
 
         if not os.access(tfile, os.R_OK):
@@ -367,14 +387,24 @@ elif install:
         except:
             print >> sys.stderr, "Failed to read %s" % (tfile)
             sys.exit(1)
+        #
+        # Deal with table files if not in product root (i.e. -M files)
+        #
+        tableopt = "-m"
+        if tablefile != "none":
+            if ("%s.table" % (product)) != tablefile:
+                tableopt = "-M"
+                tablefile = "%s/%s-%s" % (get_tabledir(package_base, url), product, tablefile)
+                if url and not noaction:
+                    (tablefile, msg) = urlretrieve(tablefile)
 
         try:
             if noaction:
-                print "eups_declare --flavor %s --table %s --root %s/%s/%s" % \
-                          (flavor, tablefile, products_dir, product, version)
+                print "eups_declare --flavor %s %s -table %s --root %s/%s/%s" % \
+                          (flavor, tableopt, tablefile, products_dir, product, version)
             else:
-                os.system("eups_declare --flavor %s --table %s --root %s/%s/%s" % \
-                          (flavor, tablefile, products_dir, product, version))
+                os.system("eups_declare --flavor %s %s %s --root %s/%s/%s" % \
+                          (flavor, tableopt, tablefile, products_dir, product, version))
         except:
             print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
                   (product, version, flavor)
