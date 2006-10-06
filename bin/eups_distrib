@@ -6,6 +6,7 @@
 import os, os.path
 import re, getopt, sys
 import tempfile
+import urllib, urllib2
 
 def usage(msg = None):
     if msg:
@@ -33,6 +34,14 @@ def manifestFile(product, version, base = None):
         manifest = "%s/%s" % (base, manifest)
 
     return manifest
+
+def urlretrieve(file):
+    """Like urllib's urlretrieve, except use urllib2 to detect 404 errors"""
+
+    fd = urllib2.urlopen(file); del fd
+    return urllib.urlretrieve(file)
+
+HTTPError = urllib2.HTTPError
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -66,8 +75,12 @@ if opts.has_key('-m'):
 
 noaction = opts.has_key('-n')
 
+url = None                              # retrieve tarballs from a url?
 if opts.has_key('-r'):
     package_base = opts['-r']
+
+    if install and re.search(r"^http://", package_base):
+        url = True
 else:
     package_base = None
 
@@ -270,6 +283,22 @@ elif install:
                 print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
                       (manifest, package_base)
             package_base = pb
+    elif url:
+        tfile = None
+        try:
+            (tfile, msg) = urlretrieve("%s/%s" % (package_base, manifest))
+        except HTTPError:
+            try:
+                (tfile, msg) = urlretrieve("%s/%s/%s" % (package_base, flavor, manifest))
+                package_base += "/" + flavor
+            except HTTPError:
+                pass
+
+        if tfile:
+            manifest = tfile
+        else:
+            print >> sys.stderr, "Failed to retrieve manifest %s from %s" % (manifest, package_base)
+            sys.exit(1)
     else:
         if not package_base:
             package_base = "%s/packages/%s" % (db, flavor)
@@ -282,9 +311,9 @@ elif install:
                 print >> sys.stdout, "File %s doesn't exist, and isn't in %s" % (manifest, package_base)
                 sys.exit(1)
         manifest = guess
-#
-# OK, we've found the manifest (phew)
-#
+    #
+    # OK, we've found the manifest (phew)
+    #
     if verbose:
         print >> sys.stderr, "Manifest is", manifest
     try:
@@ -320,6 +349,9 @@ elif install:
         # We need to install and declare this product
         #
         tfile = "%s/%s" % (package_base, tarball)
+        if url:
+            (tfile, msg) = urlretrieve(tfile)
+
         if not os.access(tfile, os.R_OK):
             print >> sys.stderr, "Unable to read %s" % (tfile)
             sys.exit(1)
