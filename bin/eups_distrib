@@ -21,10 +21,10 @@ Usage:
 Options:
    -h         Print this message
    -c         Create a package
-   -F         Force recreation of tarballs
+   -F         Force recreation/unpacking of tarballs
    -f flavor  Select a flavor (default: `eups_flavor`)
    -n	      Don't actually do anything
-   -r dir     Location of manifests and tarballs
+   -r dir     Location of manifests and tarballs (may be a URL)
    -v	      Be chatty
    -x         Extract and install a product from package
    -z db      Select a database from $EUPS_PATH
