@@ -43,30 +43,38 @@ sub sete {
     our $shell;
     our $tmpfile;
 
-    if ($shell eq "sh") {
-	my $key = $_[0];
-	my $val = $_[1];
-	print $tmpfile "export $key=\"$val\"\n";
+    my($key, $val) = @_;
+
+    if ($key eq "EUPS_FLAVOR") { # don't propagate -f to the environment!
+       return;
     }
-    if ($shell eq "csh") {
-        my $key = $_[0];
-        my $val = $_[1];
+
+    if ($shell eq "sh") {
+	print $tmpfile "export $key=\"$val\"\n";
+    } elsif ($shell eq "csh") {
         print $tmpfile "setenv $key \"$val\"\n";
+    } else {
+       die "Unknown shell: $shell\n";
     }
 }
 
 sub unsete {
     our $shell;
     our $tmpfile;
-    if ($shell eq "sh") {
-        my $key = $_[0];
-        print $tmpfile "unset $key\n";
-    }
-    if ($shell eq "csh") {
-        my $key = $_[0];
-        print $tmpfile "unsetenv $key\n";
-    }
 
+    my $key = $_[0];
+
+    if ($key eq "EUPS_FLAVOR") { # don't propagate -f to the environment!
+       return;
+    }
+    
+    if ($shell eq "sh") {
+        print $tmpfile "unset $key\n";
+    } elsif ($shell eq "csh") {
+        print $tmpfile "unsetenv $key\n";
+    } else {
+       die "Unknown shell: $shell\n";
+    }
 }
 
 sub setshell {
@@ -232,10 +240,14 @@ for ($i = 0; $i<@newkeys; $i++) {
     }
 }
 
-# Self destruct file
-CLEAN:
-print $tmpfile "\\rm -f $fn\n";
-close $tmpfile;
+if ($debug > 3) {
+   warn "Not deleting $fn\n";
+} else {
+   # Self destruct file
+   CLEAN:			# n.b. we can get here without the goto.
+   print $tmpfile "\\rm -f $fn\n";
+   close $tmpfile;
+}
 
 print "$fn\n";
 
