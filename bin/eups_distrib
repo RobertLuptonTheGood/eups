@@ -251,7 +251,7 @@ if create:
                               (fulltablename, tabledir, product, ptablefile)
                     shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
 
-            products += [[product, flavor, version, pdb, pdir, ptablefile, tarball]]
+            products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, tarball]]
     #
     # Time to write enough information to declare the products
     #
@@ -272,9 +272,9 @@ if create:
     print >> ofd, "EUPS distribution manifest for %s (%s). Version %s" % \
           (top_product, top_version, eups_distrib_version)
     for p in products:
-        (product, flavor, version, pdb, pdir, ptablefile, tarball) = p
+        (product, flavor, version, pdb, pdir, ptablefile, product_dir, tarball) = p
         if not noaction:
-            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, tarball])
+            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, tarball])
 #
 # Install a set of packages
 #
@@ -361,7 +361,7 @@ elif extract:
             continue
 
         try:
-            (product, flavor, version, tablefile, tarball) = re.findall(r"\S+", line)[0:5]
+            (product, flavor, version, tablefile, product_dir, tarball) = re.findall(r"\S+", line)[0:6]
         except:
             print >> sys.stderr, "Failed to parse line:", line,
             sys.exit(1)
@@ -412,11 +412,11 @@ elif extract:
 
         try:
             if noaction:
-                print "eups_declare --flavor %s %s -table %s --root %s/%s/%s" % \
-                          (flavor, tableopt, tablefile, products_dir, product, version)
+                print "eups_declare --flavor %s %s -table %s --root %s/%s" % \
+                          (flavor, tableopt, tablefile, products_dir, product_dir)
             else:
-                os.system("eups_declare --flavor %s %s %s --root %s/%s/%s" % \
-                          (flavor, tableopt, tablefile, products_dir, product, version))
+                os.system("eups_declare --flavor %s %s %s --root %s/%s" % \
+                          (flavor, tableopt, tablefile, products_dir, product_dir))
         except:
             print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
                   (product, version, flavor)
