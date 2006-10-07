@@ -412,11 +412,11 @@ elif extract:
 
         try:
             if noaction:
-                print "eups_declare --flavor %s %s -table %s --root %s/%s" % \
-                          (flavor, tableopt, tablefile, products_dir, product_dir)
+                print "eups_declare --flavor %s %s -table %s --root %s/%s %s %s" % \
+                          (flavor, tableopt, tablefile, products_dir, product_dir, product, version)
             else:
-                os.system("eups_declare --flavor %s %s %s --root %s/%s" % \
-                          (flavor, tableopt, tablefile, products_dir, product_dir))
+                os.system("eups_declare --flavor %s %s %s --root %s/%s %s %s" % \
+                          (flavor, tableopt, tablefile, products_dir, product_dir, product, version))
         except:
             print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
                   (product, version, flavor)
