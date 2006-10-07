@@ -429,10 +429,10 @@ Usage:
 Options:
    -h         Print this message
    -c         Create a package
-   -F         Force recreation of tarballs
+   -F         Force recreation/unpacking of tarballs
    -f flavor  Select a flavor (default: `eups_flavor`)
    -n         Don't actually do anything
-   -r dir     Location of manifests and tarballs (may be URL)
+   -r dir     Location of manifests and tarballs (may be a URL)
    -v         Be chatty
    -x         Extract and install a product from package
    -z db      Select a database from $EUPS_PATH
@@ -440,22 +440,29 @@ Options:
 \end{verbatim} % $
 
 Handle the distribution of products and their dependencies as `packages'. A
-package is a set of tarballs (i.e. gzipped tar archives) and a file listing
-a products dependencies, including the names of the proper tarballs.
+package is a set of tarballs (i.e. gzipped tar archives) and a file (ending in \code{.manifest})
+listing a product's dependencies, including the names of the proper tarballs.
 
-Once you've created a package with \code{eups\_distrib -c} you can move the
-package directory to another machine and use \code{eups\_distrib -x} to
-recreate a working \eups{} installation.
-
+Once you've created a package with \code{eups\_distrib -c} you can log on to
+another machine and use \code{eups\_distrib -x} to
+recreate a working \eups{} installation.  For example:
 \begin{verbatim}
-eups_distrib -v -z act -c pslib RHL_v1_1
+eups_distrib -v -z act -c moby v1_2
 ./configure --with-eups=/u/rhl/ppp; make install
-eups_distrib -Z /u/rhl/ppp -v -z rhl -x -r /u/act/products/packages pslib RHL_v1_1
+eups_distrib -v -x -r http://www.astro.princeton.edu/$\sim$act/packages moby v1_2
 \end{verbatim}
 
-When extracting (\code{-x}) the package root may be specified as a URL, e.g.
-\hfil\break\hspace*{2cm}
-\code{eups\_distrib -r http://www.astro.princeton.edu/$\sim$act/packages}
+When creating an distribution, tarballs that already present are not recreated
+(unless you specify \code{-F}),
+so repeating a \code{eups\_distrib -c} command to create a manifest for another
+product won't lead to duplication of tarballs.
+
+When unpacking a distribution with \code{eups\_distrib -x}, products that are
+already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{-F}).
+
+\textit{N.b.} As presently written, \code{eups\_distrib} assumes that you've
+installed all the products into \eups, as opposed to simple declaring them, but
+relying on files installed in e.g. \code{/usr/local}.
 
 %------------------------------------------------------------------------------
 
@@ -548,6 +555,10 @@ products; for example \code{setup --list --current} will list all products that
 are declared current. Adding the \code{--verbose} option will also
 list the database root and product root paths.  If you only want the product's
 directory, you can use \code{--directory}.
+
+If you set verbose to three or more, the file that \code{setup} writes (and
+which is sourced to modify your current shell's variables) is not deleted
+after use, allowing you to peruse it at your leisure.
 
 %------------------------------------------------------------------------------
 
