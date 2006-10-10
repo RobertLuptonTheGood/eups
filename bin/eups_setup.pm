@@ -732,25 +732,25 @@ sub eups_list {
       return -1;			# 
    }					# 
 
-#Determine database
-   if ($just_directory || $just_tablefile) {
-      $printed_info = 0;	# did I print a directory/tablefile for them?
+   #
+   # Did they specify a product?
+   #
+   my($one_product) = 1;	# did they just ask about one product?
+   if (!$prod) {
+      $one_product = 0;
    }
+
+#Determine database
+   my($printed_current, $printed_info) = (0, 0); 	# did I print current/directory/tablefile for them?
    foreach $root (eups_find_roots()) {
        $db = catfile($root, 'ups_db');
-
-       #
-       # Did they specify a product?
-       #
-       my($one_product) = 1;	# did they just ask about one product?
 
        if ($prod eq "") {
 	   if (!opendir(DB, $db)) {
 	       warn "ERROR Unable to get list of products from $db\n";
 	       return;
 	   }
-	   @products = sort(readdir DB);
-	   $one_product = 0;
+	   @products = grep(/^[^.].*$/, sort(readdir DB));
 	   closedir DB;
        } else {
 	   @products = ($prod);
@@ -764,12 +764,6 @@ sub eups_list {
 	       $current_vers = read_chain_file($fn, $flavor, 1);
 	   } else {
 	      $current_vers = "";
-	   }
-	   if($current && $current_vers) {
-	       if (!$one_product) {
-		   warn "No version is declared current: @products\n";
-		   return;
-	       }
 	   }
 	   
 	   # Look through directory searching for version files
@@ -788,6 +782,7 @@ sub eups_list {
 	       
 	       $info = "";
 	       if ($current_vers && $vers eq $current_vers) {
+		   $printed_current = 1;
 		   $info .= " Current";
 	       } elsif($current) {
 		   next;
@@ -823,6 +818,10 @@ sub eups_list {
 	       }
 	   }
        }
+   }
+
+   if($current && $one_product && !$printed_current) {
+      warn "No version is declared current\n";
    }
 
    if ($just_directory && !$printed_info) { # Oh dear; must have been setup -r
@@ -1137,7 +1136,7 @@ sub eups_show_options
        -h => "Print this help message",
        -c => "[Un]declare this product current, or show current version",
        -d => "Print product directory to stderr (useful with -s)",
-       -f => "Use this flavor (default: \`eups_flavor\` or \$EUPS_FLAVOR)",
+       -f => "Use this flavor (default: \$EUPS_FLAVOR or \`eups_flavor\`)",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",

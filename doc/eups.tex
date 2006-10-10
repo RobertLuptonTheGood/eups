@@ -11,7 +11,7 @@
 
 \begin{document}
 \title{\eups{} --- a Tool to Manage Software Dependencies}
-\author{Nikhil Padmanabhan and Robert Lupton}
+\author{Nikhil Padmanabhan, Robert Lupton, and Craig Loomis}
 
 \maketitle
 
@@ -96,6 +96,30 @@ table file leads to the following actions:
 So far we have achieved the first of the goals listed in the introduction,
 describing a hierarchy.  The next section describes how to maintain
 multiple versions.
+
+\section{Installing \eups}
+
+If you want to play with \eups{} you may want to install a copy.
+
+You can check out a copy from \code{cvs} if you have access to
+Princeton machines:
+\begin{verbatim}
+  cvs -d jeeves.astro.princeton.edu:/usr/local/cvsroot co eups
+\end{verbatim}
+
+Alternatively, grab the tarball
+\begin{verbatim}
+http://www.astro.princeton.edu/~act/packages/eups.tar.gz
+\end{verbatim}
+
+Then unpack it, configure, and install.  E.g.
+\begin{verbatim}
+zcat eups.tar.gz | tar -xf -
+cd eups
+./configure --with-eups=/u/act/products
+make show
+make install
+\end{verbatim}
 
 \section{Declaring Products and Versions}
 
@@ -425,44 +449,61 @@ like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
   \item \code{eups\_distrib}
 \begin{verbatim}
 Usage:
-   eups_distrib [opts] product [version]
+   eups_distrib [opts] [product [version]]
 Options:
-   -h         Print this message
-   -c         Create a package
-   -F         Force recreation/unpacking of tarballs
-   -f flavor  Select a flavor (default: `eups_flavor`)
-   -n         Don't actually do anything
-   -r dir     Location of manifests and tarballs (may be a URL)
-   -v         Be chatty
-   -x         Extract and install a product from package
-   -z db      Select a database from $EUPS_PATH
-   -Z db      Use this directory as EUPS_PATH
+   -h, --help            Print this help message
+   -C, --current         Create a list of current versions which -x can use
+   -c, --create          Create a package for distribution
+   -F, --force           Force requested behaviour (e.g. redeclare a product)
+   -f, --flavor    arg   Use this flavor (default: $EUPS_FLAVOR or `eups_flavor`)
+   -n                    Don't actually do anything
+   -r, --root      arg   Location of manifests and tarballs (may be a URL)
+   -V, --version         Print eups version number and exit
+   -v, --verbose         Be chattier (repeat for even more chat)
+   -x, --extract         Extract and install the specified package
+   -Z, --database  arg   Use this products path (default: \$EUPS_PATH)
+   -z, --select-db arg   Select the product paths which contain this directory (default: all)
 \end{verbatim} % $
 
 Handle the distribution of products and their dependencies as `packages'. A
 package is a set of tarballs (i.e. gzipped tar archives) and a file (ending in \code{.manifest})
 listing a product's dependencies, including the names of the proper tarballs.
 
-Once you've created a package with \code{eups\_distrib -c} you can log on to
-another machine and use \code{eups\_distrib -x} to
+Once you've created a package with \code{eups\_distrib --create} you can log on to
+another machine and use \code{eups\_distrib --extract} to
 recreate a working \eups{} installation.  For example:
 \begin{verbatim}
-eups_distrib -v -z act -c moby v1_2
+eups_distrib --verbose --select-db act --create moby v1_2
 ./configure --with-eups=/u/rhl/ppp; make install
-eups_distrib -v -x -r http://www.astro.princeton.edu/$\sim$act/packages moby v1_2
+eups_distrib --verbose --extract --root http://www.astro.princeton.edu/~act/packages moby v1_2
 \end{verbatim}
 
 When creating an distribution, tarballs that already present are not recreated
-(unless you specify \code{-F}),
-so repeating a \code{eups\_distrib -c} command to create a manifest for another
+(unless you specify \code{--force}),
+so repeating a \code{eups\_distrib --create} command to create a manifest for another
 product won't lead to duplication of tarballs.
 
-When unpacking a distribution with \code{eups\_distrib -x}, products that are
-already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{-F}).
+When unpacking a distribution with \code{eups\_distrib --extract}, products that are
+already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{--force}).
+
+If you don't specify a version when installing a distribution with
+\code{--extract} the current version will be used.  This isn't quite the same
+as the version declared current on some machine where the distribution
+originated, as a bleeding-edge version acceptable in Princeton may not
+be ready for deployment on a mountain top in e.g. Chile. In
+consequence, the list of `current' versions is \textit{not}
+automatically created or updated by \code{eups\_distrib --create}, but is
+only set when you later say \code{eups\_distrib --current}.  If you don't specify
+a product, the list will in fact be identical to your local preferences.
+Alternatively, you can update a single product's version number (e.g.
+\code{eups\_distrib --current moby}) or specify a version (\code{eups\_distrib --current moby v1\_2}).
 
 \textit{N.b.} As presently written, \code{eups\_distrib} assumes that you've
 installed all the products into \eups, as opposed to simple declaring them, but
-relying on files installed in e.g. \code{/usr/local}.
+relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
+that all product directories start with a directory listed in \code{EUPS\_PATH}.
+This is probably a good idea, as otherwise \code{eups\_distrib} would tar up
+all of /usr/local for you.
 
 %------------------------------------------------------------------------------
 
