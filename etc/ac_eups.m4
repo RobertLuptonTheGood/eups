@@ -91,6 +91,7 @@ AC_DEFUN([UPS_INSTALL_DIRS], [
    AC_SUBST(swigdir, '${prefix}/swig')
    AC_SUBST(srcinstalldir, '${prefix}/src')
    AC_SUBST(testdir, '${prefix}/test')
+   AC_SUBST(eupsdir, '${prefix}/ups')
    AC_SUBST(upsdir, '${prefix}/ups')
    AC_SUBST(xmldir, '${prefix}/xml')
    ])
