@@ -824,11 +824,15 @@ sub eups_list {
       warn "No version is declared current\n";
    }
 
-   if ($just_directory && !$printed_info) { # Oh dear; must have been setup -r
+   if (!$printed_info) {	# Oh dear; may have been setup -r
       my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
-      if($setup_prod_dir) {
-	 warn $setup_prod_dir . "\n";
-      }
+      if ($setup_prod_dir) {
+	 if ($just_directory) {
+	    warn $setup_prod_dir . "\n";
+	 } elsif ($setup) {
+	    warn "LOCAL:$setup_prod_dir\n";
+	 }
+      } 
    }
 }
 
