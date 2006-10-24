@@ -447,13 +447,14 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
 
             manifest = find_file(manifestFile(top_product, top_version))
 
-        mat = re.search(r"^(.*)/([^/]+)$", manifest)
-        if mat:
-            pb = mat.groups()[0]
-            if package_base and pb != package_base:
-                print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
-                      (manifest, package_base)
-            package_base = pb
+        if not url:
+            mat = re.search(r"^(.*)/([^/]+)$", manifest)
+            if mat:
+                pb = mat.groups()[0]
+                if package_base and pb != package_base:
+                    print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
+                          (manifest, package_base)
+                package_base = pb
     #
     # OK, we've found the manifest (phew)
     #
