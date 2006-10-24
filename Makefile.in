@@ -37,6 +37,20 @@ install : show
 		fi; \
 	done
 
+	@:
+	@: Check the inode number for . and $(EUPS_DIR) to find out if two
+	@: directories are the same\; they may have different names due to
+	@: symbolic links and automounters
+	@:
+	@if [ -d $(EUPS_DIR) ]; then \
+	    if [ `ls -id $(EUPS_DIR) | awk '{print $$1}'` = `ls -id . | awk '{print $$1}'` ]; then \
+		echo "The destination directory is the same" \
+			"as the current directory; aborting." >&2; \
+		echo ""; \
+		exit 1; \
+	   fi; \
+	fi
+
 	@ $(RM) -r $(EUPS_DIR)
 	@ mkdir -p $(EUPS_DIR)
 	@ for f in $(SUBDIRS); do \
