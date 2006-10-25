@@ -434,9 +434,7 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
         os.mkdir(products_dir)
 
     if not manifest:
-        if top_version:
-            manifest = find_file(manifestFile(top_product, top_version))
-        else:
+        if not top_version:
             top_version = lookup_current_version(top_product, top_version, url)
 
             if top_version == "":
@@ -445,7 +443,8 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
 
             print >> sys.stderr, "Installing %s of %s" % (top_version, top_product)
 
-            manifest = find_file(manifestFile(top_product, top_version))
+        raw_manifest = manifestFile(top_product, top_version)
+        manifest = find_file(raw_manifest)
 
         if not url:
             mat = re.search(r"^(.*)/([^/]+)$", manifest)
@@ -459,7 +458,10 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
     # OK, we've found the manifest (phew)
     #
     if verbose > 0:
-        print >> sys.stderr, "Manifest is", manifest
+        if manifest == raw_manifest:
+            print >> sys.stderr, "Manifest is", manifest
+        else:
+            print >> sys.stderr, "Manifest is", raw_manifest, "(%s)" % manifest
     try:
         fd = open(manifest, "r")
     except:
@@ -506,7 +508,7 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
         if url and not noaction:
             (tfile, msg) = urlretrieve(tfile)
 
-        if not os.access(tfile, os.R_OK):
+        if not noaction and not os.access(tfile, os.R_OK):
             print >> sys.stderr, "Unable to read %s" % (tfile)
             sys.exit(1)
 
@@ -517,7 +519,7 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
             if noaction:
                 print "cd %s && zcat %s | tar -xf -" % (products_dir, tfile)
             else:
-                os.system("cd %s && zcat %s | tar -xf -" % (products_dir, tfile))
+                os.system("cd %s && cat %s | gunzip | tar -xf -" % (products_dir, tfile))
         except:
             print >> sys.stderr, "Failed to read %s" % (tfile)
             sys.exit(1)
