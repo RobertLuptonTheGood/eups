@@ -1312,7 +1312,7 @@ echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&2;}
     fi
 fi;
 
-          ac_config_files="$ac_config_files Makefile"
+                    ac_config_files="$ac_config_files Makefile ups/eups.table"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -1865,6 +1865,7 @@ do
   case "$ac_config_target" in
   # Handling of arguments.
   "Makefile" ) CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+  "ups/eups.table" ) CONFIG_FILES="$CONFIG_FILES ups/eups.table" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
    { (exit 1); exit 1; }; };;

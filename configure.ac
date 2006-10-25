@@ -57,5 +57,5 @@ AC_SUBST(EUPS_DIR)
 dnl
 dnl Output
 dnl
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile ups/eups.table])
 AC_OUTPUT
