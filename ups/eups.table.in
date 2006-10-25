@@ -1,0 +1,5 @@
+envAppend(PATH, ${PRODUCT_DIR}/bin)
+envSet(EUPS_PATH, @EUPS_PATH@)
+
+addAlias(setup,   source `${PRODUCT_DIR}/bin/eups_setup setup $@`);
+addAlias(unsetup, source `${PRODUCT_DIR}/bin/eups_setup unsetup $@`);
