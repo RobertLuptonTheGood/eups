@@ -8,7 +8,7 @@ if [ X"$1" = X"" ];then
 fi
 
 product=$1; shift
-product_dir=$(setup --directory --setup $product -v 2>&1 | head -1)
+product_dir=$(setup --directory --setup $product -v 2>&1 | grep -v ^ERROR | head -1)
 if [ X"$product_dir" = X"" ]; then
    echo "product $product is not setup" >&2
    exit 1
