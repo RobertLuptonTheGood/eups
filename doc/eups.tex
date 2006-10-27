@@ -474,9 +474,10 @@ another machine and use \code{eups\_distrib --extract} to
 recreate a working \eups{} installation.  For example:
 \begin{verbatim}
 eups_distrib --verbose --select-db act --create moby v1_2
-./configure --with-eups=/u/rhl/ppp; make install
-eups_distrib --verbose --extract --root http://www.astro.princeton.edu/~act/packages moby v1_2
+eups_distrib --database /u/rhl/ppp --verbose --extract \
+             --root http://www.astro.princeton.edu/~act/packages moby v1_2
 \end{verbatim}
+to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database.
 
 When creating an distribution, tarballs that already present are not recreated
 (unless you specify \code{--force}),
@@ -867,6 +868,13 @@ make install EUPS_PATH=/foo/bar/share
 \code{make install prefix=...} also works as an alternative to \code{--prefix=...}.
 Note that \code{prefix} is ignored if you've set \code{EUPS\_PATH} either explicitly
 or implicitly via an environment variable; \code{make show} is your friend.
+
+\subsubsection{Working with multiple copies of \eups}
+
+This may only be of interest to the authors.  You can declare \eups{} as a full-up
+\eups{} product in its own right, and use \code{setup eups version} to switch
+between them.  To make this easier, the main Makefile allows you to say,
+\code{make declare} to declare your new version.
 
 \subsection{Obselete features}
 
