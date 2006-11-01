@@ -149,6 +149,8 @@ def urlretrieve(file):
         raise RuntimeError, ("Failed to open URL %s" % file)
     return urllib.urlretrieve(file)
 
+HTTPError = urllib2.HTTPError
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def find_file(filename):
@@ -204,6 +206,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
         except:
             print >> sys.stderr, "Failed to create", package_base
             sys.exit(1)
+
+    if not top_version:
+        top_version = lookup_current_version(top_product, top_version, url)
 
     product_list = eups_dependencies(top_product, top_version, dbz)
 
@@ -367,6 +372,9 @@ def write_current(current, products, noaction = False):
         print >> sys.stderr, "Failed to open", current
         sys.exit(1)
 
+    if verbose > 1:
+        print >> sys.stderr, "Writing current product list to", current
+
     if not noaction:
         print >> ofd, "EUPS distribution current version list. Version %s" % (eups_distrib_version)
 
@@ -379,7 +387,7 @@ def create_current(top_product, top_version, dbz, flavor,
                    noaction, verbose):
     """Create a list of packages that are declared current"""
 
-    current = currentFile()
+    current = "%s/%s" % (package_base, currentFile())
 
     if top_product == "":               # update entire current list
         products = []
@@ -732,7 +740,7 @@ if not package_base:
 # To work
 #
 if create + current + extract != 1:
-    print >> sys.stderr, "Please specify exactly one of -c, -C, and -x"
+    print >> sys.stderr, "Please specify exactly one of --create, --current, and --extract"
     sys.exit(1)
 
 if create:
