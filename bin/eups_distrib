@@ -447,7 +447,8 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
             top_version = lookup_current_version(top_product, top_version, url)
 
             if top_version == "":
-                usage("Please specify a version or a manifest file with -m")
+                print >> sys.stderr, ("No version of %s is declared current to eups_distrib\n" + \
+                      "Please specify a version or a manifest file with -m") % (top_product)
                 sys.exit(1)
 
             print >> sys.stderr, "Installing %s of %s" % (top_version, top_product)
@@ -553,6 +554,9 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
         except:
             print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
                   (product, version, flavor)
+
+        if no_dependencies:
+            break
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
