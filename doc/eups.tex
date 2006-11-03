@@ -456,7 +456,9 @@ Options:
    -c, --create          Create a package for distribution
    -F, --force           Force requested behaviour (e.g. redeclare a product)
    -f, --flavor    arg   Use this flavor (default: $EUPS_FLAVOR or `eups_flavor`)
-   -n                    Don't actually do anything
+   -j, --nodepend        Just setup product, but not its dependencies
+   -h, --help            Print this help message
+   -n, --noaction        Don't actually do anything
    -r, --root      arg   Location of manifests and tarballs (may be a URL)
    -V, --version         Print eups version number and exit
    -v, --verbose         Be chattier (repeat for even more chat)
@@ -567,7 +569,7 @@ Options:
         -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -l, --list      List available versions (-v => include root directories)
         -m, --table     Print table file name to stderr (useful with -s)
-        -n              Don't actually do anything
+        -n, --noaction  Don't actually do anything
         -q, --quiet     Be extra quiet (the opposite of -v)
         -r, --root      Location of product being declared
         -s, --setup     Show which version is setup

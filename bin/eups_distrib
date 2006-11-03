@@ -16,15 +16,16 @@ options = dict([
     ["-C", (False, "--current", "Create a list of current versions which -x can use")],
     ["-h", (False, "--help", "Print this help message")],
     ["-c", (False, "--create", "Create a package for distribution")],
-    ["-f", (True,  "--flavor", "Use this flavor (default: $EUPS_FLAVOR or `eups_flavor`)")],
+    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
+    ["-j", (False, "--nodepend", "Just setup product, but not its dependencies")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
-    ["-n", (False, "", "Don\'t actually do anything")],
+    ["-n", (False, "--noaction", "Don\'t actually do anything")],
     ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL)")],
     ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
     ["-V", (False, "--version", "Print eups version number and exit")],
     ["-x", (False, "--extract", "Extract and install the specified package")],
-    ["-Z", (True,  "--database", "Use this products path (default: \$EUPS_PATH)")],
-    ["-z", (True,  "--select-db", "Select the product paths which contain this directory (default: all)")],
+    ["-Z", (True,  "--database", "Use this products path. Default: \$EUPS_PATH")],
+    ["-z", (True,  "--select-db", "Select the product paths which contain this directory. Default: all")],
     ])
 
 def usage(msg = None):
@@ -210,7 +211,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not top_version:
         top_version = lookup_current_version(top_product, top_version, url)
 
-    product_list = eups_dependencies(top_product, top_version, dbz)
+    product_list = eups_dependencies(top_product, top_version, dbz, no_dependencies = no_dependencies)
 
     products = []
     for line in product_list:
@@ -562,7 +563,7 @@ def eups_flavor():
         return os.environ["EUPS_FLAVOR"]
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
 
-def eups_dependencies(product, version, dbz = "", flavor = ""):
+def eups_dependencies(product, version, dbz = "", flavor = "", no_dependencies = False):
     """Return a product's dependencies"""
 
     opts = ""
@@ -571,7 +572,11 @@ def eups_dependencies(product, version, dbz = "", flavor = ""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    return os.popen("setup %s -n --verbose %s %s 2>&1" % (opts, product, version)).readlines()
+    deps = os.popen("setup %s -n --verbose %s %s 2>&1" % (opts, product, version)).readlines()
+    if no_dependencies:
+        return deps[0:1]
+    else:
+        return deps
 
 def eups_current(product, dbz = "", flavor = ""):
     """Return current versions of products"""
@@ -657,6 +662,8 @@ else:
     flavor = eups_flavor()
 
 force = opts.has_key('-F')
+
+no_dependencies = opts.has_key('-j')
 
 extract = opts.has_key('-x')
 
