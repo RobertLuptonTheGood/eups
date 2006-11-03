@@ -28,9 +28,12 @@ options = dict([
     ["-z", (True,  "--select-db", "Select the product paths which contain this directory. Default: all")],
     ])
 
-def usage(msg = None):
-    global options
+aliases = dict([
+    ["-Z", ["--with-eups"]],
+    ])
 
+
+def usage(msg = None):
     if msg:
         print >> sys.stderr, msg, "\n"
 
@@ -59,13 +62,16 @@ Options:"""
                options[opt][1],
                (not options[opt][0] and [""] or ["arg"])[0],
                options[opt][2])
+        if aliases.has_key(opt):
+            print >> sys.stderr, "                         Alias%s:" % \
+                  (len(aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(aliases[opt])
 
 def getopt(args):
     """Like getopt.getopt, but returns a dictionary opts of recognised options,
     supports long option names, allows options to follow arguments,
     and sets the values of opts to the number of occurrences of the flag"""
 
-    global options
+    global aliases, options
     #
     # Build the options string for getopt() and a hash of the long options
     #
@@ -78,6 +84,9 @@ def getopt(args):
 
         if options[opt][1]:
             longopts[options[opt][1]] = opt
+
+    for opt in aliases.keys():
+        longopts[aliases[opt][0]] = opt
     #
     # Massage the arguments
     #
