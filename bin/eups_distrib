@@ -54,7 +54,6 @@ Options:"""
         else:
             return 1
 
-    global options
     for opt in sorted(options.keys(), cmp = asort):
         print >> sys.stderr, "   %2s%1s %-11s %3s   %s" % \
               (opt,
@@ -220,7 +219,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not top_version:
         top_version = lookup_current_version(top_product, top_version, url)
 
-    product_list = eups_dependencies(top_product, top_version, dbz, no_dependencies = no_dependencies)
+    product_list = eups_dependencies(top_product, top_version, dbz)
 
     products = []
     for line in product_list:
@@ -303,6 +302,10 @@ def create_distrib(top_product, top_version, dbz, flavor,
     #
     # Time to write enough information to declare the products
     #
+    if no_dependencies:
+        print >> sys.stderr, "Not writing manifest as you omitted dependencies"
+        return
+
     if not manifest:
         manifest = "%s/%s" % (package_base, manifestFile(top_product, top_version))
         
@@ -576,7 +579,7 @@ def eups_flavor():
         return os.environ["EUPS_FLAVOR"]
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
 
-def eups_dependencies(product, version, dbz = "", flavor = "", no_dependencies = False):
+def eups_dependencies(product, version, dbz = "", flavor = ""):
     """Return a product's dependencies"""
 
     opts = ""
