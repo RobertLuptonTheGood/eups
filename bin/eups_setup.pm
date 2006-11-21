@@ -364,34 +364,42 @@ setupenv => \&envSet,
 	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
 	} elsif ($comm eq "proddir") {
             print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
-	} elsif (($comm eq "setuprequired")&&($fwd==0)) {
-            ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_unsetup($qaz,$outfile,$debug,$quiet);
-	    my($p) = split(" ", $qaz);
-	    if ($foo && $unsetup_products{$p}) { # we've already unset it; we don't need to do it twice
-	       $foo = 0;
-	    }
-
-	    $retval =+ $foo;
-	    print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0 && $debug >= 0);
-
-	    $unsetup_products{$p}++; # remember that we already unset it
-	} elsif (($comm eq "setupoptional")&&($fwd==0)) {
-	    ($qaz) = $arg =~ m/ *"(.*)"/;
-	    if (eups_unsetup($qaz,$outfile,$debug,$quiet) < 0 && $debug > 1) {
-	       warn "WARNING: unsetup of optional $qaz failed\n";
-	    }
-        } elsif (($comm eq "setuprequired")&&($fwd==1)) {
-	    ($qaz) = $arg =~ m/ *"(.*)"/;
-            $foo = eups_setup($qaz,$outfile,$debug,$quiet,0);
-	    $retval =+ $foo;
-            print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
-        } elsif (($comm eq "setupoptional")&&($fwd==1)) {
-            ($qaz) = $arg =~ m/ *"(.*)"/;
-            if (eups_setup($qaz,$outfile,$debug,$quiet,1) < 0 && $debug > 1) {
-	       warn "WARNING: optional setup of $qaz failed\n";
-	    }
-        } else {
+	} elsif ($comm eq "setuprequired" && $fwd==0) {
+	   if (!$no_dependencies) {
+	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      $foo = eups_unsetup($qaz, $outfile, $no_dependencies, $debug, $quiet);
+	      my($p) = split(" ", $qaz);
+	      if ($foo && $unsetup_products{$p}) { # we've already unset it; we don't need to do it twice
+		 $foo = 0;
+	      }
+	      
+	      $retval =+ $foo;
+	      print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0 && $debug >= 0);
+	      
+	      $unsetup_products{$p}++; # remember that we already unset it
+	   }
+	} elsif ($comm eq "setupoptional" && $fwd==0) {
+	   if (!$no_dependencies) {
+	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      if (eups_unsetup($qaz, $outfile, $no_dependencies, $debug, $quiet) < 0 && $debug > 1) {
+		 warn "WARNING: unsetup of optional $qaz failed\n";
+	      }
+	   }
+        } elsif ($comm eq "setuprequired" && $fwd == 1) {
+	   if (!$no_dependencies) {
+	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      $foo = eups_setup($qaz, $outfile, $no_dependencies, $debug, $quiet,0);
+	      $retval =+ $foo;
+	      print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
+	   }
+        } elsif ($comm eq "setupoptional" && $fwd==1) {
+	   if (!$no_dependencies) {
+	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      if (eups_setup($qaz, $outfile, $no_dependencies, $debug, $quiet, 1) < 0 && $debug > 1) {
+		 warn "WARNING: optional setup of $qaz failed\n";
+	      }
+	   }
+	} else {
 	   if ($fwd == 0 && $switchback{$comm}) {
 	      $switchback{$comm}->(@arg);
 	   } elsif ($fwd == 1 && $switchfwd{$comm}) {
@@ -422,7 +430,7 @@ sub eups_unsetup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args,$outfile,$debug,$quiet) = @_;
+   local ($args, $outfile, $no_dependencies, $debug, $quiet) = @_;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    my($prod) = $args[0];
@@ -561,7 +569,7 @@ sub eups_setup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args,$outfile,$debug,$quiet,$optional) = @_;
+   local ($args, $outfile, $no_dependencies, $debug, $quiet, $optional) = @_;
    
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
@@ -583,7 +591,7 @@ sub eups_setup {
    
    my($SETUP_PROD) = "SETUP_".uc($prod);
    if (defined($ENV{$SETUP_PROD})) {
-      eups_unsetup($qaz, $outfile, $debug, 1);
+      eups_unsetup($qaz, $outfile, $no_dependencies, $debug, 1);
 
       if (defined(%unsetup_products)) {	# we used this to suppress warning if products were unset twice
 	 undef(%unsetup_products);
@@ -1032,6 +1040,7 @@ sub show_product_version
 	     '--flavor',	'-f',
 	     '--force',		'-F',
 	     '--help',		'-h',
+	     '--just'	,	'-j',
 	     '--list'	,	'-l',
 	     '--noaction',	'-n',
 	     '--table'	,	'-m',
@@ -1143,6 +1152,7 @@ sub eups_show_options
        -d => "Print product directory to stderr (useful with -s)",
        -f => "Use this flavor. Default: \$EUPS_FLAVOR or \`eups_flavor\`",
        -F => "Force requested behaviour (e.g. redeclare a product)",
+       -j => "Just setup product, no dependencies",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use/print table file (may be \"none\") Default: product.table",
