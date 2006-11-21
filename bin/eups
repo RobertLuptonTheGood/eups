@@ -1,0 +1,28 @@
+#!/bin/sh
+#
+# A master script to call the various eups programs.  Maybe one day they'll go away?
+#
+if [ X"$1" = X"" -o \( \( X"$1" = X"-h" -o X"$1" = X"--help" \) -a X"$2" = X"" \) ]; then
+   cat >&2 <<EOF
+Usage:
+	eups [-h] command [options]
+Supported commands are:
+	declare		Declare a product
+	distrib		Install a product from a remote distribution,
+			or create such a distribution 
+	pkg-config	Return the options associated with product
+	undeclare	Undeclare a product
+EOF
+   exit 1
+elif [ X"$1" = X"-h" -o  X"$1" = X"--help" ]; then
+    
+    eval eups_$2 -h
+    exit
+else
+    cmd=$1; shift
+    eval eups_$cmd "$@"
+fi
+
+
+
+   
