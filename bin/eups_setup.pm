@@ -810,8 +810,8 @@ sub eups_list {
 		   $info = "\t\t$info";
 	       }
 	       
+	       $printed_info = 1;
 	       if ($just_directory || $just_tablefile) {
-		  $printed_info = 1;
 		  if ($just_directory) {
 		     warn "$prod_dir\n";
 		  }
