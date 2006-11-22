@@ -31,7 +31,7 @@ AC_ARG_WITH(eups_dir,
    [EUPS_DIR=$withval],
    [if [[ X"$eups_db" = X"" ]]; then
       eups_dir_in_path=$(perl -e "(\$ed='$EUPS_DIR')=~s|/eups$||; @ep=split(':', '$EUPS_PATH'); print (grep(m|^\$ed\$|, @ep)) . \"\n\"")
-      if [[ X$eups_dir_in_path = X"" ]]; then
+      if [[ X$eups_dir_in_path = X"" -a X"$EUPS_DIR" != X"" ]]; then
           AC_MSG_WARN([Ignoring \$EUPS_DIR = $EUPS_DIR (not in EUPS_PATH = $EUPS_PATH)])
 	  EUPS_DIR=""         
       fi
@@ -49,7 +49,7 @@ AC_ARG_WITH(eups_dir,
        if [[ X"$EUPS_DIR" = X"NONE" ]]; then
           AC_MSG_ERROR([I can't find DB \"$eups_db\" in $EUPS_PATH])
        fi
-       if [[ X"$OLD_EUPS_DIR" != X"$EUPS_DIR" ]]; then
+       if [[ X"$OLD_EUPS_DIR" != X"$EUPS_DIR" -a X"$OLD_EUPS_DIR" != X"" ]]; then
           AC_MSG_WARN([Ignoring \$EUPS_DIR = $OLD_EUPS_DIR])
        fi       
     fi])

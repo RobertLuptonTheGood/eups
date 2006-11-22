@@ -1284,7 +1284,7 @@ if test "${with_eups_dir+set}" = set; then
 else
   if [ X"$eups_db" = X"" ]; then
       eups_dir_in_path=$(perl -e "(\$ed='$EUPS_DIR')=~s|/eups$||; @ep=split(':', '$EUPS_PATH'); print (grep(m|^\$ed\$|, @ep)) . \"\n\"")
-      if [ X$eups_dir_in_path = X"" ]; then
+      if [ X$eups_dir_in_path = X"" -a X"$EUPS_DIR" != X"" ]; then
           { echo "$as_me:$LINENO: WARNING: Ignoring \$EUPS_DIR = $EUPS_DIR (not in EUPS_PATH = $EUPS_PATH)" >&5
 echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $EUPS_DIR (not in EUPS_PATH = $EUPS_PATH)" >&2;}
 	  EUPS_DIR=""
@@ -1305,7 +1305,7 @@ echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $EUPS_DIR (not in EUPS_PATH = $EUPS
 echo "$as_me: error: I can't find DB \"$eups_db\" in $EUPS_PATH" >&2;}
    { (exit 1); exit 1; }; }
        fi
-       if [ X"$OLD_EUPS_DIR" != X"$EUPS_DIR" ]; then
+       if [ X"$OLD_EUPS_DIR" != X"$EUPS_DIR" -a X"$OLD_EUPS_DIR" != X"" ]; then
           { echo "$as_me:$LINENO: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&5
 echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&2;}
        fi
