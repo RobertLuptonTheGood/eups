@@ -9,7 +9,7 @@ all :;
 
 install :
 	@ ./mksetup $(EUPS_DIR) $(EUPS_PATH)
-	cp Makefile mksetup {evil,eups_,setups}*[a-z] $(EUPS_DIR)/bin
+	cp Makefile mksetup eups {evil,eups_,setups}*[a-z] $(EUPS_DIR)/bin
 
 clean :
 	- /bin/rm -f *~ core
