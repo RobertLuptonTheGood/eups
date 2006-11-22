@@ -367,6 +367,29 @@ AC\_OUTPUT
 
 %------------------------------------------------------------------------------
 
+  \item \code{eups}
+\begin{verbatim}
+Usage:
+        eups [-h] command [options]
+Supported commands are:
+        declare         Declare a product
+        distrib         Install a product from a remote distribution,
+                        or create such a distribution 
+        flavor          Return the current flavor
+        pkg-config      Return the options associated with product
+        setup           Setup a product
+        undeclare       Undeclare a product
+        unsetup         Unsetup a product
+Use
+        eups cmd -h
+for help with command "cmd"
+\end{verbatim}
+  
+A consistent front-end to all the other \eups{} commands.  The commands
+starting \code{eups\_} may eventually go away, leaving only \code{eups}.
+
+%------------------------------------------------------------------------------
+
 \item \code{eups\_declare}
 \begin{verbatim}
 Usage:
