@@ -2,10 +2,21 @@
 #
 # A master script to call the various eups programs.  Maybe one day they'll go away?
 #
-if [ X"$1" = X"" -o \( \( X"$1" = X"-h" -o X"$1" = X"--help" \) -a X"$2" = X"" \) ]; then
+args=""
+while [ X"$1" != X"" ]; do
+    case $1 in
+     -*)
+        args="$args $1"
+	shift;;
+     *)
+        break;;
+    esac
+done
+
+if [ X"$1" = X"" ]; then
    cat >&2 <<EOF
 Usage:
-	eups [-h] command [options]
+	eups [--help|--version] command [options]
 Supported commands are:
 	declare		Declare a product
 	distrib		Install a product from a remote distribution,
@@ -16,24 +27,21 @@ Supported commands are:
 	undeclare	Undeclare a product
 	unsetup         Unsetup a product
 Use
-	eups cmd -h
+	eups -h cmd
 for help with command "cmd"
 EOF
-   exit 1
-elif [ X"$1" = X"-h" -o  X"$1" = X"--help" ]; then
-    
-    eval eups_$2 -h
     exit 1
 fi
 #
 # Do the work
 #
 cmd=$1; shift
+
 case $cmd in
  setup|unsetup)
-    source `$EUPS_DIR/bin/eups_setup $cmd "$@"`;;
+    source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  declare|distrib|flavor|pkg-config|undeclare)
-    eval eups_$cmd "$@";;
+    eval eups_$cmd "$args $@";;
  *)
     echo "Unknown eups command \"$cmd\"" >&2;
     eups --help
