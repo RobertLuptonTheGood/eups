@@ -41,7 +41,7 @@ case $cmd in
  setup|unsetup)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  declare|distrib|flavor|pkg-config|undeclare)
-    eval eups_$cmd "$args $@";;
+    eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
  *)
     echo "Unknown eups command \"$cmd\"" >&2;
     eups --help
