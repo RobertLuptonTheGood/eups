@@ -2,6 +2,18 @@
 #
 # Run pkg-config for a product that's set up
 #
+if [ X"$1" = X"-h" -o X"$1" = X"--help" ]; then
+   cat >&2 <<EOF
+Run pkg-config on a product that's currently setup
+Usage:
+	eups pkg-config product [options]
+
+All pkg-config options are passed through:
+EOF
+   pkg-config --usage
+   exit 1
+fi
+
 if [ X"$1" = X"" ];then
    echo "Please specify a product" >&2
    exit 1
@@ -15,5 +27,9 @@ if [ X"$product_dir" = X"" ]; then
 fi
 
 export PKG_CONFIG_PATH=$product_dir/etc
+#
+# The sed works around an old bug in pkg-config
+# I filed a Debian bug report (378570) and it's fixed in the next release, 0.21-1
+#
 pkg-config $product "$@" | sed -e 's/%/$/g'
 
