@@ -8,6 +8,11 @@ chomp($net = `uname -n`);
 chomp($release = `uname -r`);
 chomp($version = `uname -v`);
 
+if ($ARGV[0] eq "-h" || $ARGV[0] eq "--help") {
+   warn "Return the flavor of your operating system\n";
+   exit(1);
+}
+
 if ($uname eq "Linux") {
    if ($mach =~ /_64$/) {
       $flav = "Linux64";
