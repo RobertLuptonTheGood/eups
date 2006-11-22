@@ -10,6 +10,7 @@ Supported commands are:
 	declare		Declare a product
 	distrib		Install a product from a remote distribution,
 			or create such a distribution 
+	flavor		Return the current flavor
 	pkg-config	Return the options associated with product
 	setup           Setup a product
 	undeclare	Undeclare a product
@@ -31,7 +32,7 @@ cmd=$1; shift
 case $cmd in
  setup|unsetup)
     source `$EUPS_DIR/bin/eups_setup $cmd "$@"`;;
- declare|distrib|pkg-config|undeclare)
+ declare|distrib|flavor|pkg-config|undeclare)
     eval eups_$cmd "$@";;
  *)
     echo "Unknown eups command \"$cmd\"" >&2;
