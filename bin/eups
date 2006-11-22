@@ -11,18 +11,32 @@ Supported commands are:
 	distrib		Install a product from a remote distribution,
 			or create such a distribution 
 	pkg-config	Return the options associated with product
+	setup           Setup a product
 	undeclare	Undeclare a product
+	unsetup         Unsetup a product
+Use
+	eups cmd -h
+for help with command "cmd"
 EOF
    exit 1
 elif [ X"$1" = X"-h" -o  X"$1" = X"--help" ]; then
     
     eval eups_$2 -h
-    exit
-else
-    cmd=$1; shift
-    eval eups_$cmd "$@"
+    exit 1
 fi
-
+#
+# Do the work
+#
+cmd=$1; shift
+case $cmd in
+ setup|unsetup)
+    source `$EUPS_DIR/bin/eups_setup $cmd "$@"`;;
+ declare|distrib|pkg-config|undeclare)
+    eval eups_$cmd "$@";;
+ *)
+    echo "Unknown eups command \"$cmd\"" >&2;
+    eups --help
+esac
 
 
    
