@@ -819,7 +819,7 @@ sub eups_list {
 		     warn "$table_file\n";
 		  }
 	       } else {
-		  if(@products > 1) {
+		  if(!$one_product) {
 		     printf STDERR "%-20s", $prod;
 		  }
 		  warn "   ${vers}$info\n";
@@ -974,7 +974,7 @@ sub read_version_file($$$$$$)
    }
 
    if ($table_file !~ /^none$/i and not -r $table_file) {
-      warn "ERROR: table file $table_file is invalid or unreadable (referenced in $fn)\n";
+      warn "WARNING: table file $table_file is invalid or unreadable (referenced in $fn)\n";
    }
 
    return ($prod_dir, $table_file);
