@@ -23,12 +23,16 @@ dnl and
 dnl   --with-eups=DIR
 dnl are equivalent to
 dnl   --prefix=DIR/flavor/product/version
-dnl If you don't specify --with-eups, it'll be taken from the first element of EUPS_PATH,
-dnl if set
+dnl If you don't specify --with-eups, it'll be taken from EUPS_PATH, if set. Usually
+dnl the first element is used, but you can change this with --with-eups-db=XXX to
+dnl select a different eups database
 dnl
-dnl The version is set based on $1 (which may from dollar-Name: version dollar), or
-dnl failing that, from the version given to AC_INIT. If $1 is of the form dollar-Name dollar
-dnl but no version is specified, the value of $3 is used (default: cvs)
+dnl The version is set based on the value of --with-version,
+dnl $1 (which may be of the form dollar Name: version dollar or dollar HeadURL dollar
+dnl as set by cvs/svn), or failing that, from the version given to AC_INIT.
+dnl
+dnl If $1 is of the form dollar Name|HeadURL dollar but the keyword is unexpanded (Name)
+dnl or expanded to .../trunk (HeadURL) the value "cvs" or "svn" is used.
 dnl
 dnl The flavor is set based on --with-flavor, $2, eups_flavor, or uname (in that order)
 dnl
@@ -36,21 +40,37 @@ dnl The variables eups_flavor and eups_version are AC_SUBSTed
 dnl
 AC_DEFUN([UPS_DEFINE_ROOT], [
 	define([eups_product], $PACKAGE_NAME)
-	AC_SUBST([[eups_product]], eups_product)
+	AC_SUBST([eups_product])
 
-	ifelse($1, ,
-	   [AC_MSG_NOTICE([[Using version from ./configure ($PACKAGE_VERSION) in $0]])]
-	    [define([eups_version], $PACKAGE_VERSION)],
-	    [define([eups_version],
-	               $(echo '$1' | perl -pe 'chomp;
-		       	      	     	       s/^\$''Name:\s*(\S*)\s*\$/\1/;
-		                               if(!$_){$_="ifelse($3, , cvs, $3)"}'))])
-	AC_SUBST([[eups_version]], "eups_version")
-	AC_MSG_NOTICE([Setting eups version to eups_version])
+	AC_ARG_WITH(version,
+	   [AS_HELP_STRING(--with-version=XXX, Set version to XXX)],
+	   [eups_version=$withval],
+	   ifelse($1, ,
+	      [eups_version="$PACKAGE_VERSION"],
+	      [eups_version=$(echo '$1' | perl -ne 'chomp;
+		       	      	     	       if(s|^\$''Name:\s*(\S*)\s*\$|\1|) {
+					          $vers = $_;
+					          if (!$vers) {
+						     $vers = "cvs";
+						  }
+					       } elsif(s|^\$''HeadURL:\s*\S+/([[[^/]]]+)/[[[^/]]]+\s*\$|\1|) {
+					          $vers = $_;
+					          if (!$vers || $vers eq "trunk") {
+						     $vers = "svn";
+						  }
+					       } else {
+					          $vers = $_;
+					       }
+					       print "$vers";')
+	      ]))
+        dnl define([eups_version], [$eups_version])
+	AC_SUBST([eups_version])
+	AC_MSG_NOTICE([Setting version to $eups_version])
+	
 	AC_ARG_WITH([flavor],
 	      [AS_HELP_STRING(--with-flavor=FLAVOR,Use FLAVOR as eups flavor)],
 	      eups_flavor="$withval"
-	      AC_MSG_NOTICE(Setting flavor to $eups_flavor),
+	      AC_MSG_NOTICE([Setting flavor to $eups_flavor]),
 	      eups_flavor="ifelse($2, ,
 				        ifelse([$(eups_flavor)], , [$(uname)], [$(eups_flavor)]),
 					[$2])"
@@ -78,7 +98,7 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 		fi
 	    fi])
 	   if [[ X"$prefix" != X"NONE" ]]; then
-	   	   prefix=$prefix/$eups_flavor/eups_product/$(echo eups_version | perl -pe 's/\./_/g')
+	   	   prefix=$prefix/$eups_flavor/eups_product/$(echo $eups_version | perl -pe 's/\./_/g')
 		   AC_MSG_NOTICE(Setting \$prefix to $prefix)
 	   fi
    ])
