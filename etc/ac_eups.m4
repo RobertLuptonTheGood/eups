@@ -38,7 +38,7 @@ dnl The flavor is set based on --with-flavor, $2, eups_flavor, or uname (in that
 dnl
 dnl The variables eups_flavor and eups_version are AC_SUBSTed
 dnl
-AC_DEFUN([UPS_DEFINE_ROOT], [
+AC_DEFUN([EUPS_DEFINE_ROOT], [
 	define([eups_product], $PACKAGE_NAME)
 	AC_SUBST([eups_product])
 
@@ -105,7 +105,7 @@ AC_DEFUN([UPS_DEFINE_ROOT], [
 dnl
 dnl Define extra installation directories (not expanding $prefix)
 dnl
-AC_DEFUN([UPS_INSTALL_DIRS], [
+AC_DEFUN([EUPS_INSTALL_DIRS], [
    AC_SUBST(m4dir, '${prefix}/m4')
    AC_SUBST(pythondir, '${prefix}/python')
    AC_SUBST(swigdir, '${prefix}/swig')
@@ -131,7 +131,7 @@ dnl terms of $PROD_DIR.  If it doesn't, then it can be declared to eups
 dnl by running bin/eups_import (the directory is guessed from the CFLAGS)
 dnl this is done by AC_SUBSTing eups_import_products and eups_import_directories
 dnl
-AC_DEFUN([UPS_WITH_CONFIGURE],[
+AC_DEFUN([EUPS_WITH_CONFIGURE],[
 	define([ac_eups_prod], ifelse([$1], [], [AC_FATAL([Please specify a product name to $0])], $1))
 	define([ac_eups_PROD], translit(ac_eups_prod, a-z, A-Z))
 	ac_eups_PROD[]_FROM_UPS=0
@@ -199,7 +199,7 @@ dnl terms of $PROD_DIR.  If it doesn't, then it can be declared to eups
 dnl by running bin/eups_import; this is done by AC_SUBSTing
 dnl eups_import_products and eups_import_directories
 dnl
-AC_DEFUN([UPS_WITHOUT_CONFIGURE], [
+AC_DEFUN([EUPS_WITHOUT_CONFIGURE], [
 	define([ac_eups_prod], ifelse([$1], [], [AC_FATAL([Please specify a product name to $0])], $1))
 	define([ac_eups_PROD], translit(ac_eups_prod, a-z, A-Z))
 	ac_eups_PROD[]_FROM_UPS=0
@@ -262,3 +262,10 @@ AC_DEFUN([UPS_WITHOUT_CONFIGURE], [
 
 	undefine([ac_eups_prod])
 	undefine([ac_eups_PROD])])
+dnl
+dnl Old names for backward compatibility
+dnl
+AC_DEFUN([UPS_DEFINE_ROOT],       [EUPS_DEFINE_ROOT])
+AC_DEFUN([UPS_INSTALL_DIRS],      [EUPS_INSTALL_DIRS])
+AC_DEFUN([UPS_WITH_CONFIGURE],    [EUPS_WITH_CONFIGURE])
+AC_DEFUN([UPS_WITHOUT_CONFIGURE], [EUPS_WITHOUT_CONFIGURE])
