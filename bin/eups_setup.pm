@@ -229,6 +229,18 @@ sub extract_table_commands {
 
 }
 
+#
+# Extract an argument from a possibly quoted string
+#
+sub get_argument {
+   my($arg, $file, $lineno, $line) = @_;
+   if ($arg =~ /^ *"([^ ]*)" *$/ || $arg =~ /^ *([^ \"]*) *$/) {
+      return $1;
+   } else {
+      die "ERROR: syntax error in $file($lineno):\n$line\n\n";
+   }
+}
+
 
 sub parse_table {
     my $fn = $_[0];
@@ -366,7 +378,7 @@ setupenv => \&envSet,
             print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
 	} elsif ($comm eq "setuprequired" && $fwd==0) {
 	   if (!$no_dependencies) {
-	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      $foo = eups_unsetup($qaz, $outfile, $no_dependencies, $debug, $quiet);
 	      my($p) = split(" ", $qaz);
 	      if ($foo && $unsetup_products{$p}) { # we've already unset it; we don't need to do it twice
@@ -380,21 +392,21 @@ setupenv => \&envSet,
 	   }
 	} elsif ($comm eq "setupoptional" && $fwd==0) {
 	   if (!$no_dependencies) {
-	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      if (eups_unsetup($qaz, $outfile, $no_dependencies, $debug, $quiet) < 0 && $debug > 1) {
 		 warn "WARNING: unsetup of optional $qaz failed\n";
 	      }
 	   }
         } elsif ($comm eq "setuprequired" && $fwd == 1) {
 	   if (!$no_dependencies) {
-	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      $foo = eups_setup($qaz, $outfile, $no_dependencies, $debug, $quiet,0);
 	      $retval =+ $foo;
 	      print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
 	   }
         } elsif ($comm eq "setupoptional" && $fwd==1) {
 	   if (!$no_dependencies) {
-	      ($qaz) = $arg =~ m/ *"(.*)"/;
+	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      if (eups_setup($qaz, $outfile, $no_dependencies, $debug, $quiet, 1) < 0 && $debug > 1) {
 		 warn "WARNING: optional setup of $qaz failed\n";
 	      }
