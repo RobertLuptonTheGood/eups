@@ -22,6 +22,7 @@ Supported commands are:
 	distrib		Install a product from a remote distribution,
 			or create such a distribution 
 	flavor		Return the current flavor
+	list            List all or some products
 	pkg-config	Return the options associated with product
 	setup           Setup a product
 	undeclare	Undeclare a product
@@ -38,7 +39,7 @@ fi
 cmd=$1; shift
 
 case $cmd in
- setup|unsetup)
+ list|setup|unsetup)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  declare|distrib|flavor|pkg-config|undeclare)
     eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
