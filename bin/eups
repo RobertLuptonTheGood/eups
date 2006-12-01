@@ -6,7 +6,7 @@ args=""
 while [ X"$1" != X"" ]; do
     case $1 in
      -V|--version)
-        bin/eups_declare --version
+        $EUPS_DIR/bin/eups_declare --version
 	exit 1;;
      -*)
         args="$args $1"
