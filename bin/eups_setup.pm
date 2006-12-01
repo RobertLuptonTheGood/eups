@@ -234,7 +234,7 @@ sub extract_table_commands {
 #
 sub get_argument {
    my($arg, $file, $lineno, $line) = @_;
-   if ($arg =~ /^ *"([.]*)" *$/ || $arg =~ /^ *([^\"]*) *$/) {
+   if ($arg =~ /^ *"(.*)" *$/ || $arg =~ /^ *([^\"]*) *$/) {
       return $1;
    } else {
       die "ERROR: syntax error in $file($lineno):\n$line\n\n";
