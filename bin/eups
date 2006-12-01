@@ -5,6 +5,9 @@
 args=""
 while [ X"$1" != X"" ]; do
     case $1 in
+     -V|--version)
+        bin/eups_declare --version
+	exit 1;;
      -*)
         args="$args $1"
 	shift;;
@@ -22,7 +25,7 @@ Supported commands are:
 	distrib		Install a product from a remote distribution,
 			or create such a distribution 
 	flavor		Return the current flavor
-	list            List all or some products
+	list            List some or all products
 	pkg-config	Return the options associated with product
 	setup           Setup a product
 	undeclare	Undeclare a product
