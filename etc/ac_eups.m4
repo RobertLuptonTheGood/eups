@@ -39,7 +39,7 @@ dnl
 dnl The variables eups_flavor and eups_version are AC_SUBSTed
 dnl
 AC_DEFUN([EUPS_DEFINE_ROOT], [
-	define([eups_product], $PACKAGE_NAME)
+        eups_product=$PACKAGE_NAME
 	AC_SUBST([eups_product])
 
 	AC_ARG_WITH(version,
@@ -98,7 +98,7 @@ AC_DEFUN([EUPS_DEFINE_ROOT], [
 		fi
 	    fi])
 	   if [[ X"$prefix" != X"NONE" ]]; then
-	   	   prefix=$prefix/$eups_flavor/eups_product/$(echo $eups_version | perl -pe 's/\./_/g')
+	   	   prefix=$prefix/$eups_flavor/$eups_product/$(echo $eups_version | perl -pe 's/\./_/g')
 		   AC_MSG_NOTICE(Setting \$prefix to $prefix)
 	   fi
    ])
