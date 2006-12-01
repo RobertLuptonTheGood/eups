@@ -217,7 +217,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
             sys.exit(1)
 
     if not top_version:
-        top_version = lookup_current_version(top_product, top_version, url)
+        top_version = lookup_current_version(top_product, True, dbz, flavor)
 
     product_list = eups_dependencies(top_product, top_version, dbz)
 
@@ -330,23 +330,27 @@ def create_distrib(top_product, top_version, dbz, flavor,
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def lookup_current_version(product, version, url = False):
-    """Attempt to lookup a package's current version"""
+def lookup_current_version(product, eups = True, dbz = None, flavor = None):
+    """Attempt to lookup a package's current version, as declared using eups_distrib"""
 
-    try:
-        products = read_current(find_file(currentFile()))
+    if eups:
+        prod_list = eups_current(product, dbz, flavor)
+        return prod_list[0][1]
+    else:
+        try:
+            products = read_current(find_file(currentFile()))
 
-        for p in products:
-            (name, version) = p
-            if name == product:
-                return version
-    except:
-        pass
+            for p in products:
+                (name, version) = p
+                if name == product:
+                    return version
+        except:
+            pass
 
     return ""
 
 def read_current(current):
-    """Write a list of current products to file current"""
+    """Read a list of current products from file current"""
 
     fd = open(current, "r")
 
@@ -456,7 +460,7 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
 
     if not manifest:
         if not top_version:
-            top_version = lookup_current_version(top_product, top_version, url)
+            top_version = lookup_current_version(top_product, eups = False)
 
             if top_version == "":
                 print >> sys.stderr, ("No version of %s is declared current to eups_distrib\n" + \
