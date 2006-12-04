@@ -20,6 +20,7 @@ options = dict([
     ["-j", (False, "--nodepend", "Just setup product, but not its dependencies")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
     ["-n", (False, "--noaction", "Don\'t actually do anything")],
+    ["-p", (True,  "--pacman", "Install packages using this pacman cache")],
     ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL)")],
     ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
     ["-V", (False, "--version", "Print eups version number and exit")],
@@ -149,6 +150,89 @@ def get_tabledir(url):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def write_tarball(basedir, product_dir, package_base, product, version):
+    """Create a tarball """
+    
+    tarball = "%s-%s.tar.gz" % (product, version)
+
+    if os.access("%s/%s" % (package_base, tarball), os.R_OK) and not force:
+        if verbose > 0:
+            print >> sys.stderr, "Not recreating", tarball
+        return tarball
+    
+    if verbose > 0:
+        print >> sys.stderr, "Writing", tarball
+    try:
+        if noaction:
+            print "cd %s && tar -cf - %s | gzip > %s/%s" % \
+                      (basedir, product_dir, package_base, tarball)
+        else:
+            os.system("cd %s && tar -cf - %s | gzip > %s/%s" % \
+                      (basedir, product_dir, package_base, tarball))
+    except:
+        print >> sys.stderr, "Failed to write %s/%s" % (package_base, tarball)
+        sys.exit(1)
+
+    return tarball
+
+def install_from_tarball(products_dir, package_base, tarball):
+    """Retrieve and unpack a tarball"""
+    
+    tfile = "%s/%s" % (package_base, tarball)
+    if url and not noaction:
+        (tfile, msg) = urlretrieve(tfile)
+
+    if not noaction and not os.access(tfile, os.R_OK):
+        print >> sys.stderr, "Unable to read %s" % (tfile)
+        sys.exit(1)
+
+    if verbose > 0:
+        print >> sys.stderr, "installing %s into %s" % (tarball, products_dir)
+
+    try:
+        if noaction:
+            print "cd %s && zcat %s | tar -xf -" % (products_dir, tfile)
+        else:
+            os.system("cd %s && cat %s | gunzip | tar -xf -" % (products_dir, tfile))
+    except:
+        print >> sys.stderr, "Failed to read %s" % (tfile)
+        sys.exit(1)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def use_pacman_cache(package, version):
+    """Return a pacman cache ID """
+    
+    return "pacman:%s:%s|version('%s')" % (pacman_cache, package, version)
+
+def install_from_pacman(products_dir, cacheID):
+    """Install a package using pacman"""
+
+    pacmanDir = "%s" % (products_dir)
+    if not os.path.isdir(pacmanDir):
+        try:
+            if noaction:
+                print "mkdir %s" % (pacmanDir)
+            else:
+                os.system("mkdir %s" % (pacmanDir))
+        except:
+            print >> sys.stderr, "Pacman failed to create %s" % (pacmanDir)
+            sys.exit(1)
+
+    if verbose > 0:
+        print >> sys.stderr, "installing pacman cache %s into %s" % (cacheID, pacmanDir)
+    
+    try:
+        if noaction:
+            print """cd %s && pacman -install "%s" """ % (pacmanDir, cacheID)
+        else:
+            os.system("""cd %s && pacman -install "%s" """ % (pacmanDir, cacheID))
+    except:
+        print >> sys.stderr, "Pacman failed to install %s" % (cacheID)
+        sys.exit(1)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def urlretrieve(file):
     """Like urllib's urlretrieve, except use urllib2 to detect 404 errors"""
 
@@ -207,6 +291,7 @@ def find_file(filename):
 def create_distrib(top_product, top_version, dbz, flavor,
                    force, manifest, noaction, url, verbose):
     """Create a distribution"""
+
     if not os.path.isdir(package_base):
         if verbose > 0:
             print >> sys.stderr, "Creating", package_base
@@ -223,7 +308,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
 
     products = []
     for line in product_list:
-        if False and verbose:
+        if verbose > 2:
             print line
 
         if re.search("^FATAL ERROR:", line):
@@ -269,24 +354,10 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 print >> sys.stderr, "WARNING: not creating package for %s" % (product)
                 continue
 
-            tarball = "%s-%s.tar.gz" % (product, version)
-
-            if force or not os.access("%s/%s" % (package_base, tarball), os.R_OK):
-                if verbose > 0:
-                    print >> sys.stderr, "Writing", tarball
-                try:
-                    if noaction:
-                        print "cd %s && tar -cf - %s | gzip > %s/%s" % \
-                                  (basedir, product_dir, package_base, tarball)
-                    else:
-                        os.system("cd %s && tar -cf - %s | gzip > %s/%s" % \
-                                  (basedir, product_dir, package_base, tarball))
-                except:
-                    print >> sys.stderr, "Failed to write %s/%s" % (package_base, tarball)
-                    sys.exit(1)
+            if pacman:
+                distID = use_pacman_cache(product, version)
             else:
-                if verbose > 0:
-                    print >> sys.stderr, "Not recreating", tarball
+                distID = write_tarball(basedir, product_dir, package_base, product, version)
 
             if ptablefile != "none":
                 fulltablename = ptablefile
@@ -298,7 +369,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
                               (fulltablename, tabledir, product, ptablefile)
                     shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
 
-            products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, tarball]]
+            products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
     #
     # Time to write enough information to declare the products
     #
@@ -324,9 +395,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
               (top_product, top_version, eups_distrib_version)
         
     for p in products:
-        (product, flavor, version, pdb, pdir, ptablefile, product_dir, tarball) = p
+        (product, flavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
         if not noaction:
-            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, tarball])
+            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, distID])
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -510,7 +581,7 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
             continue
 
         try:
-            (product, flavor, version, tablefile, product_dir, tarball) = re.findall(r"\S+", line)[0:6]
+            (product, flavor, version, tablefile, product_dir, distID) = re.findall(r"\S+", line)[0:6]
         except:
             print >> sys.stderr, "Failed to parse line:", line,
             sys.exit(1)
@@ -530,46 +601,22 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
         #
         # We need to install and declare this product
         #
-        tfile = "%s/%s" % (package_base, tarball)
-        if url and not noaction:
-            (tfile, msg) = urlretrieve(tfile)
-
-        if not noaction and not os.access(tfile, os.R_OK):
-            print >> sys.stderr, "Unable to read %s" % (tfile)
-            sys.exit(1)
-
-        if verbose > 0:
-            print >> sys.stderr, "installing %s into %s" % (tarball, products_dir)
-
-        try:
-            if noaction:
-                print "cd %s && zcat %s | tar -xf -" % (products_dir, tfile)
-            else:
-                os.system("cd %s && cat %s | gunzip | tar -xf -" % (products_dir, tfile))
-        except:
-            print >> sys.stderr, "Failed to read %s" % (tfile)
-            sys.exit(1)
+        mat = re.search(r"pacman:(.*)", distID)
+        if mat:
+            install_from_pacman(products_dir, mat.groups()[0])
+        else:
+            install_from_tarball(products_dir, package_base, distID)
         #
         # Deal with table files if not in product root (i.e. -M files)
         #
-        tableopt = "-m"
         if tablefile != "none":
             if ("%s.table" % (product)) != tablefile:
-                tableopt = "-M"
                 tablefile = "%s/%s-%s" % (get_tabledir(url), product, tablefile)
                 if url and not noaction:
                     (tablefile, msg) = urlretrieve(tablefile)
 
-        try:
-            if noaction:
-                print "eups_declare --flavor %s %s -table %s --root %s/%s %s %s" % \
-                          (flavor, tableopt, tablefile, products_dir, product_dir, product, version)
-            else:
-                os.system("eups_declare --flavor %s %s %s --root %s/%s %s %s" % \
-                          (flavor, tableopt, tablefile, products_dir, product_dir, product, version))
-        except:
-            print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
-                  (product, version, flavor)
+        eups_declare(flavor, dbz, tablefile, products_dir, product_dir, product, version,
+                     (current and product == top_product))
 
         if no_dependencies:
             break
@@ -579,9 +626,36 @@ def extract_distrib(top_product, top_version, db, dbz, flavor,
 # Routines that talk to eups; all currently use popen on eups shell commands.
 #
 def eups_flavor():
+    """Return the current flavor"""
+    
     if os.environ.has_key("EUPS_FLAVOR"):
         return os.environ["EUPS_FLAVOR"]
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
+
+def eups_declare(flavor, dbz, tablefile, products_dir, product_dir, product, version, declare_current = False):
+    """Declare a product"""
+
+    opts = ""
+    if declare_current:
+        opts += " -c"
+    if dbz:
+        opts += " -z %s" % dbz
+
+    tableopt = "-m"
+    if tablefile != "none":
+        if ("%s.table" % (product)) != tablefile:
+            tableopt = "-M"
+
+    try:
+        if noaction:
+            print "eups_declare --flavor %s%s %s %s --root %s/%s %s %s" % \
+                      (flavor, opts, tableopt, tablefile, products_dir, product_dir, product, version)
+        else:
+            os.system("eups_declare --flavor %s%s %s %s --root %s/%s %s %s" % \
+                      (flavor, opts, tableopt, tablefile, products_dir, product_dir, product, version))
+    except:
+        print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
+              (product, version, flavor)
 
 def eups_dependencies(product, version, dbz = "", flavor = ""):
     """Return a product's dependencies"""
@@ -640,8 +714,14 @@ def eups_table(product, version, flavor = ""):
         flavor = "--flavor %s" % (flavor)
         
     info = os.popen("setup %s --table %s %s 2>&1" % \
-                    (flavor, product, version)).readlines()[0].split("\n")[0]
-    return re.findall(r"\S+", info)
+                    (flavor, product, version)).readlines()[0].split("\n")
+    for i in info:
+        if re.search("^WARNING", i):
+            print >> sys.stderr, i
+        else:
+            return re.findall(r"\S+", i)
+
+    return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -693,12 +773,20 @@ if opts.has_key('-m'):
 
 noaction = opts.has_key('-n')
 
+pacman = False                          # use pacman to install packages?
+if opts.has_key('-p'):
+    pacman = True
+    pacman_cache = opts['-p']
+
 url = False                             # retrieve tarballs from a url?
 if opts.has_key('-r'):
     package_base = opts['-r']
 
     if extract and re.search(r"^http://", package_base):
         url = True
+    else:
+        if not re.search(r"/%s$" % flavor, package_base):
+            print >> sys.stderr, "Warning: root %s does not include flavor; proceeding" % package_base
 else:
     package_base = None
 
@@ -766,19 +854,16 @@ if not package_base:
 #
 # To work
 #
-if create + current + extract != 1:
-    print >> sys.stderr, "Please specify exactly one of --create, --current, and --extract"
+if not create and not extract:
+    print >> sys.stderr, "Please specify exactly one of --create and --extract"
     sys.exit(1)
 
 if create:
     create_distrib(top_product, top_version, dbz, flavor,
                    force, manifest, noaction, url, verbose)
-elif current:
-    create_current(top_product, top_version, dbz, flavor,
-                   noaction, verbose)
+    if current:
+        create_current(top_product, top_version, dbz, flavor,
+                       noaction, verbose)
 elif extract:
     extract_distrib(top_product, top_version, db, dbz, flavor,
                     force, manifest, noaction, url, verbose)
-else:
-    print >> sys.stderr, "You can't get here; complain to %" % (author)
-    sys.exit(1)
