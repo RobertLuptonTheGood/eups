@@ -42,10 +42,13 @@ fi
 cmd=$1; shift
 
 case $cmd in
- list|setup|unsetup)
-    source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  declare|distrib|flavor|pkg-config|undeclare)
     eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
+ list)
+    source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
+ setup|unsetup)
+    if [ X"args" = X"" ]; then args=" "; fi
+    echo "Please use the command \"${cmd}$args $@\" which modifies your environment";;
  *)
     echo "Unknown eups command \"$cmd\"" >&2;
     eups --help
