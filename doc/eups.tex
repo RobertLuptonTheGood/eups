@@ -6,7 +6,7 @@
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\file}[1]{\texttt{#1}}
 \newcommand{\eups}{\code{ExtUPS}}
-
+\newcommand{\pacman}{\code{pacman}}
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 \begin{document}
@@ -483,6 +483,7 @@ Options:
    -j, --nodepend        Just setup product, but not its dependencies
    -h, --help            Print this help message
    -n, --noaction        Don't actually do anything
+   -p, --pacman    arg   Use this pacman cache to install packages
    -r, --root      arg   Location of manifests and tarballs (may be a URL)
    -V, --version         Print eups version number and exit
    -v, --verbose         Be chattier (repeat for even more chat)
@@ -493,8 +494,12 @@ Options:
 \end{verbatim} % $
 
 Handle the distribution of products and their dependencies as `packages'. A
-package is a set of tarballs (i.e. gzipped tar archives) and a file (ending in \code{.manifest})
-listing a product's dependencies, including the names of the proper tarballs.
+package is a set of tarballs (i.e. gzipped tar archives) or pacman\footnote{%
+  See Appendix \ref{pacman}.
+}
+caches and
+a file (ending in \code{.manifest})
+listing a product's dependencies, including the names of the proper tarballs/caches. 
 
 Once you've created a package with \code{eups\_distrib --create} you can log on to
 another machine and use \code{eups\_distrib --extract} to
@@ -509,7 +514,8 @@ to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database.
 When creating an distribution, tarballs that already present are not recreated
 (unless you specify \code{--force}),
 so repeating a \code{eups\_distrib --create} command to create a manifest for another
-product won't lead to duplication of tarballs.
+product won't lead to duplication of tarballs.  If you want to use \pacman{},
+see App. \ref{pacman}.
 
 When unpacking a distribution with \code{eups\_distrib --extract}, products that are
 already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{--force}).
@@ -916,5 +922,53 @@ between them.  To make this easier, the main Makefile allows you to say,
     with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}. This is no longer supported.
 \end{itemize}
 
+\section{Pacman}
+\label{pacman}
 
+\pacman{} is a package used by the HEP community (e.g. Atlas) to distribute
+software.  It doesn't solve the same problem as \eups{} (supporting 
+multiple simultaneous versions of the same package), but it does nicely
+support building packages from source.  The home page is \code{http://physics.bu.edu/pacman/}.
+
+An example \pacman{} script is
+\begin{verbatim}
+#
+# Sample product installation using pacman
+#
+# author: RHL
+# data:   2006/12/04
+#
+packageName('hello')
+url('Foo', 'file:///dev/null')
+#
+# N.b. version is also encoded in directory name below
+#
+version('v1_0_0')
+#
+# Package requirements
+#
+platformGE("unix")
+which("gcc"); which("make")
+#
+# Prepare to install
+#
+downloadUntar('/Users/rhl/LSST/Pacman-test/packages/hello-v1_0_0.tar.gz', 'HELLO_DIR')
+cd('$HELLO_DIR')
+cd('v1_0_0')
+shell("make")
+shell("make install")
+\end{verbatim}
+
+\subsection{Using \pacman{} with \eups{}}
+
+To use \pacman{}, simply specify a \pacman{} cache when running \code{eups distrib --create}:
+\begin{verbatim}
+eups distrib -z lsst --pacman http://lsst.org/cache --create hello
+\end{verbatim}
+
+The \code{eups distrib --extract} command is unchanged:
+\begin{verbatim}
+eups distrib --extract -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
+\end{verbatim}
+  
 \end{document}

@@ -20,7 +20,7 @@ options = dict([
     ["-j", (False, "--nodepend", "Just setup product, but not its dependencies")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
     ["-n", (False, "--noaction", "Don\'t actually do anything")],
-    ["-p", (True,  "--pacman", "Install packages using this pacman cache")],
+    ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
     ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL)")],
     ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
     ["-V", (False, "--version", "Print eups version number and exit")],
