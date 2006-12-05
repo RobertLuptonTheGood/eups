@@ -740,7 +740,6 @@ def version():
 #
 # Deal with arguments
 #
-#(opts, args) = getopt(sys.argv)
 try:
     (opts, args) = getopt(sys.argv)
 except RuntimeError, param:
