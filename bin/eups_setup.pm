@@ -124,6 +124,9 @@ sub envAppend {
     }
     $curval .= "$val";
 
+    if ($force && $$oldenv{$var}) {
+       undef $$oldenv{$var};
+    }
     $ENV{$var} = envInterpolate($curval);
 }
 
@@ -140,6 +143,9 @@ sub envPrepend {
     }
     $curval .= $ENV{$var};
 
+    if ($force && $$oldenv{$var}) {
+       undef $$oldenv{$var};
+    }
     $ENV{$var} = envInterpolate($curval);
 }
 
@@ -147,6 +153,9 @@ sub envSet {
     my $var = $_[0];
     my $val = cleanArg($_[1]);
 
+    if ($force && $$oldenv{$var}) {
+       undef $$oldenv{$var};
+    }
     $ENV{$var} = envInterpolate($val);
 }
 
@@ -164,6 +173,10 @@ sub envRemove {
     $curval =~ s/$sdelim$sdelim/$sdelim/;
     $curval =~ s/^$sdelim//;
     $curval =~ s/$sdelim$//;
+
+    if ($force && $$oldenv{$var}) {
+       undef $$oldenv{$var};
+    }
     $ENV{$var} = $curval;
 }
 
@@ -581,7 +594,7 @@ sub eups_setup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args, $outfile, $no_dependencies, $debug, $quiet, $optional) = @_;
+   local ($args, $outfile, $no_dependencies, $debug, $quiet, $optional, $oldenv, $force) = @_;
    
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;

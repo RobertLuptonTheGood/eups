@@ -183,7 +183,6 @@ if ((1 || $select eq "setup")&&($ENV{"EUPS_FLAVOR"} eq "")&&(!defined($$options{
 
 #Get the environment variables
 %oldenv = %ENV;
-@oldkeys = keys %ENV;
 
 # Call either setup or unsetup
 
@@ -202,7 +201,7 @@ if ($select eq "list") {
    }
    
    if ($select eq "setup") {
-      $retval = eups_setup($comm, $tmpfile, $no_dependencies, $debug, 0);
+      $retval = eups_setup($comm, $tmpfile, $no_dependencies, $debug, 0, 0, \%oldenv, $force);
       if ($retval < 0) {
 	 eups_unsetup($comm, $tmpfile, $no_dependencies, $debug, 1);
 	 print STDERR "FATAL ERROR: setup failed\n";
@@ -225,6 +224,7 @@ if ($select eq "list") {
 #Check to see and update the environment 
 
 @newkeys = keys %ENV;
+@oldkeys = keys %oldenv;
 
 for ($i=0;$i<@oldkeys;$i++) {
 # Is the variable still set?
@@ -236,6 +236,7 @@ for ($i=0;$i<@oldkeys;$i++) {
     $oval = $oldenv{$oldkeys[$i]};
     if (!($val eq $oval)) {
 	sete($oldkeys[$i],$val);
+	$oldenv{$oldkeys[$i]} = $val; # so we won't set it again below
     }
 }
 
