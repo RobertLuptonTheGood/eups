@@ -53,6 +53,3 @@ case $cmd in
     echo "Unknown eups command \"$cmd\"" >&2;
     eups --help
 esac
-
-
-   
