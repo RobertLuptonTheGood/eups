@@ -744,7 +744,7 @@ sub eups_list {
    use File::Basename;
 
 # Need to extract the parameters carefully
-   local ($args,$debug,$quiet,$current, $setup, $just_directory, $just_tablefile) = @_;
+   local ($args,$outfile,$debug,$quiet,$current, $setup, $just_directory, $just_tablefile) = @_;
 
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
@@ -761,7 +761,7 @@ sub eups_list {
    ($flavor) = $qaz =~ m/\-f  *([^ ]+)/;
    $flavor = $ENV{"EUPS_FLAVOR"} if ($flavor eq ""); 
    if ($flavor eq "") {
-      print STDERR "ERROR: No flavor specified, Use -f or set EUPS_FLAVOR\n";
+      warn "ERROR: No flavor specified, Use -f or set EUPS_FLAVOR\n";
       return -1;			# 
    }					# 
 
@@ -838,32 +838,33 @@ sub eups_list {
 	       $printed_info = 1;
 	       if ($just_directory || $just_tablefile) {
 		  if ($just_directory) {
-		     warn "$prod_dir\n";
+		     print $outfile "echo \"$prod_dir\"\n";
 		  }
 		  if ($just_tablefile) {
-		     warn "$table_file\n";
+		     print $outfile "echo \"$table_file\"\n";
 		  }
 	       } else {
+		  my($msg) = "";
 		  if(!$one_product) {
-		     printf STDERR "%-20s", $prod;
+		     $msg .= "%-20s", $prod;
 		  }
-		  warn "   ${vers}$info\n";
+		  print $outfile "echo \"$msg   ${vers}$info\"\n";
 	       }
 	   }
        }
    }
 
    if($current && $one_product && !$printed_current) {
-      warn "No version is declared current\n";
+      print $outfile "echo \"No version is declared current\"\n";
    }
 
    if (!$printed_info) {	# Oh dear; may have been setup -r
       my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
       if ($setup_prod_dir) {
 	 if ($just_directory) {
-	    warn $setup_prod_dir . "\n";
+	    print $outfile "echo \"$setup_prod_dir\"\n";
 	 } elsif ($setup) {
-	    warn "LOCAL:$setup_prod_dir\n";
+	    print $outfile "echo \"LOCAL:$setup_prod_dir\"\n";
 	 }
       } 
    }

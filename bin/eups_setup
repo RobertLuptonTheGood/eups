@@ -121,19 +121,16 @@ $noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
 $just_directory = 0;
 $just_tablefile = 0;
 if (defined($$options{-d})) {
-   $noaction = 1;
    $just_directory = 1;
    $op = "list";
 }
 $force = defined($$options{-F}) ? 1 : 0;
 $no_dependencies = defined($$options{-j}) ? 1 : 0;
 if (defined($$options{-m})) {
-   $noaction = 1;
    $just_tablefile = 1;
    $op = "list";
 }
 if (defined($$options{-l})) {
-   $noaction = 1;
    $op = "list";
 }
 $setup = defined($$options{-s}) ? 1 : 0; # Only show setup version (default, except for -l)
@@ -190,7 +187,7 @@ if ($select eq "list") {
    if($no_dependencies) {
       warn "Option --just makes no sense with --list and is ignored\n";
    }
-   eups_list($comm,$debug,0,$current,$setup,$just_directory,$just_tablefile);
+   eups_list($comm,$tmpfile,$debug,0,$current,$setup,$just_directory,$just_tablefile);
 } else {
    if($current) {
       warn "Option --current is always assumed and may be omitted\n";

@@ -681,7 +681,7 @@ def eups_current(product, dbz = "", flavor = ""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    lp = os.popen("setup --list --current %s %s 2>&1" % (opts, product)).readlines()
+    lp = os.popen("setup --list --current %s %s" % (opts, product)).readlines()
     if re.search(r"^ERROR", lp[0]):
         raise RuntimeError, lp[0]
 
@@ -704,7 +704,7 @@ def eups_list(product, version, dbz = "", flavor = ""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    info = os.popen("setup %s --list --verbose %s %s 2>&1" % \
+    info = os.popen("setup %s --list --verbose %s %s" % \
                     (opts, product, version)).readlines()[0].split("\n")[0]
     return re.findall(r"\S+", info)
 
@@ -713,7 +713,7 @@ def eups_table(product, version, flavor = ""):
     if flavor:
         flavor = "--flavor %s" % (flavor)
         
-    info = os.popen("setup %s --table %s %s 2>&1" % \
+    info = os.popen("setup %s --table %s %s" % \
                     (flavor, product, version)).readlines()[0].split("\n")
     for i in info:
         if re.search("^WARNING", i):
