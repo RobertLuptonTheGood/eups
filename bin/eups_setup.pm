@@ -846,7 +846,7 @@ sub eups_list {
 	       } else {
 		  my($msg) = "";
 		  if(!$one_product) {
-		     $msg .= "%-20s", $prod;
+		     $msg .= sprintf("%-20s", $prod);
 		  }
 		  print $outfile "echo \"$msg   ${vers}$info\"\n";
 	       }
