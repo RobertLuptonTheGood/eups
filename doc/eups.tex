@@ -557,6 +557,37 @@ in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\foot
   
 %------------------------------------------------------------------------------
 
+  \item \code{eups\_expandtable}
+\begin{verbatim}
+Usage: eups_expandtable [options] file.table [directory]
+Options are
+    -h, --help    Print this message
+    -i, --inplace Modify file in situ
+    -w, --warn    Warn about versions that don't start with v or V
+\end{verbatim}
+
+Modify a ups table file, replacing setupRequired and setupOptional
+lines which refer to the current version by the actual version number 
+of the currently setup product; e.g.
+\begin{verbatim}
+      setupRequired("-f ${EUPS_FLAVOR} astroda")
+\end{verbatim}
+becomes
+\begin{verbatim}
+      setupRequired("-f ${EUPS_FLAVOR} astroda v13_1")
+\end{verbatim}
+If a directory is specified, the modified table file will be written
+there, with the same name as the original; otherwise it's written to
+standard out unless you specify \code{--inplace}, in which case the
+substitution will be done in situ.
+
+For example, the make target in a ups directory might contain the line:
+\begin{verbatim}
+      eups_expandtable -w iop.table $(IOP_DIR)/ups
+\end{verbatim}
+  
+%------------------------------------------------------------------------------
+
   \item \code{eups\_undeclare}
 \begin{verbatim}
 Usage:

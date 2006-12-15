@@ -8,6 +8,7 @@
 #
 # #############################################
 
+$inplace = 0;			# modify table file in place
 $warn_versions = 0;		# warn about suspicious versions
 
 while($ARGV[0] =~ /^-/) {
@@ -15,27 +16,28 @@ while($ARGV[0] =~ /^-/) {
       warn <<EOT;
 Usage: eups_expandtable [options] file.table [directory]
 Options are
-    -h, --help   Print this message
-    -w, --warn   Warn about versions that don't start with v or V
+    -h, --help    Print this message
+    -i, --inplace Modify file in situ
+    -w, --warn    Warn about versions that don't start with v or V
 
 Modify a ups table file, replacing setupRequired and setupOptional
 lines which refer to the current version by the actual version number 
 of the currently setup product; e.g.
-      setupRequired("-f \${UPS_PROD_FLAVOR} astroda")
+      setupRequired("-f \${EUPS_FLAVOR} astroda")
 becomes
-      setupRequired("-f \${UPS_PROD_FLAVOR} astroda v13_1")
+      setupRequired("-f \${EUPS_FLAVOR} astroda v13_1")
 
 If a directory is specified, the modified table file will be written
 there, with the same name as the original; otherwise it's written to
-standard out.
+standard out unless you specify \code{--inplace}, in which case the
+substitution will be done in situ.
 
 For example, the make target in a ups directory might contain the line:
       eups_expandtable -w iop.table \$(IOP_DIR)/ups
-
-All setup options are understood, with the exception of -B and -O which
-were too much trouble to parse.
 EOT
     exit 1;
+   } elsif($ARGV[0] eq "-i" || $ARGV[0] eq "--inplace") {
+      $inplace = 1;
    } elsif($ARGV[0] eq "-w" || $ARGV[0] eq "--warn") {
       $warn_versions = 1;
    } else {
@@ -49,21 +51,28 @@ if(($filename = $ARGV[0]) eq "") {
    die "Please specify a table file to install\n";
 }
 
-if($ARGV[1] ne "") {
-   $filename =~ m|([^/]*)$|;
-   $outfile = "$ARGV[1]/$1";
-   if($outfile eq $ARGV[0]) {
-      die "I refuse to overwrite your table file\n";      
-   }
+open(IFD, "$filename") || die "Cannot open $filename for read\n";
 
+if($ARGV[1] ne "" || $inplace) {
+   if ($ARGV[1] ne "") {
+      if ($infile) {
+	 warn "I cannot write to a file and inplace simultaneously; ignoring --inplace\n";
+      }
+      $filename =~ m|([^/]*)$|;
+      $outfile = "$ARGV[1]/$1";
+      if($outfile eq $ARGV[0]) {
+	 die "I refuse to overwrite your table file\n";      
+      }
+   } else {
+      rename($filename, "$filename.bak");
+      $outfile = $filename;
+   }
    open(FD, ">$outfile") || die "I cannot open $outfile\n";
    select(FD);
 }
 
-open(IFD, "$filename") || die "Cannot open $filename for read\n";
-
 while(<IFD>) {
-   if ((/(.*setupRequired\(")([^"]*)("\).*)/)||(/(.*setupOptional\(")([^"]*)("\).*)/)) { # matched the unmatched "
+   if ((/(.*setupRequired\("?)([^"]*)("?\).*)/)||(/(.*setupOptional\("?)([^"]*)("?\).*)/)) { # matched the unmatched "
       $head = $1; $body = $2; $tail = $3;
 
       $flags = $words = "";
@@ -126,6 +135,10 @@ while(<IFD>) {
    } else {
       print;
    }
+}
+
+if ($inplace) {
+   unlink("$filename.bak");
 }
 
 #
