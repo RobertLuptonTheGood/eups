@@ -17,7 +17,7 @@ options = dict([
     ["-h", (False, "--help", "Print this help message")],
     ["-c", (False, "--create", "Create a package for distribution")],
     ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
-    ["-j", (False, "--nodepend", "Just setup product, but not its dependencies")],
+    ["-j", (False, "--nodepend", "Just distribute product, but not its dependencies")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
     ["-n", (False, "--noaction", "Don\'t actually do anything")],
     ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
