@@ -27,11 +27,9 @@ Supported commands are:
 	flavor		Return the current flavor
 	list            List some or all products
 	pkg-config	Return the options associated with product
-	setup           Setup a product
 	undeclare	Undeclare a product
-	unsetup         Unsetup a product
 Use
-	eups -h cmd
+	eups --help cmd
 for help with command "cmd"
 EOF
     exit 1
