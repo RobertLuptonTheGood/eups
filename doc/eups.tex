@@ -370,19 +370,17 @@ AC\_OUTPUT
   \item \code{eups}
 \begin{verbatim}
 Usage:
-        eups [-h] command [options]
+        eups [--help|--version] command [options]
 Supported commands are:
         declare         Declare a product
         distrib         Install a product from a remote distribution,
                         or create such a distribution 
         flavor          Return the current flavor
-	list            List some or all products
+        list            List some or all products
         pkg-config      Return the options associated with product
-        setup           Setup a product
         undeclare       Undeclare a product
-        unsetup         Unsetup a product
 Use
-        eups cmd -h
+        eups --help cmd
 for help with command "cmd"
 \end{verbatim}
   
@@ -475,22 +473,26 @@ like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 Usage:
    eups_distrib [opts] [product [version]]
 Options:
-   -h, --help            Print this help message
-   -C, --current         Create a list of current versions which -x can use
+   -b, --prefer-flavor       Prefer distributions that are flavor-specific
+   -C, --current         Create a list of current versions which -i can use
    -c, --create          Create a package for distribution
    -F, --force           Force requested behaviour (e.g. redeclare a product)
-   -f, --flavor    arg   Use this flavor (default: $EUPS_FLAVOR or `eups_flavor`)
-   -j, --nodepend        Just setup product, but not its dependencies
+   -f, --flavor    arg   Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
    -h, --help            Print this help message
+   -i, --install         Extract and install the specified package
+                         Alias: --extract
+   -j, --nodepend        Just install product, but not its dependencies
    -n, --noaction        Don't actually do anything
    -p, --pacman    arg   Use this pacman cache to install packages
-   -r, --root      arg   Location of manifests and tarballs (may be a URL)
+   -r, --root      arg   Location of manifests and tarballs (may be a URL);
+                         Default: $EUPS_PKGROOT
+   -t, --prefer-tag arg   Prefer distributions that are tagged with this tag
    -V, --version         Print eups version number and exit
    -v, --verbose         Be chattier (repeat for even more chat)
-   -x, --extract         Extract and install the specified package
-   -Z, --database  arg   Use this products path (default: \$EUPS_PATH)
+   -Z, --database  arg   Use this products path. Default: $EUPS_PATH
                          Alias: --with-eups
-   -z, --select-db arg   Select the product paths which contain this directory (default: all)
+   -z, --select-db arg   Select the product paths which contain this directory.
+                         Default: all
 \end{verbatim} % $
 
 Handle the distribution of products and their dependencies as `packages'. A
@@ -502,14 +504,16 @@ a file (ending in \code{.manifest})
 listing a product's dependencies, including the names of the proper tarballs/caches. 
 
 Once you've created a package with \code{eups\_distrib --create} you can log on to
-another machine and use \code{eups\_distrib --extract} to
+another machine and use \code{eups\_distrib --install} to
 recreate a working \eups{} installation.  For example:
 \begin{verbatim}
 eups_distrib --verbose --select-db act --create moby v1_2
-eups_distrib --database /u/rhl/ppp --verbose --extract \
+eups_distrib --database /u/rhl/ppp --verbose --install \
              --root http://www.astro.princeton.edu/~act/packages moby v1_2
 \end{verbatim}
-to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database.
+to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database. If you omit
+\code{--root} it'll be taken from the environment variable \code{EUPS\_PKGROOT},
+if set.
 
 When creating an distribution, tarballs that already present are not recreated
 (unless you specify \code{--force}),
@@ -517,11 +521,11 @@ so repeating a \code{eups\_distrib --create} command to create a manifest for an
 product won't lead to duplication of tarballs.  If you want to use \pacman{},
 see App. \ref{pacman}.
 
-When unpacking a distribution with \code{eups\_distrib --extract}, products that are
+When unpacking a distribution with \code{eups\_distrib --install}, products that are
 already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{--force}).
 
 If you don't specify a version when installing a distribution with
-\code{--extract} the current version will be used.  This isn't quite the same
+\code{--install} the current version will be used.  This isn't quite the same
 as the version declared current on some machine where the distribution
 originated, as a bleeding-edge version acceptable in Princeton may not
 be ready for deployment on a mountain top in e.g. Chile. In
@@ -997,9 +1001,9 @@ To use \pacman{}, simply specify a \pacman{} cache when running \code{eups distr
 eups distrib -z lsst --pacman http://lsst.org/cache --create hello
 \end{verbatim}
 
-The \code{eups distrib --extract} command is unchanged:
+The \code{eups distrib --install} command is unchanged:
 \begin{verbatim}
-eups distrib --extract -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
+eups distrib --install -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
 \end{verbatim}
   
 \end{document}
