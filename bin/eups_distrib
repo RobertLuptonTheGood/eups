@@ -8,132 +8,10 @@ import re, sys
 import tempfile
 import shutil
 import urllib, urllib2
+import eups
 
 author = "Robert Lupton (rhl@astro.princeton.edu)"
 eups_distrib_version = "1.0"
-
-options = dict([
-    ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
-    ["-C", (False, "--current", "Create a list of current versions which -i can use")],
-    ["-c", (False, "--create", "Create a package for distribution")],
-    ["-i", (False, "--install", "Extract and install the specified package")],
-    ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
-    ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
-    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
-    ["-h", (False, "--help", "Print this help message")],
-    ["-n", (False, "--noaction", "Don\'t actually do anything")],
-    ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
-    ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL).\nDefault: $EUPS_PKGROOT")],
-    ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
-    ["-V", (False, "--version", "Print eups version number and exit")],
-    ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
-    ["-Z", (True,  "--database", "Use this products path. Default: $EUPS_PATH")],
-    ["-z", (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all")],
-    ])
-
-aliases = dict([
-    ["-i", ["--extract"]],
-    ["-Z", ["--with-eups"]],
-    ])
-
-
-def usage(msg = None):
-    """Print a usage message based on the options list"""
-    
-    if msg:
-        print >> sys.stderr, msg, "\n"
-
-    print >> sys.stderr, """\
-Usage:
-   eups_distrib [options] [product [version]]
-Options:"""
-
-    def asort(a,b):
-        """Sort alphabetically, so C and c appear together"""
-        if a.upper() != b.upper():
-            a = a.upper(); b = b.upper()
-
-        if a < b:
-            return -1
-        elif a == b:
-            return 0
-        else:
-            return 1
-
-    for opt in sorted(options.keys(), cmp = asort):
-        print >> sys.stderr, "   %2s%1s %-11s %3s   %s" % \
-              (opt,
-               (not options[opt][1] and [""] or [","])[0],
-               options[opt][1],
-               (not options[opt][0] and [""] or ["arg"])[0],
-               ("\n%25s"%"").join(options[opt][2].split("\n")))
-        if aliases.has_key(opt):
-            print >> sys.stderr, "                         Alias%s:" % \
-                  (len(aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(aliases[opt])
-
-def getopt(args):
-    """Like getopt.getopt, but returns a dictionary opts of recognised options,
-    supports long option names, allows options to follow arguments,
-    and sets the values of opts to the number of occurrences of the flag"""
-
-    global aliases, options
-    #
-    # Build the options string for getopt() and a hash of the long options
-    #
-    optstr = ""
-    longopts = {}
-    for opt in options.keys():
-        optstr += opt[1]
-        if options[opt][0]:
-            optstr += ":"
-
-        if options[opt][1]:
-            longopts[options[opt][1]] = opt
-
-    for opt in aliases.keys():
-        longopts[aliases[opt][0]] = opt
-    #
-    # Massage the arguments
-    #
-    nargs = []
-    opts = {}
-    verbose = 0
-    i = 0
-    while i < len(args) - 1:
-        i = i + 1
-        a = args[i]
-        
-        if re.search(r"^[^-]", a):
-            nargs += [a]
-            continue
-
-        mat = re.search(r"^([^=]+)=(.*)$", a)
-        if mat:
-            (a, val) = mat.groups()
-        else:
-            val = None            
-        
-        if longopts.has_key(a):
-            a = longopts[a]
-
-        if options.has_key(a):
-            if options[a][0]:
-                if val:
-                    opts[a] = val
-                else:
-                    try:
-                        opts[a] = args[i + 1]; i += 1
-                    except IndexError:
-                        raise RuntimeError, "Option %s expects a value" % a
-            else:
-                if opts.has_key(a):
-                    opts[a] += 1
-                else:
-                    opts[a] = 1
-        else:
-            raise RuntimeError, "Unrecognised option %s" % a
-
-    return (opts, nargs)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -189,7 +67,7 @@ def write_tarball(basedir, product_dir, package_base, product, version):
 
     return tarball
 
-def install_from_tarball(products_dir, package_base, tarball):
+def install_from_tarball(products_root, package_base, tarball):
     """Retrieve and unpack a tarball"""
     
     tfile = "%s/%s" % (package_base, tarball)
@@ -201,10 +79,10 @@ def install_from_tarball(products_dir, package_base, tarball):
         sys.exit(1)
 
     if verbose > 0:
-        print >> sys.stderr, "installing %s into %s" % (tarball, products_dir)
+        print >> sys.stderr, "installing %s into %s" % (tarball, products_root)
 
     try:
-        system("cd %s && cat %s | gunzip -c | tar -xf -" % (products_dir, tfile))                
+        system("cd %s && cat %s | gunzip -c | tar -xf -" % (products_root, tfile))                
     except:
         print >> sys.stderr, "Failed to read %s" % (tfile)
         sys.exit(1)
@@ -216,10 +94,10 @@ def use_pacman_cache(package, version):
     
     return "pacman:%s:%s|version('%s')" % (pacman_cache, package, version)
 
-def install_from_pacman(products_dir, cacheID):
+def install_from_pacman(products_root, cacheID):
     """Install a package using pacman"""
 
-    pacmanDir = "%s" % (products_dir)
+    pacmanDir = "%s" % (products_root)
     if not os.path.isdir(pacmanDir):
         try:
             os.mkdir(pacmanDir)
@@ -260,13 +138,13 @@ def createLocationList(filename, packagePath):
     locs = []
     if re.search('\.table$', filename):
         locs.append('/tables')
-    if preferflavor:
+    if preferFlavor:
         locs.extend(['/%s' % flavor, ''])
     else:
         locs.extend(['', '/%s' % flavor])
 
     if packagePath is not None:
-        if preferflavor:
+        if preferFlavor:
             if tag is not None:
                 locs.extend(['/%s/%s/%s' % (packagePath, flavor, tag),
                              '/%s/%s' % (packagePath, flavor),
@@ -359,7 +237,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not top_version:
         top_version = lookup_current_version(top_product, True, dbz, flavor)
 
-    product_list = eups_dependencies(top_product, top_version, dbz)
+    product_list = eups.dependencies(top_product, top_version, dbz, no_dependencies)
 
     products = []
     for line in product_list:
@@ -378,7 +256,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
             try:
-                info = eups_list(product, version, dbz, flavor)
+                info = eups.list(product, version, dbz, flavor)
                 (pversion, pdb, pdir) = info[0:3]
             except KeyboardInterrupt:
                 sys.exit(1)
@@ -388,7 +266,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 continue
 
             try:
-                info = eups_table(product, version, flavor)
+                info = eups.table(product, version, flavor)
                 (ptablefile) = info[0]
                 if ptablefile == "":
                     ptablefile = " "
@@ -459,11 +337,11 @@ def create_distrib(top_product, top_version, dbz, flavor,
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def lookup_current_version(product, eups = True, dbz = None, flavor = None):
+def lookup_current_version(product, from_eups = True, dbz = None, flavor = None):
     """Attempt to lookup a package's current version, as declared using eups_distrib"""
 
-    if eups:
-        prod_list = eups_current(product, dbz, flavor)
+    if from_eups:
+        prod_list = eups.current(product, dbz, flavor)
         return prod_list[0][1]
     else:
         try:
@@ -555,13 +433,13 @@ def create_current(top_product, top_version, dbz, flavor,
     if top_version:
         dp = [(top_product, top_version)]
         try:
-            info = eups_list(top_product, top_version, dbz, flavor)
+            info = eups.list(top_product, top_version, dbz, flavor)
         except:
             print >> sys.stderr, "WARNING: failed to find a version \"%s\" of product %s" % \
                   (top_version, top_product)
 
     else:
-        dp = eups_current(top_product, dbz, flavor)
+        dp = eups.current(top_product, dbz, flavor)
         
     products += dp
 
@@ -582,16 +460,16 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 
     global package_base
 
-    products_dir = db
+    products_root = db
     flavor_dir = "%s/%s" % (db, flavor)    # where to install
     if os.path.isdir(flavor_dir):
-        products_dir = flavor_dir
+        products_root = flavor_dir
         if verbose > 0:
-            print >> sys.stderr, "Installing products into", products_dir
+            print >> sys.stderr, "Installing products into", products_root
 
     if not manifest:
         if not top_version:
-            top_version = lookup_current_version(top_product, eups = False)
+            top_version = lookup_current_version(top_product, from_eups = False)
 
             if top_version == "":
                 print >> sys.stderr, ("No version of %s is declared current to eups_distrib\n" + \
@@ -651,7 +529,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             continue
         
         try:
-            info = eups_list(product, version, dbz, flavor)
+            info = eups.list(product, version, dbz, flavor)
         except IndexError:
             info = []
 
@@ -667,9 +545,9 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         #
         mat = re.search(r"pacman:(.*)", distID)
         if mat:
-            install_from_pacman(products_dir, mat.groups()[0])
+            install_from_pacman(products_root, mat.groups()[0])
         else:
-            install_from_tarball(products_dir, package_base, distID)
+            install_from_tarball(products_root, package_base, distID)
         #
         # Deal with table files if not in product root (i.e. -M files)
         #
@@ -682,207 +560,121 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
                 if not noaction:
                     tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
-        eups_declare(flavor, dbz, tablefile, products_dir, product_dir, 
-                     product, version, (current and product == top_product))
-
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#
-# Routines that talk to eups; all currently use popen on eups shell commands.
-#
-def eups_flavor():
-    """Return the current flavor"""
-    
-    if os.environ.has_key("EUPS_FLAVOR"):
-        return os.environ["EUPS_FLAVOR"]
-    return str.split(os.popen('eups_flavor').readline(), "\n")[0]
-
-def eups_declare(flavor, dbz, tablefile, products_dir, product_dir, product, version, declare_current = False):
-    """Declare a product"""
-
-    opts = ""
-    if declare_current:
-        opts += " -c"
-    if dbz:
-        opts += " -z %s" % dbz
-
-    tableopt = "-m"
-    if tablefile != "none":
-        if ("%s.table" % (product)) != tablefile:
-            tableopt = "-M"
-
-    try:
-        system("eups_declare --flavor %s%s %s %s --root %s/%s %s %s" % \
-               (flavor, opts, tableopt, tablefile, products_dir, product_dir, product, version))
-    except:
-        print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
-              (product, version, flavor)
-
-def eups_dependencies(product, version, dbz = "", flavor = ""):
-    """Return a product's dependencies"""
-
-    opts = ""
-    if dbz:
-        opts += " --select-db %s" % (dbz)
-    if flavor:
-        opts += " --flavor %s" % (flavor)
-
-    deps = os.popen("eups_setup setup %s -n --verbose %s %s 2>&1 1> /dev/null" % \
-                    (opts, product, version)).readlines()
-    if no_dependencies:
-        return deps[0:1]
-    else:
-        return deps
-
-def eups_current(product, dbz = "", flavor = ""):
-    """Return current versions of products"""
-
-    opts = ""
-    if dbz:
-        opts += " --select-db %s" % (dbz)
-    if flavor:
-        opts += " --flavor %s" % (flavor)
-
-    lp = os.popen("eups list --current %s %s" % (opts, product)).readlines()
-    if re.search(r"^ERROR", lp[0]):
-        raise RuntimeError, lp[0]
-
-    if product:
-        products = [(product, re.findall(r"\S+", lp[0])[0])]
-    else:
-        products = []
-        for p in lp:
-            products += [re.findall(r"\S+", p)]
-
-    return products
-
-
-def eups_list(product, version, dbz = "", flavor = ""):
-    """Return the properties of a product"""
-
-    opts = ""
-    if dbz:
-        opts += " --select-db %s" % (dbz)
-    if flavor:
-        opts += " --flavor %s" % (flavor)
-
-    info = os.popen("eups list %s --verbose %s %s" % \
-                    (opts, product, version)).readlines()[0].split("\n")[0]
-    return re.findall(r"\S+", info)
-
-def eups_table(product, version, flavor = ""):
-    """Return the name of a product's tablefile"""
-    if flavor:
-        flavor = "--flavor %s" % (flavor)
-        
-    info = os.popen("eups list %s --table %s %s" % \
-                    (flavor, product, version)).readlines()[0].split("\n")
-    for i in info:
-        if re.search("^WARNING", i):
-            print >> sys.stderr, i
-        else:
-            return re.findall(r"\S+", i)
-
-    return None
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-def version():
-   version = '$Name: not supported by cvs2svn $'                 # version from cvs
-
-   mat = re.search(r"^\$[N]ame:\s*(\S+)\s*\$$", version)
-   if mat:
-       version = mat.groups()[0]
-   else:
-       version = "(NOCVS)"
-
-   return version
+        eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
+                     product, version, (current and product == top_product), noaction)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Deal with arguments
 #
+options = dict([
+    ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
+    ["-C", (False, "--current", "Create a list of current versions which -i can use")],
+    ["-c", (False, "--create", "Create a package for distribution")],
+    ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
+    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
+    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
+    ["-h", (False, "--help", "Print this help message")],
+    ["-i", (False, "--install", "Extract and install the specified package")],
+    ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
+    ["-n", (False, "--noaction", "Don\'t actually do anything")],
+    ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
+    ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL).\nDefault: $EUPS_PKGROOT")],
+    ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
+    ["-V", (False, "--version", "Print eups version number and exit")],
+    ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
+    ["-Z", (True,  "--database", "Use this products path. Default: $EUPS_PATH")],
+    ["-z", (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all")],
+    ])
+
+aliases = dict([
+    ["-i", ["--extract"]],
+    ["-Z", ["--with-eups"]],
+    ])
+
 try:
-    (opts, args) = getopt(sys.argv)
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_distrib [options] [product [version]]")
 except RuntimeError, param:
-    print >>sys.stderr, "Error parsing arguments: %s" % param
+    print >> sys.stderr, "Error parsing arguments: %s" % param
     sys.exit(1)
 
-if opts.has_key('-h'):
-    usage("Distribute eups products with their dependencies")
+if opts.has_option('-h'):
+    print >> sys.stderr, "Distribute eups products with their dependencies\n"
+    opts.usage()
     sys.exit(0)
 
-preferflavor = False
-if opts.has_key('-b'):
-    preferflavor = True
+preferFlavor = False
+if opts.has_option('-b'):
+    preferFlavor = True
 
-current = opts.has_key('-C')
-create = opts.has_key('-c')
+current = opts.has_option('-C')
+create = opts.has_option('-c')
 
-if opts.has_key('-f'):
-    flavor = opts['-f']
+if opts.has_option('-f'):
+    flavor = opts.options['-f']
 else:
-    flavor = eups_flavor()
+    flavor = eups.flavor()
 
-force = opts.has_key('-F')
+force = opts.has_option('-F')
 
-no_dependencies = opts.has_key('-j')
+no_dependencies = opts.has_option('-j')
 
-install = opts.has_key('-i')
+install = opts.has_option('-i')
 
 manifest = None
-if opts.has_key('-m'):
-    manifest = opts['-m']
+if opts.has_option('-m'):
+    manifest = opts.options['-m']
 
-noaction = opts.has_key('-n')
+noaction = opts.has_option('-n')
 
 pacman = False                          # use pacman to install packages?
-if opts.has_key('-p'):
+if opts.has_option('-p'):
     pacman = True
-    pacman_cache = opts['-p']
+    pacman_cache = opts.options['-p']
 
 url = False                             # retrieve tarballs from a url?
-if opts.has_key('-r'):
-    package_base = opts['-r']
+if opts.has_option('-r'):
+    package_base = opts.options['-r']
 elif os.environ.has_key("EUPS_PKGROOT"):
     package_base = os.environ["EUPS_PKGROOT"];
 else:
     package_base = None
 
 tag = None
-if opts.has_key('-t'):
-    tag = opts['-t']
+if opts.has_option('-t'):
+    tag = opts.options['-t']
 
 if package_base is not None:
     if install and re.search(r"^http://", package_base):
         url = True
 
 verbose = 0
-if opts.has_key('-v'):
-    verbose = opts['-v']
+if opts.has_option('-v'):
+    verbose = opts.options['-v']
 
-if opts.has_key('-V'):
-    print >> sys.stderr, "Version: %s" % (version())
+if opts.has_option('-V'):
+    print >> sys.stderr, "Version: %s" % (eups.version())
     sys.exit(0)
 
 try:
-    top_product = args[0]
+    top_product = opts.argv[0]
 except IndexError:
     if current:
         top_product = ""
     elif manifest == None:
-        usage("Please specify a product")
+        print >> sys.stderr, "Please specify a product\n"
+        opts.usage()
         sys.exit(1)
 
 try:
-    top_version = args[1]
+    top_version = opts.argv[1]
 except IndexError:
     top_version = ""
 #
 # Figure out which database to use
 #
-if opts.has_key('-Z'):
-    os.environ['EUPS_PATH'] = opts['-Z']
+if opts.has_option('-Z'):
+    os.environ['EUPS_PATH'] = opts.options['-Z']
     
 try:
     eups_path = str.split(os.environ['EUPS_PATH'], ":")
@@ -891,8 +683,8 @@ except KeyError:
     sys.exit(1)
 
 dbz = ""
-if opts.has_key('-z'):
-    dbz = opts['-z']
+if opts.has_option('-z'):
+    dbz = opts.options['-z']
 
 if dbz:
     db = filter(lambda x: re.search("/%s/" % dbz, x), eups_path)
