@@ -80,7 +80,7 @@ die "ERROR : No version specified\n" if ($vers eq "");
 
 my @roots = eups_find_roots();
 
-my ($root, $prod_dir, $Xversion, $table_file) = find_best_version(@roots, $prod, $vers, $flavor);
+my ($root, $prod_dir, $Xversion, $table_file) = find_best_version(@roots, $prod, $vers, $flavor, 0);
 die "ERROR : No matching version found\n" if (not $root);
 $db = catfile($root, "ups_db");
 

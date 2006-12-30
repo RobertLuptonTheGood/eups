@@ -386,9 +386,9 @@ setupenv => \&envSet,
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv") {
-	    print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
+	    print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
 	} elsif ($comm eq "proddir") {
-            print STDERR "WARNING : Deprecated command $comm\n" if ($debug > 1);
+            print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
 	} elsif ($comm eq "setuprequired" && $fwd==0) {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
@@ -520,8 +520,8 @@ sub eups_unsetup {
 #   - the product version
 #   - the table file name
 #
-sub find_best_version(\@$$$) {
-    my ($roots, $prod, $vers,$flavor) = @_;
+sub find_best_version(\@$$$$) {
+    my ($roots, $prod, $vers,$flavor,$quiet) = @_;
     my $matchroot = "";
 
     if ($vers eq "") {
@@ -545,7 +545,7 @@ sub find_best_version(\@$$$) {
 	}
 	if ($vers eq "") {
 	    print STDERR "ERROR: No version of product $prod has been declared current for flavor $flavor\n"
-		if ($debug >= 1 + $optional);
+		if ($debug >= 1 + $optional + $quiet);
 	    return undef, undef, undef, undef;
 	}
     } else {
@@ -651,12 +651,12 @@ sub eups_setup {
       #determine it from current.chain
       #Also construct the full version file and check if it exists.
       my($ivers) = $vers;
-      ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor);
+      ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor,0);
       if (not $root) {
 	 if ($optional) {
-	    warn "WARNING : product $prod with version $ivers cannot be found.\n" if ($debug > 1);
+	    warn "WARNING: product $prod with version $ivers cannot be found.\n" if ($debug > 1);
 	 } else {
-	    warn "ERROR : product $prod with version $ivers cannot be found.\n";
+	    warn "ERROR: product $prod with version $ivers cannot be found.\n";
 	    return -1;
 	 }
       }
@@ -667,7 +667,7 @@ sub eups_setup {
       }
 
       # In case anyone cares which root -r shadows, try to find a matching version.
-      ($Xroot, $Xprod_dir, $Xvers, $Xtable_file) = find_best_version(@roots, $prod, $vers, $flavor);
+      ($Xroot, $Xprod_dir, $Xvers, $Xtable_file) = find_best_version(@roots, $prod, $vers, $flavor, 1);
       if (not $Xroot) {
 	  $root = $roots[0];
       } else {
@@ -686,7 +686,7 @@ sub eups_setup {
       }
       
       if ($table_file ne "" && $debug >= 1) {
-	 print STDERR "WARNING : Using table file $table_file\n";
+	 print STDERR "WARNING: Using table file $table_file\n";
       }
    } 
 
@@ -780,7 +780,7 @@ sub eups_list {
 
        if ($prod eq "") {
 	   if (!opendir(DB, $db)) {
-	       warn "ERROR Unable to get list of products from $db\n";
+	       warn "ERROR: Unable to get list of products from $db\n";
 	       return;
 	   }
 	   @products = grep(/^[^.].*$/, sort(readdir DB));

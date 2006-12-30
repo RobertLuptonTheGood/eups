@@ -107,7 +107,7 @@ die "ERROR : No version specified\n" if ($vers eq "");
 
 # Get the DB and product root directory
 my @dbroots = eups_find_roots();
-my ($dbroot, $prodroot, $Xversion, $Xtablefile) = find_best_version(@dbroots, $prod, $vers, $flavor);
+my ($dbroot, $prodroot, $Xversion, $Xtablefile) = find_best_version(@dbroots, $prod, $vers, $flavor, 0);
 if (not $dbroot) {
     $dbroot = $dbroots[0];		# Just use the first one.
 }
