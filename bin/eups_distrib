@@ -182,8 +182,9 @@ def write_tarball(basedir, product_dir, package_base, product, version):
 
     try:
         system("cd %s && tar -cf - %s | gzip > %s/%s" % (basedir, product_dir, package_base, tarball))
-    except:
+    except Exception, param:
         print >> sys.stderr, "Failed to write %s/%s" % (package_base, tarball)
+        os.unlink("%s/%s" % (package_base, tarball))
         sys.exit(1)
 
     return tarball
@@ -298,8 +299,8 @@ def find_file(filename, packagePath=None):
     locs = createLocationList(filename, packagePath)
 
     if verbose > 1:
-        print >> sys.stderr, "Looking for %s under %s in:\n  " % \
-              (filename, package_base), ",\n   ".join(locs)
+        print >> sys.stderr, "Looking for %s in:" % (filename), \
+              ("\n   %s" % package_base).join(locs)
             
     if os.path.isfile(filename):
         pass
@@ -379,6 +380,8 @@ def create_distrib(top_product, top_version, dbz, flavor,
             try:
                 info = eups_list(product, version, dbz, flavor)
                 (pversion, pdb, pdir) = info[0:3]
+            except KeyboardInterrupt:
+                sys.exit(1)
             except:
                 print >> sys.stderr, "WARNING: Failed to lookup directory for", \
                       "product:", product, "  Flavor:", flavor, "  Version:", version
@@ -389,7 +392,8 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 (ptablefile) = info[0]
                 if ptablefile == "":
                     ptablefile = " "
-                    
+            except KeyboardInterrupt:
+                sys.exit(1)                    
             except:
                 print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
                       "product:", product, "  Flavor:", flavor, "  Version:", version
@@ -675,9 +679,8 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         if tablefile != "none":
             if ("%s.table" % (product)) != tablefile:
                 tablefile = "%s-%s" % (product, tablefile)
-                if url and not noaction:
-                    tablefile = find_file(tablefile,
-                                          "%s/%s" % (product, version))
+                if not noaction:
+                    tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
         eups_declare(flavor, dbz, tablefile, products_dir, product_dir, 
                      product, version, (current and product == top_product))
