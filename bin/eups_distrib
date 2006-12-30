@@ -222,7 +222,7 @@ def install_from_pacman(products_dir, cacheID):
     pacmanDir = "%s" % (products_dir)
     if not os.path.isdir(pacmanDir):
         try:
-            system("mkdir %s" % (pacmanDir))
+            os.mkdir(pacmanDir)
         except:
             print >> sys.stderr, "Pacman failed to create %s" % (pacmanDir)
             sys.exit(1)
