@@ -237,82 +237,73 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not top_version:
         top_version = lookup_current_version(top_product, True, dbz, flavor)
 
-    product_list = eups.dependencies(top_product, top_version, dbz, no_dependencies)
+    try:
+        productList = eups.dependencies(top_product, top_version, dbz)
+    except RuntimeError, msg:
+        print >> sys.stderr, msg
+        sys.exit(1)
 
     products = []
-    for line in product_list:
-        if verbose > 2:
-            print line
+    for (product, version, flavor) in productList:
+        if verbose > 1:
+            print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
-        if re.search("^FATAL ERROR:", line):
-            print >> sys.stderr, "Fatal error setting up %s:" % (top_product), \
-                  "\t".join(["\n"] + product_list),
+        try:
+            (pversion, pdb, pdir, pcurrent) = eups.list(product, version, dbz, flavor)
+        except KeyboardInterrupt:
             sys.exit(1)
+        except:
+            print >> sys.stderr, "WARNING: Failed to lookup directory for", \
+                  "product:", product, "  Flavor:", flavor, "  Version:", version
+            continue
 
-        mat = re.search(r"^Setting up:\s+(\S+)\s+Flavor:\s+(\S+)\s+Version:\s+(\S+)", line)
-        if mat:
-            (product, flavor, version) = mat.groups()
-            if verbose > 1:
-                print "Product:", product, "  Flavor:", flavor, "  Version:", version
+        try:
+            ptablefile = eups.table(product, version, flavor)
+            if ptablefile == "":
+                ptablefile = " "
+        except KeyboardInterrupt:
+            sys.exit(1)                    
+        except:
+            print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
+                  "product:", product, "  Flavor:", flavor, "  Version:", version
+            continue
 
-            try:
-                info = eups.list(product, version, dbz, flavor)
-                (pversion, pdb, pdir) = info[0:3]
-            except KeyboardInterrupt:
-                sys.exit(1)
-            except:
-                print >> sys.stderr, "WARNING: Failed to lookup directory for", \
-                      "product:", product, "  Flavor:", flavor, "  Version:", version
-                continue
+        if pversion != version:
+            print >> sys.stderr, "Something's wrong with %s; %s != %s" % (product, version, pversion)
+        #
+        # We have the product's directory, and which DB it's registered in
+        #
+        try:
+            (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
+        except:
+            print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
+                  % (pdir, product)
+            print >> sys.stderr, "WARNING: not creating package for %s" % (product)
+            continue
 
-            try:
-                info = eups.table(product, version, flavor)
-                (ptablefile) = info[0]
-                if ptablefile == "":
-                    ptablefile = " "
-            except KeyboardInterrupt:
-                sys.exit(1)                    
-            except:
-                print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
-                      "product:", product, "  Flavor:", flavor, "  Version:", version
-                continue
+        if pacman:
+            distID = use_pacman_cache(product, version)
+        else:
+            distID = write_tarball(basedir, product_dir, package_base, product, version)
 
-            if pversion != version:
-                print >> sys.stderr, "Something's wrong with %s; %s != %s" % (product, version, pversion)
-            #
-            # We have the product's directory, and which DB it's registered in
-            #
-            try:
-                (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
-            except:
-                print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
-                      % (pdir, product)
-                print >> sys.stderr, "WARNING: not creating package for %s" % (product)
-                continue
+        if ptablefile != "none":
+            fulltablename = ptablefile
+            ptablefile = os.path.basename(ptablefile)
+            if ("%s.table" % (product)) != ptablefile:
+                tabledir = get_tabledir(url)
+                if verbose > 1:
+                    print >> sys.stderr, "Copying %s to %s/%s-%s" % \
+                          (fulltablename, tabledir, product, ptablefile)
+                shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
 
-            if pacman:
-                distID = use_pacman_cache(product, version)
-            else:
-                distID = write_tarball(basedir, product_dir, package_base, product, version)
+        products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
 
-            if ptablefile != "none":
-                fulltablename = ptablefile
-                ptablefile = os.path.basename(ptablefile)
-                if ("%s.table" % (product)) != ptablefile:
-                    tabledir = get_tabledir(url)
-                    if verbose > 1:
-                        print >> sys.stderr, "Copying %s to %s/%s-%s" % \
-                              (fulltablename, tabledir, product, ptablefile)
-                    shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
-
-            products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
+        if no_dependencies:
+            print >> sys.stderr, "Not writing manifest as you omitted dependencies"
+            return
     #
     # Time to write enough information to declare the products
     #
-    if no_dependencies:
-        print >> sys.stderr, "Not writing manifest as you omitted dependencies"
-        return
-
     if not manifest:
         manifest = "%s/%s" % (package_base, manifestFile(top_product, top_version))
         
@@ -341,8 +332,7 @@ def lookup_current_version(product, from_eups = True, dbz = None, flavor = None)
     """Attempt to lookup a package's current version, as declared using eups_distrib"""
 
     if from_eups:
-        prod_list = eups.current(product, dbz, flavor)
-        return prod_list[0][1]
+        return eups.current(product, dbz, flavor)
     else:
         try:
             products = read_current(find_file(currentFile()))

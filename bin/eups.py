@@ -1,18 +1,15 @@
 #!/usr/bin/env python
-#
-# Export a product and its dependencies as a package, or install a
-# product from a package
-#
+
+# Routines that talk to eups; all currently use popen on eups shell commands,
+# but you're not supposed to know that
+
 import os
 import re
 import sys
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#
-# Routines that talk to eups; all currently use popen on eups shell commands.
-#
-def current(product, dbz = "", flavor = ""):
-    """Return current versions of products"""
+def current(product="", dbz="", flavor = ""):
+    """Return the current version of a product; if product is omitted,
+    return a list of (pruduct, version) for all current products"""
 
     opts = ""
     if dbz:
@@ -20,16 +17,18 @@ def current(product, dbz = "", flavor = ""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    lp = os.popen("eups list --current %s %s" % (opts, product)).readlines()
-    if re.search(r"^ERROR", lp[0]):
-        raise RuntimeError, lp[0]
+    products = []
+    for line in os.popen("eups list --current %s %s 2>&1" % (opts, product)).readlines():
+        if re.search(r"^ERROR", line):
+            raise RuntimeError, line
+        elif re.search(r"^WARNING", line):
+            continue
 
-    if product:
-        products = [(product, re.findall(r"\S+", lp[0])[0])]
-    else:
-        products = []
-        for p in lp:
-            products += [re.findall(r"\S+", p)]
+        match = re.findall(r"\S+", line)
+        if product:
+            return match[0]
+
+        products += [match[0:2]]
 
     return products
 
@@ -62,8 +61,10 @@ def declare(flavor, dbz, tablefile, products_root, product_dir, product, version
         print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
               (product, version, flavor)
 
-def dependencies(product, version, dbz="", no_dependencies=False, flavor=""):
-    """Return a product's dependencies"""
+def dependencies(product, version, dbz="", flavor=""):
+    """Return a product's dependencies in the form of a list of tuples
+    (product, version, flavor)
+"""
 
     opts = ""
     if dbz:
@@ -71,12 +72,31 @@ def dependencies(product, version, dbz="", no_dependencies=False, flavor=""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    deps = os.popen("eups_setup setup %s -n --verbose %s %s 2>&1 1> /dev/null" % \
+    productList = os.popen("eups_setup setup %s -n --verbose %s %s 2>&1 1> /dev/null" % \
                     (opts, product, version)).readlines()
-    if no_dependencies:
-        return deps[0:1]
-    else:
-        return deps
+
+    dep_products = {}
+    deps = []
+    for line in productList:
+        if re.search("^FATAL ERROR:", line):
+            raise RuntimeError, "Fatal error setting up %s:" % (product), "\t".join(["\n"] + productList)
+
+        mat = re.search(r"^Setting up:\s+(\S+)\s+Flavor:\s+(\S+)\s+Version:\s+(\S+)", line)
+        if not mat:
+            continue
+        
+        (oneProduct, oneFlavor, oneVersion) = mat.groups()
+        oneDep = (oneProduct, oneVersion, oneFlavor) # note the change in order
+
+        # prune repeats of identical product version/flavor
+        versionHash = "%s:%s" % (oneVersion, oneFlavor)
+        if dep_products.has_key(oneProduct) and dep_products[oneProduct] == versionHash:
+            continue
+        dep_products[oneProduct] = versionHash
+
+        deps += [oneDep]
+
+    return deps
 
 def flavor():
     """Return the current flavor"""
@@ -85,8 +105,12 @@ def flavor():
         return os.environ["EUPS_FLAVOR"]
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
 
-def list(product, version, dbz = "", flavor = ""):
-    """Return the properties of a product"""
+def list(product, version = "", dbz = "", flavor = ""):
+    """Return a list of declared versions of a product; if the
+    version is specified, just return the properties of that version.
+
+    The return value is a list: (version, database, directory, isCurrent)
+    """
 
     opts = ""
     if dbz:
@@ -94,12 +118,25 @@ def list(product, version, dbz = "", flavor = ""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    info = os.popen("eups list %s --verbose %s %s" % \
-                    (opts, product, version)).readlines()[0].split("\n")[0]
-    return re.findall(r"\S+", info)
+    result = []
+    for info in os.popen("eups list %s --verbose %s %s" % (opts, product, version)).readlines():
+        oneResult = re.findall(r"\S+", info)
+
+        if len(oneResult) == 3:
+            oneResult += [False]
+        else:
+            assert (oneResult[3] == "Current")
+            oneResult[3] = True
+
+        result += [oneResult]
+
+        if version:
+            return oneResult
+        
+    return result
 
 def table(product, version, flavor = ""):
-    """Return the name of a product's tablefile"""
+    """Return the full path of a product's tablefile"""
     if flavor:
         flavor = "--flavor %s" % (flavor)
         
@@ -109,14 +146,14 @@ def table(product, version, flavor = ""):
         if re.search("^WARNING", i):
             print >> sys.stderr, i
         else:
-            return re.findall(r"\S+", i)
+            return re.findall(r"\S+", i)[0]
 
     return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def version():
-    """Return current cvs version"""
+    """Return eups' current cvs version"""
 
     version = '$Name: not supported by cvs2svn $'                 # version from cvs
     
@@ -155,8 +192,6 @@ Options may be accessed as Getopt.options[], and non-option arguments as Getopt.
 msg is the help message associated with the command
         
 """
-        self.options = options
-        self.aliases = aliases
         if msg:
             self.msg = msg
         else:
@@ -221,8 +256,13 @@ msg is the help message associated with the command
                         opts[a] = 1
             else:
                 raise RuntimeError, "Unrecognised option %s" % a
-
-            self.argv = nargv           # the surviving arguments
+        #
+        # Save state
+        #
+        self.cmd_options = options  # possible options
+        self.cmd_aliases = aliases  # possible aliases
+        self.options = opts         # the options provided
+        self.argv = nargv           # the surviving arguments
 
     def has_option(self, opt):
         """Whas the option "opt" provided"""
@@ -248,16 +288,16 @@ Options:""" % self.msg
             else:
                 return 1
 
-        for opt in sorted(self.options.keys(), cmp = asort):
+        for opt in sorted(self.cmd_options.keys(), cmp = asort):
             optstr = "%2s%1s %-12s %s" % \
                      (opt,
-                      (not self.options[opt][1] and [""] or [","])[0],
-                      self.options[opt][1] or "",
-                      (not self.options[opt][0] and [""] or ["arg"])[0])
+                      (not self.cmd_options[opt][1] and [""] or [","])[0],
+                      self.cmd_options[opt][1] or "",
+                      (not self.cmd_options[opt][0] and [""] or ["arg"])[0])
             
             print >> sys.stderr, "   %-21s %s" % \
-                  (optstr, ("\n%25s"%"").join(self.options[opt][2].split("\n")))
-            if self.aliases.has_key(opt):
+                  (optstr, ("\n%25s"%"").join(self.cmd_options[opt][2].split("\n")))
+            if self.cmd_aliases.has_key(opt):
                 print >> sys.stderr, "                         Alias%s:" % \
-                      (len(self.aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(self.aliases[opt])
+                      (len(self.cmd_aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(self.cmd_aliases[opt])
 
