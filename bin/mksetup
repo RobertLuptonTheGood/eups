@@ -43,6 +43,9 @@ open FILE, ">setups.csh" or die "Unable to open setups.csh";
 print FILE <<"EOT";
 if ("\$?EUPS_DIR" == "1" ) then
    setenv PATH `echo \$PATH | perl -pe "s|:$bindir||g"`
+   if ("\$?PYTHONPATH" == "1" ) then
+      setenv PYTHONPATH `echo \$PYTHONPATH | perl -pe "s|:$bindir||g"`
+   endif
 endif
 
 setenv EUPS_DIR $eupsdir
@@ -54,6 +57,7 @@ unsetenv PROD_DIR_PREFIX
 unsetenv PRODUCTS
 
 setenv PATH \${PATH}:$bindir
+setenv PYTHONPATH \${PYTHONPATH}:$bindir
 
 alias setup 'source `$binname setup \\!*`'
 alias unsetup 'source `$binname unsetup \\!*`'
@@ -65,6 +69,7 @@ open FILE, ">setups.sh" or die "Unable to open setups.sh";
 print FILE <<"EOT";
 if [ "\$EUPS_DIR" != "" ]; then
    PATH=`echo \$PATH | perl -pe "s|:$bindir||g"`
+   PYTHONPATH=`echo \$PYTHONPATH | perl -pe "s|:$bindir||g"`
 fi
 
 export EUPS_DIR=$eupsdir
@@ -76,6 +81,7 @@ unset PROD_DIR_PREFIX
 unset PRODUCTS
 
 export PATH="\$PATH:$bindir"
+export PYTHONPATH="\$PYTHONPATH:$bindir"
 
 function setup   { source `$binname setup \$@`; };   export -f setup
 function unsetup { source `$binname unsetup \$@`; }; export -f unsetup
