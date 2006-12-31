@@ -15,6 +15,9 @@
 
 \maketitle
 
+\tableofcontents
+\newpage
+
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 \section{Introduction}
@@ -357,9 +360,81 @@ AC\_CONFIG\_FILES([bin/eups\_import], [chmod 755 bin/eups\_import])
 AC\_OUTPUT
 \end{quote}
 
+\section{Using \eups{} with python}
+
+\eups{} is currently mostly written in perl, but we hope to do a
+complete rewrite in python at some point.  At present, there is a
+python module that allows access to (most) of \eups's functionality;
+missing commands will probably be added as we get around to it.
+
+There's also an option parsing class \code{Getopt} (used by \code{eups\_distrib}) that
+offers features not present in python's regular \code{getopt} module.
+
+To use \eups{} from python, you need to \code{import eups};
+\code{help(eups)} then reveals:
+\begin{verbatim}
+CLASSES
+    Getopt
+    
+    class Getopt
+     |  Methods defined here:
+     |  
+     |  __init__(self, options, argv=[''], aliases={}, msg=None)
+     |      A class to represent the processed command line arguments.
+     |      
+     |      options is a dictionary whose keys are is the short name of the option
+     |      (and the one that it'll be indexed as), and the value is a tuple; the
+     |      first element is a boolean specifying if the option takes a value; the
+     |      second (if not None) is a long alias for the option, and the third is
+     |      a help string.  E.g.
+     |          ["-i", (False, "--install", "Extract and install the specified package")],
+     |      
+     |      aliases is another dictionary, with values that specify additional long versions
+     |      of options; e.g.
+     |          ["-i", ["--extract"]],
+     |      
+     |      Options may be accessed as Getopt.options[], and non-option arguments as Getopt.argv[]
+     |      
+     |      msg is the help message associated with the command
+     |  
+     |  has_option(self, opt)
+     |      Whas the option "opt" provided
+     |  
+     |  usage(self)
+     |      Print a usage message based on the options list
+
+FUNCTIONS
+    current(product='', dbz='', flavor='')
+        Return the current version of a product; if product is omitted,
+        return a list of (pruduct, version) for all current products
+    
+    declare(flavor, dbz, tablefile, products_root, product_dir, product,
+            version, declare_current=False, noaction=False)
+        Declare a product
+    
+    dependencies(product, version, dbz='', flavor='')
+        Return a product's dependencies in the form of a list of tuples
+        (product, version, flavor)
+    
+    flavor()
+        Return the current flavor
+    
+    list(product, version='', dbz='', flavor='')
+        Return a list of declared versions of a product; if the
+        version is specified, just return the properties of that version.
+        
+        The return value is a list: (version, database, directory, isCurrent)
+    
+    table(product, version, flavor='')
+        Return the full path of a product's tablefile
+    
+    version()
+        Return eups' current cvs version
+\end{verbatim}
+
 \appendix
 
-\section{\eups Reference Manual}
+\section{\eups{} Reference Manual}
 
 \subsection{\eups{} commands}
 
@@ -1005,5 +1080,5 @@ The \code{eups distrib --install} command is unchanged:
 \begin{verbatim}
 eups distrib --install -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
 \end{verbatim}
-  
+
 \end{document}
