@@ -292,8 +292,8 @@ How did your \file{configure.ac} file achieve this magic?
       I.e. a script \code{gsl-config} which accepts arguments \code{--cflags}
       and \code{--libs} to print out the options that you should pass to the
       compiler and linker to use the \code{gsl} libraries. For example,
-      \code{--libs} $\rightarrow$ \code{-I/usr/local/include} and
-      \code{--cflags} $\rightarrow$ \code{-L/usr/local/lib -lgsl -lgslcblas -lm}
+      \code{--libs} prints \code{-I/usr/local/include} and
+      \code{--cflags} prints \code{-L/usr/local/lib -lgsl -lgslcblas -lm}
       }
     In this case, it came from ups,
     but the macro also supports \code{--with-gsl=DIR}; there are
@@ -760,7 +760,7 @@ Options:
   
 All the notes under \code{setup} apply to
 \code{unsetup}. Unsetting up a product relies on the environment
-variable \code{\$SETUP\_$<$product$>$}, so it fails if the variable
+variable \code{\$SETUP\_<product>}, so it fails if the variable
 isn't set.
 
 \end{itemize}
@@ -836,31 +836,31 @@ specified by three types of files:
 
 \subsubsection{\eups{} commands}
 
-The following table commands are supported by \eups{}: ($<$NAME$>$ either specifies an
+The following table commands are supported by \eups{}: (\code{<NAME>} either specifies an
 alias or an environment variable - clear from the context.)
 
 \begin{itemize}
-   \item \code{addAlias($<$NAME$>$,$<$Value$>$)}
+   \item \code{addAlias(<NAME>,<Value>)}
      Defines a function or an alias.  Arguments should be written in
-     sh format (i.e. \code{\$@} not \code{$\backslash$!*}); don't worry,
+     sh format (i.e. \code{\$@} not \code{\textbackslash!*}); don't worry,
      the csh alias will be defined correctly.  E.g.
      \begin{verbatim}
      addAlias(foo, source `${PRODUCT_DIR}/bin/eups_setup setup $@`;);
      \end{verbatim}
     
-   \item \code{envAppend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
-     Appends $<$Value$>$ to $<$NAME$>$. The default delimiter is `:'.
+   \item \code{envAppend(<NAME>,<Value>,[<delimiter>])}
+     Appends \code{<Value>} to \code{<NAME>}. The default delimiter is~`:'.
      
-   \item \code{envPrepend($<$NAME$>$,$<$Value$>$,[$<$delimiter$>$])}
+   \item \code{envPrepend(<NAME>,<Value>,[<delimiter>])}
      Similar to envAppend
      
-   \item \code{envSet($<$NAME$>$,$<$Value$>$)}
-     Set $<$NAME$>$ to $<$Value$>$
+   \item \code{envSet(<NAME>,<Value>)}
+     Set \code{<NAME>} to \code{<Value>}
      
-   \item \code{setupRequired($<$args$>$)}
+   \item \code{setupRequired(<args>)}
      Run setup with arguments args. Fail if unable to setup.
      
-   \item \code{setupOptional($<$args$>$)}
+   \item \code{setupOptional(<args>)}
      Same as setupRequired except that it does not fail if unable to setup.
 \end{itemize}
 
@@ -875,18 +875,18 @@ never used either.
      Aliases for the \code{env} commands.
      
    \item \code{prodDir()}
-     Sets \code{$<$PRODUCT$>$\_DIR} to the directory where the product is installed;
-     this directive is ignored as \code{$<$PRODUCT$>$\_DIR} is automatically set for you.
+     Sets \code{<PRODUCT>\_DIR} to the directory where the product is installed;
+     this directive is ignored as \code{<PRODUCT>\_DIR} is automatically set for you.
      
    \item \code{setupEnv()}
-     Sets \code{SETUP\_$<$PRODUCT$>$} so that product can be unsetup.
-     this directive is ignored as \code{$<$PRODUCT$>$\_DIR} is automatically set for you.
+     Sets \code{SETUP\_<PRODUCT>} so that product can be unsetup.
+     this directive is ignored as \code{<PRODUCT>\_DIR} is automatically set for you.
 \end{itemize}
         
 \subsubsection{Variables}
 
 The values to these UPS commands can be variables. All environment
-variables can be used as \${$<$ENV\_VARIABLE$>$}. In addition, the following special
+variables can be used as \${<ENV\_VARIABLE>}. In addition, the following special
 variables are defined;
 
 \begin{itemize}
