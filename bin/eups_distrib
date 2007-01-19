@@ -240,7 +240,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
     try:
         productList = eups.dependencies(top_product, top_version, dbz)
     except RuntimeError, msg:
-        print >> sys.stderr, msg
+        print >> sys.stderr, "".join(msg)
         sys.exit(1)
 
     products = []
@@ -660,6 +660,10 @@ try:
     top_version = opts.argv[1]
 except IndexError:
     top_version = ""
+
+if len(opts.argv) > 2:
+    print >> sys.stderr, "Junk at end of arguments:", " ".join(opts.argv[2:])
+    sys.exit(1)    
 #
 # Figure out which database to use
 #
