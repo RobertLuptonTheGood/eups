@@ -653,10 +653,17 @@ sub eups_setup {
       my($ivers) = $vers;
       ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor,0);
       if (not $root) {
-	 if ($optional) {
-	    warn "WARNING: product $prod with version $ivers cannot be found.\n" if ($debug > 1);
+	 my($msg);
+	 if ($ivers) {
+	    $msg = "product $prod with version $ivers cannot be found.";
 	 } else {
-	    warn "ERROR: product $prod with version $ivers cannot be found.\n";
+	    $msg = "no version of product $prod is declared current.";
+	 }
+
+	 if ($optional) {
+	    warn "WARNING: $msg\n" if ($debug > 1);
+	 } else {
+	    warn "ERROR: $msg\n";
 	    return -1;
 	 }
       }
