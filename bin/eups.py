@@ -79,7 +79,7 @@ def dependencies(product, version, dbz="", flavor=""):
     deps = []
     for line in productList:
         if re.search("^FATAL ERROR:", line):
-            raise RuntimeError, "Fatal error setting up %s:" % (product), "\t".join(["\n"] + productList)
+            raise RuntimeError, ("Fatal error setting up %s:" % (product), "\t".join(["\n"] + productList))
 
         mat = re.search(r"^Setting up:\s+(\S+)\s+Flavor:\s+(\S+)\s+Version:\s+(\S+)", line)
         if not mat:
@@ -248,14 +248,14 @@ msg is the help message associated with the command
                         try:
                             opts[a] = argv[i + 1]; i += 1
                         except IndexError:
-                            raise RuntimeError, "Option %s expects a value" % a
+                            raise RuntimeError, ("Option %s expects a value" % a)
                 else:
                     if opts.has_key(a):
                         opts[a] += 1
                     else:
                         opts[a] = 1
             else:
-                raise RuntimeError, "Unrecognised option %s" % a
+                raise RuntimeError, ("Unrecognised option %s" % a)
         #
         # Save state
         #
