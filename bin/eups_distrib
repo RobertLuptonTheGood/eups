@@ -248,8 +248,10 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if verbose > 1:
             print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
+        if product == "python":
+            print "XXX", eups.list(product, version, dbz, flavor)
         try:
-            (pversion, pdb, pdir, pcurrent) = eups.list(product, version, dbz, flavor)
+            (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
         except KeyboardInterrupt:
             sys.exit(1)
         except:

@@ -109,7 +109,8 @@ def list(product, version = "", dbz = "", flavor = ""):
     """Return a list of declared versions of a product; if the
     version is specified, just return the properties of that version.
 
-    The return value is a list: (version, database, directory, isCurrent)
+    The return value for each product is a list:
+       (version, database, directory, isCurrent, isSetup)
     """
 
     opts = ""
@@ -127,6 +128,13 @@ def list(product, version = "", dbz = "", flavor = ""):
         else:
             assert (oneResult[3] == "Current")
             oneResult[3] = True
+
+        if len(oneResult) == 4:
+            oneResult += [False]
+        else:
+            assert (oneResult[4] == "Setup")
+            oneResult[4] = True
+        assert len(oneResult) == 5
 
         result += [oneResult]
 
