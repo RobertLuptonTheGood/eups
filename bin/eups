@@ -24,6 +24,7 @@ Supported commands are:
 	declare		Declare a product
 	distrib		Install a product from a remote distribution,
 			or create such a distribution 
+	expandtable	Insert explicit version tags into a table file
 	flavor		Return the current flavor
 	list            List some or all products
 	pkg-config	Return the options associated with product
@@ -40,7 +41,7 @@ fi
 cmd=$1; shift
 
 case $cmd in
- declare|distrib|flavor|pkg-config|undeclare)
+ declare|distrib|expandtable|flavor|pkg-config|undeclare)
     eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
  list)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
