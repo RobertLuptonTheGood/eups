@@ -845,7 +845,11 @@ sub eups_list {
 	       $printed_info = 1;
 	       if ($just_directory || $just_tablefile) {
 		  if ($just_directory) {
-		     print $outfile "echo \"$prod_dir\"\n";
+		     my($dir) = $prod_dir;
+		     if ($dir eq "none") {
+			$dir = "";
+		     }
+		     print $outfile "echo \"$dir\"\n";
 		  }
 		  if ($just_tablefile) {
 		     print $outfile "echo \"$table_file\"\n";
@@ -980,7 +984,7 @@ sub read_version_file($$$$$$)
       $val = $ENV{"$env[$i]"};
       $prod_dir =~ s/\$\{$env[$i]\}/$val/g;
    }
-   if (!($prod_dir =~ m"^/")) {
+   if (!($prod_dir =~ m"^/") && $prod_dir ne "none") {
       $prod_dir = catfile($root,$prod_dir);
    }
    

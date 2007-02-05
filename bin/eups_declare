@@ -116,11 +116,17 @@ my ($prodfound) = $prodroot;
 if (defined($$options{-r})) {
    $new_root = 1;		# they specified a new root
    $prodroot = $$options{-r};
-   die "-r argument $prodroot is not a directory\n" if (not -d $prodroot);
+   if ($prodroot ne "none") {
+      die "-r argument $prodroot is not a directory\n" if (not -d $prodroot);
+   }
 } else {
    $new_root = 0;
    if (!$prodroot) {
-      die "Failed to find version $vers of $prod for flavor $flavor\n";
+      if (defined($$options{-M})) {
+	 $prodroot = "none"
+      } else {
+	 die "Failed to find version $vers of $prod for flavor $flavor\n";
+      }
    }
 }
 if ($debug) {
@@ -185,7 +191,9 @@ if (defined($$options{-M})) {
 #
 # Make path relative to selected/best EUPS_PATH
 #
-if ($prodfound) {
+if ($prodroot eq "none") {
+       ;
+} elsif ($prodfound) {
     if ($prodroot =~ m/$dbroot/) {
 	$prodroot =~ s|$dbroot/*||;
     } else {
