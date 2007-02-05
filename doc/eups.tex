@@ -450,6 +450,7 @@ Supported commands are:
         declare         Declare a product
         distrib         Install a product from a remote distribution,
                         or create such a distribution 
+        expandtable     Insert explicit version tags into a table file
         flavor          Return the current flavor
         list            List some or all products
         pkg-config      Return the options associated with product
@@ -460,7 +461,7 @@ for help with command "cmd"
 \end{verbatim}
   
 A consistent front-end to all the other \eups{} commands.  The commands
-starting \code{eups\_} may eventually go away, leaving only \code{eups}.
+starting \code{eups\_} will eventually go away, leaving only \code{eups}.
 
 %------------------------------------------------------------------------------
 
@@ -526,20 +527,29 @@ the product and version will be guessed from the last two parts of the directory
 name (e.g. \code{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
 declaring version \code{v2\_1\_6} of product \code{xpa}).
 
+You may specify \code{-r none}, in which case you don't have any files; this
+is only permitted if you also specify \code{-M} to provide a table file.  This
+can be handy if you want an alias; e.g.
+\begin{verbatim}
+echo "setupRequired(visionWorkbench)" | eups declare -r none -M - vw current
+\end{verbatim}
+makes \code{vw} an alias for product \code{visionWorkbench}. You can make
+an alias for a specific version with e.g.
+\begin{verbatim}
+setup visionWorkbench 1.0.0
+echo "setupRequired(visionWorkbench)" | eups expandtable | \
+	eups declare -r none -M - vw 1.0.0
+\end{verbatim}
+
+
+If you want to
+know what \code{vw} does, type e.g.
+\begin{verbatim}
+cat $(eups list vw -m)
+\end{verbatim}
+
 If you specify \code{-c} then it leaves the currently declared version alone, and
 only updates the current.chain.
-
-%------------------------------------------------------------------------------
-
-  \item \code{eups\_flavor}
-\begin{verbatim}
-Usage:
-   eups_flavor
-\end{verbatim}
-  
-Print your machine/operating system's flavor.  In simple cases, this'll
-be the same as \code{uname -m}, but in reality it has to worry about things
-like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 
 %------------------------------------------------------------------------------
 
@@ -617,6 +627,51 @@ relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
 that all product directories start with a directory listed in \code{EUPS\_PATH}.
 This is probably a good idea, as otherwise \code{eups\_distrib} would tar up
 all of /usr/local for you.
+  
+%------------------------------------------------------------------------------
+
+  \item \code{eups\_expandtable}
+\begin{verbatim}
+Usage: eups_expandtable [options] file.table [directory]
+Options are
+    -h, --help    Print this message
+    -i, --inplace Modify file in situ
+    -w, --warn    Warn about versions that don't start with v or V
+\end{verbatim}
+
+Modify a ups table file replacing setupRequired and setupOptional
+lines which refer to the current version by the actual version number
+of the currently setup product; e.g.
+\begin{verbatim}
+      setupRequired("-f ${EUPS_FLAVOR} astroda")
+\end{verbatim}
+becomes
+\begin{verbatim}
+      setupRequired("-f ${EUPS_FLAVOR} astroda v13_1")
+\end{verbatim}
+If a directory is specified, the modified table file will be written
+there, with the same name as the original; otherwise it's written to
+standard out unless you specify \code{--inplace}, in which case the
+substitution will be done in situ.
+You may omit file.table, or specify it as "-", to read standard input;
+this implies \code{--inplace}.
+
+For example, the make target in a ups directory might contain the line:
+\begin{verbatim}
+      eups_expandtable -w iop.table $(IOP_DIR)/ups
+\end{verbatim}
+
+%------------------------------------------------------------------------------
+
+\item \code{eups\_flavor}
+\begin{verbatim}
+Usage:
+   eups_flavor
+\end{verbatim}
+  
+Print your machine/operating system's flavor.  In simple cases, this'll
+be the same as \code{uname -m}, but in reality it has to worry about things
+like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 
 %------------------------------------------------------------------------------
 
@@ -633,37 +688,6 @@ searches \code{\$PRODUCT\_DIR/etc} for the \code{.pc} file.  It also
 works around the problem that quoted variables \code{\$\$\{...\}}
 in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\footnote{
   Yes; I filed a Debian bug report (378570) and it's fixed in the next release, 0.21-1}
-  
-%------------------------------------------------------------------------------
-
-  \item \code{eups\_expandtable}
-\begin{verbatim}
-Usage: eups_expandtable [options] file.table [directory]
-Options are
-    -h, --help    Print this message
-    -i, --inplace Modify file in situ
-    -w, --warn    Warn about versions that don't start with v or V
-\end{verbatim}
-
-Modify a ups table file, replacing setupRequired and setupOptional
-lines which refer to the current version by the actual version number 
-of the currently setup product; e.g.
-\begin{verbatim}
-      setupRequired("-f ${EUPS_FLAVOR} astroda")
-\end{verbatim}
-becomes
-\begin{verbatim}
-      setupRequired("-f ${EUPS_FLAVOR} astroda v13_1")
-\end{verbatim}
-If a directory is specified, the modified table file will be written
-there, with the same name as the original; otherwise it's written to
-standard out unless you specify \code{--inplace}, in which case the
-substitution will be done in situ.
-
-For example, the make target in a ups directory might contain the line:
-\begin{verbatim}
-      eups_expandtable -w iop.table $(IOP_DIR)/ups
-\end{verbatim}
   
 %------------------------------------------------------------------------------
 
