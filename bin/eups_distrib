@@ -1,0 +1,724 @@
+#!/usr/bin/env python
+#
+# Export a product and its dependencies as a package, or install a
+# product from a package
+#
+import os, os.path
+import re, sys
+import tempfile
+import shutil
+import urllib, urllib2
+import eups
+
+author = "Robert Lupton (rhl@astro.princeton.edu)"
+eups_distrib_version = "1.0"
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def system(cmd):
+    """Run a command, throwing an exception if a non-zero exit code is returned
+    Obeys noaction"""
+
+    if noaction:
+        print cmd
+    else:
+        if os.system(cmd) != 0:
+            raise RuntimeError, cmd
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def currentFile():
+    """Return the name of a current-versions file"""
+    return "current.list"
+    
+def manifestFile(product, version):
+    """Return the name of a manifest file"""
+    return "%s-%s.manifest" % (product, version)
+
+def get_tabledir(url):
+    tabledir = "%s/tables" % (package_base)
+    if not url and not os.path.isdir(tabledir):
+        print >> sys.stdout, "Creating %s" % (tabledir)
+        os.mkdir(tabledir)
+
+    return tabledir
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def write_tarball(basedir, product_dir, package_base, product, version):
+    """Create a tarball """
+    
+    tarball = "%s-%s.tar.gz" % (product, version)
+
+    if os.access("%s/%s" % (package_base, tarball), os.R_OK) and not force:
+        if verbose > 0:
+            print >> sys.stderr, "Not recreating", tarball
+        return tarball
+    
+    if verbose > 0:
+        print >> sys.stderr, "Writing", tarball
+
+    try:
+        system("cd %s && tar -cf - %s | gzip > %s/%s" % (basedir, product_dir, package_base, tarball))
+    except Exception, param:
+        print >> sys.stderr, "Failed to write %s/%s" % (package_base, tarball)
+        os.unlink("%s/%s" % (package_base, tarball))
+        sys.exit(1)
+
+    return tarball
+
+def install_from_tarball(products_root, package_base, tarball):
+    """Retrieve and unpack a tarball"""
+    
+    tfile = "%s/%s" % (package_base, tarball)
+    if url and not noaction:
+        (tfile, msg) = urlretrieve(tfile)
+
+    if not noaction and not os.access(tfile, os.R_OK):
+        print >> sys.stderr, "Unable to read %s" % (tfile)
+        sys.exit(1)
+
+    if verbose > 0:
+        print >> sys.stderr, "installing %s into %s" % (tarball, products_root)
+
+    try:
+        system("cd %s && cat %s | gunzip -c | tar -xf -" % (products_root, tfile))                
+    except:
+        print >> sys.stderr, "Failed to read %s" % (tfile)
+        sys.exit(1)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def use_pacman_cache(package, version):
+    """Return a pacman cache ID """
+    
+    return "pacman:%s:%s|version('%s')" % (pacman_cache, package, version)
+
+def install_from_pacman(products_root, cacheID):
+    """Install a package using pacman"""
+
+    pacmanDir = "%s" % (products_root)
+    if not os.path.isdir(pacmanDir):
+        try:
+            os.mkdir(pacmanDir)
+        except:
+            print >> sys.stderr, "Pacman failed to create %s" % (pacmanDir)
+            sys.exit(1)
+
+    if verbose > 0:
+        print >> sys.stderr, "installing pacman cache %s into %s" % (cacheID, pacmanDir)
+    
+    try:
+        system("""cd %s && pacman -install "%s" """ % (pacmanDir, cacheID))
+    except:
+        print >> sys.stderr, "Pacman failed to install %s" % (cacheID)
+        sys.exit(1)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def urlretrieve(file):
+    """Like urllib's urlretrieve, except use urllib2 to detect 404 errors"""
+
+    try:
+        fd = urllib2.urlopen(file); del fd
+    except urllib2.HTTPError:
+        raise RuntimeError, ("Failed to open URL %s" % file)
+    return urllib.urlretrieve(file)
+
+HTTPError = urllib2.HTTPError
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def createLocationList(filename, packagePath):
+    """Create a list of places to look"""
+    
+    if packagePath is None and re.search('\.manifest$', filename):
+        packagePath = 'manifests'
+    
+    locs = []
+    if re.search('\.table$', filename):
+        locs.append('/tables')
+    if preferFlavor:
+        locs.extend(['/%s' % flavor, ''])
+    else:
+        locs.extend(['', '/%s' % flavor])
+
+    if packagePath is not None:
+        if preferFlavor:
+            if tag is not None:
+                locs.extend(['/%s/%s/%s' % (packagePath, flavor, tag),
+                             '/%s/%s' % (packagePath, flavor),
+                             '/%s/%s' % (packagePath, tag),
+                             '/%s' % (packagePath)])
+            else:
+                locs.extend(['/%s/%s' % (packagePath, flavor),
+                             '/%s' % (packagePath)])
+        else:
+            if tag is not None:
+                locs.extend(['/%s/%s' % (packagePath, tag),
+                             '/%s/%s/%s' % (packagePath, flavor, tag),
+                             '/%s' % (packagePath),
+                             '/%s/%s' % (packagePath, flavor)])
+            else:
+                locs.extend(['/%s' % (packagePath),
+                             '/%s/%s' % (packagePath, flavor)])
+
+    return locs
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+def find_file(filename, packagePath=None):
+    """Lookup a filename given a (possibly incomplete) package_base and filename
+
+    N.B. Modifies the global package_base if needs be"""
+
+    global package_base
+
+    locs = createLocationList(filename, packagePath)
+
+    if verbose > 1:
+        print >> sys.stderr, "Looking for %s in:" % (filename), \
+              ("\n   %s" % package_base).join(locs)
+            
+    if os.path.isfile(filename):
+        pass
+    elif url:
+        tfile = None
+        for loc in locs:
+            try:
+                (tfile, msg) = urlretrieve("%s%s/%s" % (package_base, loc,
+                                                        filename))
+                break
+            except RuntimeError:
+                pass
+
+        if tfile:
+            filename = tfile
+        else:
+            print >> sys.stderr, \
+                     "Failed to find and retrive filename %s from %s" % \
+                     (filename, package_base)
+            sys.exit(1)
+    else:
+        if not package_base:
+            package_base = "%s/packages/%s" % (db, flavor)
+
+        tfile = None
+        for loc in locs:
+            guess = "%s%s/%s" % (package_base, loc, filename)
+            if os.path.isfile(guess):
+                tfile = guess
+                break
+
+        if tfile is None:
+            print >> sys.stdout, \
+                  "File %s doesn't exist in %s" % (filename, package_base)
+            sys.exit(1)
+
+        filename = tfile
+
+    return filename
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def create_distrib(top_product, top_version, dbz, flavor,
+                   force, manifest, noaction, url, verbose):
+    """Create a distribution"""
+
+    if not os.path.isdir(package_base):
+        if verbose > 0:
+            print >> sys.stderr, "Creating", package_base
+        try:
+            os.makedirs(package_base)
+        except:
+            print >> sys.stderr, "Failed to create", package_base
+            sys.exit(1)
+
+    if not top_version:
+        top_version = lookup_current_version(top_product, True, dbz, flavor)
+
+    try:
+        productList = eups.dependencies(top_product, top_version, dbz)
+    except RuntimeError, msg:
+        print >> sys.stderr, "".join(msg)
+        sys.exit(1)
+
+    products = []
+    for (product, version, flavor) in productList:
+        if verbose > 1:
+            print "Product:", product, "  Flavor:", flavor, "  Version:", version
+
+        if product == "python":
+            print "XXX", eups.list(product, version, dbz, flavor)
+        try:
+            (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
+        except KeyboardInterrupt:
+            sys.exit(1)
+        except:
+            print >> sys.stderr, "WARNING: Failed to lookup directory for", \
+                  "product:", product, "  Flavor:", flavor, "  Version:", version
+            continue
+
+        try:
+            ptablefile = eups.table(product, version, flavor)
+            if ptablefile == "":
+                ptablefile = " "
+        except KeyboardInterrupt:
+            sys.exit(1)                    
+        except:
+            print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
+                  "product:", product, "  Flavor:", flavor, "  Version:", version
+            continue
+
+        if pversion != version:
+            print >> sys.stderr, "Something's wrong with %s; %s != %s" % (product, version, pversion)
+        #
+        # We have the product's directory, and which DB it's registered in
+        #
+        try:
+            (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
+        except:
+            print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
+                  % (pdir, product)
+            print >> sys.stderr, "WARNING: not creating package for %s" % (product)
+            continue
+
+        if pacman:
+            distID = use_pacman_cache(product, version)
+        else:
+            distID = write_tarball(basedir, product_dir, package_base, product, version)
+
+        if ptablefile != "none":
+            fulltablename = ptablefile
+            ptablefile = os.path.basename(ptablefile)
+            if ("%s.table" % (product)) != ptablefile:
+                tabledir = get_tabledir(url)
+                if verbose > 1:
+                    print >> sys.stderr, "Copying %s to %s/%s-%s" % \
+                          (fulltablename, tabledir, product, ptablefile)
+                shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
+
+        products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
+
+        if no_dependencies:
+            print >> sys.stderr, "Not writing manifest as you omitted dependencies"
+            return
+    #
+    # Time to write enough information to declare the products
+    #
+    if not manifest:
+        manifest = "%s/%s" % (package_base, manifestFile(top_product, top_version))
+        
+    if verbose > 0:
+        print >> sys.stderr, "Manifest is", manifest
+
+    try:
+        if not noaction:
+            ofd = open(manifest, "w")
+    except:
+        print >> sys.stderr, "Failed to open", manifest
+        sys.exit(1)
+
+    if not noaction:
+        print >> ofd, "EUPS distribution manifest for %s (%s). Version %s" % \
+              (top_product, top_version, eups_distrib_version)
+        
+    for p in products:
+        (product, flavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
+        if not noaction:
+            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, distID])
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def lookup_current_version(product, from_eups = True, dbz = None, flavor = None):
+    """Attempt to lookup a package's current version, as declared using eups_distrib"""
+
+    if from_eups:
+        return eups.current(product, dbz, flavor)
+    else:
+        try:
+            products = read_current(find_file(currentFile()))
+
+            for p in products:
+                (name, version) = p
+                if name == product:
+                    return version
+        except:
+            pass
+
+    return ""
+
+def read_current(current):
+    """Read a list of current products from file current"""
+
+    fd = open(current, "r")
+
+    line = fd.readline()
+    mat = re.search(r"^EUPS distribution current version list. Version (\S+)\s*$", line)
+    if not mat:
+        print >> sys.stderr, "First line of file %s is corrupted:\n\t%s" % (current, line),
+        sys.exit(1)
+    version = mat.groups()[0]
+    if version != eups_distrib_version:
+        print >> sys.stderr, "WARNING. Saw version %s; expected %s", version, eups_distrib_version
+        
+    products = []
+    for line in fd:
+        line = line.split("\n")[0]
+        if re.search(r"^\s*#", line):
+            continue
+
+        try:
+            (product, flavor, version) = re.findall(r"\S+", line)[0:3]
+        except:
+            print >> sys.stderr, "Failed to parse line:", line,
+            sys.exit(1)
+
+        products += [(product, version)]
+
+    return products
+
+def write_current(current, products, noaction = False):
+    """Write a list of current products to file current"""
+
+    try:
+        if not noaction:
+            ofd = open(current, "w")
+    except IOError:
+        print >> sys.stderr, "Failed to open", current
+        sys.exit(1)
+
+    if verbose > 1:
+        print >> sys.stderr, "Writing current product list to", current
+
+    if not noaction:
+        print >> ofd, "EUPS distribution current version list. Version %s" % (eups_distrib_version)
+
+    for p in products:
+        (product, version) = p[0:2]
+        if not noaction:
+            print >> ofd, str.join("\t", [product, flavor, version])
+
+def create_current(top_product, top_version, dbz, flavor,
+                   noaction, verbose):
+    """Create a list of packages that are declared current to eups_distrib"""
+
+    current = "%s/%s" % (package_base, currentFile())
+
+    if top_product == "":               # update entire current list
+        products = []
+    else:
+        try:
+            products = read_current(current)
+        except:
+            products = []
+
+        nproducts = []
+        for p in products:
+            if p[0] != top_product:
+                nproducts += [p]
+        products = nproducts
+    #
+    # Extract the up-to-date information about current versions,
+    # and add it to the previously existing list [if any]
+    #
+    if top_version:
+        dp = [(top_product, top_version)]
+        try:
+            info = eups.list(top_product, top_version, dbz, flavor)
+        except:
+            print >> sys.stderr, "WARNING: failed to find a version \"%s\" of product %s" % \
+                  (top_version, top_product)
+
+    else:
+        dp = eups.current(top_product, dbz, flavor)
+        
+    products += dp
+
+    if top_product and verbose:
+        (product, version) = dp[0]
+        assert (product == top_product)
+        print >> sys.stderr, "Declaring version %s of %s current to eups_depend" % (version, product)
+    #
+    # Now write the file containing current version info
+    #
+    write_current(current, products, noaction)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def install_distrib(top_product, top_version, db, dbz, flavor,
+                    force, manifest, noaction, url, verbose):
+    """Install a set of packages"""
+
+    global package_base
+
+    products_root = db
+    flavor_dir = "%s/%s" % (db, flavor)    # where to install
+    if os.path.isdir(flavor_dir):
+        products_root = flavor_dir
+        if verbose > 0:
+            print >> sys.stderr, "Installing products into", products_root
+
+    if not manifest:
+        if not top_version:
+            top_version = lookup_current_version(top_product, from_eups = False)
+
+            if top_version == "":
+                print >> sys.stderr, ("No version of %s is declared current to eups_distrib\n" + \
+                      "Please specify a version or a manifest file with -m") % (top_product)
+                sys.exit(1)
+
+            print >> sys.stderr, "Installing %s of %s" % (top_version, top_product)
+
+        raw_manifest = manifestFile(top_product, top_version)
+        manifest = find_file(raw_manifest)
+
+        if not url:
+            mat = re.search(r"^(.*)/([^/]+)$", manifest)
+            if mat:
+                pb = mat.groups()[0]
+                if package_base and pb != package_base:
+                    print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
+                          (manifest, package_base)
+                package_base = pb
+    #
+    # OK, we've found the manifest (phew)
+    #
+    if verbose > 0:
+        if manifest == raw_manifest:
+            print >> sys.stderr, "Manifest is", manifest
+        else:
+            print >> sys.stderr, "Manifest is", raw_manifest, "(%s)" % manifest
+    try:
+        fd = open(manifest, "r")
+    except:
+        print >> sys.stderr, "Failed to open", manifest
+        sys.exit(1)
+
+    line = fd.readline()
+    mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
+    if not mat:
+        print >> sys.stderr, "First line of file %s is corrupted:\n\t%s" % (manifest, line),
+        sys.exit(1)
+    version = mat.groups()[2]
+    if version != eups_distrib_version:
+        print >> sys.stderr, "WARNING. Saw version %s; expected %s" % (version, eups_distrib_version)
+
+    products = []
+    for line in fd:
+        line = line.split("\n")[0]
+        if re.search(r"^\s*#", line):
+            continue
+
+        try:
+            (product, mflavor, version, tablefile, product_dir, distID) = re.findall(r"\S+", line)[0:6]
+        except:
+            print >> sys.stderr, "Failed to parse line:", line,
+            sys.exit(1)
+
+        if (no_dependencies and 
+            (product != top_product or version != top_version)):
+            continue
+        
+        try:
+            info = eups.list(product, version, dbz, flavor)
+        except IndexError:
+            info = []
+
+        if len(info) > 0:
+            print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
+                  (product, version, flavor)
+            if force:
+                print >> sys.stderr, "Reinstalling %s anyway" % (product)
+            else:
+                continue
+        #
+        # We need to install and declare this product
+        #
+        mat = re.search(r"pacman:(.*)", distID)
+        if mat:
+            install_from_pacman(products_root, mat.groups()[0])
+        else:
+            install_from_tarball(products_root, package_base, distID)
+        #
+        # Deal with table files if not in product root (i.e. -M files)
+        #
+        # If the table in the manifest file is "<product>.table" in the manifest file
+        # the table file should be installed by eups_distrib and declared via eups declare -M
+        #
+        if tablefile != "none":
+            if ("%s.table" % (product)) != tablefile:
+                tablefile = "%s-%s" % (product, tablefile)
+                if not noaction:
+                    tablefile = find_file(tablefile, "%s/%s" % (product, version))
+
+        eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
+                     product, version, current, noaction)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
+options = dict([
+    ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
+    ["-C", (False, "--current", "Create a list of current versions which -i can use")],
+    ["-c", (False, "--create", "Create a package for distribution")],
+    ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
+    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
+    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
+    ["-h", (False, "--help", "Print this help message")],
+    ["-i", (False, "--install", "Extract and install the specified package")],
+    ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
+    ["-n", (False, "--noaction", "Don\'t actually do anything")],
+    ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
+    ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL).\nDefault: $EUPS_PKGROOT")],
+    ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
+    ["-V", (False, "--version", "Print eups version number and exit")],
+    ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
+    ["-Z", (True,  "--database", "Use this products path. Default: $EUPS_PATH")],
+    ["-z", (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all")],
+    ])
+
+aliases = dict([
+    ["-i", ["--extract"]],
+    ["-Z", ["--with-eups"]],
+    ])
+
+try:
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_distrib [options] [product [version]]")
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+
+if opts.has_option('-h'):
+    print >> sys.stderr, "Distribute eups products with their dependencies\n"
+    opts.usage()
+    sys.exit(0)
+
+preferFlavor = False
+if opts.has_option('-b'):
+    preferFlavor = True
+
+current = opts.has_option('-C')
+create = opts.has_option('-c')
+
+if opts.has_option('-f'):
+    flavor = opts.options['-f']
+else:
+    flavor = eups.flavor()
+
+force = opts.has_option('-F')
+
+no_dependencies = opts.has_option('-j')
+
+install = opts.has_option('-i')
+
+manifest = None
+if opts.has_option('-m'):
+    manifest = opts.options['-m']
+
+noaction = opts.has_option('-n')
+
+pacman = False                          # use pacman to install packages?
+if opts.has_option('-p'):
+    pacman = True
+    pacman_cache = opts.options['-p']
+
+url = False                             # retrieve tarballs from a url?
+if opts.has_option('-r'):
+    package_base = opts.options['-r']
+elif os.environ.has_key("EUPS_PKGROOT"):
+    package_base = os.environ["EUPS_PKGROOT"];
+else:
+    package_base = None
+
+tag = None
+if opts.has_option('-t'):
+    tag = opts.options['-t']
+
+if package_base is not None:
+    if install and re.search(r"^http://", package_base):
+        url = True
+
+verbose = 0
+if opts.has_option('-v'):
+    verbose = opts.options['-v']
+
+if opts.has_option('-V'):
+    print >> sys.stderr, "Version: %s" % (eups.version())
+    sys.exit(0)
+
+try:
+    top_product = opts.argv[0]
+except IndexError:
+    if current:
+        top_product = ""
+    elif manifest == None:
+        print >> sys.stderr, "Please specify a product\n"
+        opts.usage()
+        sys.exit(1)
+
+try:
+    top_version = opts.argv[1]
+except IndexError:
+    top_version = ""
+
+if len(opts.argv) > 2:
+    print >> sys.stderr, "Junk at end of arguments:", " ".join(opts.argv[2:])
+    sys.exit(1)    
+#
+# Figure out which database to use
+#
+if opts.has_option('-Z'):
+    os.environ['EUPS_PATH'] = opts.options['-Z']
+    
+try:
+    eups_path = str.split(os.environ['EUPS_PATH'], ":")
+except KeyError:
+    print >> sys.stderr, "Please set EUPS_PATH and try again"
+    sys.exit(1)
+
+dbz = ""
+if opts.has_option('-z'):
+    dbz = opts.options['-z']
+
+if dbz:
+    db = filter(lambda x: re.search("/%s/" % dbz, x), eups_path)
+    if len(db) == 0:
+        print >> sys.stderr, "DB %s is not found in EUPS_PATH:" % dbz, str.join(" ", eups_path)
+        sys.exit(1)
+    elif len(db) == 1:
+        db = db[0]
+    else:
+        print >> sys.stderr, "Choice of DB %s is ambiguous:" % dbz, str.join(" ", eups_path)
+else:
+    db = eups_path[0]
+
+if not os.path.isdir(db):
+    print >> sys.stderr, "Products directory %s doesn't exist" % db
+    sys.exit(1)
+#
+# Check that eups is installed in that db
+#
+if not os.path.isdir(db + "/ups_db"):
+    print >> sys.stderr, "Products database %s/ups_db doesn't exist; please install eups" % db
+    sys.exit(1)
+
+if not package_base:
+    package_base = str.join("/", [db, "packages", flavor])
+#
+# To work
+#
+if not create and not install:
+    print >> sys.stderr, "Please specify exactly one of --create and --install"
+    sys.exit(1)
+
+if create:
+    create_distrib(top_product, top_version, dbz, flavor,
+                   force, manifest, noaction, url, verbose)
+    if current:
+        create_current(top_product, top_version, dbz, flavor,
+                       noaction, verbose)
+elif install:
+    install_distrib(top_product, top_version, db, dbz, flavor,
+                    force, manifest, noaction, url, verbose)
