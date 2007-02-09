@@ -20,7 +20,11 @@ if ($uname eq "Linux") {
       $flav = "Linux";
    }
 } elsif ($uname eq "Darwin") {
-   $flav = "Darwin";
+   if ($mach =~ /^i386$/) {
+      $flav = "DarwinX86";
+   } else {
+      $flav = "Darwin";
+   }
 }
 
 if (defined($flav)) {
