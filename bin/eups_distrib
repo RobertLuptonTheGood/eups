@@ -553,7 +553,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
                     tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
         eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
-                     product, version, (current and product == top_product), noaction)
+                     product, version, current, noaction)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
