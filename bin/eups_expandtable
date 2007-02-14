@@ -18,7 +18,8 @@ Usage: eups_expandtable [options] [file.table [directory]]
 Options are
     -h, --help    Print this message
     -i, --inplace Modify file in situ
-    -w, --warn    Warn about versions that don't start with v or V
+    -p, --product PRODUCT=VERSION   Expand PRODUCT to use VERSION
+    -w, --warn    Warn about versions that do not start with v or V
 
 Modify a ups table file, replacing setupRequired and setupOptional
 lines which refer to the current version by the actual version number 
@@ -27,8 +28,11 @@ of the currently setup product; e.g.
 becomes
       setupRequired("-f \${EUPS_FLAVOR} astroda v13_1")
 
+You can override the version with e.g. -p astroda=rhl; more
+than one -p command is permitted.
+
 If a directory is specified, the modified table file will be written
-there, with the same name as the original; otherwise it's written to
+there, with the same name as the original; otherwise it is written to
 standard out unless you specify --inplace, in which case the
 substitution will be done in situ.  You may omit file.table, or
 specify it as \"-\", to read standard input; this implies --inplace.
@@ -41,6 +45,14 @@ EOT
       last;
    } elsif($ARGV[0] eq "-i" || $ARGV[0] eq "--inplace") {
       $inplace = 1;
+   } elsif($ARGV[0] eq "-p" || $ARGV[0] eq "--product") {
+      if (!defined($ARGV[1])) {
+	 die "Please provide an argument with $ARGV[0]\n";
+      }
+      my($p, $v) = split(/=/, $ARGV[1]);
+      $p =~ tr/a-z/A-Z/;
+      $productVersion{$p} = $v;
+      shift @ARGV;
    } elsif($ARGV[0] eq "-w" || $ARGV[0] eq "--warn") {
       $warn_versions = 1;
    } else {
@@ -108,17 +120,22 @@ while(<$IFD>) {
       }
       if($version eq "") {
 	 ($uproduct = $product) =~ tr/a-z/A-Z/;
-	 if ($ENV{"SETUP_$uproduct"} eq "") {
-	     &unchanged("Product $product doesn't appear to be set up");
-	     next;
+	 if (defined($productVersion{$uproduct})) {
+	    $version = $productVersion{$uproduct};
 	 }
-	 ($prod, $version) = split(" ", $ENV{"SETUP_$uproduct"});
-	 if ($version =~ /^-/) {
-	    $version = "";
-	 }
-	 if($prod ne $product) {
-	    &unchanged("Invalid setup for $product: $ENV{'SETUP_$uproduct'}");
-	    next;
+	 if($version eq "") {
+	    if ($ENV{"SETUP_$uproduct"} eq "") {
+	       &unchanged("Product $product doesn't appear to be set up");
+	       next;
+	    }
+	    ($prod, $version) = split(" ", $ENV{"SETUP_$uproduct"});
+	    if ($version =~ /^-/) {
+	       $version = "";
+	    }
+	    if($prod ne $product) {
+	       &unchanged("Invalid setup for $product: $ENV{'SETUP_$uproduct'}");
+	       next;
+	    }
 	 }
 	 if($version eq "") {
 	    &unchanged("I cannot find a version for $product in:\n\t$ENV{'SETUP_' . $uproduct}\n");

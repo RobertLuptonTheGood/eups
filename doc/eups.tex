@@ -636,6 +636,7 @@ Usage: eups_expandtable [options] file.table [directory]
 Options are
     -h, --help    Print this message
     -i, --inplace Modify file in situ
+    -p, --product PRODUCT=VERSION   Expand PRODUCT to use VERSION
     -w, --warn    Warn about versions that don't start with v or V
 \end{verbatim}
 
@@ -649,6 +650,9 @@ becomes
 \begin{verbatim}
       setupRequired("-f ${EUPS_FLAVOR} astroda v13_1")
 \end{verbatim}
+You can override the version with e.g. \code{-p astroda=rhl}; more
+than one \code{-p} command is permitted.
+
 If a directory is specified, the modified table file will be written
 there, with the same name as the original; otherwise it's written to
 standard out unless you specify \code{--inplace}, in which case the
