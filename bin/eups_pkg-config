@@ -25,8 +25,29 @@ if [ X"$product_dir" = X"" ]; then
    echo "product $product is not setup" >&2
    exit 1
 fi
-
-export PKG_CONFIG_PATH=$product_dir/etc
+#
+# Add product_dir to PKG_CONFIG_PATH
+#
+if [ X"$PKG_CONFIG_PATH" = X"" ]; then
+    PKG_CONFIG_PATH=$product_dir/etc
+else
+    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$product_dir/etc
+fi
+#
+# Are there any requirements?  If so, add them to PKG_CONFIG_PATH too
+#
+pcfile=$product_dir/etc/$product.pc
+if [ -f $pcfile ]; then
+    for extraProduct in $(perl -ne 'if(s/^Requires:\s+//) { print }' $pcfile); do
+	extraProduct_dir=$(eups list --directory --setup $extraProduct 2> /dev/null | head -1)
+	if [ X"$extraProduct_dir" = X"" ]; then
+	    echo "product $extraProduct is not setup" >&2
+	else
+	    PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$extraProduct_dir/etc
+	fi
+    done
+fi
+export PKG_CONFIG_PATH
 #
 # The sed works around an old bug in pkg-config
 # I filed a Debian bug report (378570) and it's fixed in the next release, 0.21-1
