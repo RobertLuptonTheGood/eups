@@ -225,7 +225,7 @@ if ($select eq "list") {
 
 for ($i=0;$i<@oldkeys;$i++) {
 # Is the variable still set?
-    if (!($ENV{$oldkeys[$i]})) {
+    if (!defined($ENV{$oldkeys[$i]})) {
 	unsete($oldkeys[$i]);
 	next;
     } 
@@ -238,7 +238,7 @@ for ($i=0;$i<@oldkeys;$i++) {
 }
 
 for ($i = 0; $i<@newkeys; $i++) {
-    if (!($oldenv{$newkeys[$i]})) {
+    if (!defined($oldenv{$newkeys[$i]})) {
 	sete($newkeys[$i],$ENV{$newkeys[$i]});
     }
 }
