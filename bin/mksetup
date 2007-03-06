@@ -25,7 +25,7 @@
 
 use File::Spec::Functions;
 
-$syntax = "install <eups dir> <prod_dir_prefix>\n";
+$syntax = "Usage: mksetup <EUPS_DIR> <EUPS_PATH>\n";
 
 $eupsdir = $ARGV[0];
 $prefix = $ARGV[1];
@@ -57,7 +57,11 @@ unsetenv PROD_DIR_PREFIX
 unsetenv PRODUCTS
 
 setenv PATH \${PATH}:$bindir
-setenv PYTHONPATH \${PYTHONPATH}:$bindir
+if ("\$?PYTHONPATH" == "1" ) then
+   setenv PYTHONPATH \${PYTHONPATH}:$bindir
+else
+   setenv PYTHONPATH $bindir
+endif
 
 alias setup 'source `$binname setup \\!*`'
 alias unsetup 'source `$binname unsetup \\!*`'
@@ -81,7 +85,11 @@ unset PROD_DIR_PREFIX
 unset PRODUCTS
 
 export PATH="\$PATH:$bindir"
-export PYTHONPATH="\$PYTHONPATH:$bindir"
+if [ X"\$PYTHONPATH" != X"" ]; then
+    export PYTHONPATH="\$PYTHONPATH:$bindir"
+else
+    export PYTHONPATH="$bindir"
+fi
 
 function setup   { source `$binname setup \$@`; };   export -f setup
 function unsetup { source `$binname unsetup \$@`; }; export -f unsetup
