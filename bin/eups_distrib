@@ -535,25 +535,32 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         #
         # We need to install and declare this product
         #
+        dodeclare = True
         mat = re.search(r"pacman:(.*)", distID)
         if mat:
             install_from_pacman(products_root, mat.groups()[0])
+
+            # we need to see if the pacman script declared the package for us
+            declared = eups.list(product, version, dbz, flavor)
+            if len(declared) > 0: dodeclare = False
+            
         else:
             install_from_tarball(products_root, package_base, distID)
         #
         # Deal with table files if not in product root (i.e. -M files)
         #
-        # If the table in the manifest file is "<product>.table" in the manifest file
+        # If the table in the manifest file is not "<product>.table" in the manifest file
         # the table file should be installed by eups_distrib and declared via eups declare -M
         #
-        if tablefile != "none":
-            if ("%s.table" % (product)) != tablefile:
-                tablefile = "%s-%s" % (product, tablefile)
-                if not noaction:
-                    tablefile = find_file(tablefile, "%s/%s" % (product, version))
+        if dodeclare:
+            if tablefile != "none":
+                if ("%s.table" % (product)) != tablefile:
+                    tablefile = "%s-%s" % (product, tablefile)
+                    if not noaction:
+                        tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
-        eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
-                     product, version, current, noaction)
+            eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
+                         product, version, current, noaction)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
