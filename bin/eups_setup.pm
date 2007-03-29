@@ -256,17 +256,10 @@ sub get_argument {
 
 
 sub parse_table {
-    my $fn = $_[0];
-    my $proddir = $_[1];
-    my $upsdir = $_[2];
-    my $prod = $_[3];
-    my $vers = $_[4];
-    my $flavor = $_[5];
-    my $root = $_[6];
-    my $fwd = $_[7];
-    our $outfile = $_[8];
-    my $quiet = $_[9];
-    my $data = 0;
+   my($fn, $proddir, $upsdir, $prod, $vers, $flavor,
+      $root, $fwd, $outfile, $only_dependencies, $quiet) = @_;
+   
+   my $data = 0;
 
 # Define the return value
     my $retval = 0;
@@ -275,37 +268,39 @@ sub parse_table {
 
 # Define the command hashes
 
-%switchback = (
-addalias => \&unAlias,
-envappend => \&envRemove,
-envprepend => \&envRemove,
-envremove => \&envAppend,
-envset => \&envUnset,
-envunset => \&envSet,
-pathappend => \&envRemove,
-pathprepend => \&envRemove,
-pathremove => \&envAppend,
-proddir => \&envUnset,
-setupenv => \&envUnset,
-	       );
+   %switchback = (
+		  addalias => \&unAlias,
+		  envappend => \&envRemove,
+		  envprepend => \&envRemove,
+		  envremove => \&envAppend,
+		  envset => \&envUnset,
+		  envunset => \&envSet,
+		  pathappend => \&envRemove,
+		  pathprepend => \&envRemove,
+		  pathremove => \&envAppend,
+		  proddir => \&envUnset,
+		  setupenv => \&envUnset,
+		  );
 
-%switchfwd = (
-addalias => \&addAlias,
-envappend => \&envAppend,
-envprepend => \&envPrepend,
-envremove => \&envRemove,
-envset => \&envSet,
-envunset => \&envUnset,
-pathappend => \&envAppend,
-pathprepend => \&envPrepend,
-pathremove => \&envRemove,
-proddir => \&envSet,
-setupenv => \&envSet,
-               );
+   %switchfwd = (
+		 addalias => \&addAlias,
+		 envappend => \&envAppend,
+		 envprepend => \&envPrepend,
+		 envremove => \&envRemove,
+		 envset => \&envSet,
+		 envunset => \&envUnset,
+		 pathappend => \&envAppend,
+		 pathprepend => \&envPrepend,
+		 pathremove => \&envRemove,
+		 proddir => \&envSet,
+		 setupenv => \&envSet,
+		 );
 
 # Some local variables
     my $pos; my $i;
     my $comm; my $arg; my $qaz;
+
+    my $only_dependencies_recursive = 0; # Don't only setup deps for dependent products
 
 # Read in the table file
     if ($fn eq "none") {
@@ -349,19 +344,24 @@ setupenv => \&envSet,
     $qaz =~ tr/[a-z]/[A-Z]/;
     $arg[0] = "SETUP_$qaz";
     $arg[1] = "$prod $vers -f $flavor -Z $root";
-    if ($fwd == 0) {
-	$switchback{$comm}->(@arg);
-    } else {
-	$switchfwd{$comm}->(@arg);
+    if (!$only_dependencies) {
+       if ($fwd == 0) {
+	  $switchback{$comm}->(@arg);
+       } else {
+	  $switchfwd{$comm}->(@arg);
+       }
     }
+   
     $arg[0] = "$qaz\_DIR";
     $arg[1] = "$proddir";
     $comm = "proddir";
-    if ($fwd == 0) {
-	$switchback{$comm}->(@arg);
-    }
-    else {
-	$switchfwd{$comm}->(@arg);
+    if (!$only_dependencies) {
+       if ($fwd == 0) {
+	  $switchback{$comm}->(@arg);
+       }
+       else {
+	  $switchfwd{$comm}->(@arg);
+       }
     }
     #
     # Split the table file into lines
@@ -385,14 +385,14 @@ setupenv => \&envSet,
 	($comm,$arg)= ($lines[$i] =~ m/([a-z]+)\((.*)\)/i);
 	my @arg = split ",",$arg;
 	$comm =~ tr/[A-Z]/[a-z]/;
-	if ($comm eq "setupenv") {
-	    print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
-	} elsif ($comm eq "proddir") {
-            print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
+	if ($comm eq "setupenv" || $comm eq "proddir") {
+	   print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
 	} elsif ($comm eq "setuprequired" && $fwd==0) {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
-	      $foo = eups_unsetup($qaz, $outfile, $no_dependencies, $debug, $quiet);
+	      $foo = eups_unsetup($qaz, $outfile, $no_dependencies,
+				  $only_dependencies_recursive, undef,
+				  $debug, $quiet);
 	      my($p) = split(" ", $qaz);
 	      if ($foo && $unsetup_products{$p}) { # we've already unset it; we don't need to do it twice
 		 $foo = 0;
@@ -406,29 +406,39 @@ setupenv => \&envSet,
 	} elsif ($comm eq "setupoptional" && $fwd==0) {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
-	      if (eups_unsetup($qaz, $outfile, $no_dependencies, $debug, $quiet) < 0 && $debug > 1) {
+	      if (eups_unsetup($qaz, $outfile, $no_dependencies,
+			       $only_dependencies_recursive, undef,
+			       $debug, $quiet) < 0 && $debug > 1) {
 		 warn "WARNING: unsetup of optional $qaz failed\n";
 	      }
 	   }
         } elsif ($comm eq "setuprequired" && $fwd == 1) {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
-	      $foo = eups_setup($qaz, $outfile, $no_dependencies, $debug, $quiet,0);
+	      $foo = eups_setup($qaz, $outfile, $no_dependencies,
+				$only_dependencies_recursive, undef,
+				$debug, $quiet,0);
 	      $retval =+ $foo;
 	      print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
 	   }
         } elsif ($comm eq "setupoptional" && $fwd==1) {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
-	      if (eups_setup($qaz, $outfile, $no_dependencies, $debug, $quiet, 1) < 0 && $debug > 1) {
+	      if (eups_setup($qaz, $outfile, $no_dependencies,
+			     $only_dependencies_recursive, undef,
+			     $debug, $quiet, 1) < 0 && $debug > 1) {
 		 warn "WARNING: optional setup of $qaz failed\n";
 	      }
 	   }
 	} else {
 	   if ($fwd == 0 && $switchback{$comm}) {
-	      $switchback{$comm}->(@arg);
+	      if (!$only_dependencies) {
+		 $switchback{$comm}->(@arg);
+	      }
 	   } elsif ($fwd == 1 && $switchfwd{$comm}) {
-	      $switchfwd{$comm}->(@arg);
+	      if (!$only_dependencies) {
+		 $switchfwd{$comm}->(@arg);
+	      }
 	   } else {
 	      if ($debug > 1 ||
 		  ($debug && $lines[$i] !~ /^\s*(Action\s*=\s*setup)\s*$/i)) {
@@ -455,47 +465,53 @@ sub eups_unsetup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args, $outfile, $no_dependencies, $debug, $quiet) = @_;
+   local ($args, $outfile, $no_dependencies, $only_dependencies,
+	  $user_table_file, $debug, $quiet) = @_;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    my($prod) = $args[0];
-   if ($prod eq "") {
-      print STDERR  "ERROR: Product not specified\nSyntax : eups_setup unsetup <product>\n";
-      return -1;
-   }
-   
-   my($status, $vers, $flavor, $root) = parse_setup_prod($prod);
-   my $db = catfile($root, 'ups_db');
-
-   if($status ne "ok") {
-      print STDERR "WARNING: $prod is not setup\n" if ($debug > 1);
-      return -1;
-   }
-   
-   if (($debug >= 1 && !$quiet) || $debug > 1) {
-      show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
-   }
-   
-   my $capprod = uc($prod) . "_DIR";
-   $prod_dir = $ENV{$capprod};
-   if ($prod_dir eq "") {
-      print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
-      return -1;
-   }
-   # Not necessarily correct anymore.
-   $ups_dir = catfile($prod_dir,"ups");
-
-   # Now construct the version file's name, then read and parse it
-   if ($vers eq "") {
-      $table_file = catfile($ups_dir, "$prod.table"); # unknown version, so look in $ups_dir
-      if (! -e $table_file) {
-	 $table_file = "none";
-      }
+   if ($user_table_file) {
+      ($prod_dir, $table_file) = (undef, $user_table_file);
+      warn "Using $table_file rather than a declared product\n" if ($debug > 0);
    } else {
-      $fn = catfile($db,$prod,"$vers.version");
-      ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 1, 0);
-      if (not $prod_dir) {
+      if ($prod eq "") {
+	 print STDERR  "ERROR: Product not specified; use -h to list your options\n";
 	 return -1;
+      }
+   
+      my($status, $vers, $flavor, $root) = parse_setup_prod($prod);
+      my $db = catfile($root, 'ups_db');
+
+      if($status ne "ok") {
+	 print STDERR "WARNING: $prod is not setup\n" if ($debug > 1);
+	 return -1;
+      }
+      
+      if (($debug >= 1 && !$quiet) || $debug > 1) {
+	 show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
+      }
+      
+      my $capprod = uc($prod) . "_DIR";
+      $prod_dir = $ENV{$capprod};
+      if ($prod_dir eq "") {
+	 print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
+	 return -1;
+      }
+      # Not necessarily correct anymore.
+      $ups_dir = catfile($prod_dir,"ups");
+      
+      # Now construct the version file's name, then read and parse it
+      if ($vers eq "") {
+	 $table_file = catfile($ups_dir, "$prod.table"); # unknown version, so look in $ups_dir
+	 if (! -e $table_file) {
+	    $table_file = "none";
+	 }
+      } else {
+	 $fn = catfile($db,$prod,"$vers.version");
+	 ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 1, 0);
+	 if (not $prod_dir) {
+	    return -1;
+	 }
       }
    }
 
@@ -509,7 +525,8 @@ sub eups_unsetup {
    #prod_dir,ups_dir,verbosity
 
    $fwd = 0;
-   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$root,$fwd,$outfile,$quiet);
+   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,
+		      $root,$fwd,$outfile,$only_dependencies,$quiet);
 }
 
 # Search for the best version for a given product, return the essential paths.
@@ -594,7 +611,9 @@ sub eups_setup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args, $outfile, $no_dependencies, $debug, $quiet, $optional, $oldenv, $force) = @_;
+   local ($args, $outfile, $no_dependencies, $only_dependencies,
+	  $_user_table_file, $debug, $quiet, $optional, $oldenv, $force) = @_;
+   my($user_table_file) = $_user_table_file; undef($_user_table_file);
    
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
@@ -606,20 +625,21 @@ sub eups_setup {
    if ($args[0]) {
       warn "WARNING: ignoring extra arguments: @args\n";
    }
-   if ($prod eq "") {
-      print STDERR  "ERROR: Product not specified\n";
-      print STDERR "Syntax : eups_setup setup <product> [version] [-f <flavor>] [-Z <path>]\n";
-      return -1;
-   }
-   
-   # Attempt an unsetup
-   
-   my($SETUP_PROD) = "SETUP_".uc($prod);
-   if (defined($ENV{$SETUP_PROD})) {
-      eups_unsetup($qaz, $outfile, $no_dependencies, $debug, 1);
-
-      if (defined(%unsetup_products)) {	# we used this to suppress warning if products were unset twice
-	 undef(%unsetup_products);
+   if (!$user_table_file) {
+      if ($prod eq "") {
+	 print STDERR  "ERROR: Product not specified; try -h to list your options\n";
+	 return -1;
+      }
+      
+      # Attempt an unsetup
+      
+      my($SETUP_PROD) = "SETUP_".uc($prod);
+      if (defined($ENV{$SETUP_PROD})) {
+	 eups_unsetup($qaz, $outfile, $no_dependencies, 0, undef, $debug, 1);
+	 
+	 if (defined(%unsetup_products)) {	# we used this to suppress warning if products were unset twice
+	    undef(%unsetup_products);
+	 }
       }
    }
    
@@ -646,7 +666,11 @@ sub eups_setup {
    $ups_dir = "";
    ($prod_dir) = $qaz =~ m/\-r  *([^ ]+)/;
    
-   if ($prod_dir eq "") {
+   if ($user_table_file) {
+      ($root, $prod_dir, $vers, $table_file) =
+	  ("none", undef, undef, $user_table_file);
+      warn "Using $table_file rather than a declared product\n" if ($debug > 0);
+   } elsif ($prod_dir eq "") {
       #Determine version - check to see if already defined, otherwise
       #determine it from current.chain
       #Also construct the full version file and check if it exists.
@@ -700,7 +724,9 @@ sub eups_setup {
    return undef if (not defined($root));
 
    if (($debug >= 1 && !$quiet) || $debug > 1) {
-      show_product_version("Setting up", $indent, $prod, $vers, $flavor);
+      if (defined($prod)) {
+	 show_product_version("Setting up", $indent, $prod, $vers, $flavor);
+      }
    }
    
    if ($table_file !~ /^none$/i && !(-e $table_file)) {
@@ -710,7 +736,8 @@ sub eups_setup {
 
    #Call the table parser here 
    $fwd = 1;
-   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,$root,$fwd,$outfile,$quiet);
+   return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,
+		      $root,$fwd,$outfile,$only_dependencies,$quiet);
 }
 
 ###############################################################################
@@ -1073,6 +1100,7 @@ sub show_product_version
 	     '--current',	'-c',
 	     '--database',	'-Z',
 	     '--directory',	'-d',
+	     '--only-dependencies', '-D',
 	     '--select-db',	'-z',
 	     '--flavor',	'-f',
 	     '--force',		'-F',
@@ -1181,21 +1209,24 @@ get_version()
 
 sub eups_show_options
 {
-   my($opts) = @_;
+   my($opts, $setup) = @_;	# $setup => options for [un]setup
 
    my $strings = {
        -h => "Print this help message",
        -c => "[Un]declare this product current, or show current version",
        -d => "Print product directory to stderr (useful with -s)",
+       -D => "Only setup dependencies, not this product",
        -f => "Use this flavor. Default: \$EUPS_FLAVOR or \`eups_flavor\`",
        -F => "Force requested behaviour (e.g. redeclare a product)",
        -j => "Just setup product, no dependencies",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
        -m => "Use/print table file (may be \"none\") Default: product.table",
-       -M => "Import the given file (may be \"-\" for stdin) into the database as the table file.",
+       -M => $setup ?
+	   "Setup the dependent products in this table file" :
+	   "Import the given file (may be \"-\" for stdin) into the database as the table file.",
        -q => "Be extra quiet (the opposite of -v)",
-       -r => "Location of product being declared",
+       -r => "Location of product being " . ($setup ? "setup" : "declared"),
        -s => "Show which version is setup",
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print eups version number and exit",

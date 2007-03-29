@@ -103,7 +103,8 @@ sub setshell {
 #
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
-$opts = {-c => 0, -d => 0, -f => 1, -F => 0, -j => 0, -l => 0, -n => 0, -m => 0, -q => 0, -r => 1, -s => 0,
+$opts = {-c => 0, -d => 0, -D => 0, -f => 1, -F => 0, -j => 0,
+	 -l => 0, -n => 0, -m => 0, -M => 1, -q => 0, -r => 1, -s => 0,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -126,14 +127,28 @@ if (defined($$options{-d})) {
 }
 $force = defined($$options{-F}) ? 1 : 0;
 $no_dependencies = defined($$options{-j}) ? 1 : 0;
+$only_dependencies = defined($$options{-D}) ? 1 : 0;
+if (defined($$options{-l})) {
+   $op = "list";
+}
 if (defined($$options{-m})) {
    $just_tablefile = 1;
    $op = "list";
 }
-if (defined($$options{-l})) {
-   $op = "list";
+if (defined($$options{-M})) {
+   $user_table_file = $$options{-M};
+   if (!$only_dependencies) {
+      warn "I can't (un)setup a product without a directory/name; assuming --only-dependencies\n" if($debug > 1);
+      $only_dependencies = 1;
+   }
+} else {
+   $user_table_file = undef;
 }
 $setup = defined($$options{-s}) ? 1 : 0; # Only show setup version (default, except for -l)
+
+if($no_dependencies && $only_dependencies) {
+   die "It makes no sense to say --just --only-dependencies\n";
+}
 
 @args = ($op, @args, @words);
 # Get the command line
@@ -141,7 +156,12 @@ $select = $args[0];
 $args[0] = "";
 $comm = join " ",@args;
 
-if (!defined($words[0]) && $select ne "list") {
+if ($user_table_file) {
+   if (defined($words[0])) {
+      warn"You may not specify a product and an explicit table file; quitting\n";
+      &myexit(1);
+   }
+} elsif (!defined($words[0]) && $select ne "list") {
    warn "Please specify a product\n";
    &usage();
    &myexit(1);
@@ -187,6 +207,9 @@ if ($select eq "list") {
    if($no_dependencies) {
       warn "Option --just makes no sense with --list and is ignored\n";
    }
+   if($only_dependencies) {
+      warn "Option --only-dependencies makes no sense with --list and is ignored\n";
+   }
    eups_list($comm,$tmpfile,$debug,0,$current,$setup,$just_directory,$just_tablefile);
 } else {
    if($current) {
@@ -198,14 +221,18 @@ if ($select eq "list") {
    }
    
    if ($select eq "setup") {
-      $retval = eups_setup($comm, $tmpfile, $no_dependencies, $debug, 0, 0, \%oldenv, $force);
+      $retval = eups_setup($comm, $tmpfile, $no_dependencies,
+			   $only_dependencies, $user_table_file,
+			   $debug, 0, 0, \%oldenv, $force);
       if ($retval < 0) {
-	 eups_unsetup($comm, $tmpfile, $no_dependencies, $debug, 1);
+	 eups_unsetup($comm, $tmpfile, $no_dependencies, 
+		      $only_dependencies, $user_table_file, $debug, 1);
 	 print STDERR "FATAL ERROR: setup failed\n";
 	 goto CLEAN;
       }
    } elsif ($select eq "unsetup") {
-      $retval = eups_unsetup($comm, $tmpfile, $no_dependencies, $debug, 0);
+      $retval = eups_unsetup($comm, $tmpfile, $no_dependencies, 
+			     $only_dependencies, $user_table_file, $debug, 0);
       if ($retval < 0) {
 	 if ($debug >= 0) {
 	    print STDERR "FATAL ERROR: unsetup$comm failed\n";
@@ -277,5 +304,5 @@ CVS Version : $Name: not supported by cvs2svn $
 
 Usage: setup [options] [product [version]]
 EOT
-    eups_show_options($opts);
+    eups_show_options($opts, 1);
 }
