@@ -124,6 +124,15 @@ make show
 make install
 \end{verbatim}
 
+The \code{make install} command will tell you to source a file
+with a name such as
+\begin{verbatim}
+/u/act/products/eups/bin/setups.sh
+\end{verbatim}
+which will make \eups{} commands available to you; csh users should
+use \code{setups.csh}.  You'll probably want to add this line to your
+shell startup file (.bashrc or .tcshrc).
+
 \section{Declaring Products and Versions}
 
 Whence came \code{PHOTO\_DIR} in the example? From a command of the form
@@ -820,6 +829,9 @@ Required variables -
   \item \code{EUPS\_PATH}
     The colon-separated path of root directories under which all products are installed.
     Each root directory has a UPS database in a top-level \code{ups\_db} directory.
+    As of \code{v0\_7\_31}, when you source \code{setups.[c]sh}, any
+    pre-existing value of \code{EUPS\_PATH} is preserved at the end of
+    your new path.
 \end{itemize}
 
 Optional Variables -

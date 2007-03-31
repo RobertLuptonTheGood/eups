@@ -37,6 +37,14 @@ die "$syntax" if ($db eq "");
 
 $bindir = catfile('$EUPS_DIR',"bin");
 $binname = catfile('$EUPS_DIR',"bin","eups_setup");
+# A perl expression to keep only one copy of each directory in a path
+$unique_path=q|@ep=split(":",$ARGV[0]); \
+    foreach $p (@ep) { \
+	if(not $s{$p}) { \
+	    push(@EP,$p); \
+	    $s{$p}++; \
+	} \
+    } print join(":",@EP) . "\n"|;
 
 print "Writing a csh startup script\n";
 open FILE, ">setups.csh" or die "Unable to open setups.csh";
@@ -49,7 +57,7 @@ if ("\$?EUPS_DIR" == "1" ) then
 endif
 
 setenv EUPS_DIR $eupsdir
-setenv EUPS_PATH $prefix
+setenv EUPS_PATH \`perl -e '$unique_path' $prefix:\$EUPS_PATH\`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 setenv SETUP_EUPS "eups"
 # Deprecated variables
@@ -77,7 +85,7 @@ if [ "\$EUPS_DIR" != "" ]; then
 fi
 
 export EUPS_DIR=$eupsdir
-export EUPS_PATH=$prefix
+export EUPS_PATH=\`perl -e '$unique_path' $prefix:\$EUPS_PATH\`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 export SETUP_EUPS="eups"
 # Deprecated variables
