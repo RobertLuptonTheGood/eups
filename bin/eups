@@ -9,7 +9,10 @@ while [ X"$1" != X"" ]; do
         $EUPS_DIR/bin/eups_declare --version
 	exit 1;;
      -*)
-        args="$args $1"
+        if [ X$args != X"" ]; then
+	   args="$args "
+	fi
+        args="${args}$1"
 	shift;;
      *)
         break;;
@@ -47,6 +50,13 @@ case $cmd in
  list)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  path)
+    case $args in
+     -h|--help)
+        echo "Print the components of EUPS_PATH"; exit 0;;
+     -*)
+        echo "Unsupported argument[s] to eups $cmd: $args" >&2; exit 1;;  
+    esac
+     
     echo $EUPS_PATH | perl -pe 'print "\t"; s/:/\n\t/g';;
  setup|unsetup)
     if [ X"args" = X"" ]; then args=" "; fi
