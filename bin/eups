@@ -27,6 +27,7 @@ Supported commands are:
 	expandtable	Insert explicit version tags into a table file
 	flavor		Return the current flavor
 	list            List some or all products
+	path            Print the current eups path
 	pkg-config	Return the options associated with product
 	undeclare	Undeclare a product
 Use
@@ -45,6 +46,8 @@ case $cmd in
     eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
  list)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
+ path)
+    echo $EUPS_PATH | perl -pe 'print "\t"; s/:/\n\t/g';;
  setup|unsetup)
     if [ X"args" = X"" ]; then args=" "; fi
     echo "Please use the command \"${cmd}$args $@\" which modifies your environment";;
