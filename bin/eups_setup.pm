@@ -1157,7 +1157,7 @@ sub eups_parse_argv
 	    # filter to PATH parts which contain a complete directory matching $match
 	     my @newpath = ();
 	     foreach $part (split(/:/, $ENV{EUPS_PATH})) {
-		 if (index($part, "/$val/") >= 0) {
+		 if ($part =~ m@(^|/)$val(/|$)@) {
 		     push(@newpath, $part);
 		 }
 	     }
@@ -1179,7 +1179,7 @@ sub eups_parse_argv
    }
 
    if ($ENV{"EUPS_PATH"} eq "") {
-       warn("ERROR: no product directories available (check \$EUPS_PATH and the -Z/-z options)\n");
+       warn("ERROR: no product directories available (check eups path and the -Z/-z options)\n");
        return -1;
    }
 
