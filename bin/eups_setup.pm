@@ -170,7 +170,7 @@ sub envRemove {
     my $sdelim = fix_special($delim);
     $curval = $ENV{$var};
     $curval =~ s/$sval//g;
-    $curval =~ s/$sdelim$sdelim/$sdelim/;
+    $curval =~ s/$sdelim+/$sdelim/g;
     $curval =~ s/^$sdelim//;
     $curval =~ s/$sdelim$//;
 
@@ -630,6 +630,8 @@ sub eups_setup {
    if ($args[0]) {
       warn "WARNING: ignoring extra arguments: @args\n";
    }
+
+   my($initial_eups_path) = $ENV{"EUPS_PATH"}; # needed if we're setting up eups
    if (!$user_table_file) {
       if ($prod eq "") {
 	 print STDERR  "ERROR: Product not specified; try -h to list your options\n";
@@ -661,7 +663,7 @@ sub eups_setup {
 
    #Fetch all the eups roots
    my $root = "";
-   @roots = eups_find_roots();
+   @roots = eups_find_roots($initial_eups_path);
    
    # Now check to see if the table file and product directory are 
    # specified. If so, extract these and immediately start, else 
@@ -1052,27 +1054,20 @@ sub read_version_file($$$$$$)
 ###############################################################################
 #
 # List (and mildly check) the eups directories
-#   If the match argument is a fully specified path, use that.
-#   If the match argument is just a string, use it to select parts of the EUPS_PATH 
-#     environment variable which contain the $match string as a complete directory name.
+#
+# If an argument is passed, is the value of EUPS_PATH
 #
 sub eups_find_roots() {
-    my $rootstring = "";
-    my @rootlist = ();
-
-    if ($match ne "") {
-	if ($match[0] == '/') {
-	    $rootstring = $match;
-	} else {
-	}
-    } else {
-	$rootstring = $ENV{EUPS_PATH};
+    my($rootstring) = @_;
+    if (!$rootstring) {
+       $rootstring_path = $ENV{EUPS_PATH};
     }
 
-    if ($rootstring eq "") {
+    if (!$rootstring) {
 	return ();
     }
 
+    my @rootlist = ();
     foreach $part (split(/:/, $rootstring)) {
 	my $dbdir = $part . "/ups_db";
 	if (not -d $dbdir) {
