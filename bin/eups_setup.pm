@@ -569,9 +569,14 @@ sub find_best_version(\@$$$$) {
 	# Find the first db with a matching prod:version
 	foreach $root (@{$roots}) {
 	    $fn = catfile($root,'ups_db',$prod,"$vers.version");
+
+	    
 	    if (-e $fn) {
-		$matchroot = $root;
-		last;
+	       my ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 0, 1);
+	       if (defined($prod_dir)) {
+		  $matchroot = $root;
+		  last;
+	       }
 	    }
 	}
     
