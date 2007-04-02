@@ -1312,7 +1312,9 @@ echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&2;}
     fi
 fi;
 
-                    ac_config_files="$ac_config_files Makefile ups/eups.table"
+          ac_config_files="$ac_config_files Makefile"
+
+          ac_config_files="$ac_config_files ups/eups.table"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -2184,6 +2186,10 @@ s,@abs_top_builddir@,$ac_abs_top_builddir,;t t
     rm -f $tmp/out
   fi
 
+  # Run the commands associated with the file.
+  case $ac_file in
+    ups/eups.table ) perl -ni -e 'if(($b,undef,$ep,$e) = /^(\s*env(Prepend|Append)\(\s*EUPS_PATH\s*,)\s*([^)]+)(.*)$/) { foreach $p (split(":",$ep)) { print "$b ${p}$e\n"} } else { print }' ups/eups.table ;;
+  esac
 done
 _ACEOF
 

@@ -57,5 +57,11 @@ AC_SUBST(EUPS_DIR)
 dnl
 dnl Output
 dnl
-AC_CONFIG_FILES([Makefile ups/eups.table])
+AC_CONFIG_FILES([Makefile])
+dnl AC_CONFIG_FILES([ups/eups.table])
+dnl
+dnl This messy perl ensures that multiple EUPS_PATH components are added
+dnl separately, which permits us to unsetup eups
+dnl
+AC_CONFIG_FILES([ups/eups.table], [[perl -ni -e 'if(($b,undef,$ep,$e) = /^(\s*env(Prepend|Append)\(\s*EUPS_PATH\s*,)\s*([^)]+)(.*)$/) { foreach $p (split(":",$ep)) { print "$b ${p}$e\n"} } else { print }' ups/eups.table]])
 AC_OUTPUT
