@@ -1006,9 +1006,9 @@ sub read_version_file($$$$$$)
    }
 
    # Now extract the prod_dir and table_file
-   my($prod_dir)  = $group[$pos] =~ m/PROD_DIR\\s*=\\s*(\\S+?)\\s*\n/i;
-   my($table_file) = $group[$pos] =~ m/TABLE_FILE\\s*=\\s*(\\S+?)\\s*\n/i;
-   my($ups_dir) = $group[$pos] =~ m/UPS_DIR\\s*=\\s*(\\S+?)\\s*\n/i;
+   my($prod_dir)  = $group[$pos] =~ m/PROD_DIR[ \t]*=[ \t]*(\S*)/i;
+   my($table_file) = $group[$pos] =~ m/TABLE_FILE[ \t]*=[ \t]*(\S*)/i;
+   my($ups_dir) = $group[$pos] =~ m/UPS_DIR[ \t]*=[ \t]*(\S*)/i;
    $ups_dir = "ups" if (not $ups_dir);
 
    # Does the product directory have an environment variable set in it?
@@ -1022,12 +1022,12 @@ sub read_version_file($$$$$$)
    }
    
    # Should we overwrite anything we have learnt about $proddir
-   # from the PROD_DIR environment variable?
+   # from the PRODUCT_DIR environment variable?
    if ($useenv) {
        my $proddir_envname = uc($prod) . "_DIR";
        if ($ENV{$proddir_envname}) {
 	   $prod_dir = $ENV{$proddir_envname};
-	   warn "INFO : using PROD_DIR from the environment ($prod_dir)\n" if ($debug > 1);
+	   warn "INFO : using PRODUCT_DIR from the environment ($prod_dir)\n" if ($debug > 1);
        }
    }
 
@@ -1038,7 +1038,7 @@ sub read_version_file($$$$$$)
    if (!($ups_dir =~ m"^/")) {
       $ups_dir = catfile($prod_dir,$ups_dir);
    }
-   
+
    if ($table_file !~ /^none$/i) {
       $table_file = catfile($ups_dir,$table_file);
    }
