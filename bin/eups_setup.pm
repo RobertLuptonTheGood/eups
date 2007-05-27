@@ -900,7 +900,7 @@ sub eups_list {
    }
 
    if($current && $one_product && !$printed_current) {
-      print $outfile "echo \"No version is declared current\"\n";
+      warn "No version is declared current\n";
    }
 
    if (!$printed_info) {	# Oh dear; may have been setup -r
@@ -1060,7 +1060,7 @@ sub read_version_file($$$$$$)
 sub eups_find_roots() {
     my($rootstring) = @_;
     if (!$rootstring) {
-       $rootstring_path = $ENV{EUPS_PATH};
+       $rootstring = $ENV{EUPS_PATH};
     }
 
     if (!$rootstring) {
