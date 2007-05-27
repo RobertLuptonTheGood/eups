@@ -197,7 +197,7 @@ if ($prodroot eq "none") {
     if ($prodroot =~ m/$dbroot/) {
 	$prodroot =~ s|$dbroot/*||;
     } else {
-	print STDERR "WARNING : Not making PROD_DIR relative to EUPS_PATH\n";
+	print STDERR "WARNING : Not making PRODUCT_DIR relative to EUPS_PATH\n";
 	print STDERR "          $prodroot : $dbroot\n";
     }
 } else {
@@ -213,7 +213,7 @@ if ($prodroot eq "none") {
 	}
     }
     if (not $foundroot) {
-	print STDERR "WARNING : Not making PROD_DIR relative to any part of EUPS_PATH\n";
+	print STDERR "WARNING : Not making PRODUCT_DIR relative to any part of EUPS_PATH\n";
 	print STDERR "          $prodroot : @dbroots\n";
     }
 }
