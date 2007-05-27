@@ -570,7 +570,6 @@ sub find_best_version(\@$$$$) {
 	foreach $root (@{$roots}) {
 	    $fn = catfile($root,'ups_db',$prod,"$vers.version");
 
-	    
 	    if (-e $fn) {
 	       my ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 0, 1);
 	       if (defined($prod_dir)) {
@@ -1007,9 +1006,9 @@ sub read_version_file($$$$$$)
    }
 
    # Now extract the prod_dir and table_file
-   my($prod_dir)  = $group[$pos] =~ m/PROD_DIR *= *(.+?) *\n/i;
-   my($table_file) = $group[$pos] =~ m/TABLE_FILE *= *(.+?) *\n/i;
-   my($ups_dir) = $group[$pos] =~ m/UPS_DIR *= *(.+?) *\n/i;
+   my($prod_dir)  = $group[$pos] =~ m/PROD_DIR\\s*=\\s*(\\S+?)\\s*\n/i;
+   my($table_file) = $group[$pos] =~ m/TABLE_FILE\\s*=\\s*(\\S+?)\\s*\n/i;
+   my($ups_dir) = $group[$pos] =~ m/UPS_DIR\\s*=\\s*(\\S+?)\\s*\n/i;
    $ups_dir = "ups" if (not $ups_dir);
 
    # Does the product directory have an environment variable set in it?
