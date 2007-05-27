@@ -130,7 +130,7 @@ if (defined($$options{-r})) {
    }
 }
 if ($debug) {
-    warn "INFO : Root = $prodroot\n";
+    warn "INFO : Root = \"$prodroot\"\n";
 }
 
 die "ERROR: No product directory specified, and version \"$vers\" isn't declared\n" if (!$prodroot);
