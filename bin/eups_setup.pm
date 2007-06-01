@@ -65,6 +65,22 @@ sub envInterpolate {
     return $in;
 }
 
+sub pathUnique {
+   # Return a version of $var such that each element (separated by delim) occurs only once
+   my($var, $delim) = @_;
+
+   my(%elems);
+   my(@ovar);
+   foreach (split($delim, $var)) {
+      if (!defined($elems{$_})) {
+	 push(@ovar, $_);
+	 $elems{$_}++;
+      }
+   }
+   
+   return join($delim, @ovar);
+}
+
 sub cleanArg {
 # Cleans out quotes and leading spaces
     my $pval = $_[0];
@@ -119,15 +135,21 @@ sub envAppend {
     $delim = ":" if ($delim eq "");
 
     $curval = $ENV{$var};
-    if ($curval) {
-       $curval .= $delim;
+    if ($val ne "") {
+       if ($curval) {
+	  $curval .= $delim;
+       }
+       $curval .= "$val";
+    } else {
+       if ($debug > 0) {
+	  warn "$_[1] is not defined; ignoring in setting $var\n";
+       }
     }
-    $curval .= "$val";
 
     if ($force && $$oldenv{$var}) {
        undef $$oldenv{$var};
     }
-    $ENV{$var} = envInterpolate($curval);
+    $ENV{$var} = pathUnique(envInterpolate($curval), $delim);
 }
 
 sub envPrepend {
@@ -137,16 +159,25 @@ sub envPrepend {
     my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
 
-    $curval = "$val";
-    if ($curval) {
-       $curval .= $delim;
+    
+    $curval = "";
+    if ($val ne "") {
+       $curval .= "$val";
+       if ($curval) {
+	  $curval .= $delim;
+       }
+    } else {
+       if ($debug > 0) {
+	  warn "$_[1] is not defined; ignoring in setting $var\n";
+       }
     }
     $curval .= $ENV{$var};
 
     if ($force && $$oldenv{$var}) {
        undef $$oldenv{$var};
     }
-    $ENV{$var} = envInterpolate($curval);
+
+    $ENV{$var} = pathUnique(envInterpolate($curval), $delim);
 }
 
 sub envSet {
@@ -1017,7 +1048,9 @@ sub read_version_file($$$$$$)
       $val = $ENV{"$env[$i]"};
       $prod_dir =~ s/\$\{$env[$i]\}/$val/g;
    }
-   if (!($prod_dir =~ m"^/") && $prod_dir ne "none") {
+   if (!$prod_dir) {
+      $prod_dir = $root;
+   } elsif (!($prod_dir =~ m"^/") && $prod_dir ne "none") {
       $prod_dir = catfile($root,$prod_dir);
    }
    
