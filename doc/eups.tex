@@ -415,7 +415,7 @@ CLASSES
 FUNCTIONS
     current(product='', dbz='', flavor='')
         Return the current version of a product; if product is omitted,
-        return a list of (pruduct, version) for all current products
+        return a list of (product, version) for all products
     
     declare(flavor, dbz, tablefile, products_root, product_dir, product,
             version, declare_current=False, noaction=False)
@@ -433,6 +433,10 @@ FUNCTIONS
         version is specified, just return the properties of that version.
         
         The return value is a list: (version, database, directory, isCurrent)
+    
+    setup(product='', dbz='', flavor='')
+        Return the setup version of a product; if product is omitted,
+        return a list of (product, version) for all products
     
     table(product, version, flavor='')
         Return the full path of a product's tablefile

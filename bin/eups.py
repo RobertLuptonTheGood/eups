@@ -9,7 +9,19 @@ import sys
 
 def current(product="", dbz="", flavor = ""):
     """Return the current version of a product; if product is omitted,
-    return a list of (pruduct, version) for all current products"""
+    return a list of (product, version) for all products"""
+
+    return current_or_setup("current", product, dbz, flavor)
+
+def setup(product="", dbz="", flavor = ""):
+    """Return the setup version of a product; if product is omitted,
+    return a list of (product, version) for all products"""
+
+    return current_or_setup("setup", product, dbz, flavor)
+
+def current_or_setup(characteristic, product="", dbz="", flavor = ""):
+    """Return the \"characteristic\" (e.g. current) version of a product; if product is omitted,
+    return a list of (product, version) for all products"""
 
     opts = ""
     if dbz:
@@ -18,12 +30,15 @@ def current(product="", dbz="", flavor = ""):
         opts += " --flavor %s" % (flavor)
 
     products = []
-    for line in os.popen("eups list --current %s %s 2>&1" % (opts, product)).readlines():
+    for line in os.popen("eups list --%s %s %s 2>&1" % (characteristic, opts, product)).readlines():
         if re.search(r"^ERROR", line):
             raise RuntimeError, line
         elif re.search(r"^WARNING", line):
             continue
 
+        if re.search(r"^No version is declared current", line) and product:
+            return None
+            
         match = re.findall(r"\S+", line)
         if product:
             return match[0]
@@ -126,8 +141,10 @@ def list(product, version = "", dbz = "", flavor = ""):
         if len(oneResult) == 3:
             oneResult += [False]
         else:
-            assert (oneResult[3] == "Current")
-            oneResult[3] = True
+            if oneResult[3] == "Current":
+                oneResult[3] = True
+            else:
+                oneResult[3:3] = [False]
 
         if len(oneResult) == 4:
             oneResult += [False]
