@@ -85,6 +85,21 @@ if(!$flavor) {
 }
 die "ERROR: No flavor specified\n" if ($flavor eq "");
 
+if (defined($$options{-r})) {
+   my($prod_dir) = $$options{-r};
+
+   if ($prod_dir !~ m|^/|) {
+      use Cwd;
+      if ($prod_dir eq ".") {
+	 $prod_dir = getcwd();
+      } else {
+	 $prod_dir = catfile(getcwd(), $prod_dir);
+      }
+
+      $$options{-r} = $prod_dir;
+   }
+}
+
 # Do we make this current - and update?
 $make_current = defined($$options{-c});
 $force = defined($$options{-F}); # redeclare if needs be

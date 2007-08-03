@@ -203,6 +203,7 @@ if ($ENV{"EUPS_FLAVOR"} eq "" && !defined($$options{-f})) {
 
 # Call either setup or unsetup
 
+$status = 0;			# exit status
 if ($select eq "list") {
    if($no_dependencies) {
       warn "Option --just makes no sense with --list and is ignored\n";
@@ -217,6 +218,7 @@ if ($select eq "list") {
    }
    if($setup) {
       print STDERR "Option --setup only makes sense with --list\n";
+      $status = 1;
       goto CLEAN;
    }
    
@@ -228,6 +230,7 @@ if ($select eq "list") {
 	 eups_unsetup($comm, $tmpfile, $no_dependencies, 
 		      $only_dependencies, $user_table_file, $debug, 1);
 	 print STDERR "FATAL ERROR: setup failed\n";
+	 $status = 2;
 	 goto CLEAN;
       }
    } elsif ($select eq "unsetup") {
@@ -237,10 +240,12 @@ if ($select eq "list") {
 	 if ($debug >= 0) {
 	    print STDERR "FATAL ERROR: unsetup$comm failed\n";
 	 }
+	 $status = 2;
 	 goto CLEAN;
       }
    } else {
       print STDERR "ERROR: Unknown command \"$select\" to eups_setup\n";
+      $status = 1;
       goto CLEAN;
    }
 }
@@ -270,25 +275,36 @@ for ($i = 0; $i<@newkeys; $i++) {
     }
 }
 
+CLEAN:			      # n.b. we can get here without the goto.
 if ($debug > 3) {
    warn "Not deleting $fn\n";
 } else {
    # Self destruct file
-   CLEAN:			# n.b. we can get here without the goto.
    print $tmpfile "\\rm -f $fn\n";
-   close $tmpfile;
 }
+close $tmpfile;
 
-print "$fn\n";
-
-exit;
+myexit($status, $fn);
 
 ###############################################################################
 
 sub myexit
 {
-   my($exit) = @_;
-   print "/dev/null\n";
+   my($exit, $fn) = @_;
+   if (!defined($fn)) {
+      $fn = "/dev/null";
+   }
+
+   if ($status) {
+      if ($debug <= 3) {
+	 unlink($fn);
+      }
+
+      $fn = "/dev/null";
+   }
+
+   print "$fn\n";
+   
    exit $exit;
 }
 

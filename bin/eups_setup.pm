@@ -32,6 +32,10 @@ BEGIN {
     our $VERSION = 1.1;
     our @EXPORT_OK = ();
 }
+#
+# Permitted relational operators
+#
+$relop_re = "<=?|>=?|==";
 
 #Subroutines follow
 
@@ -581,11 +585,7 @@ sub find_best_version(\@$$$$) {
 	    
 		if ($vers eq "") {
 		   print STDERR "ERROR: No version found in chain file $fn for flavor $flavor\n" if ($debug >= 2 + $optional);
-		   if(0) {
-		      return undef, undef, undef, undef;
-		   } else {
-		      next;
-		   }
+		   next;
 		}
 		$matchroot = $root;
 		last;
@@ -597,19 +597,127 @@ sub find_best_version(\@$$$$) {
 	    return undef, undef, undef, undef;
 	}
     } else {
-	# Find the first db with a matching prod:version
-	foreach $root (@{$roots}) {
-	    $fn = catfile($root,'ups_db',$prod,"$vers.version");
+       if (0) {	# test code for version_cmp
+	  my(@tests) = (
+			["aa", "aa", 0],
+			["aa.2","aa.1", 1],
+			["aa.2.1","aa.2", 1],
+			["aa.2.1","aa.2.2", -1],
+			["aa.2.1","aa.3", -1],
+			["aa.2.b","aa.2.a", 1],
+			["aa.2.b","aa.2.c", -1],
+			["v1_0_0","1.0.2", -1],
+			["1_0_0","v1.0.2", -1],
+			["v1_0_3","a1.0.2", -1],
+			["v1_0_0","v1.0.2", -1],
+			["v1_0_3","v1.0.2", 1],
+			["v2_0","v1_0", 1],
+			["v2_0","v3_0", -1],
+			["v1.2.3","v1.2.3-a", -1],
+			["v1.2.3-a","v1.2.3", 1],
+			["v1.2-0","v1.2.3", -1],
+			["v1.2-4","v1.2.3", -1],
+	  );
+	  
+	  my($test, $result);
+	  my($nbad) = 0;
+	  foreach $test (@tests) {
+	     my($vname, $v, $expected) = @$test;
+	     $result = version_cmp($vname, $v);
+	     if ($result != $expected) {
+		$nbad++;
+		printf STDERR "%-10s %-10s: %2d (expected %2d)\n", $vname, $v, $result, $expected;
+	     }
+	  }
+	  die "quitting after tests; $nbad failed\n";
+       }
 
-	    if (-e $fn) {
-	       my ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 0, 1);
-	       if (defined($prod_dir)) {
-		  $matchroot = $root;
-		  last;
-	       }
-	    }
-	}
-    
+       if ($vers =~ /$relop_re/o) {
+	  my($relop) = "";		# relational operator for version
+	  $vers =~ s/^\s*//;
+	  my(@prims) = grep(!/^$/, split(/\s*($relop_re|\|\|)\s*/o, $vers));
+	  $vers = "";
+	  foreach $root (@{$roots}) {
+	     my($dir) = catfile($root, 'ups_db', $prod);
+	     if (opendir(DFD, $dir)) {
+		my(@versions) = grep(s/^(.*)\.(chain|version)$/\1/, readdir(DFD));
+		closedir DFD;
+
+		@versions = reverse sort by_version_cmp @versions; # so we'll try the latest version first
+
+		if (grep(/^(current)$/, @versions)) { # give the current version priority
+		   $fn = catfile($root,'ups_db',$prod,"current.chain");
+		   @versions = grep(!/^(current)$/, @versions);
+
+		   if (-e $fn) {
+		      my($cvers) = read_chain_file($fn, $flavor, $optional || $debug <= 1);
+		      unshift @versions, $cvers;
+		   }
+		}
+
+		#warn "RHL $root versions: ", join(" ", @versions), "\n";
+		
+		my($nprim, $i, $op, $v, $or);
+		$or = 1;	# We are ||ing primitives
+		$nprim = @prims;# scalar context so length of list
+		for ($i = 0; $i < $nprim; $i++) {
+		   if ($prims[$i] =~ /$relop_re/o) {
+		      $op = $prims[$i++]; $v = $prims[$i];
+		   } elsif ($prims[$i] =~ /^[a-zA-Z0-9_.]+$/) {
+		      $op = "==";
+		      $v = $prims[$i];
+		   } elsif ($prims == "||") {
+		      $or = 1;		# fine; that is what we expected to see
+		      next;
+		   } else {
+		      warn "Unexpected operator $prims[$i]\n";
+		      last;
+		   }
+
+		   if ($or) {	# Fine;  we have a primitive to OR in
+		      my($vname);
+		      foreach $vname (@versions) {
+			 if (version_match($op, $vname, $v)) {
+			    $matchroot = $root;
+			    $vers = $vname;
+			    last;
+			 }
+		      }
+		      $or = 0;
+		   } else {
+		      warn "Expected logical operator || in \"" . join(" ", @prims) . "\" at $v\n";
+		   }
+
+		   if ($vers) {
+		      my($extra) = ($debug >= 3 + $quiet) ? "in $root " : "";
+
+		      warn("Version $vers ${extra}satisfies condition \"" . join(" ", @prims) . "\" for product $prod\n")
+			  if ($debug >= 2 + $quiet);
+
+		      last;
+		   }
+		}
+	     }
+
+	     if ($vers) {
+		last;
+	     }
+	  }
+       } else {
+	  # Find the first db with a matching prod:version
+	  foreach $root (@{$roots}) {
+	     $fn = catfile($root,'ups_db',$prod,"$vers.version");
+	     
+	     if (-e $fn) {
+		my ($prod_dir, $table_file) = read_version_file($root, $fn, $prod, $flavor, 0, 1);
+		if (defined($prod_dir)) {
+		   $matchroot = $root;
+		   last;
+		}
+	     }
+	  }
+       }
+
 	if ($matchroot eq "") {
 	    return undef, undef, undef, undef;
 	}
@@ -617,7 +725,7 @@ sub find_best_version(\@$$$$) {
     
     my $matchdb = catfile($matchroot, 'ups_db');
 
-    # Now construct the version file's name, then read and parse it
+    # Now construct the version file\'s name, then read and parse it
     $fn = catfile($matchdb,$prod,"$vers.version");
     my ($prod_dir, $table_file) = read_version_file($matchroot, $fn, $prod, $flavor, 0, 0);
     if (not $prod_dir) {
@@ -631,12 +739,110 @@ sub find_best_version(\@$$$$) {
     if (!($table_file =~ m"^/" || $table_file =~ m/^none$/)) {
 	$table_file = catfile($prod_dir,$table_file);
     }
-      
-    # print STDERR "found: $matchroot, $prod_dir, $vers, $table_file\n";
+
+    
+    #print STDERR "found: $prod  $matchroot, $prod_dir, $vers, $table_file\n";
     return $matchroot, $prod_dir, $vers, $table_file;
 }
       
+sub by_version_cmp {
+   # sort functions use a different "more efficient" calling convention. Sigh.
+   return version_cmp($a, $b);
+}
+
+sub version_cmp {
+   #
+   # Compare two version strings
+   #
+   # The strings are split on [._] and each component is compared, numerically
+   # or as strings as the case may be.  If the first component begins with a non-numerical
+   # string, the other must start the same way to be declared a match.
+   #
+   # If one version is a substring of the other, the longer is taken to be the greater
+   #
+   # If the version string includes a '-' (say VV-EE) the version will be fully sorted on VV,
+   # and then on EE iff the two VV parts are different
+   #
+   my($v1, $v2, $suffix) = @_;
     
+   my($v1, $e1) = split(/-/, $v1); # split into "VV" and "EE"
+   my($v2, $e2) = split(/-/, $v2);
+
+   if ($v1 eq $v2) {
+      if ($e1 || $e2) {
+	 return version_cmp($e1, $e2, 1);
+      } else {
+	 return 0;
+      }
+   }
+
+   my(@c1) = split(/[._]/, $v1);
+   my(@c2) = split(/[._]/, $v2);
+   #
+   # Check that leading non-numerical parts agree
+   #
+   if (!$suffix) {
+      my($prefix) = "";
+      if (@c1[0] =~ /^([^0-9]+)/) {
+	 $prefix = $1;
+	 
+	 if (@c2[0] !~ /^$prefix/) {
+	    return -1;
+	 }
+      } elsif (@c2[0] =~ /^([^0-9]+)/) {
+	 $prefix = $1;
+
+	 
+	 if (@c1[0] !~ /^$prefix/) {
+	    return -1;
+	 }
+      }
+
+      @c1[0] =~ s//^$prefix/;
+      @c2[0] =~ s//^$prefix/;      
+   }
+   
+   my($n1, $n2); $n1 = @c1; $n2 = @c2;
+   my($i, $n); $n = $n1 < $n2 ? $n1 : $n2;
+
+   for ($i = 0; $i < $n; $i++) {
+      if (@c1[$i] =~ /^\d*$/) { # numerical
+	 if (@c1[$i] != @c2[$i]) {
+	    return (@c1[$i] <=> @c2[$i]);
+	 }
+      } else {		# string
+	 if (@c1[$i] ne @c2[$i]) {
+	    return (@c1[$i] cmp @c2[$i]);
+	 }
+      }
+   }
+   # So far, the two versions are identical.  The longer version should sort later
+   return ($n1 <=> $n2);
+}
+
+sub version_match {
+   #
+   # Compare two version strings, using the specified operator (< <= == >= >), returning
+   # true if the condition is satisfied
+   #
+   # Uses version_cmp to define sort order
+   #
+   my($op, $v1, $v2) = @_;
+
+   if ($op eq "<") {
+      return (version_cmp($v1, $v2) <  0) ? 1 : 0;
+   } elsif ($op eq "<=") {
+      return (version_cmp($v1, $v2) <= 0) ? 1 : 0;
+   } elsif ($op eq "==") {
+      return (version_cmp($v1, $v2) == 0) ? 1 : 0;
+   } elsif ($op eq ">") {
+      return (version_cmp($v1, $v2) >  0) ? 1 : 0;
+   } elsif ($op eq ">=") {
+      return (version_cmp($v1, $v2) >= 0) ? 1 : 0;
+   } else {
+      warn("Unknown operator $op used with $v1, $v2--- complain to RHL\n");
+   }
+}
 
 sub eups_setup {
 
@@ -656,11 +862,12 @@ sub eups_setup {
    $prod = $args[0]; shift(@args);
    # Extract version info if any
    $vers = $args[0]; shift(@args);
-   
-   if ($args[0]) {
+   if ($vers =~ /$relop_re/ && defined($args[0])) {
+      $vers .= " " . join(" ", @args);
+   } elsif ($args[0]) {
       warn "WARNING: ignoring extra arguments: @args\n";
    }
-
+   
    my($initial_eups_path) = $ENV{"EUPS_PATH"}; # needed if we're setting up eups
    if (!$user_table_file) {
       if ($prod eq "") {
@@ -729,6 +936,15 @@ sub eups_setup {
 	 }
       }
    } else {
+      if ($prod_dir !~ m|^/|) {
+	 use Cwd;
+	 if ($prod_dir eq ".") {
+	    $prod_dir = getcwd();
+	 } else {
+	    $prod_dir = catfile(getcwd(), $prod_dir);
+	 }
+      }
+
       if (! -d $prod_dir) {
 	 warn "FATAL ERROR: directory $prod_dir doesn't exist\n";
 	 return -1;
