@@ -92,6 +92,10 @@ if($dir ne "" || $inplace) {
 }
 
 while(<$IFD>) {
+   if (/^\s*\#/) {
+      print;
+      next;
+   }
    if ((/(.*setupRequired\("?)([^"]*)("?\).*)/)||(/(.*setupOptional\("?)([^"]*)("?\).*)/)) { # matched the unmatched "
       $head = $1; $body = $2; $tail = $3;
 
@@ -114,10 +118,17 @@ while(<$IFD>) {
       }
       chop $flags; chop $words;
       $product = $version = "";
-      ($product, $version) = split(" ", $words);
+      ($product, $version) = split(" ", $words, 2);
       if($product eq "") {
 	 &unchanged("I cannot find a product"); next;
       }
+
+      my($logical) = "";
+      if ($version =~ /[<=>|]/) { # a logical expression.  We should really check that the setup version is valid
+	 $logical = $version;
+	 $version = ""
+      }
+
       if($version eq "") {
 	 ($uproduct = $product) =~ tr/a-z/A-Z/;
 	 if (defined($productVersion{$uproduct})) {
@@ -156,6 +167,9 @@ while(<$IFD>) {
       }
 
       if($flags ne "") { $flags .= " "; }
+      if (!$version && $logical) {
+	 $version = $logical;
+      }
       print "$head$flags$product $version$tail\n";
    } else {
       print;
