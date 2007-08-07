@@ -786,7 +786,8 @@ With the \code{--list} option, \code{setup} can be used to list the available
 products; for example \code{setup --list --current} will list all products that
 are declared current. Adding the \code{--verbose} option will also
 list the database root and product root paths.  If you only want the product's
-directory, you can use \code{--directory}.
+directory, you can use \code{--directory}.  This command is deprecated; use
+\code{eups list} instead.
 
 If you set verbose to three or more, the file that \code{setup} writes (and
 which is sourced to modify your current shell's variables) is not deleted
@@ -799,6 +800,9 @@ With \code{-M} you specify a table file for something that may not
 even be declared to \eups{}; this is useful for setting up dependent
 products during installation.  Implies \code{-D}, and you may not
 specify a product name.
+
+If \eups{} detects an error, the file-to-source will be empty (i.e.
+the setup will be aborted) unless you specify \code{--force}.
 
 %------------------------------------------------------------------------------
 
@@ -975,7 +979,7 @@ The sorting rules are:
     with the ``smaller'' component is taken to sort to the left, and the comparison
     stops.
 
-  \item If one of the two versions is longer, and matches the shorter to its end,
+  \item If one of the two version names is a subset of the other
     the longer version sorts to the right.  This only applies to the
     primary part; any secondary part is ignored in this comparison.
 
@@ -1005,7 +1009,7 @@ v1.2-0 & v1.2.3 & -1 & primary parts differ, so secondary parts are ignored \\
 v1.2-4 & v1.2.3 & -1 & primary parts differ, so secondary parts are ignored \\
 \end{tabular}
 
-(Here compar is the value that C's \code{qsort} uses;  -1 if $v_1$ is less
+(Here compar is the value that C's \code{qsort} would use;  -1 if $v_1$ is less
 than $v_2$; 0 if they're equal; +1 if $v_1 > v_2$).
 
 \subsubsection{Obsolete table commands}
