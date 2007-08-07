@@ -28,7 +28,7 @@ package eups_setup;
 BEGIN {
     use Exporter ();
     our @ISA = qw(Exporter);
-    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots);
+    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots &eups_version_match);
     our $VERSION = 1.1;
     our @EXPORT_OK = ();
 }
@@ -597,7 +597,7 @@ sub find_best_version(\@$$$$) {
 	    return undef, undef, undef, undef;
 	}
     } else {
-       if (0) {	# test code for version_cmp
+       if (0) {	# test code for eups_version_cmp
 	  my(@tests) = (
 			["aa", "aa", 0],
 			["aa.2","aa.1", 1],
@@ -623,7 +623,7 @@ sub find_best_version(\@$$$$) {
 	  my($nbad) = 0;
 	  foreach $test (@tests) {
 	     my($vname, $v, $expected) = @$test;
-	     $result = version_cmp($vname, $v);
+	     $result = eups_version_cmp($vname, $v);
 	     if ($result != $expected) {
 		$nbad++;
 		printf STDERR "%-10s %-10s: %2d (expected %2d)\n", $vname, $v, $result, $expected;
@@ -633,9 +633,7 @@ sub find_best_version(\@$$$$) {
        }
 
        if ($vers =~ /$relop_re/o) {
-	  my($relop) = "";		# relational operator for version
-	  $vers =~ s/^\s*//;
-	  my(@prims) = grep(!/^$/, split(/\s*($relop_re|\|\|)\s*/o, $vers));
+	  (my($expr) = $vers) =~ s/^\s*//;
 	  $vers = "";
 	  foreach $root (@{$roots}) {
 	     my($dir) = catfile($root, 'ups_db', $prod);
@@ -643,7 +641,7 @@ sub find_best_version(\@$$$$) {
 		my(@versions) = grep(s/^(.*)\.(chain|version)$/\1/, readdir(DFD));
 		closedir DFD;
 
-		@versions = reverse sort by_version_cmp @versions; # so we'll try the latest version first
+		@versions = reverse sort by_version_cmp @versions; # so we\'ll try the latest version first
 
 		if (grep(/^(current)$/, @versions)) { # give the current version priority
 		   $fn = catfile($root,'ups_db',$prod,"current.chain");
@@ -657,50 +655,19 @@ sub find_best_version(\@$$$$) {
 
 		#warn "RHL $root versions: ", join(" ", @versions), "\n";
 		
-		my($nprim, $i, $op, $v, $or);
-		$or = 1;	# We are ||ing primitives
-		$nprim = @prims;# scalar context so length of list
-		for ($i = 0; $i < $nprim; $i++) {
-		   if ($prims[$i] =~ /$relop_re/o) {
-		      $op = $prims[$i++]; $v = $prims[$i];
-		   } elsif ($prims[$i] =~ /^[a-zA-Z0-9_.]+$/) {
-		      $op = "==";
-		      $v = $prims[$i];
-		   } elsif ($prims == "||") {
-		      $or = 1;		# fine; that is what we expected to see
-		      next;
-		   } else {
-		      warn "Unexpected operator $prims[$i]\n";
-		      last;
-		   }
+		my($vname);
+		foreach $vname (@versions) {
+		   if (eups_version_match($vname, $expr)) {
+		      $matchroot = $root;
+		      $vers = $vname;
 
-		   if ($or) {	# Fine;  we have a primitive to OR in
-		      my($vname);
-		      foreach $vname (@versions) {
-			 if (version_match($op, $vname, $v)) {
-			    $matchroot = $root;
-			    $vers = $vname;
-			    last;
-			 }
-		      }
-		      $or = 0;
-		   } else {
-		      warn "Expected logical operator || in \"" . join(" ", @prims) . "\" at $v\n";
-		   }
-
-		   if ($vers) {
 		      my($extra) = ($debug >= 3 + $quiet) ? "in $root " : "";
-
-		      warn("Version $vers ${extra}satisfies condition \"" . join(" ", @prims) . "\" for product $prod\n")
+		      warn("Version $vers ${extra}satisfies condition \"$expr\" for product $prod\n")
 			  if ($debug >= 2 + $quiet);
-
+		      
 		      last;
 		   }
 		}
-	     }
-
-	     if ($vers) {
-		last;
 	     }
 	  }
        } else {
@@ -747,10 +714,10 @@ sub find_best_version(\@$$$$) {
       
 sub by_version_cmp {
    # sort functions use a different "more efficient" calling convention. Sigh.
-   return version_cmp($a, $b);
+   return eups_version_cmp($a, $b);
 }
 
-sub version_cmp {
+sub eups_version_cmp {
    #
    # Compare two version strings
    #
@@ -770,7 +737,7 @@ sub version_cmp {
 
    if ($v1 eq $v2) {
       if ($e1 || $e2) {
-	 return version_cmp($e1, $e2, 1);
+	 return eups_version_cmp($e1, $e2, 1);
       } else {
 	 return 0;
       }
@@ -820,25 +787,64 @@ sub version_cmp {
    return ($n1 <=> $n2);
 }
 
-sub version_match {
+sub eups_version_match($$) {
+   #
+   # Return $vname if it matches the logical expression @expr
+   #
+   my($vname, $expr) = @_;
+
+   my(@expr) = grep(!/^$/, split(/\s*($relop_re|\|\|)\s*/o, $expr));
+
+   my($nprim, $i, $op, $v, $or);
+   $or = 1;			# We are ||ing primitives
+   $nprim = @expr;		# scalar context so length of list
+   
+   for ($i = 0; $i < $nprim; $i++) {
+      if ($expr[$i] =~ /$relop_re/o) {
+	 $op = $expr[$i++]; $v = $expr[$i];
+      } elsif ($expr[$i] =~ /^[a-zA-Z0-9_.]+$/) {
+	 $op = "==";
+	 $v = $expr[$i];
+      } elsif ($expr == "||") {
+	 $or = 1;		# fine; that is what we expected to see
+	 next;
+      } else {
+	 warn "Unexpected operator $expr[$i] in \"$expr\"\n";
+	 last;
+      }
+      
+      if ($or) {	# Fine;  we have a primitive to OR in
+	 if (eups_version_match_prim($op, $vname, $v)) {
+	    return $vname;
+	 }
+	 $or = 0;
+      } else {
+	 warn "Expected logical operator || in \"$expr\" at $v\n";
+      }
+   }
+
+   return undef;
+}
+
+sub eups_version_match_prim {
    #
    # Compare two version strings, using the specified operator (< <= == >= >), returning
    # true if the condition is satisfied
    #
-   # Uses version_cmp to define sort order
+   # Uses eups_version_cmp to define sort order
    #
    my($op, $v1, $v2) = @_;
 
    if ($op eq "<") {
-      return (version_cmp($v1, $v2) <  0) ? 1 : 0;
+      return (eups_version_cmp($v1, $v2) <  0) ? 1 : 0;
    } elsif ($op eq "<=") {
-      return (version_cmp($v1, $v2) <= 0) ? 1 : 0;
+      return (eups_version_cmp($v1, $v2) <= 0) ? 1 : 0;
    } elsif ($op eq "==") {
-      return (version_cmp($v1, $v2) == 0) ? 1 : 0;
+      return (eups_version_cmp($v1, $v2) == 0) ? 1 : 0;
    } elsif ($op eq ">") {
-      return (version_cmp($v1, $v2) >  0) ? 1 : 0;
+      return (eups_version_cmp($v1, $v2) >  0) ? 1 : 0;
    } elsif ($op eq ">=") {
-      return (version_cmp($v1, $v2) >= 0) ? 1 : 0;
+      return (eups_version_cmp($v1, $v2) >= 0) ? 1 : 0;
    } else {
       warn("Unknown operator $op used with $v1, $v2--- complain to RHL\n");
    }
@@ -1198,7 +1204,7 @@ sub read_chain_file
       $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
    }
    if ($pos == -1) {
-      print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug >= 1 + $quiet);
+      print STDERR "ERROR: Flavor $flavor not found in chain file $fn\n" if ($debug >= 3 + $quiet);
       return "";
    }
    ($vers) = $group[$pos] =~ m/VERSION *= *(.+?) *\n/i;
