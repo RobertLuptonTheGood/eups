@@ -295,7 +295,7 @@ sub myexit
       $fn = "/dev/null";
    }
 
-   if ($status) {
+   if ($status && !$force) {
       if ($debug <= 3) {
 	 unlink($fn);
       }
