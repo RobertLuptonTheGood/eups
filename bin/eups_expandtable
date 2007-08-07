@@ -8,6 +8,15 @@
 #
 # #############################################
 
+BEGIN {
+   if ($ENV{'EUPS_DIR'} eq "") {
+      die "ERROR: EUPS_DIR is not set\n";
+   }
+
+   require "$ENV{'EUPS_DIR'}/bin/eups_setup.pm";
+   import eups_setup "eups_version_match";
+}
+
 $inplace = 0;			# modify table file in place
 $warn_versions = 0;		# warn about suspicious versions
 
@@ -124,7 +133,7 @@ while(<$IFD>) {
       }
 
       my($logical) = "";
-      if ($version =~ /[<=>|]/) { # a logical expression.  We should really check that the setup version is valid
+      if ($version =~ /[<=>|]/) { # a logical expression
 	 $logical = $version;
 	 $version = ""
       }
@@ -152,6 +161,12 @@ while(<$IFD>) {
 	    &unchanged("I cannot find a version for $product in:\n\t$ENV{'SETUP_' . $uproduct}\n");
 	    next;
 	 }
+	 if ($logical) {
+	    if (!eups_version_match($version, $logical)) {
+	       warn "Warning: $version failed to match condition \"$logical\"\n";
+	    }
+	 }
+
 # Check to see if the version is LOCAL --- internal keyword
 	 if ($version eq "LOCAL") {
 	     &unchanged("I cannot find a version for $product in:\n\t$ENV{'SETUP_' . $uproduct}\n");
