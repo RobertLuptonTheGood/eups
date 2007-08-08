@@ -37,6 +37,8 @@ BEGIN {
 #
 $relop_re = "<=?|>=?|==";
 
+my(%setupVersion);		# version that we actually setup (if there's an inconsistency)
+
 #Subroutines follow
 
 sub fix_special {
@@ -522,7 +524,7 @@ sub eups_unsetup {
 	 return -1;
       }
       
-      if (($debug >= 1 && !$quiet) || $debug > 1) {
+      if (($debug >= 1 && !$quiet) || $debug > 2) {
 	 show_product_version("Unsetting up", $indent, $prod, $vers, $flavor);
       }
       
@@ -1019,8 +1021,18 @@ sub eups_setup {
 
    if (($debug >= 1 && !$quiet) || $debug > 1) {
       if (defined($prod)) {
-	 show_product_version("Setting up", $indent, $prod, $vers, $flavor);
+	 if ($debug > 1 || !defined($setupVersion{$prod})) {	     
+	    show_product_version("Setting up", $indent, $prod, $vers, $flavor);
+	 }
+
+	 if (!defined($setupVersion{$prod})) {
+	    $setupVersion{$prod} = $vers;
+	 }
       }
+   }
+
+   if ($setupVersion{$prod} ne $vers) {
+      print STDERR "WARNING: You setup $prod $setupVersion{$prod}, and are now setting up $vers \n";
    }
    
    if ($table_file !~ /^none$/i && !(-e $table_file)) {
@@ -1317,7 +1329,7 @@ sub read_version_file($$$$$$)
        my $proddir_envname = uc($prod) . "_DIR";
        if ($ENV{$proddir_envname}) {
 	   $prod_dir = $ENV{$proddir_envname};
-	   warn "INFO : using PRODUCT_DIR from the environment ($prod_dir)\n" if ($debug > 1);
+	   warn "INFO : using PRODUCT_DIR from the environment ($prod_dir)\n" if ($debug > 2);
        }
    }
 

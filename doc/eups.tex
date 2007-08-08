@@ -799,7 +799,8 @@ setup, but that it's dependencies should be processed as normal.
 With \code{-M} you specify a table file for something that may not
 even be declared to \eups{}; this is useful for setting up dependent
 products during installation.  Implies \code{-D}, and you may not
-specify a product name.
+specify a product name. \emph{N.b.} this is not the way to set up
+a local product --- use \code{setup --root dir product} (e.g. setup -r . product).
 
 If \eups{} detects an error, the file-to-source will be empty (i.e.
 the setup will be aborted) unless you specify \code{--force}.
