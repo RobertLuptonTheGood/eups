@@ -613,10 +613,18 @@ sub find_best_version(\@$$$$) {
 			["v1_0_3","v1.0.2", 1],
 			["v2_0","v1_0", 1],
 			["v2_0","v3_0", -1],
-			["v1.2.3","v1.2.3-a", -1],
-			["v1.2.3-a","v1.2.3", 1],
+			["v1.2.3","v1.2.3+a", -1],
 			["v1.2-0","v1.2.3", -1],
 			["v1.2-4","v1.2.3", -1],
+			["1","1-a", 1],
+			["1","1+a", -1],
+			["1-a","1", -1],
+			["1-b","1-a", 1],
+			["1+a","1+b", -1],
+			["1-a", "1+a", -1],
+			["1+a", "1-a", 1],
+			["1-rc2+a", "1-rc2", 1],
+			["1-rc2+a", "1-rc2+b", -1],
 	  );
 	  
 	  my($test, $result);
@@ -624,6 +632,7 @@ sub find_best_version(\@$$$$) {
 	  foreach $test (@tests) {
 	     my($vname, $v, $expected) = @$test;
 	     $result = eups_version_cmp($vname, $v);
+	     #warn "eups_version_cmp($vname, $v) == $result\n";
 	     if ($result != $expected) {
 		$nbad++;
 		printf STDERR "%-10s %-10s: %2d (expected %2d)\n", $vname, $v, $result, $expected;
@@ -728,23 +737,49 @@ sub eups_version_cmp {
    # If one version is a substring of the other, the longer is taken to be the greater
    #
    # If the version string includes a '-' (say VV-EE) the version will be fully sorted on VV,
-   # and then on EE iff the two VV parts are different
+   # and then on EE iff the two VV parts are different.  VV sorts to the RIGHT of VV-EE --
+   # e.g. 1.10.0-rc2 comes to the LEFT of 1.10.0
+   #
+   # Additionally, you can specify another modifier +FF; in this case VV sorts to the LEFT of VV+FF
+   # e.g. 1.10.0+hack1 sorts to the RIGHT of 1.10.0
    #
    my($v1, $v2, $suffix) = @_;
     
-   my($v1, $e1) = split(/-/, $v1); # split into "VV" and "EE"
-   my($v2, $e2) = split(/-/, $v2);
+   sub split_version($) {
+      # Split a version string of the form VVV(-EEE)?(+FFF)?
+      my($version) = @_;
+      
+      $version =~ /^([^-+]+)((-)([^-+]+))?((\+)([^-+]+))?/;
 
-   if ($v1 eq $v2) {
-      if ($e1 || $e2) {
-	 return eups_version_cmp($e1, $e2, 1);
+      return ($1, $4, $7);	# == VVV EEE FFF
+   }
+
+   my($prim1, $sec1, $ter1) = split_version($v1);
+   my($prim2, $sec2, $ter2) = split_version($v2);
+
+   if ($prim1 eq $prim2) {
+      if ($sec1 || $sec2 || $ter1 || $ter2) {
+	 if ($sec1 || $sec2) {
+	    my($ret);
+	    if ($sec1 && $sec2) {
+	       $ret = eups_version_cmp($sec1, $sec2, 1);
+	    } else {
+	       return ($sec1) ? -1 : +1;
+	    }
+	    if ($ret == 0) {
+	       return eups_version_cmp($ter1, $ter2, 1);
+	    } else {
+	       return $ret;
+	    }
+	 }
+	 return eups_version_cmp($ter1, $ter2, 1);
       } else {
 	 return 0;
       }
    }
 
-   my(@c1) = split(/[._]/, $v1);
-   my(@c2) = split(/[._]/, $v2);
+   my(@c1) = split(/[._]/, $prim1);
+   my(@c2) = split(/[._]/, $prim2);
    #
    # Check that leading non-numerical parts agree
    #

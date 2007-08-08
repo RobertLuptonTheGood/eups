@@ -951,10 +951,10 @@ never used either.
 \subsubsection{Version ordering}
 \label{versionOrdering}
 
-Version names are taken to be of the form \code{PrefixAAA.BBB.CCC-XXX.YYY.ZZZ}
-where \code{Prefix} is optional, as is \code{-XXX.YYY.ZZZ}.  Let's call
-\code{PrefixAAA.BBB.CCC} the `primary' part, and \code{XXX.YYY.ZZZ}
-the `secondary' part.
+Version names are taken to be of the form \code{PrefixAAA.BBB.CCC-LLL.MMM.NNN+XXX.YYY.ZZZ}
+where \code{Prefix} is optional, as are \code{-LLL.MMM.NNN} and \code{+XXX.YYY.ZZZ}.  Let's call
+\code{PrefixAAA.BBB.CCC} the `primary' part, \code{LLL.MMM.NNN} the `secondary' part, and \code{XXX.YYY.ZZZ}
+the `tertiary' part.
 Each of the `dotted' parts may have any number of components. If you wish, you may use \code{\_}
 instead of \code{.} as separators (this makes cvs happier).  Examples of valid
 versions are:
@@ -963,6 +963,8 @@ versions are:
   v1.2.3.4
   a.b.c
   1.2.3-a.b
+  1.2.3+a.b
+  1.2.3-rc2+a.b
 \end{verbatim}
 
 The sorting rules are:
@@ -985,8 +987,20 @@ The sorting rules are:
 
   \item If the two primary parts are identical, then the secondary part is
     examined.  Apart from the fact that no \code{Prefix} is allowed, the same
-    rules are applied.
+    rules are applied.  If only one version has a secondary part, it sorts
+    to the \emph{left} -- so \code{1.2-rc2} sorts to the left of \code{1.2}.
+
+  \item If the primary and secondary parts are identical, then the tertiary part is
+    examined, applying the same rules as the secondary, except that if only one
+    version has a tertiary part it sorts to the \emph{right}, so \code{1.2+hack}
+    sorts to the right of \code{1.2}.
 \end{enumerate}
+
+What's the point of these complicated rules?  The primary sort should be
+intuitive.  People often name \emph{pre-}release candidates things like
+\code{1.2-rc2}, hence the rule for \code{1.2} being later than \code{1.2-rc2}.
+After a version is released, you sometimes need a fixed version, so its
+name should sort later --- hence \code{1.2+bugfix}.
 
 Here are some examples:
 
@@ -1004,9 +1018,11 @@ v1\_0\_3 & a1.0.2 & -1 & Mismatching prefixes always sort to the left \\
 v1\_0\_0 & 1.0.2 & -1 & Only $v_1$ has a prefix \\
 1\_0\_0 & v1.0.2 & -1 & Only $v_2$ has a prefix\\
 v1\_0\_2 & v1.0.0 & +1 & You can mix \code{.} and \code{\_} \\
-v1.2.3 & v1.2.3-a & -1 & primary parts are identical, so secondary is examined \\
+v1.2.3 & v1.2.3-a & +1 & primary parts are identical, so secondary is examined \\
 v1.2-0 & v1.2.3 & -1 & primary parts differ, so secondary parts are ignored \\
 v1.2-4 & v1.2.3 & -1 & primary parts differ, so secondary parts are ignored \\
+1-rc2+a & 1-rc2 & +1 & primary and secondary match; tertiary sorts to right \\
+1-rc2+a & 1-rc2+b & -1 & sort is on tertiary \\
 \end{tabular}
 
 (Here compar is the value that C's \code{qsort} would use;  -1 if $v_1$ is less
