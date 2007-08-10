@@ -1036,15 +1036,15 @@ sub eups_setup {
 	 if ($debug > 1 || !defined($setupVersion{$prod})) {	     
 	    show_product_version("Setting up", $indent, $prod, $vers, $flavor);
 	 }
-
-	 if (!defined($setupVersion{$prod})) {
-	    $setupVersion{$prod} = $vers;
-	 }
       }
    }
-
-   if ($setupVersion{$prod} ne $vers) {
-      print STDERR "WARNING: You setup $prod $setupVersion{$prod}, and are now setting up $vers \n";
+   if (!defined($setupVersion{$prod})) {
+      $setupVersion{$prod} = $vers;
+   } else {
+      if ($setupVersion{$prod} ne $vers) {
+	 print STDERR "WARNING: You setup $prod $setupVersion{$prod}, and are now setting up $vers \n";
+      }
+      $setupVersion{$prod} = $vers;
    }
    
    if ($table_file !~ /^none$/i && !(-e $table_file)) {
