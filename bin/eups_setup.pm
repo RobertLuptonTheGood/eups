@@ -477,8 +477,7 @@ sub parse_table {
 		 $switchfwd{$comm}->(@arg);
 	      }
 	   } else {
-	      if ($debug > 1 ||
-		  ($debug && $lines[$i] !~ /^\s*(Action\s*=\s*setup)\s*$/i)) {
+	      if ($debug > 1 && $lines[$i] !~ /^\s*(Action\s*=\s*setup)\s*$/i) {
 		 printf STDERR "Unknown command \"%s\" in $fn, line %d\n", $lines[$i], $i + 1;
 	      }
 	   }
@@ -496,7 +495,7 @@ sub eups_unsetup {
    my $eups_dir = $ENV{"EUPS_DIR"};
    my ($prod_dir, $table_file);
 
-   # We don't need error checking here since that 
+   # We don\'t need error checking here since that 
    # is already done in eups_setup
    
    local $indent = $indent + 1;
@@ -507,6 +506,7 @@ sub eups_unsetup {
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    my($prod) = $args[0];
+   my($vers, $flavor, $root);
    if ($user_table_file) {
       ($prod_dir, $table_file) = (undef, $user_table_file);
       warn "Using $table_file rather than a declared product\n" if ($debug > 0);
@@ -516,7 +516,8 @@ sub eups_unsetup {
 	 return -1;
       }
    
-      my($status, $vers, $flavor, $root) = parse_setup_prod($prod);
+      my($status);
+      ($status, $vers, $flavor, $root) = parse_setup_prod($prod);
       my $db = catfile($root, 'ups_db');
 
       if($status ne "ok") {
@@ -537,7 +538,7 @@ sub eups_unsetup {
       # Not necessarily correct anymore.
       $ups_dir = catfile($prod_dir,"ups");
       
-      # Now construct the version file's name, then read and parse it
+      # Now construct the version file\'s name, then read and parse it
       if ($vers eq "") {
 	 $table_file = catfile($ups_dir, "$prod.table"); # unknown version, so look in $ups_dir
 	 if (! -e $table_file) {
@@ -916,7 +917,7 @@ sub eups_setup {
    @args = split " ",$args;
    $prod = $args[0]; shift(@args);
    # Extract version info if any
-   $vers = $args[0]; shift(@args);
+   my($vers) = $args[0]; shift(@args);
    if ($vers =~ /$relop_re/ && defined($args[0])) {
       $vers .= " " . join(" ", @args);
    } elsif ($args[0]) {
@@ -1010,7 +1011,7 @@ sub eups_setup {
       if (not $Xroot) {
 	  $root = $roots[0];
       } else {
-	  $vers = $Xvers;
+	  #$vers = $Xvers;
 	  $root = $Xroot;
       }
       
