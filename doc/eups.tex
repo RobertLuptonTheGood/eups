@@ -417,22 +417,39 @@ FUNCTIONS
         Return the current version of a product; if product is omitted,
         return a list of (product, version) for all products
     
-    declare(flavor, dbz, tablefile, products_root, product_dir, product,
-            version, declare_current=False, noaction=False)
+    database(product, version='current', dbz='', flavor='')
+        Return the database for the specified product and version
+    
+    declare(flavor, dbz, tablefile, products_root, product_dir, product, version,
+            declare_current=False, noaction=False)
         Declare a product
     
     dependencies(product, version, dbz='', flavor='')
         Return a product's dependencies in the form of a list of tuples
         (product, version, flavor)
     
+    directory(product, version='current', dbz='', flavor='')
+        Return the PRODUCT_DIR for the specified product and version
+    
     flavor()
         Return the current flavor
+    
+    isCurrent(product, version, dbz='', flavor='')
+        Return True iff the the specified product and version is current
+    
+    isSetup(product, version, dbz='', flavor='')
+        Return True iff the the specified product and version is setup
     
     list(product, version='', dbz='', flavor='')
         Return a list of declared versions of a product; if the
         version is specified, just return the properties of that version.
+        The version may be "current" or "setup" to return the current
+        or setup version.
         
-        The return value is a list: (version, database, directory, isCurrent)
+        The return value for each product is a list of lists:
+           [[version, database, directory, isCurrent, isSetup], ...]
+        (if only one version matches, the return is a single list; if no versions
+        match, you'll get None)
     
     setup(product='', dbz='', flavor='')
         Return the setup version of a product; if product is omitted,
