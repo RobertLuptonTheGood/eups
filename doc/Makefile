@@ -6,7 +6,7 @@ all :;
 
 doc :
 	latex2html -dir html -mkdir -noaddress -nonavigation -split 0 eups.tex
-	@ perl -pe 'if(/eups\.css/) { $$_ = "" }' html/eups.html > eups.html
+	@ perl -pe 'if(/eups\.css/) { $$_ = "" }; s/eups.html\#/\#/g' html/eups.html > eups.html
 	@ $(RM) -r html
 
 install :
