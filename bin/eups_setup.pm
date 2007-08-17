@@ -424,10 +424,10 @@ sub parse_table {
 	$comm =~ tr/[A-Z]/[a-z]/;
 	if ($comm eq "setupenv" || $comm eq "proddir") {
 	   print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
-	} elsif ($comm eq "setuprequired" && $fwd==0) {
+	} elsif (($comm eq "setuprequired" || $comm eq "setupoptional") && $fwd==0) {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
-	      $foo = eups_unsetup($qaz, $outfile, $no_dependencies,
+	      my($foo) = eups_unsetup($qaz, $outfile, $no_dependencies,
 				  $only_dependencies_recursive, undef,
 				  $debug, $quiet);
 	      my($p) = split(" ", $qaz);
@@ -435,19 +435,14 @@ sub parse_table {
 		 $foo = 0;
 	      }
 	      
-	      $retval =+ $foo;
-	      print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0 && $debug >= 0);
+	      if($comm eq "setuprequired") {
+		  $retval =+ $foo;
+		  print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0 && $debug >= 0);
+	      } else {
+		  print STDERR "WARNING: unsetup of optional $qaz failed\n" if ($foo < 0 && $debug > 1);
+	      }
 	      
 	      $unsetup_products{$p}++; # remember that we already unset it
-	   }
-	} elsif ($comm eq "setupoptional" && $fwd==0) {
-	   if (!$no_dependencies) {
-	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
-	      if (eups_unsetup($qaz, $outfile, $no_dependencies,
-			       $only_dependencies_recursive, undef,
-			       $debug, $quiet) < 0 && $debug > 1) {
-		 warn "WARNING: unsetup of optional $qaz failed\n";
-	      }
 	   }
         } elsif ($comm eq "setuprequired" && $fwd == 1) {
 	   if (!$no_dependencies) {
