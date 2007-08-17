@@ -49,6 +49,10 @@ sub sete {
        return;
     }
 
+    if ($val =~ /\$/) {
+	warn "Variable ${key}'s value \"$val\" contains unexpanded variables\n";
+    }
+
     if ($shell eq "sh") {
 	print $tmpfile "export $key=\"$val\"\n";
     } elsif ($shell eq "csh") {

@@ -62,11 +62,13 @@ sub fix_special {
 
 sub envInterpolate {
 # Interpolates in values of environment variables
-    my $in = $_[0];
+    my ($in) = @_;
     my @env_var = $in =~ m/\$\{(.+?)\}/g;
     for (my $i = 0; $i < @env_var; $i++) {
 	my $val = $ENV{$env_var[$i]};
-	$in =~ s/\$\{.+?\}/$val/g;
+	if ($val) {
+	    $in =~ s/\$\{.+?\}/$val/g;
+	}
     }
     return $in;
 }
