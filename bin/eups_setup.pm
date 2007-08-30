@@ -142,6 +142,15 @@ sub envAppend {
     my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
 
+    my($prepend_delim) = 0;	# should we prepend an extra :?
+    my($append_delim) = 0;	# should we append an extra :?
+    if($val =~ s/^$delim+//) {
+	$prepend_delim = 1;
+    }
+    if($val =~ s/$delim+$//) {
+	$append_delim = 1;
+    }
+
     $curval = $ENV{$var};
     if ($val ne "") {
        if ($curval) {
@@ -158,6 +167,13 @@ sub envAppend {
        undef $$oldenv{$var};
     }
     $ENV{$var} = pathUnique(envInterpolate($curval), $delim);
+
+    if ($prepend_delim && $ENV{$var} !~ /^$delim/) {
+	$ENV{$var} = $delim . $ENV{$var};
+    }
+    if ($append_delim && $ENV{$var} !~ /^$delim/) {
+	$ENV{$var} .= $delim;
+    }
 }
 
 sub envPrepend {
@@ -167,6 +183,14 @@ sub envPrepend {
     my $delim = cleanArg($_[2]);
     $delim = ":" if ($delim eq "");
 
+    my($prepend_delim) = 0;	# should we prepend an extra :?
+    my($append_delim) = 0;	# should we append an extra :?
+    if($val =~ s/^$delim+//) {
+	$prepend_delim = 1;
+    }
+    if($val =~ s/$delim+$//) {
+	$append_delim = 1;
+    }
     
     $curval = "";
     if ($val ne "") {
@@ -186,6 +210,13 @@ sub envPrepend {
     }
 
     $ENV{$var} = pathUnique(envInterpolate($curval), $delim);
+
+    if ($prepend_delim && $ENV{$var} !~ /^$delim/) {
+	$ENV{$var} = $delim . $ENV{$var};
+    }
+    if ($append_delim && $ENV{$var} !~ /^$delim/) {
+	$ENV{$var} .= $delim;
+    }
 }
 
 sub envSet {
@@ -207,6 +238,9 @@ sub envRemove {
     my $sval = fix_special($val);
     $delim = ":" if ($delim eq "");
     my $sdelim = fix_special($delim);
+    $sval =~ s/^$sdelim+//;
+    $sval =~ s/$sdelim+$//;
+
     $curval = $ENV{$var};
     $curval =~ s/$sval//g;
     $curval =~ s/$sdelim+/$sdelim/g;
