@@ -167,31 +167,46 @@ def list(product, version = "", dbz = "", flavor = ""):
         if version:
             return oneResult
         
-    return result if len(result) else None
+    if len(result):
+        return result
+    else:
+        None
 
 def database(product, version="current", dbz = "", flavor = ""):
     """Return the database for the specified product and version"""
 
     vals = list(product, version, dbz, flavor)
-    return vals[1] if vals else None        
+    if vals:
+        return vals[1]
+    else:
+        None        
 
 def directory(product, version="current", dbz = "", flavor = ""):
     """Return the PRODUCT_DIR for the specified product and version"""
 
     vals = list(product, version, dbz, flavor)
-    return vals[2] if vals else None        
+    if vals:
+        return vals[2]
+    else:
+        None
 
 def isCurrent(product, version, dbz = "", flavor = ""):
     """Return True iff the the specified product and version is current"""
 
     vals = list(product, version, dbz, flavor)
-    return vals[3] if vals else False       
+    if vals:
+        return vals[3]
+    else:
+        False       
 
 def isSetup(product, version, dbz = "", flavor = ""):
     """Return True iff the the specified product and version is setup"""
 
     vals = list(product, version, dbz, flavor)
-    return vals[4] if vals else False        
+    if vals:
+        return vals[4]
+    else:
+        False
 
 def table(product, version, flavor = ""):
     """Return the full path of a product's tablefile"""
