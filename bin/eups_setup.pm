@@ -80,7 +80,7 @@ sub pathUnique {
    my(%elems);
    my(@ovar);
    foreach (split($delim, $var)) {
-      if (!defined($elems{$_})) {
+      if ($_ && !defined($elems{$_})) {
 	 push(@ovar, $_);
 	 $elems{$_}++;
       }
