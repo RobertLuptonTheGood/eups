@@ -57,7 +57,7 @@ if ("\$?EUPS_DIR" == "1" ) then
 endif
 
 setenv EUPS_DIR $eupsdir
-if ("\$?EUPS_PATH" == "1" ) then
+if ("\$?EUPS_PATH" == "0" ) then
     setenv EUPS_PATH ""
 endif
 
