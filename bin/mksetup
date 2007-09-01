@@ -57,6 +57,10 @@ if ("\$?EUPS_DIR" == "1" ) then
 endif
 
 setenv EUPS_DIR $eupsdir
+if ("\$?EUPS_PATH" == "1" ) then
+    setenv EUPS_PATH ""
+endif
+
 setenv EUPS_PATH \`perl -e '$unique_path' $prefix:\$EUPS_PATH\`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 setenv SETUP_EUPS "eups"
