@@ -799,6 +799,12 @@ or \code{--list}.
 current shell.
 )
 
+If you specify \code{--root}, you may not need to give the
+product's name if you're not giving a version number too.
+If the ups directory contains only one
+table file, it'll be taken to be the product that you
+want to setup.  I.e. \code{setup -r .} will work.
+
 With the \code{--list} option, \code{setup} can be used to list the available
 products; for example \code{setup --list --current} will list all products that
 are declared current. Adding the \code{--verbose} option will also
@@ -817,7 +823,7 @@ With \code{-M} you specify a table file for something that may not
 even be declared to \eups{}; this is useful for setting up dependent
 products during installation.  Implies \code{-D}, and you may not
 specify a product name. \emph{N.b.} this is not the way to set up
-a local product --- use \code{setup --root dir product} (e.g. setup -r . product).
+a local product --- use \code{setup --root dir [product]} (e.g. setup -r .).
 
 If \eups{} detects an error, the file-to-source will be empty (i.e.
 the setup will be aborted) unless you specify \code{--force}.
@@ -1207,6 +1213,31 @@ This may only be of interest to the authors.  You can declare \eups{} as a full-
 \eups{} product in its own right, and use \code{setup eups version} to switch
 between them.  To make this easier, the main Makefile allows you to say,
 \code{make declare} to declare your new version.
+
+\subsection{New features}
+
+\eups{} has undergone significant enhancements recently.  Some
+highlights are:
+
+\begin{itemize}
+  \item
+    The addition of \code{\$EUPS\_PATH}
+
+  \item
+    The ability to specify logical expressions instead
+    of simple version numbers in requirements
+
+  \item
+    Support for adding an extra delimiter at the
+    start/end of a path variable (e.g. MANPATH)
+
+  \item
+    The ability to use relative paths with \code{--root}
+
+  \item
+    The ability to omit the product name when you're
+    setting up with \code{--root}; e.g. \code{setup -r .}
+\end{itemize}
 
 \subsection{Obsolete features}
 

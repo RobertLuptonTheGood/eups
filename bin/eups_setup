@@ -153,19 +153,37 @@ $setup = defined($$options{-s}) ? 1 : 0; # Only show setup version (default, exc
 if($no_dependencies && $only_dependencies) {
    die "It makes no sense to say --just --only-dependencies\n";
 }
+#
+# Can we guess the product from the root?
+#
+if (!defined($words[0]) && defined($$options{-r})) {
+   my($root) = $$options{-r};
+   my(@products) =
+       grep(s|^.*/([^/]+)\.table$|\1|, glob("$root/ups/*.table"));
+   my $nproduct = @products;
+   
+   if ($nproduct == 0) {
+      ;
+   } elsif ($nproduct == 1) {
+      unshift(@words, $products[0]);
+   } else {
+      warn "I can't guess which product you want; ups directory defines: " . join(" ", @products) . "\n";
+      myexit(1);
+   } 
+}
 
 @args = ($op, @args, @words);
 # Get the command line
 $select = $args[0];
 $args[0] = "";
-$comm = join " ",@args;
+$comm = join " ", @args;
 
 if ($user_table_file) {
    if (defined($words[0])) {
       warn"You may not specify a product and an explicit table file; quitting\n";
       &myexit(1);
    }
-} elsif (!defined($words[0]) && $select ne "list") {
+} elsif (!defined($words[0]) && $op ne "list") {
    warn "Please specify a product\n";
    &usage();
    &myexit(1);
