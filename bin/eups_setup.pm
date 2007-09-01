@@ -383,7 +383,7 @@ sub parse_table {
        open FILE, "<$fn";
        read FILE, $data, $size[7];
        close FILE;
-       $data =~ s/\#.*?\n//g;	# strip comments
+       $data =~ s/([ \t]*\#[^\n]*)?//g;	# strip comments
     }
 
 # Extract the commands from the table file
