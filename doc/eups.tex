@@ -769,6 +769,7 @@ Options:
         -D, --only-dependencies Only setup dependencies, not this product	
         -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
         -F, --force     Force requested behaviour, even if product's already setup
+        -i, --ignore-versions Ignore any explicit versions in table files
         -j, --just      Just setup product, no dependencies
         -l, --list      List available versions (-v => include root directories)
         -l, --list      List available versions (-v => include root directories)
@@ -971,7 +972,11 @@ alias or an environment variable - clear from the context.)
     given to the version declared current;  if there is no current
     version, or it doesn't satisfy the condition, the highest valid version number
     is used.
-     
+
+    You may sometimes want to ignore explicit versions (e.g. if you are testing
+    a new version, installed and current as \code{rhl}, but the table file specifies a
+    version \code{> 1.2}).  You can do this with \code{setup -i} or \code{--ignore-versions}.
+
    \item \code{setupOptional(<Name> [ <Version>]}
      Same as setupRequired except that it does not fail if unable to setup.
 \end{itemize}

@@ -464,7 +464,7 @@ sub parse_table {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      my($foo) = eups_unsetup($qaz, $outfile, $no_dependencies,
-				  $only_dependencies_recursive, undef,
+				  $only_dependencies_recursive, $flags, undef,
 				  $debug, $quiet);
 	      my($p) = split(" ", $qaz);
 	      if ($foo && $unsetup_products{$p}) { # we've already unset it; we don't need to do it twice
@@ -484,7 +484,7 @@ sub parse_table {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      $foo = eups_setup($qaz, $outfile, $no_dependencies,
-				$only_dependencies_recursive, undef,
+				$only_dependencies_recursive, $flags, undef,
 				$debug, $quiet,0);
 	      $retval =+ $foo;
 	      print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
@@ -493,7 +493,7 @@ sub parse_table {
 	   if (!$no_dependencies) {
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      if (eups_setup($qaz, $outfile, $no_dependencies,
-			     $only_dependencies_recursive, undef,
+			     $only_dependencies_recursive, $flags, undef,
 			     $debug, $quiet, 1) < 0 && $debug > 1) {
 		 warn "WARNING: optional setup of $qaz failed\n";
 	      }
@@ -532,7 +532,7 @@ sub eups_unsetup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args, $outfile, $no_dependencies, $only_dependencies,
+   local ($args, $outfile, $no_dependencies, $only_dependencies, $flags,
 	  $user_table_file, $debug, $quiet) = @_;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
@@ -606,9 +606,13 @@ sub eups_unsetup {
 #   - the product version
 #   - the table file name
 #
-sub find_best_version(\@$$$$) {
-    my ($roots, $prod, $vers,$flavor,$quiet) = @_;
+sub find_best_version(\@$$$$$) {
+    my ($roots, $prod, $vers, $ignore_version, $flavor, $quiet) = @_;
     my $matchroot = "";
+
+    if ($ignore_version) {
+       $vers = "";
+    }
 
     if ($vers eq "") {
 	# If no version explicitly specified, get the first db with a current one.
@@ -698,12 +702,13 @@ sub find_best_version(\@$$$$) {
 
 		@versions = reverse sort by_version_cmp @versions; # so we\'ll try the latest version first
 
+		my($cvers) = undef; # current version
 		if (grep(/^(current)$/, @versions)) { # give the current version priority
 		   $fn = catfile($root,'ups_db',$prod,"current.chain");
 		   @versions = grep(!/^(current)$/, @versions);
 
 		   if (-e $fn) {
-		      my($cvers) = read_chain_file($fn, $flavor, $optional || $debug <= 1);
+		      $cvers = read_chain_file($fn, $flavor, $optional || $debug <= 1);
 		      unshift @versions, $cvers;
 		   }
 		}
@@ -715,6 +720,10 @@ sub find_best_version(\@$$$$) {
 		   if (eups_version_match($vname, $expr)) {
 		      $matchroot = $root;
 		      $vers = $vname;
+
+		      if (defined($cvers) && $vers ne $cvers && $debug > 0 + $quiet) {
+			 warn("Using version $vers to satisfy \"$expr\" ($cvers is current)\n");
+		      }
 
 		      my($extra) = ($debug >= 3 + $quiet) ? "in $root " : "";
 		      warn("Version $vers ${extra}satisfies condition \"$expr\" for product $prod\n")
@@ -939,10 +948,10 @@ sub eups_setup {
    local $indent = $indent + 1;
    
    # Need to extract the parameters carefully
-   local ($args, $outfile, $no_dependencies, $only_dependencies,
+   local ($args, $outfile, $no_dependencies, $only_dependencies, $flags,
 	  $_user_table_file, $debug, $quiet, $optional, $oldenv, $force) = @_;
    my($user_table_file) = $_user_table_file; undef($_user_table_file);
-   
+
    my $qaz = $args;
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
@@ -966,7 +975,7 @@ sub eups_setup {
       
       my($SETUP_PROD) = "SETUP_".uc($prod);
       if (defined($ENV{$SETUP_PROD})) {
-	 eups_unsetup($qaz, $outfile, $no_dependencies, 0, undef, $debug, 1);
+	 eups_unsetup($qaz, $outfile, $no_dependencies, 0, $flags, undef, $debug, 1);
 	 
 	 if (defined(%unsetup_products)) {	# we used this to suppress warning if products were unset twice
 	    undef(%unsetup_products);
@@ -1006,7 +1015,8 @@ sub eups_setup {
       #determine it from current.chain
       #Also construct the full version file and check if it exists.
       my($ivers) = $vers;
-      ($root, $prod_dir, $vers, $table_file) = find_best_version(@roots, $prod, $vers,$flavor,0);
+      ($root, $prod_dir, $vers, $table_file) =
+	  find_best_version(@roots, $prod, $vers, $$flags{ignore_versions}, $flavor,0);
       if (not $root) {
 	 my($msg);
 	 if ($ivers) {
@@ -1038,7 +1048,8 @@ sub eups_setup {
       }
 
       # In case anyone cares which root -r shadows, try to find a matching version.
-      ($Xroot, $Xprod_dir, $Xvers, $Xtable_file) = find_best_version(@roots, $prod, $vers, $flavor, 1);
+      ($Xroot, $Xprod_dir, $Xvers, $Xtable_file) =
+	  find_best_version(@roots, $prod, $vers, $$flags{ignore_versions}, $flavor, 1);
       if (not $Xroot) {
 	  $root = $roots[0];
       } else {
@@ -1450,6 +1461,7 @@ sub show_product_version
 	     '--flavor',	'-f',
 	     '--force',		'-F',
 	     '--help',		'-h',
+	     '--ignore-versions', '-i',
 	     '--just'	,	'-j',
 	     '--list'	,	'-l',
 	     '--noaction',	'-n',
@@ -1563,6 +1575,7 @@ sub eups_show_options
        -D => "Only setup dependencies, not this product",
        -f => "Use this flavor. Default: \$EUPS_FLAVOR or \`eups_flavor\`",
        -F => "Force requested behaviour (e.g. redeclare a product)",
+       -i => "Ignore any explicit versions in table files",
        -j => "Just setup product, no dependencies",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
