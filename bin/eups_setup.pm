@@ -1040,8 +1040,10 @@ sub eups_setup {
 	 } else {
 	    $prod_dir = catfile(getcwd(), $prod_dir);
 	 }
-
-	 $prod_dir =~ s|[^/]+/\.\./||g;	# handle "setup -r ../foo"
+	 # handle "setup -r ../../foo"
+	 while ($prod_dir =~ s|[^/]+/\.\./||) {
+	    ;
+	 }
       }
 
       if (! -d $prod_dir) {
