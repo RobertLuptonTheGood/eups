@@ -1168,8 +1168,10 @@ sub eups_list {
       $one_product = 0;
    }
 
-#Determine database
-   my($printed_current, $printed_info) = (0, 0); 	# did I print current/directory/tablefile for them?
+   #Determine database
+   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
+
+   my($printed_current) = 0; # did I print current/directory/tablefile for them?
    foreach $root (eups_find_roots()) {
        $db = catfile($root, 'ups_db');
 
@@ -1195,7 +1197,7 @@ sub eups_list {
 	   }
 	   
 	   # Look through directory searching for version files
-	   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
+
 	   foreach $file (glob(catfile($db,$prod,"*.version"))) {
 	       ($vers = basename($file)) =~ s/\.version$//;
 
@@ -1216,6 +1218,7 @@ sub eups_list {
 		   next;
 	       }
 	       if ($prod_dir eq $setup_prod_dir) {
+		   undef($setup_prod_dir);
 		   $info .= " Setup";
 	       } elsif($setup) {
 		   next;
@@ -1230,7 +1233,6 @@ sub eups_list {
 		   $info = "\t\t$info";
 	       }
 	       
-	       $printed_info = 1;
 	       if ($just_directory || $just_tablefile) {
 		  if ($just_directory) {
 		     my($dir) = $prod_dir;
@@ -1257,14 +1259,19 @@ sub eups_list {
       warn "No version is declared current\n";
    }
 
-   if (!$printed_info) {	# Oh dear; may have been setup -r
-      my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
-      if ($setup_prod_dir) {
-	 if ($just_directory) {
-	    print $outfile "echo \"$setup_prod_dir\"\n";
-	 } elsif ($setup) {
-	    print $outfile "echo \"LOCAL:$setup_prod_dir\"\n";
+   if ($one_product && $setup_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
+      if ($just_directory) {
+	 print $outfile "echo \"$setup_prod_dir\"\n";
+      } if ($just_tablefile) {
+	 my($table_file) = "$setup_prod_dir/ups/$prod.table"; # just an inspired guess
+	 if (! -f $table_file) {
+	    if ($debug > $quiet) {
+	       warn "I don't see $prod.table in LOCAL:$setup_prod_dir/ups\n";
+	    }
 	 }
+	 print $outfile "echo \"$table_file\"\n";
+      } else {
+	 print $outfile "echo \"   LOCAL:$setup_prod_dir\"\n";
       } 
    }
 }
