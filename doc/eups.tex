@@ -232,7 +232,7 @@ using GNU's version of make (and you probably are), you can handle
 this by a set of rules looking something like:
 \begin{verbatim}
 PRODUCT = test
-EUPS_ROOT = $(shell echo $(EUPS_PATH) | sed -e 's/:.*//')
+EUPS_ROOT = $(shell eups path -1)
 VERSION = $(shell ./eups_product_version)
 FLAVOR = $(shell eups flavor)
 
@@ -251,7 +251,8 @@ current : declare
         eups declare $(PRODUCT) $(VERSION) --current --force
 \end{verbatim}                          % $
 
-The \code{sed} chooses the \emph{first} element of \code{\$EUPS\_PATH}
+\code{EUPS\_ROOT} is taken to be the last element in \code{EUPS\_PATH} (that's
+the \code{-1} in \code{eups path -1}),
 and the \code{ifeq} bit allows me to say \code{make install declare version=/usr/local}.
 
 The script \code{eups\_product\_version} (and this Makefile) are to be found
