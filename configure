@@ -1258,7 +1258,7 @@ fi;
 # Check whether --with-eups or --without-eups was given.
 if test "${with_eups+set}" = set; then
   withval="$with_eups"
-  EUPS_PATH=$withval
+  EUPS_PATH=$(echo $withval | perl -pe 's|/*$||')
 else
   if [ -z $EUPS_PATH ]; then
        EUPS_PATH=\${prefix}/share

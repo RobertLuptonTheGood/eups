@@ -13,7 +13,7 @@ dnl Installation directories
 dnl
 AC_ARG_WITH(eups,
    [AS_HELP_STRING(--with-eups=DIR, [Use DIR as root for installed products (EUPS_PATH)])],
-   [EUPS_PATH=$withval],
+   [EUPS_PATH=$(echo $withval | perl -pe 's|/*$||')],
    [if [[ -z $EUPS_PATH ]]; then
        EUPS_PATH=\${prefix}/share
     else
