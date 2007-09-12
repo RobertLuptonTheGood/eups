@@ -50,7 +50,7 @@ case $cmd in
  list)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  path)
-    which="-1"
+    which=""
     case $1 in
      -[0-9]|[0-9])
         which=$1;;
@@ -65,10 +65,12 @@ EOF
     esac
 
     echo $EUPS_PATH | \
-	perl -ne "\$n=$which;"'chomp;
+	perl -ne "\$n='$which';"'chomp;
 	          @p=split(":");
-		  if ($n < 0) { $n += @p; }
-		  if($n >= 0) { @p = $p[$n]; }
+		  if($n ne "") {
+		     if ($n < 0) { $n += @p; }
+		     @p = $p[$n];
+		  }
 		  print "\t".join("\n\t", @p)."\n"'
 		  ;;
  setup|unsetup)
