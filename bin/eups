@@ -74,7 +74,13 @@ EOF
 		  print "\t".join("\n\t", @p)."\n"'
 		  ;;
  setup|unsetup)
-    if [ X"args" = X"" ]; then args=" "; fi
+    case $1 in
+      "")
+       args=" ";;
+      -h|--help)
+       setup $args
+       exit $?;;
+    esac
     echo "Please use the command \"${cmd}$args $@\" which modifies your environment";;
  *)
     echo "Unknown eups command \"$cmd\"" >&2;
