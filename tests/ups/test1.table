@@ -1,0 +1,22 @@
+setEnv(XXX, 1)
+
+Flavor=Foo
+Flavor=Goo
+    setEnv(YYY, 2)
+
+    setEnv(ZZZ, 3)
+
+setEnv(AAA, 4)
+
+if( FLAVOR == Xoo || (1 == 1 && FLAVOR == Foo) || FlAVoR == Goo) {
+   setEnv(LLL, 1)
+}
+
+if( FLAVOR == Xoo || (1 != 1 && FLAVOR == Foo) || FlAVoR == Goo) {
+   envSet(MMM, 1)
+}
+
+if (FLAVOR == Foo && BUILD) {
+   setEnv(BBB, 1)
+}
+
