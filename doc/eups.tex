@@ -214,10 +214,72 @@ LIBS =   -L$(ASTROTOOLS_DIR)/lib -lastrom \
          ...
 \end{verbatim} %$
 
-The next section discusses a strategy for managing include files
-and libraries using configure and make.
+Section \ref{autoconf} discusses a strategy for managing include files
+and libraries using configure and make; but the gnu build tools are
+complicated and (some would say) confusing and clunky, so you may
+not want to learn them.  One option is to add some more magic
+to the Makefile (see the next section);  another is to give up
+entirely on make and use some more sophisticated build tool.  The
+one that we have experience with is \code{scons}, and a complete
+integration of \eups{} with scons is described in section \code{scons}.
 
-\section{\eups{} and autoconf/configure}
+\subsection{\eups{} and make}
+
+This is all very well, and perfectly practical, but it doesn't
+integrate very closely with \eups{}; in particular it doesn't
+help you much with installing in Proper Places. If you are
+using GNU's version of make (and you probably are), you can handle
+this by a set of rules looking something like:
+\begin{verbatim}
+PRODUCT = test
+EUPS_ROOT = $(shell echo $(EUPS_PATH) | sed -e 's/:.*//')
+VERSION = $(shell ./eups_product_version)
+FLAVOR = $(shell eups flavor)
+
+ifeq (, $(prefix))
+   prefix = $(EUPS_ROOT)/$(FLAVOR)/$(PRODUCT)/$(VERSION)
+endif
+
+install :
+        install -m 775 foo $(prefix)/bin
+        eups expandtable $(PRODUCT) $(prefix)/ups
+
+declare :
+        eups declare -r $(prefix) $(PRODUCT) $(VERSION)
+        
+current : declare
+        eups declare $(PRODUCT) $(VERSION) --current --force
+\end{verbatim}                          % $
+
+The \code{sed} chooses the \emph{first} element of \code{\$EUPS\_PATH}
+and the \code{ifeq} bit allows me to say \code{make install declare version=/usr/local}.
+
+The script \code{eups\_product\_version} (and this Makefile) are to be found
+in the \eups{} \code{etc} directory, although they are not installed along
+with \eups{}.
+
+The script \code{eups\_product\_version} is rather like:
+\begin{verbatim}
+#!/usr/bin/env python
+import eups
+
+print eups.version('$Name: not supported by cvs2svn $')
+\end{verbatim}
+\def\Name{Name}
+where the \code{\$\Name:  \$} is a magic cvs keyword that expands to your
+current tagname, so you need to put a copy of the script in your own
+package, so as to get \emph{your} tagname.
+
+If you use svn, things are a bit harder as svn provides no real
+equivalent to a tagname. Simpilar functionality can be achieved using \code{\$HeadURL\$}
+and requiring that all tags be in a directory \code{tags}
+or \code{TAGS} within the svn repository.\footnote{
+  and saying \code{svn propset keywords HeadURL}}
+The real \code{eups\_product\_version} attempts to correctly handle both cvs
+and svn users.
+
+\subsection{\eups{} and autoconf/configure}
+\label{autoconf}
 
 If you're a user, you don't need to understand this section. If
 you're creating new products, you may need to.
@@ -230,13 +292,15 @@ autoconf to know about this file,\footnote{e.g. by copying the
 \begin{quote}
 \obeylines\tt\small\parskip=0pt
 AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
-UPS\_DEFINE\_ROOT(\${Name}: v2\_4 \$)
+EUPS\_DEFINE\_ROOT(\${Name}: v2\_4 \$)
 AC\_PROG\_CC(cc)
-UPS\_WITH\_CONFIGURE([gsl])
-UPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
+EUPS\_WITH\_CONFIGURE([gsl])
+EUPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
 AC\_CONFIG\_FILES([etc/Makefile.global])
 AC\_OUTPUT
 \end{quote}
+\footnote{The old forms with \code{UPS\_} (e.g. \code{UPS\_DEFINE\_ROOT})
+  are supported for backward compatibility.}
 
 Once you've generated a configure file (i.e. typed \code{autoconf})%
 \footnote{You'll check the resulting configure file in, so users won't
@@ -294,7 +358,7 @@ How did your \file{configure.ac} file achieve this magic?
 
     Find the C compiler    
 
-  \item\code{UPS\_WITH\_CONFIGURE([gsl])}
+  \item\code{EUPS\_WITH\_CONFIGURE([gsl])}
 
     Tell configure that we need the product \code{gsl}, and that it
     comes with a pkg-config script.\footnote{%
@@ -310,9 +374,9 @@ How did your \file{configure.ac} file achieve this magic?
     Sec. \ref{autoconfReference}).  If all goes well the macro macro sets (in the
     case of \code{gsl}) the variables \code{GSL\_CFLAGS} and \code{GSL\_LIBS}.
 
-  \item\code{UPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
+  \item\code{EUPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
 
-    This macro is similar to \code{UPS\_WITH\_CONFIGURE}, and sets
+    This macro is similar to \code{EUPS\_WITH\_CONFIGURE}, and sets
     \code{FFTW\_CFLAGS} and \code{FFTW\_LIBS}, armed with knowledge of
     \eups{} and  \code{--with-fftw3=DIR}.
 
@@ -330,7 +394,7 @@ How did your \file{configure.ac} file achieve this magic?
 \end{itemize}
 
 
-\subsection{A Strategy for using autoconf and \eups{} to Manage Layered Products}
+\subsubsection{A Strategy for using autoconf and \eups{} to Manage Layered Products}
 
 
 A more complete example is:
@@ -341,8 +405,8 @@ AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
 \vspace{5pt}
 dnl --------- UPS directories and how to install --------------------------
 \vspace{5pt}
-UPS\_DEFINE\_ROOT(\${Name}:  \$)
-UPS\_INSTALL\_DIRS   
+EUPS\_DEFINE\_ROOT(\${Name}:  \$)
+EUPS\_INSTALL\_DIRS   
 \vspace{5pt}
 
 dnl --------- Build environment -------------------------------------------
@@ -353,14 +417,14 @@ AC\_PROG\_RANLIB
 dnl --------- Products from UPS -------------------------------------------
 dnl (remember to update etc/Makefile.global if you add a new product)
 \vspace{5pt}
-UPS\_WITH\_CONFIGURE([gsl])
-UPS\_WITH\_CONFIGURE([pslib])
+EUPS\_WITH\_CONFIGURE([gsl])
+EUPS\_WITH\_CONFIGURE([pslib])
 \vspace{5pt}
-UPS\_WITHOUT\_CONFIGURE([cfitsio], [fitsio.h],
+EUPS\_WITHOUT\_CONFIGURE([cfitsio], [fitsio.h],
                         -lcfitsio, [cfitsio,ffopen])
-UPS\_WITHOUT\_CONFIGURE([fftw3],   [fftw3.h],
+EUPS\_WITHOUT\_CONFIGURE([fftw3],   [fftw3.h],
                         -lfftw3f,  [fftw3f,fftwf\_plan\_dft\_2d])
-UPS\_WITHOUT\_CONFIGURE([wcslib],  [wcslib/wcslib.h],
+EUPS\_WITHOUT\_CONFIGURE([wcslib],  [wcslib/wcslib.h],
                         -lwcs,     [wcs,wcsini])
 \vspace{5pt}
 AC\_CONFIG\_FILES([etc/makedefs etc/builddefs etc/installdefs])
@@ -368,6 +432,11 @@ AC\_CONFIG\_FILES([bin/eups\_import], [chmod 755 bin/eups\_import])
 \vspace{5pt}
 AC\_OUTPUT
 \end{quote}
+
+\subsection{\eups{} and scons}
+\label{scons}
+
+Write me.
 
 \section{Using \eups{} with python}
 

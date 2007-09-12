@@ -225,18 +225,27 @@ def table(product, version, flavor = ""):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def version():
-    """Return eups' current cvs version"""
+def version(versionString='$Name: not supported by cvs2svn $'):
+    """Set a version ID from env, or
+    a cvs or svn ID string (dollar name dollar or dollar HeadURL dollar)"""
 
-    version = '$Name: not supported by cvs2svn $'                 # version from cvs
-    
-    mat = re.search(r"^\$[N]ame:\s*(\S+)\s*\$$", version)
-    if mat:
-        version = mat.groups()[0]
+    if re.search(r"^[$]Name:\s+", versionString):
+        # CVS.  Extract the tagname
+        version = re.search(r"^[$]Name:\s+([^ $]*)", versionString).group(1)
+        if version == "":
+            version = "cvs"
+    elif re.search(r"^[$]HeadURL:\s+", versionString):
+        # SVN.  Guess the tagname from whatever follows "tags" (or "TAGS") in the URL
+        version = "svn"                 # default
+        parts = versionString.split("/")
+        for i in range(0, len(parts) - 1):
+            if parts[i] == "tags" or parts[i] == "TAGS":
+                version = parts[i + 1]
     else:
-        version = "(NOCVS)"
-        
+        version = "unknown"
+
     return version
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

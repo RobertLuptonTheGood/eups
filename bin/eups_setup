@@ -108,7 +108,7 @@ sub setshell {
 my $op = $ARGV[0]; shift; # desired operation (e.g. "setup")
 
 $opts = {-c => 0, -d => 0, -D => 0, -f => 1, -F => 0, -i => 0, -j => 0,
-	 -l => 0, -n => 0, -m => 0, -M => 1, -q => 0, -r => 1, -s => 0,
+	 -l => 0, -n => 0, -m => 0, -M => 1, -q => 0, -r => 1, -s => 0, -t => 1,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -118,6 +118,16 @@ if ($options eq "-h") {
    &myexit(0);
 } elsif ($options < 0) {
    &myexit(1);
+}
+$build = 0;			# setup build dependencies?
+if (defined($$options{-t})) {
+   foreach (split(":", $$options{-t})) {
+      if (/^build$/i) {
+	 $build++;
+      } else {
+	 warn "Unknown type: $_\n";
+      }
+   }
 }
 $current = defined($$options{-c}) ? 1 : 0; # Only process "current" version (default, except for -l)
 $debug = $ENV{"EUPS_DEBUG"};
@@ -131,14 +141,18 @@ if (defined($$options{-d})) {
 }
 $force = defined($$options{-F}) ? 1 : 0;
 $flags{ignore_versions} = defined($$options{-i}) ? 1 : 0;
+$flags{build} = $build;
 $no_dependencies = defined($$options{-j}) ? 1 : 0;
 $only_dependencies = defined($$options{-D}) ? 1 : 0;
 if (defined($$options{-l})) {
    $op = "list";
 }
 if (defined($$options{-m})) {
-   $just_tablefile = 1;
-   $op = "list";
+   if ($op eq "list") {
+      $just_tablefile = 1;
+   } else {
+      warn "Option -m only makes sense with --list; ignoring\n";
+   }
 }
 if (defined($$options{-M})) {
    $user_table_file = $$options{-M};
@@ -233,6 +247,9 @@ if ($select eq "list") {
    }
    if($only_dependencies) {
       warn "Option --only-dependencies makes no sense with --list and is ignored\n";
+   }
+   if($build) {
+      warn "Option --build makes no sense with --list and is ignored\n";
    }
    eups_list($comm,$tmpfile,$debug,0,$current,$setup,$just_directory,$just_tablefile);
 } else {

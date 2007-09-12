@@ -262,45 +262,42 @@ sub envUnset {
 }
 
 sub extract_table_commands {
-
-    my $data = $_[0];
-    my $flavor = $_[1];
+    my($tableFile, $data, $flavor, $build) = @_;	# $tableFile is only for diagnostics
 
 # Protect special characters in flavor and 
 # define matching patterns    
     my $flavor = fix_special($flavor);
-    my $pattern = "FLAVOR\\s*=\\s*$flavor(\\s|\n)";
-    my $pattern2 = "FLAVOR\\s*=\\s*ANY(\\s|\n)";
-    my $pattern3 = "FLAVOR\\s*=\\s*NULL(\\s|\n)";
+    my $spattern = "FLAVOR\\s*=\\s*";
+    my $pattern = "$spattern($flavor|ANY|NULL)\\s*(\$|\n)";
 
 # Extract the groups - first see if old style table file
     my @group = ($data =~ m/group:(.+?end:)/gsi);
-    if (scalar(@group) == 0) {
-# If minimal table file
-	$data = "$data\n";
+    if (scalar(@group) == 0) {	# Minimal table file
+	$data .= "\n";
 	my @lines = split  "\n", $data;
-	my $record = 1;	my $inblock = 1; my $block = "";
-	for ($i=0; $i < @lines; $i++) {
-	    my $this = "$lines[$i]\n"; 
-	    if ($lines[$i] =~ m/flavor\s*=/gsi) {
-		$record = 0 if ($inblock == 1);
-		$record = 1 if ($this =~ m/$pattern/gsi);
-		$record = 1 if ($this =~ m/$pattern2/gsi);
-		$record = 1 if ($this =~ m/$pattern3/gsi);
-		$inblock = 0;
-	    } elsif ($lines[$i] =~ m/[^\s]/) {
-		$block .= "$this" if ($record == 1);
-		$inblock = 1;
+
+	@lines = rewrite_minimal_table(@lines);
+
+	my $record = 1;		# keep this line
+	my $block = "";
+	for ($i = 0; $i < @lines; $i++) {
+	    my $line = $lines[$i]; 
+	    if ($line =~ /^\s*if\s*\((.*)\)\s*{\s*$/i) {
+	       $record = eval_logical($1, $flavor, $build);
+	       next;
+	    } elsif ($line =~ /^\s*}\s*$/) {
+	       $record = 1;
+	       next;
 	    }
+	    
+	    $block .= "$line\n" if ($record);
 	}
+
 	@group = ($block);
-    } else {
-# If old style table file
+    } else {			# Old style table file
 	my $pos = -1;
 	for ($i = 0; ($i<@group)&&($pos==-1);$i++) {
-	    $pos = $i if ($group[$i] =~ m/$pattern/gsi);
-	    $pos = $i if ($group[$i] =~ m/$pattern2/gsi);
-	    $pos = $i if ($group[$i] =~ m/$pattern3/gsi);
+	    $pos = $i if ($group[$i] =~ m/$pattern/gi);
 	}
 	if ($pos == -1) {           # no flavor was specified
 	    warn "FATAL ERROR: no match for flavor \"$flavor\" in table file\n";
@@ -310,10 +307,162 @@ sub extract_table_commands {
 	}
     }
 
-
     return $group[0];
-
 }
+
+#
+# Evaluate a logical expression:
+#
+# expr : term
+#      | term || term
+#      | term && term
+#
+# term : ( term )
+#      | prim == prim
+#      | prim != prim
+#      | prim <  prim
+#      | prim <= prim
+#      | prim >  prim
+#      | prim >= prim
+#
+# prim : FLAVOR
+#      | string
+#
+sub eval_logical {
+   my($logical) = @_[0];
+   local($flavor) = @_[1];
+   local($build) = @_[2];
+
+   local(@terminals) = grep(/[^\s]/, split(/(\s|==|!=|[<>]=?|\|\||&&|[()])/, $logical));
+
+   return log_expr();
+}
+
+sub log_expr {
+   my($lhs) = log_term();
+   my($op) = shift(@terminals);
+
+   if (!$op) {
+      return $lhs;
+   }
+
+   my($rhs) = log_term();
+   if ($op eq "||") {
+      #warn "RHL expr $lhs || $rhs: " . ($lhs || $rhs ? 1 : 0) . "\n";
+      return $lhs || $rhs ? 1 : 0;
+   } elsif ($op eq "&&") {
+      return $lhs && $rhs ? 1 : 0;
+   } else {
+      warn "Saw unexpected operator $op in expr ($lhs $op $rhs)\n";
+      return 0;
+   }
+}
+
+sub log_term {
+   my($next) = shift(@terminals);
+
+   if ($next eq "(") {
+      $term = log_expr();
+      $next = shift(@terminals);
+      if ($next != ")") {
+	 warn "Saw next = \"$next\" in term\n";
+      }
+
+      return $term;
+   }
+   unshift(@terminals, $next);
+
+   my($lhs) = log_prim();
+   my($op) = shift(@terminals);
+
+   if (!$op) {
+      return "$lhs";
+   }
+
+   my($rhs) = log_prim();
+   if ($op eq "==") {
+      #warn "RHL term $lhs $op $rhs: " . ($lhs eq $rhs ? 1 : 0) . "\n";
+      return $lhs eq $rhs ? 1 : 0;
+   } elsif ($op eq "!=") {
+      return $lhs ne $rhs ? 1 : 0;
+   } elsif ($op eq "<") {
+      return ($lhs cmp $rhs) < 0 ? 1 : 0;
+   } elsif ($op eq "<=") {
+      return ($lhs cmp $rhs) <= 0 ? 1 : 0;
+   } elsif ($op eq ">") {
+      return ($lhs cmp $rhs) > 0 ? 1 : 0;
+   } elsif ($op eq ">=") {
+      return ($lhs cmp $rhs) >= 0 ? 1 : 0;
+   } else {
+      warn "Saw unexpected operator $op in term ($lhs $op $rhs)\n";
+      return 0;
+   }
+}
+
+sub log_prim {
+   my($term) = shift(@terminals);
+
+   if ($term =~ /^FLAVOR$/i) {
+      $term = $flavor;
+   } elsif ($term =~ /^BUILD$/i) {
+      $term = $build;
+   } elsif ($term =~ /^[a-zA-Z0-9_]+$/) {
+      ;				# a real terminal
+   } else {
+      warn "Saw prim \"$term\"\n";
+   }
+
+   #warn "RHL prim $term\n";
+   
+   return $term;
+}
+
+#
+# Rewrite a minimal table file to use C-style if statements
+#
+sub rewrite_minimal_table {
+   my(@lines) = @_;
+
+   my($i);
+   my(@newLines) = undef;
+   my($inblock) = 0;
+   for ($i = 0; $i < @lines; $i++) {
+      my $line = $lines[$i];
+      
+      if ($line =~ /^flavor\s*=\s*(\S*)/i) {
+	 my($logical) = undef;
+	 while ($line =~ /$spattern/si) {
+	    my($f) = $1;
+	    if ($logical) {
+	       $logical .= " || ";
+	    }
+	    $logical .= "FLAVOR == $f";
+	    
+	    $i++;
+	    if ($i == @lines) {
+	       last;
+	    }
+	    $line = "$lines[$i]";	    
+	 }
+
+	 push(@newLines, "if ($logical) {");
+	 $inblock++;
+      }
+
+      if ($line =~ /^\S/) {
+	 if ($inblock) {
+	    push(@newLines, "}");
+	 }
+	 if ($inblock) {
+	    $inblock--;
+	 }
+      }
+      
+      push(@newLines, $line);
+   }
+
+   return @newLines;
+}	    
 
 #
 # Extract an argument from a possibly quoted string
@@ -330,7 +479,7 @@ sub get_argument {
 
 sub parse_table {
    my($fn, $proddir, $upsdir, $prod, $vers, $flavor,
-      $root, $fwd, $outfile, $only_dependencies, $quiet) = @_;
+      $root, $fwd, $outfile, $only_dependencies, $build, $quiet) = @_;
    
    my $data = 0;
 
@@ -347,6 +496,8 @@ sub parse_table {
 		  envprepend => \&envRemove,
 		  envremove => \&envAppend,
 		  envset => \&envUnset,
+		  setenv => \&envUnset,
+		  unsetenv => \&envSet,
 		  envunset => \&envSet,
 		  pathappend => \&envRemove,
 		  pathprepend => \&envRemove,
@@ -361,6 +512,8 @@ sub parse_table {
 		 envprepend => \&envPrepend,
 		 envremove => \&envRemove,
 		 envset => \&envSet,
+		 setenv => \&envSet,
+		 unsetenv => \&envUnset,
 		 envunset => \&envUnset,
 		 pathappend => \&envAppend,
 		 pathprepend => \&envPrepend,
@@ -387,7 +540,7 @@ sub parse_table {
     }
 
 # Extract the commands from the table file
-    $group = extract_table_commands($data, $flavor);
+    $group = extract_table_commands($fn, $data, $flavor, $build);
     if ($group==-1) {
 	$retval = -1;
 	return $retval;
@@ -595,7 +748,7 @@ sub eups_unsetup {
 
    $fwd = 0;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,
-		      $root,$fwd,$outfile,$only_dependencies,$quiet);
+		      $root,$fwd,$outfile,$only_dependencies,$$flags{build}, $quiet);
 }
 
 # Search for the best version for a given product, return the essential paths.
@@ -713,8 +866,6 @@ sub find_best_version(\@$$$$$) {
 		   }
 		}
 
-		#warn "RHL $root versions: ", join(" ", @versions), "\n";
-		
 		my($vname);
 		foreach $vname (@versions) {
 		   if (eups_version_match($vname, $expr)) {
@@ -1102,7 +1253,7 @@ sub eups_setup {
    #Call the table parser here 
    $fwd = 1;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,
-		      $root,$fwd,$outfile,$only_dependencies,$quiet);
+		      $root,$fwd,$outfile,$only_dependencies,$$flags{build},$quiet);
 }
 
 ###############################################################################
@@ -1480,6 +1631,7 @@ sub show_product_version
 	     '--quiet',		'-q',
 	     '--root',		'-r',
 	     '--setup',		'-s',
+	     '--type',		'-t',
 	     '--version',	'-V',
 	     '--verbose',	'-v',
 	     );
@@ -1581,7 +1733,7 @@ sub eups_show_options
 
    my $strings = {
        -h => "Print this help message",
-       -c => "[Un]declare this product current, or show current version",
+       -c => $setup ? "Show current version" : "[Un]declare this product current",
        -d => "Print product directory to stderr (useful with -s)",
        -D => "Only setup dependencies, not this product",
        -f => "Use this flavor. Default: \$EUPS_FLAVOR or \`eups_flavor\`",
@@ -1590,13 +1742,14 @@ sub eups_show_options
        -j => "Just setup product, no dependencies",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
-       -m => "Use/print table file (may be \"none\") Default: product.table",
+       -m => ($setup ? "Print name of" : "Use"). " table file (may be \"none\") Default: product.table",
        -M => $setup ?
 	   "Setup the dependent products in this table file" :
-	   "Import the given file (may be \"-\" for stdin) into the database as the table file.",
+	   "Import the given table file directly into the database (may be \"-\" for stdin)",
        -q => "Be extra quiet (the opposite of -v)",
        -r => "Location of product being " . ($setup ? "setup" : "declared"),
        -s => "Show which version is setup",
+       -t => "Specify type of setup (permitted values: build)",
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print eups version number and exit",
        -Z => "Use this products path. Default: \$EUPS_PATH",
@@ -1610,13 +1763,16 @@ sub eups_show_options
    warn "Options:\n";
 
    foreach $opt ("-h", sort {lc($a) cmp lc($b)} keys %$opts) {
-      printf STDERR "\t$opt";
+      my($line) = "$opt";
       if (defined($rlongopts{$opt})) {
-	 printf STDERR ", %-10s", $rlongopts{$opt};
-      } else {
-	 printf STDERR "  %-10s", "";
+	 $line .= ", $rlongopts{$opt}";
       }
-      printf STDERR "\t$$strings{$opt}\n";
+      if ($$opts{$opt}) {
+	 $line .= " arg";
+      }
+	 
+      $line .= 
+      printf STDERR "\t%-20s\t$$strings{$opt}\n", "$line";
    }
 }
 

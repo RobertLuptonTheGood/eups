@@ -1,0 +1,29 @@
+PRODUCT = test
+EUPS_ROOT = $(shell echo $(EUPS_PATH) | sed -e 's/:.*//')
+VERSION = $(shell ./eups_product_version)
+FLAVOR = $(shell eups flavor)
+
+ifeq (, $(prefix))
+   prefix = $(EUPS_ROOT)/$(FLAVOR)/$(PRODUCT)/$(VERSION)
+endif
+
+ECHO = $(echo)
+
+install :
+	@for d in bin ups; do \
+	   if [ ! -d $(prefix)/$$d ]; then \
+	      echo mkdir -p $(prefix)/$$d; \
+	      mkdir -p $(prefix)/$$d; \
+	   fi; \
+	done
+	
+	install -m 775 foo $(prefix)/bin
+	eups expandtable $(PRODUCT) $(prefix)/ups
+
+	install -m 775 foo $(prefix)/bin
+
+declare :
+	eups declare -r $(prefix) $(PRODUCT) $(VERSION)
+	
+current : declare
+	eups declare $(PRODUCT) $(VERSION) --current --force
