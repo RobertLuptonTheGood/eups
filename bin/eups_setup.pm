@@ -28,7 +28,7 @@ package eups_setup;
 BEGIN {
     use Exporter ();
     our @ISA = qw(Exporter);
-    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots &eups_version_match);
+    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots &eups_version_match, &eups_setshell);
     our $VERSION = 1.1;
     our @EXPORT_OK = ();
 }
@@ -105,9 +105,7 @@ sub cleanArg {
 sub addAlias {
     use File::Basename;
     our $outfile;
-    my $shell = basename($ENV{"SHELL"});
-    $shell = "sh" if ($shell eq "bash");
-    $shell = "csh" if ($shell eq "tcsh");
+    my $shell = eups_setshell();
     my $name = $_[0];
     my $value = $_[1];
     if ($shell eq "csh") {
@@ -122,9 +120,7 @@ sub addAlias {
 sub unAlias {
     use File::Basename;
     our $outfile;
-    my $shell = basename($ENV{"SHELL"});
-    $shell = "sh" if ($shell eq "bash");
-    $shell = "csh" if ($shell eq "tcsh");
+    my $shell = eups_setshell();
     my $name = $_[0];
     if ($shell eq "csh") {
         print $outfile "unalias $name\n";
@@ -1723,6 +1719,34 @@ get_version()
    }
 
    return $version;
+}
+
+###############################################################################
+
+sub eups_setshell {
+    use File::Basename;
+
+    if (!defined($ENV{"SHELL"})) {
+       warn "FATAL ERROR: environment variable \$SHELL is not defined\n";
+       return undef;
+    }
+
+    my($shell) = basename($ENV{"SHELL"});
+
+    # Do some quick translations
+    $shell = "sh" if ($shell eq "bash");
+    $shell = "csh" if ($shell eq "tcsh");
+
+    if ($shell eq "") {
+	print STDERR "ERROR : SHELL not set\n";
+	return undef;
+
+    } elsif (!(($shell eq "sh")||($shell eq "csh"))) {
+	print STDERR "ERROR : Unknown shell $shell\n";
+	return undef;
+    }
+    
+    return $shell;
 }
 
 ###############################################################################

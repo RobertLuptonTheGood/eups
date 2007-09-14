@@ -81,27 +81,6 @@ sub unsete {
     }
 }
 
-sub setshell {
-    use File::Basename;
-    our $shell = basename($ENV{"SHELL"});
-
-# Do some quick translations
-    $shell = "sh" if ($shell eq "bash");
-    $shell = "csh" if ($shell eq "tcsh");
-
-
-    my $retval = 0;
-    if ($shell eq "") {
-	print STDERR "ERROR : EUPS_SHELL not set\n";
-	$retval = -1;
-
-    } elsif (!(($shell eq "sh")||($shell eq "csh"))) {
-	print STDERR "ERROR : Unknown shell $shell\n";
-	$retval = -1;
-    }
-    return $retval;
-}
-
 #
 # Parse arguments. Many are actually interpreted by eups_setup.pm
 #
@@ -218,9 +197,8 @@ if ($noaction) {
    } until open $tmpfile, ">$fn";
 }
 #Get the shell 
-our $shell = $0;
-$retval = setshell;
-goto CLEAN if ($retval == -1);
+our($shell) = eups_setshell();
+goto CLEAN if (!defined($shell));
 print STDERR "eups -- using shell : $shell\n" if ($debug > 2);
 
 # Die if EUPS_FLAVOR is not set and -f not used and eups_flavor fails...
