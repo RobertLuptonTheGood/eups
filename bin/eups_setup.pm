@@ -1422,7 +1422,12 @@ sub eups_list {
 	 }
 	 print $outfile "echo \"$table_file\"\n";
       } else {
-	 print $outfile "echo \"   LOCAL:$setup_prod_dir\"\n";
+	 my($info) = "\t\t Setup";
+	 $vers = sprintf("%-10s", "LOCAL");
+	 if ($debug) {
+	    $vers .= sprintf("\t%-30s\t%-40s", "LOCAL", $setup_prod_dir);
+	 }
+	 print $outfile "echo \"$msg   ${vers}$info\"\n";
       } 
    }
 }
