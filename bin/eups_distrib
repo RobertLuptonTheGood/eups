@@ -429,7 +429,8 @@ def create_distrib(top_product, top_version, dbz, flavor,
         print >> ofd, "EUPS distribution manifest for %s (%s). Version %s" % \
               (top_product, top_version, eups_distrib_version)
         
-    for p in products:
+    rproducts = products[:]; rproducts.reverse() # reverse the products list
+    for p in rproducts:
         (product, flavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
         if not noaction:
             print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, distID])
