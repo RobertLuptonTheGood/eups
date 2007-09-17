@@ -1,0 +1,163 @@
+#!/usr/bin/env python
+#
+# Expand a .build file, looking for variables @NAME@ and substituting
+# them appropriately:
+#
+# @CVSROOT@ => current value of CVSROOT from ./CVS/Root or $CVSROOT
+# @VERSION@ => installed version name
+#
+import eups
+import os, re, sys
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
+options = {
+    "-c": (True, '--cvs', "Use this CVSROOT"),
+    "-h": (False, "--help", "Print this help message"),
+    "-p": (True, '--product', "The name of the product"),
+    "-v": (False, "--verbose", "Be chattier (repeat for even more chat)"),
+    "-V": (True, "--version", "Specify version that you're installing"),
+    }
+
+aliases = {}
+
+try:
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_expandbuild [options] version")
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+
+if opts.has_option('-h'):
+    print >> sys.stderr, "Expand a .build file as part of installing it\n"
+    opts.usage()
+    sys.exit(0)
+
+cvsroot = None
+if opts.has_option('-c'):
+    cvsroot = opts.options['-c']
+
+product = None
+if opts.has_option('-p'):
+    product = opts.options['-p']
+
+svnroot = None
+if opts.has_option('-s'):
+    svnroot= opts.options['-s']
+
+verbose = opts.has_option('-v')
+
+if opts.has_option('-V'):
+    version = opts.options['-V']
+else:
+    print >> sys.stderr, "Please specify a version with --version or -V"
+    sys.exit(1)
+    
+if len(opts.argv) == 0:
+    print >> sys.stderr, "Please specify a build file"
+    sys.exit(1);
+else:
+    buildFile = opts.argv[0]
+    opts.argv = opts.argv[1:]
+
+if len(opts.argv) == 0:
+    outdir = None
+else:
+    outdir = opts.argv[0]
+    opts.argv = opts.argv[1:]
+#
+# Done with argument parsing; deal with IO
+#
+try:
+    ifd = open(buildFile)
+except IOError, e:
+    print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
+    sys.exit(1)
+
+if outdir:
+    outfile = os.path.join(outdir, os.path.basename(buildFile))
+    if verbose:
+        print "Writing to %s" % outfile
+
+    try:
+        ofd = open(outfile, "w")
+    except IOError, e:
+        print >> sys.stderr, "Failed to open file \"%s\" for write" % outfile
+        sys.exit(1)
+else:
+    ofd = sys.stdout
+#
+# A series of functions to set/guess the values that we'll be substituting
+# into the build file
+#
+# Guess the value of PRODUCT
+#
+def guess_product(product, buildFile):
+    if product:
+        pass
+    else:
+        mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
+        if mat:
+            product = mat.group(1)
+
+    return product    
+#
+# Guess the value of CVSROOT
+#
+def guess_cvsroot(cvsroot):
+    if cvsroot:
+        pass
+    elif os.environ.has_key("CVSROOT"):
+        cvsroot = os.environ["CVSROOT"]
+    elif os.path.isdir("CVS"):
+        try:
+            rfd = open("CVS/Root")
+            cvsroot = re.sub(r"\n$", "", rfd.readline())
+            del rfd
+        except IOError, e:
+            print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
+
+    return cvsroot    
+#
+# Guess the value of SVNROOT
+#
+def guess_svnroot(svnroot):
+    if svnroot:
+        pass
+    elif os.path.isdir(".svn"):
+        try:
+            rfd = os.popen("svn info .svn")
+            for line in rfd:
+                mat = re.search(r"^Repository Root: (\S+)", line)
+                if mat:
+                    svnroot = mat.group(1)
+                    break
+            del rfd
+        except IOError, e:
+            print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
+
+    return svnroot
+#
+# Here's the function to do the substitutions
+#
+subs = {}                               # dictionary of substitutions
+subs["CVSROOT"] = guess_cvsroot(cvsroot)
+subs["SVNROOT"] = guess_svnroot(svnroot)
+subs["PRODUCT"] = guess_product(product, buildFile)
+subs["VERSION"] = version
+
+def subVar(name):
+    var = name.group(1).upper()
+    if subs.has_key(var):
+        return subs[var]
+    return "XXX"
+#
+# Actually read the file and do the work
+#
+for line in ifd:
+    # Attempt substitutions
+    line = re.sub(r"@([^@]+)@", subVar, line)
+
+    print >> ofd, line,
+    
