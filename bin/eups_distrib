@@ -44,7 +44,9 @@ def get_tabledir(url):
     return tabledir
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
+#
+# Handle distribution via tarballs
+#
 def write_tarball(basedir, product_dir, package_base, product, version):
     """Create a tarball """
     
@@ -88,7 +90,79 @@ def install_from_tarball(products_root, package_base, tarball):
         sys.exit(1)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Handle distribution via cvs/svn and explicit build files
+#
+def write_locator(basedir, product_dir, package_base, product, version):
+    """Given a buildfile (which contains information about its' CVS/SVN root,
+    write a small file to the manifest directory allowing us to bootstrap the
+    build"""
 
+    buildFile = os.path.join(basedir, product_dir, "ups", "%s.build" % product)
+    
+    if verbose:
+        print "Using build file %s" % (buildFile)
+    
+    locator = "%s-%s.build" % (product, version)
+
+    if os.access("%s/%s" % (package_base, locator), os.R_OK) and not force:
+        if verbose > 0:
+            print >> sys.stderr, "Not recreating", locator
+        return locator
+    
+    if verbose > 0:
+        print >> sys.stderr, "Writing", locator
+
+    try:
+        shutil.copyfile(buildFile, os.path.join(package_base, locator))
+    except IOError, param:
+        print >> sys.stderr, "Failed to write %s/%s: %s" % (package_base, locator, param)
+        try:
+            os.unlink("%s/%s" % (package_base, locator))
+        except OSError:
+            pass                        # probably didn't exist
+        sys.exit(1)
+
+    return locator
+
+def install_from_buildfile(products_root, package_base, locator, build_dir=None):
+    tfile = "%s/%s" % (package_base, locator)
+    if url and not noaction:
+        (tfile, msg) = urlretrieve(tfile)
+
+    if not noaction and not os.access(tfile, os.R_OK):
+        print >> sys.stderr, "Unable to read %s" % (tfile)
+        sys.exit(1)
+
+    if not build_dir:
+        build_dir = os.path.join(products_root, "build")
+
+    if not os.path.isdir(build_dir):
+        if not noaction:
+            try:
+                os.makedirs(build_dir)
+            except OSError, e:
+                print >> sys.stderr, "Failed to create %s: %s" % (build_dir, e)
+    
+    if verbose > 0:
+        print >> sys.stderr, "Building %s in %s" % (locator, build_dir)
+    #
+    # Does this build file look OK?  In particular, does it contain a valid
+    # CVS/SVN location?
+    #
+    (cvsroot, svnroot) = get_root_from_buildfile(tfile)
+    if not (cvsroot or svnroot):
+        print >> sys.stderr, "Unable to find a cvs/svn root in %s" % (tfile)
+        sys.exit(1)
+    #
+    # Actually work...
+    #
+    os.system("cd %s; sh %s" % (build_dir, tfile))
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Handle distribution via pacman
+#
 def use_pacman_cache(package, version):
     """Return a pacman cache ID """
     
@@ -221,6 +295,35 @@ def find_file(filename, packagePath=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def get_root_from_buildfile(buildFile):
+    """Given the name of a buildfile, return (cvsroot, svnroot);
+    presumably only one will be valid"""
+
+    cvsroot = None; svnroot = None
+
+    try:
+        fd = open(buildFile)
+    except IOError, e:
+        print >> sys.stderr, "Failed to open buildfile \"%s\": %s" % (buildFile, e)
+        sys.exit(1)
+
+    for line in fd:
+        mat = re.search(r"^\s*export\s+(CVS|SVN)ROOT\s*=\s*(\S*)", line)
+        if mat:
+            type = mat.group(1); val = re.sub("\"", "", mat.group(2))
+
+            if type == "CVS":
+                cvsroot = val
+            elif type == "SVN":
+                svnroot = val
+            else:
+                if verbose:
+                    print >> sys.stderr, "Unknown root type:", line,
+
+    return (cvsroot, svnroot)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def create_distrib(top_product, top_version, dbz, flavor,
                    force, manifest, noaction, url, verbose):
     """Create a distribution"""
@@ -285,6 +388,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
 
         if pacman:
             distID = use_pacman_cache(product, version)
+        elif useBuildFiles:
+            distID = write_locator(basedir, product_dir, package_base, product, version)
+            distID = "build:" + distID
         else:
             distID = write_tarball(basedir, product_dir, package_base, product, version)
 
@@ -546,7 +652,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         except IndexError:
             info = []
 
-        if len(info) > 0:
+        if info and len(info) > 0:
             print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
                   (product, version, flavor)
             if force:
@@ -556,17 +662,26 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         #
         # We need to install and declare this product
         #
-        dodeclare = True
-        mat = re.search(r"pacman:(.*)", distID)
+        method = None
+        mat = re.search(r"(build|pacman):(.*)", distID)
         if mat:
-            install_from_pacman(products_root, mat.groups()[0])
+            method = mat.group(1)
+            cacheID = mat.group(2)
 
-            # we need to see if the pacman script declared the package for us
-            declared = eups.list(product, version, dbz, flavor)
-            if len(declared) > 0: dodeclare = False
-            
+        if method == "pacman":
+            install_from_pacman(products_root, cacheID)
+        elif method == "build":
+            install_from_buildfile(products_root, package_base, cacheID, tmp_dir)
         else:
             install_from_tarball(products_root, package_base, distID)
+        #
+        # we need to see if someone (e.g. the pacman script) declared the package for us
+        #
+        dodeclare = True
+
+        declared = eups.list(product, version, dbz, flavor)
+        if declared and len(declared) > 0:
+            dodeclare = False
         #
         # Deal with table files if not in product root (i.e. -M files)
         #
@@ -707,10 +822,10 @@ def install_distribXXX(top_product, top_version, db, dbz, flavor,
 #
 options = dict([
     ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
+    ["-B", (False, "--build", "Use product's build files")],
     ["-C", (False, "--current", "Create a list of current versions which -i can use")],
     ["-c", (False, "--create", "Create a package for distribution")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
-    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
     ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
     ["-h", (False, "--help", "Print this help message")],
     ["-i", (False, "--install", "Extract and install the specified package")],
@@ -719,6 +834,7 @@ options = dict([
     ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
     ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL).\nDefault: $EUPS_PKGROOT")],
     ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
+    ["-T", (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")],
     ["-V", (False, "--version", "Print eups version number and exit")],
     ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
     ["-Z", (True,  "--database", "Use this products path. Default: $EUPS_PATH")],
@@ -741,10 +857,9 @@ if opts.has_option('-h'):
     opts.usage()
     sys.exit(0)
 
-preferFlavor = False
-if opts.has_option('-b'):
-    preferFlavor = True
+useBuildFiles = opts.has_option('-B')
 
+preferFlavor = opts.has_option('-b')
 current = opts.has_option('-C')
 create = opts.has_option('-c')
 
@@ -781,6 +896,10 @@ else:
 tag = None
 if opts.has_option('-t'):
     tag = opts.options['-t']
+
+tmp_dir = None
+if opts.has_option('-T'):
+    tmp_dir = opts.options['-T']
 
 if package_base is not None:
     if install and re.search(r"^http://", package_base):
