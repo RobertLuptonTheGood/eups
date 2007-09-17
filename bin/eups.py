@@ -359,7 +359,11 @@ Usage:
 Options:""" % self.msg
 
         def asort(a,b):
-            """Sort alphabetically, so C and c appear together"""
+            """Sort alphabetically, so -C, --cvs, and -c appear together"""
+
+            a = re.sub(r"^-*", "", a)       # strip leading -
+            b = re.sub(r"^-*", "", b)       # strip leading -
+
             if a.upper() != b.upper():
                 a = a.upper(); b = b.upper()
 
@@ -371,11 +375,12 @@ Options:""" % self.msg
                 return 1
 
         for opt in sorted(self.cmd_options.keys(), cmp = asort):
-            optstr = "%2s%1s %-12s %s" % \
+            optstr = "%2s%1s %s" % \
                      (opt,
                       (not self.cmd_options[opt][1] and [""] or [","])[0],
-                      self.cmd_options[opt][1] or "",
-                      (not self.cmd_options[opt][0] and [""] or ["arg"])[0])
+                      self.cmd_options[opt][1] or "")
+            optstr = "%-16s %s" % \
+                     (optstr, (not self.cmd_options[opt][0] and [""] or ["arg"])[0])
             
             print >> sys.stderr, "   %-21s %s" % \
                   (optstr, ("\n%25s"%"").join(self.cmd_options[opt][2].split("\n")))
