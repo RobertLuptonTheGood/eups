@@ -28,7 +28,7 @@ package eups_setup;
 BEGIN {
     use Exporter ();
     our @ISA = qw(Exporter);
-    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots &eups_version_match, &eups_setshell);
+    our @EXPORT = qw(&fix_special &eups_list &eups_unsetup &eups_setup &eups_find_products &eups_parse_argv &eups_show_options &eups_find_prod_dir &find_best_version &eups_find_roots &eups_version_match &eups_setshell);
     our $VERSION = 1.1;
     our @EXPORT_OK = ();
 }
