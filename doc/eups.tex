@@ -241,8 +241,8 @@ ifeq (, $(prefix))
 endif
 
 install :
-        install -m 775 foo $(prefix)/bin
-        eups expandtable $(PRODUCT) $(prefix)/ups
+        install -m 775 bin/foo $(prefix)/bin
+        eups expandtable ups/$(PRODUCT).table $(prefix)/ups
 
 declare :
         eups declare -r $(prefix) $(PRODUCT) $(VERSION)
