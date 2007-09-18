@@ -113,6 +113,48 @@ def dependencies(product, version, dbz="", flavor=""):
 
     return deps
 
+def dependencies_from_table(tableFile):
+    """Return a list of tuples (product, version) that need to be
+    setup, given a table file.
+
+    N.b. Note that conditionals aren't handled properly
+    N.b. This is the top-level requirements, it isn't computed recursively"""
+
+    try:
+        fd = open(tableFile)
+    except IOError:
+        return None
+
+    products = []
+    for line in fd:
+        mat = re.search(r"^\s*(setupRequired|setupOptional)\s*\(\s*([^)]+)\s*\)", line)
+        if mat:
+            args = []
+            ignore = False;             # ignore next argument
+            for a in re.sub(r'^"|"$', "", mat.group(2)).split():
+                if a == "-f" or a == "--flavor": # ignore flavor specifications
+                    ignore = True
+                    continue
+                    
+                if ignore:
+                    ignore = False
+                else:
+                    args += [a]
+            
+            print args
+
+            if len(args) == 1:
+                args += [None]
+            elif len(args) == 2:
+                pass
+            else:
+                print >> sys.stderr, "Failed to parse: ", line,
+                args = args[0:2]
+
+            products += [tuple(args)]
+
+    return products
+
 def flavor():
     """Return the current flavor"""
     
