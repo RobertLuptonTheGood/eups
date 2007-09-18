@@ -13,6 +13,9 @@ import eups
 author = "Robert Lupton (rhl@astro.princeton.edu)"
 eups_distrib_version = "1.0"
 
+import warnings
+warnings.filterwarnings('ignore', "tmpnam ", RuntimeWarning, "", 0) # ignore tmpnam warnings
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def system(cmd):
@@ -35,9 +38,9 @@ def manifestFile(product, version):
     """Return the name of a manifest file"""
     return "%s-%s.manifest" % (product, version)
 
-def get_tabledir(url):
+def get_tabledir(transport):
     tabledir = "%s/tables" % (package_base)
-    if not url and not os.path.isdir(tabledir):
+    if transport == LOCAL and not os.path.isdir(tabledir):
         print >> sys.stdout, "Creating %s" % (tabledir)
         os.mkdir(tabledir)
 
@@ -73,8 +76,8 @@ def install_from_tarball(products_root, package_base, tarball):
     """Retrieve and unpack a tarball"""
     
     tfile = "%s/%s" % (package_base, tarball)
-    if url and not noaction:
-        (tfile, msg) = urlretrieve(tfile)
+    if transport != LOCAL and not noaction:
+        (tfile, msg) = file_retrieve(tfile, transport)
 
     if not noaction and not os.access(tfile, os.R_OK):
         print >> sys.stderr, "Unable to read %s" % (tfile)
@@ -129,8 +132,8 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     """Setups is a list of setup commands needed to build this product"""
     
     tfile = "%s/%s" % (package_base, builder)
-    if url and not noaction:
-        (tfile, msg) = urlretrieve(tfile)
+    if transport != LOCAL and not noaction:
+        (tfile, msg) = file_retrieve(tfile, transport)
 
     if not noaction and not os.access(tfile, os.R_OK):
         print >> sys.stderr, "Unable to read %s" % (tfile)
@@ -221,6 +224,29 @@ def install_from_pacman(products_root, cacheID):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def file_retrieve(file, transport):
+    """Retrieve a file given a specified transport method"""
+
+    if transport == LOCAL:
+        return (file, "")
+    elif transport == SCP:
+        return scpretrieve(file)
+    elif transport == URL:
+        return urlretrieve(file)
+    else:
+        raise RuntimeError, "Unknown transport method: %s" % transport
+
+def scpretrieve(file):
+    """Retrieve a file using scp"""
+
+    tfile = os.tmpnam()
+
+    if os.system("scp %s %s" % (file, tfile)) != 0:
+        print >> sys.stderr, "Failed to retrieve %s" % file
+        sys.exit(1)
+
+    return tfile, None
+
 def urlretrieve(file):
     """Like urllib's urlretrieve, except use urllib2 to detect 404 errors"""
 
@@ -287,12 +313,11 @@ def find_file(filename, packagePath=None):
             
     if os.path.isfile(filename):
         pass
-    elif url:
+    elif transport != LOCAL:
         tfile = None
         for loc in locs:
             try:
-                (tfile, msg) = urlretrieve("%s%s/%s" % (package_base, loc,
-                                                        filename))
+                (tfile, msg) = file_retrieve("%s%s/%s" % (package_base, loc, filename), transport)
                 break
             except RuntimeError:
                 pass
@@ -356,7 +381,7 @@ def get_root_from_buildfile(buildFile):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def create_distrib(top_product, top_version, dbz, flavor,
-                   force, manifest, noaction, url, verbose):
+                   force, manifest, noaction, transport, verbose):
     """Create a distribution"""
 
     if not os.path.isdir(package_base):
@@ -428,7 +453,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
             fulltablename = ptablefile
             ptablefile = os.path.basename(ptablefile)
             if ("%s.table" % (product)) != ptablefile:
-                tabledir = get_tabledir(url)
+                tabledir = get_tabledir(transport)
                 if verbose > 1:
                     print >> sys.stderr, "Copying %s to %s/%s-%s" % \
                           (fulltablename, tabledir, product, ptablefile)
@@ -584,7 +609,7 @@ def create_current(top_product, top_version, dbz, flavor,
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def read_manifest(top_product, top_version, db, dbz, flavor,
-                  force, manifest, noaction, url, verbose):
+                  force, manifest, noaction, transport, verbose):
     """Read a manifest and return products_root, top_version, and a list of products"""
 
     global package_base
@@ -608,7 +633,7 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
         raw_manifest = manifestFile(top_product, top_version)
         manifest = find_file(raw_manifest)
 
-        if not url:
+        if transport == LOCAL:
             mat = re.search(r"^(.*)/([^/]+)$", manifest)
             if mat:
                 pb = mat.groups()[0]
@@ -662,13 +687,13 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
     return products_root, top_version, products
 
 def install_distrib(top_product, top_version, db, dbz, flavor,
-                    force, manifest, noaction, url, verbose):
+                    force, manifest, noaction, transport, verbose):
     """Install a set of packages"""
 
     global package_base
 
     products_root, top_version, products = read_manifest(top_product, top_version, db, dbz, flavor,
-                                                         force, manifest, noaction, url, verbose)
+                                                         force, manifest, noaction, transport, verbose)
     if os.path.isdir(products_root):
         if verbose > 0:
             print >> sys.stderr, "Installing products into", products_root
@@ -802,7 +827,8 @@ if opts.has_option('-p'):
     pacman = True
     pacman_cache = opts.options['-p']
 
-url = False                             # retrieve tarballs from a url?
+URL, SCP, LOCAL = "URL", "SCP", "LOCAL"
+transport = LOCAL
 if opts.has_option('-r'):
     package_base = opts.options['-r']
 elif os.environ.has_key("EUPS_PKGROOT"):
@@ -820,7 +846,10 @@ if opts.has_option('-T'):
 
 if package_base is not None:
     if install and re.search(r"^http://", package_base):
-        url = True
+        transport = URL
+    elif install and re.search(r"^scp:", package_base):
+        transport = SCP
+        package_base = re.sub(r"^scp:", "", package_base)
 
 verbose = 0
 if opts.has_option('-v'):
@@ -897,10 +926,10 @@ if not create and not install:
 
 if create:
     create_distrib(top_product, top_version, dbz, flavor,
-                   force, manifest, noaction, url, verbose)
+                   force, manifest, noaction, transport, verbose)
     if current:
         create_current(top_product, top_version, dbz, flavor,
                        noaction, verbose)
 elif install:
     install_distrib(top_product, top_version, db, dbz, flavor,
-                    force, manifest, noaction, url, verbose)
+                    force, manifest, noaction, transport, verbose)
