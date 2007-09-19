@@ -3,7 +3,8 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package
 #
-import os, os.path
+import atexit
+import os
 import re, sys
 import tempfile
 import shutil
@@ -228,13 +229,17 @@ def file_retrieve(file, transport):
     """Retrieve a file given a specified transport method"""
 
     if transport == LOCAL:
-        return (file, "")
+        return (file, None)
     elif transport == SCP:
-        return scpretrieve(file)
+        (tfile, msg) = scpretrieve(file)
     elif transport == URL:
-        return urlretrieve(file)
+        (tfile, msg) = urlretrieve(file)
     else:
         raise RuntimeError, "Unknown transport method: %s" % transport
+
+    atexit.register(os.unlink, tfile)   # clean up
+
+    return (tfile, msg)
 
 def scpretrieve(file):
     """Retrieve a file using scp"""
@@ -753,8 +758,6 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
                     if not noaction:
                         tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
-            print "eups.declare(", flavor, dbz, tablefile, products_root, product_dir, \
-                         product, version, current, noaction, ")"
             eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
                          product, version, current, noaction)
 
