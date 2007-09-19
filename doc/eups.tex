@@ -1494,15 +1494,15 @@ the installed version (assuming that \code{\$(VERSION)} is
     make install  
 \end{verbatim}
 and everyone's happy.\footnote{
-There's a subtlety here.  Imagine that we have a product \code{prod2}
-which depends in \code{prod1}.
-If we source each build file separately,
-the \code{setup -r .} in \code{prod1}'s build file isn't still active by
+There's a subtlety here.  Imagine that we had a product \code{prod2}
+which depended on \code{prod1}.
+As we source each build file separately,
+the \code{setup -r .} in \code{prod1}'s build file isn't visible by
 the time that \code{prod2}'s being built (as it's run in a different shell), so
 \code{prod1} isn't setup.  Even if it were, \code{prod2}
-tries to set itself up, which will request the \emph{current} version
+tries to setup \code{prod1} itself (as it's a dependency), which requests the \emph{current} version
 of \code{prod1}.  We don't want \code{eups distrib} to always declare
-products current, so what do we do?  The answer is that \code{eups distrib}
+products current, so what should we do?  The answer is that \code{eups distrib}
 inserts explicit setup statements into the the build script as it
 executes it, and replaces the \code{setup} with \code{setup -j}; try
 running with the \code{--verbose} flag if you want to see this in action.
