@@ -17,6 +17,7 @@ options = {
     "-c": (True, '--cvs', "Use this CVSROOT"),
     "-h": (False, "--help", "Print this help message"),
     "-p": (True, '--product', "The name of the product"),
+    "-s": (True, '--svn', "Use this SVNROOT"),
     "-v": (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-V": (True, "--version", "Specify version that you're installing"),
     }
@@ -24,14 +25,21 @@ options = {
 aliases = {}
 
 try:
-    opts = eups.Getopt(options, sys.argv, aliases, "eups_expandbuild [options] version")
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_expandbuild [options] -V version buildFile [outDir]")
 except RuntimeError, param:
     print >> sys.stderr, "Error parsing arguments: %s" % param
     sys.exit(1)
 
 if opts.has_option('-h'):
-    print >> sys.stderr, "Expand a .build file as part of installing it\n"
     opts.usage()
+
+    print >> sys.stderr, """\
+    
+Expand a .build file as part of installing it.
+
+If outDir is provided, the expanded file will be written there;
+otherwise it'll be written to stdout.\
+"""
     sys.exit(0)
 
 cvsroot = None
@@ -48,11 +56,9 @@ if opts.has_option('-s'):
 
 verbose = opts.has_option('-v')
 
+version = None
 if opts.has_option('-V'):
     version = opts.options['-V']
-else:
-    print >> sys.stderr, "Please specify a version with --version or -V"
-    sys.exit(1)
     
 if len(opts.argv) == 0:
     print >> sys.stderr, "Please specify a build file"
@@ -139,13 +145,23 @@ def guess_svnroot(svnroot):
 
     return svnroot
 #
+# Guess the value of SVNROOT
+#
+def guess_version(version):
+    if version:
+        return version
+
+    print >> sys.stderr, "I can't expand @VERSION@; please specify a version with --version or -V"
+    sys.exit(1)
+    
+#
 # Here's the function to do the substitutions
 #
 subs = {}                               # dictionary of substitutions
 subs["CVSROOT"] = guess_cvsroot(cvsroot)
 subs["SVNROOT"] = guess_svnroot(svnroot)
 subs["PRODUCT"] = guess_product(product, buildFile)
-subs["VERSION"] = version
+subs["VERSION"] = guess_version(version)
 
 def subVar(name):
     var = name.group(1).upper()

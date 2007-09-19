@@ -659,7 +659,8 @@ only updates the current.chain.
 Usage:
    eups_distrib [opts] [product [version]]
 Options:
-   -b, --prefer-flavor       Prefer distributions that are flavor-specific
+   -B, --build           Use product's build files
+   -b, --prefer-flavor   Prefer distributions that are flavor-specific
    -C, --current         Create a list of current versions which -i can use
    -c, --create          Create a package for distribution
    -F, --force           Force requested behaviour (e.g. redeclare a product)
@@ -670,9 +671,9 @@ Options:
    -j, --nodepend        Just install product, but not its dependencies
    -n, --noaction        Don't actually do anything
    -p, --pacman    arg   Use this pacman cache to install packages
-   -r, --root      arg   Location of manifests and tarballs (may be a URL);
+   -r, --root      arg   Location of manifests and tarballs (may be a URL or scp location);
                          Default: $EUPS_PKGROOT
-   -t, --prefer-tag arg   Prefer distributions that are tagged with this tag
+   -t, --prefer-tag arg  Prefer distributions that are tagged with this tag
    -V, --version         Print eups version number and exit
    -v, --verbose         Be chattier (repeat for even more chat)
    -Z, --database  arg   Use this products path. Default: $EUPS_PATH
@@ -682,7 +683,9 @@ Options:
 \end{verbatim}				% $ for emacs
 
 Handle the distribution of products and their dependencies as `packages'. A
-package is a set of tarballs (i.e. gzipped tar archives) or pacman\footnote{%
+package is a set of tarballs (i.e. gzipped tar archives), a set of build files\footnote{%
+  see Appendix \ref{buildFiles}.
+} or pacman\footnote{%
   See Appendix \ref{pacman}.
 }
 caches and
@@ -699,7 +702,11 @@ eups_distrib --database /u/rhl/ppp --verbose --install \
 \end{verbatim}
 to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database. If you omit
 \code{--root} it'll be taken from the environment variable \code{EUPS\_PKGROOT},
-if set.
+if set.  As an alternative to an http URL, you may specify a directory as
+if you were using \code{scp}, prefixed by \code{scp:}; e.g.
+\begin{verbatim}
+    --root=scp:rhl@apache2.astro.princeton.edu:WWW/public/distrib
+\end{verbatim}
 
 When creating an distribution, tarballs that already present are not recreated
 (unless you specify \code{--force}),
@@ -728,6 +735,59 @@ relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
 that all product directories start with a directory listed in \code{EUPS\_PATH}.
 This is probably a good idea, as otherwise \code{eups\_distrib} would tar up
 all of /usr/local for you.
+  
+%------------------------------------------------------------------------------
+
+  \item \code{eups\_expandbuild}
+\begin{verbatim}
+Usage:
+    eups_expandbuild [options] -V version buildFile [outDir]
+Options:
+   -c, --cvs        arg  Use this CVSROOT
+   -h, --help            Print this help message
+   -p, --product    arg  The name of the product
+   -s, --svn        arg  Use this SVNROOT   
+   -V, --version    arg  Specify version that you're installing
+   -v, --verbose         Be chattier (repeat for even more chat)
+    
+Expand a .build file as part of installing it.
+
+If outDir is provided, the expanded file will be written there;
+otherwise it'll be written to stdout.
+\end{verbatim}
+
+Modify a ups build file (see section \ref{buildFiles}) expanding certain variables:
+\begin{description}
+  \item[\small @CVSROOT@] The value of \code{\$CVSROOT} used to check out this product.
+    This is guessed from \code{./CVS} if not specified with \code{--cvs} (or \code{-c}).
+  \item[\small @PRODUCT@] The name of the product. This is guessed from \code{buildFile}
+    (by dropping the suffix \code{.build}) if not provided with \code{--product} (or \code{-p}).
+  \item[\small @SVNROOT@] The \code{svn} locator (e.g. \code{svn+ssh://svn.lsstcorp.org/DC2/fw/trunk})
+    used to check out this product.
+    This is guessed from \code{./.svn} if not specified with \code{--svn} (or \code{-s}).
+  \item[\small @VERSION@] The version of the product.  This is taken from the \code{--version} (or
+    \code{-V}) option.
+\end{description}
+
+E.g. the file \code{prod1.build}
+\begin{verbatim}
+export CVSROOT="@CVSROOT@"
+cvs co -d @PRODUCT@-@VERSION@ -r @VERSION@ @PRODUCT@
+\end{verbatim}
+becomes (with the \code{-V v1\_0\_1} option):
+\begin{verbatim}
+export CVSROOT="jeeves.astro.princeton.edu:/usr/local/cvsroot"
+cvs co -d prod1-v1_0_1 -r v1_0_1 prod1
+\end{verbatim}
+
+If a directory is specified, the modified build file will be written
+there, with the same name as the original; otherwise it's written to
+standard out.
+
+For example, the make target in a ups directory might contain the line:
+\begin{verbatim}
+      eups expandbuild -V $(VERSION) ups/prod1.build $(prefix)/ups
+\end{verbatim}				% $ for emacs
   
 %------------------------------------------------------------------------------
 
@@ -1372,5 +1432,80 @@ The \code{eups distrib --install} command is unchanged:
 \begin{verbatim}
 eups distrib --install -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
 \end{verbatim}
+
+\subsection{Using `Build Files' with \eups{}}
+\label{buildFiles}
+
+This isn't an integral part of eups, but it can be very useful in conjunction with \code{eups\_distrib}.
+
+The work of installing a package frequently reduces to a stereotyped set of operations;
+for each dependency you type:
+\begin{verbatim}
+    cvs co -r XXX prod1
+    cd prod1
+    make install
+    cd ..
+\end{verbatim}
+followed by \code{eups declare ...} and on to the next product.  It'd
+be nice not to have to type this repeatedly, especially if you have to
+install on a bunch of machines that don't share an
+\code{\$EUPS\_PATH}.  Fortunately, you don't have to.
+
+One approach would be to bite the bullet and learn \pacman{} (see Appendix \ref{pacman});
+another is to write simple `build files'.  The former is far more sophisticated
+and bullet-proof; the latter is simpler.
+
+If you put a file \code{prod.build} in \code{prod/ups} and install it along
+with the table file, \code{eups distrib --build --create} will set things up
+so that a subsequent \code{eups distrib --install} will copy the build file
+to the new machine and execute it;  if you have a set of dependent products
+they will be executed in the proper order.  At their simplest, build files could simply
+be the commands that you'd type (such as those listed above); \eups{} will take
+care of the declarations.  This isn't very satisfactory, as it requires the
+build file to include the version string, and that the correct value of \code{\$CVSROOT}
+be already set\footnote{This is problematic if you're getting code from a number
+  of different places.}
+
+This is where the \code{eups expandbuild} command comes in;  it's used to install
+build files expanding \code{CVSROOT} (or \code{SVNROOT}), \code{PRODUCT}, and
+\code{VERSION}.  This allows you to write generic build files such as \code{prod1.build}
+\begin{verbatim}
+    export CVSROOT="@CVSROOT@"
+
+    cvs co -d @PRODUCT@-@VERSION@ -r @VERSION@ @PRODUCT@
+    cd @PRODUCT@-@VERSION@
+
+    setup -r .
+    make install
+\end{verbatim}
+If your \code{make install} target says something like
+\begin{verbatim}
+      eups expandbuild -V $(VERSION) ups/prod1.build $(prefix)/ups
+\end{verbatim}
+the installed version (assuming that \code{\$(VERSION)} is
+\code{v1\_0\_1}) becomes
+\begin{verbatim}
+    export CVSROOT="jeeves.astro.princeton.edu:/usr/local/cvsroot"
+
+    cvs co -d prod1-v1_0_1 -r v1_0_1 prod1
+    cd prod1-v1_0_1
+
+    setup -r .
+    make install  
+\end{verbatim}
+and everyone's happy.\footnote{
+There's a subtlety here.  Imagine that we have a product \code{prod2}
+which depends in \code{prod1}.
+If we source each build file separately,
+the \code{setup -r .} in \code{prod1}'s build file isn't still active by
+the time that \code{prod2}'s being built (as it's run in a different shell), so
+\code{prod1} isn't setup.  Even if it were, \code{prod2}
+tries to set itself up, which will request the \emph{current} version
+of \code{prod1}.  We don't want \code{eups distrib} to always declare
+products current, so what do we do?  The answer is that \code{eups distrib}
+inserts explicit setup statements into the the build script as it
+executes it, and replaces the \code{setup} with \code{setup -j}; try
+running with the \code{--verbose} flag if you want to see this in action.
+}
 
 \end{document}

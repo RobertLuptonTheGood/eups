@@ -777,7 +777,7 @@ options = dict([
     ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
     ["-n", (False, "--noaction", "Don\'t actually do anything")],
     ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
-    ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL).\nDefault: $EUPS_PKGROOT")],
+    ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")],
     ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
     ["-T", (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")],
     ["-V", (False, "--version", "Print eups version number and exit")],
