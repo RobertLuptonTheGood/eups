@@ -147,6 +147,16 @@ sub envAppend {
 	$append_delim = 1;
     }
 
+    if ($val =~ s/^\$\?{([^\}]*)}/\${$1}/) {
+       if (!defined($ENV{$1})) {
+	  if ($debug > 0) {
+	     warn "\$$1 is not defined; not prepending to $var\n";
+	  }
+	  
+	  return
+       }
+    }
+    
     $curval = $ENV{$var};
     if ($val ne "") {
        if ($curval) {
@@ -187,6 +197,16 @@ sub envPrepend {
     if($val =~ s/$delim+$//) {
 	$append_delim = 1;
     }
+
+    if ($val =~ s/^\$\?{([^\}]*)}/\${$1}/) {
+       if (!defined($ENV{$1})) {
+	  if ($debug > 0) {
+	     warn "\$$1 is not defined; not prepending to $var\n";
+	  }
+	  
+	  return
+       }
+    }
     
     $curval = "";
     if ($val ne "") {
@@ -221,6 +241,16 @@ sub envSet {
 
     if ($force && $$oldenv{$var}) {
        undef $$oldenv{$var};
+    }
+
+    if ($val =~ s/^\$\?{([^\}]*)}/\${$1}/) {
+       if (!defined($ENV{$1})) {
+	  if ($debug > 0) {
+	     warn "\$$1 is not defined; not setting $var\n";
+	  }
+	  
+	  return
+       }
     }
     $ENV{$var} = envInterpolate($val);
 }

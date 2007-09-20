@@ -1064,6 +1064,8 @@ alias or an environment variable - clear from the context.)
     
    \item \code{envAppend(<Name>, <Value> [,<delimiter>])}
      Appends \code{<Value>} to \code{<Name>}. The default delimiter is~`:'.
+     If the value looks like \code{\$?\$name\}},
+     and there is no such environment variable, the \code{envAppend} command is ignored.
      If \code{<Value>} starts or ends
      with \code{<Delimiter>, the final value of \code{<Name>} will
      have a delimiter pre- or -appended;  this is useful
@@ -1074,10 +1076,12 @@ alias or an environment variable - clear from the context.)
      \end{verbatim}		% $
      
    \item \code{envPrepend(<Name>,<Value> [,<delimiter>])}
-     Similar to envAppend
+     Similar to envAppend, but put the value at the beginning
      
    \item \code{envSet(<Name>, <Value>)}
-     Set \code{<Name>} to \code{<Value>}
+     Set \code{<Name>} to \code{<Value>}.
+     If the value looks like \code{\$?\$name\}},
+     and there is no such environment variable, the \code{envSet} command is ignored.
      
    \item \code{setupRequired(<Name> [ <Version>])}
      Setup \code{<Name>}.  If no \code{<Version>} is specified, the current
