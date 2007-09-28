@@ -916,7 +916,16 @@ Options:
                         (default: all)
 \end{verbatim}				% $ for emacs
 
-This is the workhorse routine. It sets up \code{version} of \code{product}.
+This is the workhorse routine. It sets up \code{version} of \code{product}. You
+may omit the \code{version} (in which case you'll get the \code{current} version),
+specify an explicit version, or use a logical expression. E.g.
+\begin{verbatim}
+  setup ds9
+  setup ds9 4.13
+  setup ds9 '>= 5.0'
+  setup ds9 '>= 5.0 || rhl'
+\end{verbatim}
+(don't forget to quote \code{<} and \code{>} as they're interpreted by the shell).
 
 \textbf{Important}: Since the commands to set environment variables differ across shells,
 it is essential that \code{\$SHELL} reflects the current shell.
