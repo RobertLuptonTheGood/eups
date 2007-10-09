@@ -293,6 +293,7 @@ if ($copytable_from) {
 
     # And put the table file into that directory.
     $tablepath = catfile($tablepath, $tablefile);
+    unlink($tablepath);		# although it may not exist
     copy($copytable_from, $tablepath);
 }
 
