@@ -904,7 +904,8 @@ if dbz:
     elif len(db) == 1:
         db = db[0]
     else:
-        print >> sys.stderr, "Choice of DB %s is ambiguous:" % dbz, str.join(" ", eups_path)
+        print >> sys.stderr, "Choice of DB %s is ambiguous:" % dbz, " ".join(db)
+        sys.exit(1)
 else:
     db = eups_path[0]
 
