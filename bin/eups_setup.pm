@@ -1407,7 +1407,7 @@ sub eups_list {
 	       
 	       $vers = sprintf("%-10s", $vers);
 	       if ($debug) {
-		   $vers .= sprintf("\t%-30s\t%-40s", $root, $prod_dir);
+		   $vers .= sprintf("\t%-20s\t%-30s", $root, $prod_dir);
 	       }
 	       
 	       if ($info) {
@@ -1443,7 +1443,7 @@ sub eups_list {
    if ($one_product && $setup_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
       if ($just_directory) {
 	 print $outfile "echo \"$setup_prod_dir\"\n";
-      } if ($just_tablefile) {
+      } elsif ($just_tablefile) {
 	 my($table_file) = "$setup_prod_dir/ups/$prod.table"; # just an inspired guess
 	 if (! -f $table_file) {
 	    if ($debug > $quiet) {
@@ -1455,7 +1455,7 @@ sub eups_list {
 	 my($info) = "\t\t Setup";
 	 $vers = sprintf("%-10s", "LOCAL");
 	 if ($debug) {
-	    $vers .= sprintf("\t%-30s\t%-40s", "LOCAL", $setup_prod_dir);
+	    $vers .= sprintf("\t%-20s\t%-30s", "LOCAL", $setup_prod_dir);
 	 }
 	 print $outfile "echo \"$msg   ${vers}$info\"\n";
       } 
