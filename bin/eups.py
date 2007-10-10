@@ -49,7 +49,7 @@ def _current_or_setup(characteristic, product="", dbz="", flavor = ""):
 
 def declare(flavor, dbz, tablefile, products_root, product_dir, product, version, declare_current = False,
             noaction = False):
-    """Declare a product"""
+    """Declare a product.  product_dir may be None to just declare the product current"""
 
     opts = ""
     if declare_current:
@@ -57,14 +57,18 @@ def declare(flavor, dbz, tablefile, products_root, product_dir, product, version
     if dbz:
         opts += " -z %s" % dbz
 
-    tableopt = "-m"
-    if tablefile != "none":
-        if ("%s.table" % (product)) != tablefile:
-            tableopt = "-M"
+    if product_dir:
+        opts += " --root %s" % os.path.join(products_root, product_dir)
+
+        tableopt = "-m"
+        if tablefile != "none":
+            if ("%s.table" % (product)) != tablefile:
+                tableopt = "-M"
+        opts += " %s %s" % (tableopt, tablefile)
 
     try:
-        cmd = "eups_declare --flavor %s%s %s %s --root %s/%s %s %s" % \
-              (flavor, opts, tableopt, tablefile, products_root, product_dir, product, version)
+        cmd = "eups_declare --flavor %s%s %s %s" % \
+              (flavor, opts, product, version)
         if noaction:
             print cmd
         else:
