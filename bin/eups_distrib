@@ -715,12 +715,17 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             info = []
 
         if info and len(info) > 0 and info[0] != "LOCAL":
-            print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
-                  (product, version, flavor)
-            if force:
-                print >> sys.stderr, "Reinstalling %s anyway" % (product)
-            else:
+            if current:
+                eups.declare(flavor, dbz, tablefile, products_root, None, 
+                             product, version, current, noaction)
                 continue
+            else:
+                print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
+                      (product, version, flavor)
+                if force:
+                    print >> sys.stderr, "Reinstalling %s anyway" % (product)
+                else:
+                    continue
         #
         # We need to install and declare this product
         #
