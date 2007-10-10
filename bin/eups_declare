@@ -88,7 +88,7 @@ die "ERROR: No flavor specified\n" if ($flavor eq "");
 if (defined($$options{-r})) {
    my($prod_dir) = $$options{-r};
 
-   if ($prod_dir !~ m|^/|) {
+   if ($prod_dir ne "none" && $prod_dir !~ m|^/|) {
       use Cwd;
       if ($prod_dir eq ".") {
 	 $prod_dir = getcwd();
