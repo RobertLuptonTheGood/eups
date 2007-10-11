@@ -113,9 +113,36 @@ my ($doredeclare) = (defined($$options{-r}) or defined($$options{-M}) or defined
 # If the product and version are not specified, try to guess them from the -r path.
 $prod = $words[0];
 $vers = $words[1];
-if (($prod eq "" && $vers eq "") && ($$options{-r} =~ m|([^/]+)/([^/]+)$|)) {
-   ($prod, $vers) = ($1, $2);
-   warn "INFO : Guessing product = $prod; version = $vers\n" if($debug > 0);
+if ($vers eq "") {
+   my($prod_dir) = $$options{-r};
+   my($prod_from_tablefile);	# product name guessed from tablefile name
+
+   if (-d $prod_dir && -d "$prod_dir/ups") { # guess product from table file name
+      my(@products) = grep(s|^.*/([^/]+)\.table$|\1|, glob("$prod_dir/ups/*.table"));
+      my $nproduct = @products;
+      
+      if ($nproduct == 0) {
+	 ;
+      } elsif ($nproduct == 1) {
+	 $prod_from_tablefile = $products[0];
+      } else {
+	 warn "I can't guess which product you want; ups directory defines: " . join(" ", @products) . "\n";
+      } 
+   }
+
+   if ($prod eq "") {
+      if ($prod_dir =~ m|([^/]+)/([^/]+)$|) {
+	 ($prod, $vers) = ($1, $2);
+	 if ($prod && $prod_from_tablefile && $prod ne $prod_from_tablefile) {
+	    die "ERROR: guessed product = $prod; version = $vers, but tablefile is for $prod_from_tablefile\n";
+	 }
+      }
+   } else {
+      $vers = $prod;
+      $prod = $prod_from_tablefile;
+   }
+   
+   warn "INFO: Guessing product = $prod; version = $vers\n" if($debug > 0);
 }
 die "ERROR : No product specified\n" if ($prod eq "");
 die "ERROR : No version specified\n" if ($vers eq "");
