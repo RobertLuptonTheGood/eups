@@ -136,9 +136,9 @@ shell startup file (.bashrc or .tcshrc).
 \section{Declaring Products and Versions}
 
 Whence came \code{PHOTO\_DIR} in the example? From a command of the form
-\footnote{Actually, a simple \code{eups\_declare photo v5\_4\_25} would suffice}
+\footnote{Actually, a simple \code{eups declare photo v5\_4\_25} would suffice}
 \begin{verbatim}
-eups_declare photo v5_4_25 -f Darwin -r /u/products/Darwin/photo/v5_4_25
+eups declare photo v5_4_25 -f Darwin -r /u/products/Darwin/photo/v5_4_25
 \end{verbatim}
 
 This command updates the \eups{} `database' (in reality a set of files);
@@ -446,7 +446,7 @@ complete rewrite in python at some point.  At present, there is a
 python module that allows access to (most) of \eups's functionality;
 missing commands will probably be added as we get around to it.
 
-There's also an option parsing class \code{Getopt} (used by \code{eups\_distrib}) that
+There's also an option parsing class \code{Getopt} (used by \code{eups distrib}) that
 offers features not present in python's regular \code{getopt} module.
 
 To use \eups{} from python, you need to \code{import eups};
@@ -566,17 +566,17 @@ starting \code{eups\_} will eventually go away, leaving only \code{eups}.
 
 %------------------------------------------------------------------------------
 
-\item \code{eups\_declare}
+\item \code{eups declare} (or \code{eups\_declare})
 \begin{verbatim}
 Usage:
-   eups_declare [options] product version
+   eups declare [options] product version
 Options:
         -h, --help      Print this help message
         -c, --current   Declare this version current
         -F, --force     Force requested behaviour, for example
                         to redeclare a product
         -f, --flavor    Use this flavor
-                        (default: $EUPS_FLAVOR or `eups_flavor`)
+                        (default: $EUPS_FLAVOR or `eups flavor`)
         -M              Import the given file (may be \"-\" for stdin)
                         into the database as the table file
         -m, --table     Use this table file (may be "none")
@@ -594,14 +594,14 @@ Declares \code{version} of \code{product} into the database given by \code{\$EUP
 The product root directory is where the product has been installed, and can either
 be an absolute pathname or specified relative to \code{\$EUPS\_PATH}.
 
-The flavor is usually determined by the command \code{\$EUPS\_DIR/bin/eups\_flavor},
+The flavor is usually determined by the command \code{\$EUPS\_DIR/bin/eups flavor},
 but may be set using the
 environment variable \code{\$EUPS\_FLAVOR}, or \code{-f} (which has the highest
-precedence).  The \code{eups\_flavor} is basically the value of the system \code{uname}
+precedence).  The \code{eups flavor} is basically the value of the system \code{uname}
 command, but with a little more information where it's important (e.g. Linux boxes
 can have flavor \code{Linux} or \code{Linux64}).
 
-The \code{eups\_declare} command has to decide which database in the environment
+The \code{eups declare} command has to decide which database in the environment
 variable\code{EUPS\_PATH}
 to use.  If the product's already declared, use the database it's in (this is usually
 only relevant when you're declaring a product current).  Otherwise, if the specified root
@@ -618,7 +618,7 @@ file to be used (either in the database, or in the ups directory of the product)
 
 The \code{-M} option specifies a file which will be copied into the
 database as a table file. This lets you avoid putting EUPS data
-into products. You can pipe the table file to \code{eups\_declare} by
+into products. You can pipe the table file to \code{eups declare} by
 specifying \code{-} as the filename.
 
 If you omit the \code{-r dir}, \eups{} will attempt to guess it for you based
@@ -671,17 +671,17 @@ only updates the current.chain.
 
 %------------------------------------------------------------------------------
 
-  \item \code{eups\_distrib}
+  \item \code{eups distrib} (or \code{eups\_distrib})
 \begin{verbatim}
 Usage:
-   eups_distrib [opts] [product [version]]
+   eups distrib [opts] [product [version]]
 Options:
    -B, --build           Use product's build files
    -b, --prefer-flavor   Prefer distributions that are flavor-specific
    -C, --current         Create a list of current versions which -i can use
    -c, --create          Create a package for distribution
    -F, --force           Force requested behaviour (e.g. redeclare a product)
-   -f, --flavor    arg   Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
+   -f, --flavor    arg   Use this flavor. Default: $EUPS_FLAVOR or `eups flavor`
    -h, --help            Print this help message
    -i, --install         Extract and install the specified package
                          Alias: --extract
@@ -709,12 +709,12 @@ caches and
 a file (ending in \code{.manifest})
 listing a product's dependencies, including the names of the proper tarballs/caches. 
 
-Once you've created a package with \code{eups\_distrib --create} you can log on to
-another machine and use \code{eups\_distrib --install} to
+Once you've created a package with \code{eups distrib --create} you can log on to
+another machine and use \code{eups distrib --install} to
 recreate a working \eups{} installation.  For example:
 \begin{verbatim}
-eups_distrib --verbose --select-db act --create moby v1_2
-eups_distrib --database /u/rhl/ppp --verbose --install \
+eups distrib --verbose --select-db act --create moby v1_2
+eups distrib --database /u/rhl/ppp --verbose --install \
              --root http://www.astro.princeton.edu/~act/packages moby v1_2
 \end{verbatim}
 to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database. If you omit
@@ -727,11 +727,11 @@ if you were using \code{scp}, prefixed by \code{scp:}; e.g.
 
 When creating an distribution, tarballs that already present are not recreated
 (unless you specify \code{--force}),
-so repeating a \code{eups\_distrib --create} command to create a manifest for another
+so repeating a \code{eups distrib --create} command to create a manifest for another
 product won't lead to duplication of tarballs.  If you want to use \pacman{},
 see App. \ref{pacman}.
 
-When unpacking a distribution with \code{eups\_distrib --install}, products that are
+When unpacking a distribution with \code{eups distrib --install}, products that are
 already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{--force}).
 
 If you don't specify a version when installing a distribution with
@@ -740,25 +740,25 @@ as the version declared current on some machine where the distribution
 originated, as a bleeding-edge version acceptable in Princeton may not
 be ready for deployment on a mountain top in e.g. Chile. In
 consequence, the list of `current' versions is \textit{not}
-automatically created or updated by \code{eups\_distrib --create}, but is
-only set when you later say \code{eups\_distrib --current}.  If you don't specify
+automatically created or updated by \code{eups distrib --create}, but is
+only set when you later say \code{eups distrib --current}.  If you don't specify
 a product, the list will in fact be identical to your local preferences.
 Alternatively, you can update a single product's version number (e.g.
-\code{eups\_distrib --current moby}) or specify a version (\code{eups\_distrib --current moby v1\_2}).
+\code{eups distrib --current moby}) or specify a version (\code{eups distrib --current moby v1\_2}).
 
-\textit{N.b.} As presently written, \code{eups\_distrib} assumes that you've
+\textit{N.b.} As presently written, \code{eups distrib} assumes that you've
 installed all the products into \eups, as opposed to simple declaring them, but
 relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
 that all product directories start with a directory listed in \code{EUPS\_PATH}.
-This is probably a good idea, as otherwise \code{eups\_distrib} would tar up
+This is probably a good idea, as otherwise \code{eups distrib} would tar up
 all of /usr/local for you.
   
 %------------------------------------------------------------------------------
 
-  \item \code{eups\_expandbuild}
+  \item \code{eups expandbuild} (or \code{eups\_expandbuild})
 \begin{verbatim}
 Usage:
-    eups_expandbuild [options] -V version buildFile [outDir]
+    eups expandbuild [options] -V version buildFile [outDir]
 Options:
    -c, --cvs        arg  Use this CVSROOT
    -h, --help            Print this help message
@@ -808,9 +808,9 @@ For example, the make target in a ups directory might contain the line:
   
 %------------------------------------------------------------------------------
 
-  \item \code{eups\_expandtable}
+  \item \code{eups expandtable} (or \code{eups\_expandtable})
 \begin{verbatim}
-Usage: eups_expandtable [options] file.table [directory]
+Usage: eups expandtable [options] file.table [directory]
 Options are
     -h, --help    Print this message
     -i, --inplace Modify file in situ
@@ -840,15 +840,15 @@ this implies \code{--inplace}.
 
 For example, the make target in a ups directory might contain the line:
 \begin{verbatim}
-      eups_expandtable -w iop.table $(IOP_DIR)/ups
+      eups expandtable -w iop.table $(IOP_DIR)/ups
 \end{verbatim}				% $ for emacs
 
 %------------------------------------------------------------------------------
 
-\item \code{eups\_flavor}
+\item \code{eups flavor} (or \code{eups\_flavor})
 \begin{verbatim}
 Usage:
-   eups_flavor
+   eups flavor
 \end{verbatim}
   
 Print your machine/operating system's flavor.  In simple cases, this'll
@@ -857,10 +857,10 @@ like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 
 %------------------------------------------------------------------------------
 
-\item \code{eups\_pkg-config}
+\item \code{eups pkg-config} (or \code{eups\_pkg-config})
 \begin{verbatim}
 Usage:
-   eups_pkg-config product [flags]
+   eups pkg-config product [flags]
 Flags:
 (same as pkg-config)
 \end{verbatim}
@@ -873,14 +873,14 @@ in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\foot
   
 %------------------------------------------------------------------------------
 
-  \item \code{eups\_undeclare}
+  \item \code{eups undeclare} (or \code{eups\_undeclare})
 \begin{verbatim}
 Usage:
-   eups_undeclare [options] product version
+   eups undeclare [options] product version
 Options:
         -h, --help      Print this help message
         -c, --current   Make no version of product current
-        -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
+        -f, --flavor    Use this flavor (default: `eups flavor` or $EUPS_FLAVOR)
         -V, --version   Print eups version number and exit
         -v, --verbose   Be chattier (repeat for even more chat)
         -Z, --database  Use this products directory (default: $EUPS_PATH)
@@ -892,7 +892,7 @@ Undeclares \code{version} of \code{product} from the database. Also
 removes any declarations of this version from \code{current.chain}; if
 you just want to stop any version from being declared current, use
 \code{--current}. The flavor is usually determined from the value
-of `eups\_flavor`, but can be set by the
+of `eups flavor`, but can be set by the
 environment variable \code{\$EUPS\_FLAVOR}; \code{-f} overrides
 both of these.
 
@@ -914,7 +914,7 @@ Options:
         -c, --current   Show current version
         -d  --directory Print product directory to stderr (useful with -s)
         -D, --only-dependencies Only setup dependencies, not this product	
-        -f, --flavor    Use this flavor (default: `eups\_flavor` or $EUPS_FLAVOR)
+        -f, --flavor    Use this flavor (default: `eups flavor` or $EUPS_FLAVOR)
         -F, --force     Force requested behaviour, even if product's already setup
         -i, --ignore-versions Ignore any explicit versions in table files
         -j, --just      Just setup product, no dependencies
@@ -1028,7 +1028,7 @@ Optional Variables -
 \begin{itemize}
   \item \code{EUPS\_FLAVOR}
     Set to the default flavor (if not set \eups{} will use the value returned
-    by \code{eups\_flavor}).
+    by \code{eups flavor}).
 
   \item \code{EUPS\_DEBUG}
     This sets the verbosity; equal to the difference between the number of \code{-v}s
@@ -1294,7 +1294,7 @@ variables are defined;
     
 	\item{\code{--with-flavor=XXX}}
         Set the value of \code{EUPS\_FLAVOR}
-        (default: \code{\$EUPS\_FLAVOR}, or the value returned by \code{eups\_flavor}
+        (default: \code{\$EUPS\_FLAVOR}, or the value returned by \code{eups flavor}
 	or, failing \textbf{that}, uname).
     \end{itemize}
 \end{itemize}
@@ -1475,7 +1475,7 @@ eups distrib --install -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
 \subsection{Using `Build Files' with \eups{}}
 \label{buildFiles}
 
-This isn't an integral part of eups, but it can be very useful in conjunction with \code{eups\_distrib}.
+This isn't an integral part of eups, but it can be very useful in conjunction with \code{eups distrib}.
 
 The work of installing a package frequently reduces to a stereotyped set of operations;
 for each dependency you type:
