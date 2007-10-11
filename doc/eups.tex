@@ -626,7 +626,24 @@ on your products directory, flavor, product and version; alternatively,
 if you omit both \code{product} and \code{version}, but provide \code{-r dir},
 the product and version will be guessed from the last two parts of the directory
 name (e.g. \code{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
-declaring version \code{v2\_1\_6} of product \code{xpa}).
+declaring version \code{v2\_1\_6} of product \code{xpa}).  If you only omit
+the product, the product will be guessed from the name of the table file
+present in the root directory. For example, the following are all equivalent:
+\begin{verbatim}
+  eups declare -r /u/lsst/products/DarwinX86/foo/1.2.3 foo 1.2.3
+  eups declare -r /u/lsst/products/DarwinX86/foo/1.2.3 1.2.3
+  eups declare -r /u/lsst/products/DarwinX86/foo/1.2.3
+\end{verbatim}
+(assuming that the file \code{/u/lsst/products/DarwinX86/foo/1.2.3/ups/foo.table}
+exists). You may need to specify the version, e.g.
+\begin{verbatim}
+  eups declare -r /u/rhl/foo
+\end{verbatim}
+tries to declare version \code{foo} of product \code{rhl}; this will fail as
+there is presumably no file \code{/u/rhl/foo/ups/rhl.table}.  You needed to say
+\begin{verbatim}
+  eups declare -r /u/rhl/foo myVersion
+\end{verbatim}
 
 You may specify \code{-r none}, in which case you don't have any files; this
 is only permitted if you also specify \code{-M} to provide a table file.  This
