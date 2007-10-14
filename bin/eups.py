@@ -7,6 +7,9 @@ import os
 import re
 import sys
 
+if not os.environ.has_key('SHELL'):
+    os.environ['SHELL'] = '/bin/sh'
+
 def current(product="", dbz="", flavor = ""):
     """Return the current version of a product; if product is omitted,
     return a list of (product, version) for all products"""
