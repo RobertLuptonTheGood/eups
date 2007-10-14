@@ -716,8 +716,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 
         if info and len(info) > 0 and info[0] != "LOCAL":
             if current:
-                eups.declare(flavor, dbz, tablefile, products_root, None, 
-                             product, version, current, noaction)
+                eups.declareCurrent(flavor, dbz, product, version, noaction)
                 continue
             else:
                 print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \

@@ -49,7 +49,8 @@ def _current_or_setup(characteristic, product="", dbz="", flavor = ""):
 
 def declare(flavor, dbz, tablefile, products_root, product_dir, product, version, declare_current = False,
             noaction = False):
-    """Declare a product.  product_dir may be None to just declare the product current"""
+    """Declare a product.  product_dir may be None to just declare the product current (or
+    use declareCurrent)"""
 
     opts = ""
     if declare_current:
@@ -79,6 +80,12 @@ def declare(flavor, dbz, tablefile, products_root, product_dir, product, version
     except:
         print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
               (product, version, flavor)
+
+def declareCurrent(flavor, dbz, product, version, noaction = False):
+    """Declare a product current"""
+
+    declare(flavor, dbz, None, None, None, product, version, declare_current=True,
+            noaction=noaction)
 
 def dependencies(product, version, dbz="", flavor=""):
     """Return a product's dependencies in the form of a list of tuples
@@ -235,6 +242,8 @@ def directory(product, version="current", dbz = "", flavor = ""):
         return vals[2]
     else:
         None
+
+productDir = directory                  # provide an alias
 
 def isCurrent(product, version, dbz = "", flavor = ""):
     """Return True iff the the specified product and version is current"""
