@@ -1382,7 +1382,7 @@ sub eups_list {
 	   foreach $file (glob(catfile($db,$prod,"*.version"))) {
 	       ($vers = basename($file)) =~ s/\.version$//;
 
-	       if ($version and $version ne $vers) {
+	       if ($version and !eups_version_match($vers, $version)) {
 		  next;
 	       }
 	       
