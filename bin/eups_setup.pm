@@ -1345,12 +1345,14 @@ sub eups_list {
    # Did they specify a product?
    #
    my($one_product) = 1;	# did they just ask about one product?
-   if (!$prod) {
+   my($setup_prod_dir);
+   if ($prod) { 
+      $setup_prod_dir = $ENV{uc($prod) . "_DIR"};
+   } else {
       $one_product = 0;
    }
 
    #Determine database
-   my($setup_prod_dir) = $ENV{uc($prod) . "_DIR"};
 
    my($printed_current) = 0; # did I print current/directory/tablefile for them?
    foreach $root (eups_find_roots()) {
@@ -1379,6 +1381,7 @@ sub eups_list {
 	   
 	   # Look through directory searching for version files
 
+	   $setup_prod_dir = $ENV{uc($prod) . "_DIR"};
 	   foreach $file (glob(catfile($db,$prod,"*.version"))) {
 	       ($vers = basename($file)) =~ s/\.version$//;
 
