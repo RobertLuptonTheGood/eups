@@ -49,8 +49,10 @@ sub sete {
        return;
     }
 
-    if ($val =~ /\$/) {
-	warn "Variable ${key}'s value \"$val\" contains unexpanded variables\n";
+    if ($val =~ /\${?([a-zA-Z_0-9]+)/) {
+       my($var) = $1;
+       warn "Variable ${key}'s value \"$val\" contains unexpanded variable \$$var\n"
+	   if ($debug > 2 || !defined($ENV{$var}));
     }
 
     if ($shell eq "sh") {
