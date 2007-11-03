@@ -1069,7 +1069,7 @@ sub eups_version_match($$) {
    for ($i = 0; $i < $nprim; $i++) {
       if ($expr[$i] =~ /$relop_re/o) {
 	 $op = $expr[$i++]; $v = $expr[$i];
-      } elsif ($expr[$i] =~ /^[a-zA-Z0-9_.]+$/) {
+      } elsif ($expr[$i] =~ /^[-+a-zA-Z0-9_.]+$/) {
 	 $op = "==";
 	 $v = $expr[$i];
       } elsif ($expr == "||") {
