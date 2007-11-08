@@ -876,8 +876,17 @@ sub find_best_version(\@$$$$$) {
 	  foreach $root (@{$roots}) {
 	     my($dir) = catfile($root, 'ups_db', $prod);
 	     if (opendir(DFD, $dir)) {
-		my(@versions) = grep(s/^(.*)\.(chain|version)$/\1/, readdir(DFD));
-		closedir DFD;
+		my(@versions, $file);
+		foreach $file (readdir(DFD)) {
+		   if ($file =~ /^(.*)\.version$/) {
+		      my($prod_dir, $table_file) = read_version_file($root, "$dir/$file", $prod, $flavor, 0, 1);
+		      if (not $prod_dir) {
+			 next;
+		      }
+		      
+		      push(@versions, $1);
+		   }
+		}
 
 		@versions = reverse sort by_version_cmp @versions; # so we\'ll try the latest version first
 
