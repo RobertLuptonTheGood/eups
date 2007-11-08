@@ -96,6 +96,11 @@ if (defined($$options{-r})) {
 	 $prod_dir = catfile(getcwd(), $prod_dir);
       }
 
+      # handle "-r ../../foo"
+      while ($prod_dir =~ s|[^/]+/\.\./||) {
+	 ;
+      }
+      
       $$options{-r} = $prod_dir;
    }
 }
