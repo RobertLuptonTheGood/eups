@@ -1445,24 +1445,25 @@ sub eups_list {
    }
 
    if ($one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
-      if ($just_directory) {
-	 print $outfile "echo \"$setup_prod_dir\"\n";
-      } elsif ($just_tablefile) {
-	 my($table_file) = "$setup_prod_dir/ups/$prod.table"; # just an inspired guess
-	 if (! -f $table_file) {
-	    if ($debug > $quiet) {
-	       warn "I don't see $prod.table in LOCAL:$setup_prod_dir/ups\n";
+      if (!$setup_prod_dir) {
+	 warn "I don't know anything about product \"$prod\"\n";
+      } else {			# yes; it's setup
+	 if ($just_directory) {
+	    print $outfile "echo \"$setup_prod_dir\"\n";
+	 } elsif ($just_tablefile) {
+	    my($table_file) = "$setup_prod_dir/ups/$prod.table"; # just an inspired guess
+	    if (-f $table_file) {
+	       print $outfile "echo \"$table_file\"\n";
 	    }
-	 }
-	 print $outfile "echo \"$table_file\"\n";
-      } else {
-	 my($info) = "\t\t Setup";
-	 $vers = sprintf("%-10s", "LOCAL");
-	 if ($debug) {
-	    $vers .= sprintf("\t%-20s\t%-30s", "LOCAL", $setup_prod_dir);
-	 }
-	 print $outfile "echo \"$msg   ${vers}$info\"\n";
-      } 
+	 } else {
+	    my($info) = "\t\t Setup";
+	    $vers = sprintf("%-10s", "LOCAL");
+	    if ($debug) {
+	       $vers .= sprintf("\t%-20s\t%-30s", "LOCAL", $setup_prod_dir);
+	    }
+	    print $outfile "echo \"$msg   ${vers}$info\"\n";
+	 } 
+      }
    }
 }
 
