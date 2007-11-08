@@ -1364,7 +1364,9 @@ sub eups_list {
    #Determine database
 
    my($printed_current) = 0; # did I print current/directory/tablefile for them?
-   my($found_prod_dir) = 0;	# Have I found the product_dir somewhere on EUPS_PATH?
+   my($found_prod_dir) = 0;	# Have I found the setup PRODUCT_DIR somewhere on EUPS_PATH?
+   my($found_product) = 0; # Have I found a reference to the requested product?
+   
    foreach $root (eups_find_roots()) {
        $db = catfile($root, 'ups_db');
 
@@ -1403,6 +1405,7 @@ sub eups_list {
 	       if (not $prod_dir) {
 		   next;
 	       }
+	       $found_product = 1;
 	       
 	       $info = "";
 	       if ($current_vers && $vers eq $current_vers) {
@@ -1454,8 +1457,10 @@ sub eups_list {
    }
 
    if ($one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
-      if (!$setup_prod_dir) {
-	 warn "I don't know anything about product \"$prod\"\n";
+      if (!$setup_prod_dir) {		# not setup in environment
+	 if (!$found_product) {
+	    warn "I don't know anything about product \"$prod\"\n";
+	 }
       } else {			# yes; it's setup
 	 if ($just_directory) {
 	    print $outfile "echo \"$setup_prod_dir\"\n";
