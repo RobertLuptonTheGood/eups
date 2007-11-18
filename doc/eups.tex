@@ -1202,7 +1202,7 @@ name should sort later --- hence \code{1.2+bugfix}.
 Here are some examples:
 
 \begin{tabular}{l|l|r|l}%
-$v_1$ & $v_2$ & compar & notes \\
+V1 & V2 & compar & notes \\
 \hline
 aa & aa & 0 & \\
 aa.2 & aa.1 & +1 & Sort components numerically \\
@@ -1212,8 +1212,8 @@ aa.2.1 & aa.3 & -1 & \\
 aa.2.b & aa.2.a & +1 & Sort components lexicographically \\
 aa.2.b & aa.2.c & -1 & \\
 v1\_0\_3 & a1.0.2 & -1 & Mismatching prefixes always sort to the left \\
-v1\_0\_0 & 1.0.2 & -1 & Only $v_1$ has a prefix \\
-1\_0\_0 & v1.0.2 & -1 & Only $v_2$ has a prefix\\
+v1\_0\_0 & 1.0.2 & -1 & Only V1 has a prefix \\
+1\_0\_0 & v1.0.2 & -1 & Only V2 has a prefix\\
 v1\_0\_2 & v1.0.0 & +1 & You can mix \code{.} and \code{\_} \\
 v1.2.3 & v1.2.3-a & +1 & primary parts are identical, so secondary is examined \\
 v1.2-0 & v1.2.3 & -1 & primary parts differ, so secondary parts are ignored \\
@@ -1222,8 +1222,8 @@ v1.2-4 & v1.2.3 & -1 & primary parts differ, so secondary parts are ignored \\
 1-rc2+a & 1-rc2+b & -1 & sort is on tertiary \\
 \end{tabular}
 
-(Here compar is the value that C's \code{qsort} would use;  -1 if $v_1$ is less
-than $v_2$; 0 if they're equal; +1 if $v_1 > v_2$).
+(Here compar is the value that C's \code{qsort} would use;  -1 if V1 is less
+than V2; 0 if they're equal; +1 if V1 \code{>} V2).
 
 \subsubsection{Obsolete table commands}
 
