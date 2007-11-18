@@ -70,9 +70,10 @@ EOF
 	          @p=split(":");
 		  if($n ne "") {
 		     if ($n < 0) { $n += @p; }
-		     @p = $p[$n];
-		  }
-		  print "\t".join("\n\t", @p)."\n"'
+		     print "$p[$n]\n";
+		  } else {
+		     print "\t".join("\n\t", @p)."\n";
+		  }'
 		  ;;
  setup|unsetup)
     case $1 in
