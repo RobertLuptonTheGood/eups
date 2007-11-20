@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- python -*-
 #
 # Export a product and its dependencies as a package, or install a
 # product from a package
@@ -97,17 +98,31 @@ def install_from_tarball(products_root, package_base, tarball):
 #
 # Handle distribution via cvs/svn and explicit build files
 #
-def write_builder(basedir, product_dir, package_base, product, version):
+def write_builder(basedir, product_dir, package_base, product, version, buildFilePath):
     """Given a buildfile (which contains information about its' CVS/SVN root,
     write a small file to the manifest directory allowing us to bootstrap the
-    build"""
+    build.  The build file is looked for in buildFilePath, a : separated set of
+    directories ("@" -> the installed product's ups directory)"""
 
-    buildFile = os.path.join(basedir, product_dir, "ups", "%s.build" % product)
-    
-    if verbose:
-        print "Using build file %s" % (buildFile)
-    
     builder = "%s-%s.build" % (product, version)
+
+    foundIt = False
+    for bd in buildFilePath.split(":"):
+        if bd == "@":
+            buildFile = os.path.join(basedir, product_dir, "ups", "%s.build" % product)
+        else:
+            buildFile = os.path.join(bd, "%s.build" % product)
+
+        if os.path.exists(buildFile):
+            foundIt = True
+            break;
+
+    if foundIt:
+        if verbose:
+            print "Using build file %s" % (buildFile)
+    else:
+        print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
+        sys.exit(1)
 
     if os.access("%s/%s" % (package_base, builder), os.R_OK) and not force:
         if verbose > 0:
@@ -118,7 +133,24 @@ def write_builder(basedir, product_dir, package_base, product, version):
         print >> sys.stderr, "Writing", builder
 
     try:
-        shutil.copyfile(buildFile, os.path.join(package_base, builder))
+        full_builder = os.path.join(package_base, builder)
+        if False:
+            shutil.copyfile(buildFile, full_builder)
+        else:
+            try:
+                ifd = open(buildFile)
+            except IOError, e:
+                print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
+                sys.exit(1)
+
+            try:
+                ofd = open(full_builder, "w")
+            except IOError, e:
+                print >> sys.stderr, "Failed to open file \"%s\" for write" % full_builder
+                sys.exit(1)
+
+            eups.expandBuildFile(ofd, ifd, product, version, verbose)
+            del ifd; del ofd
     except IOError, param:
         print >> sys.stderr, "Failed to write %s/%s: %s" % (package_base, builder, param)
         try:
@@ -158,7 +190,7 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     #
     (cvsroot, svnroot, url) = get_root_from_buildfile(tfile)
     if not (cvsroot or svnroot or url):
-        print >> sys.stderr, "Unable to find a cvs/svn root or wget/curl command in %s" % (tfile)
+        print >> sys.stderr, "Unable to find a {cvs,svn}root or wget/curl command in %s" % (tfile)
         sys.exit(1)
     #
     # Prepare to actually do some work
@@ -192,7 +224,7 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         print "Issuing commands:"
         print "\t", str.join("\n\t", cmd)
         
-    os.system(str.join("\n", cmd))
+    return os.system(str.join("\n", cmd))
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -458,8 +490,8 @@ def create_distrib(top_product, top_version, dbz, flavor,
 
         if pacman:
             distID = use_pacman_cache(product, version)
-        elif useBuildFiles:
-            distID = write_builder(basedir, product_dir, package_base, product, version)
+        elif buildFilePath:
+            distID = write_builder(basedir, product_dir, package_base, product, version, buildFilePath)
         else:
             distID = write_tarball(basedir, product_dir, package_base, product, version)
 
@@ -746,8 +778,8 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         if method == "pacman":
             install_from_pacman(products_root, cacheID)
         elif method == "build":
-            install_from_builder(setups, products_root, package_base, cacheID, tmp_dir)
-            setups += ["setup %s %s" % (product, version)]
+            if install_from_builder(setups, products_root, package_base, cacheID, tmp_dir) == 0:
+                setups += ["setup %s %s" % (product, version)]
         else:
             install_from_tarball(products_root, package_base, distID)
         #
@@ -780,7 +812,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 #
 options = dict([
     ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
-    ["-B", (False, "--build", "Use product's build files")],
+    ["-B", (True,  "--build", "Search for build file on this :-separated path\n\t\t(@ -> product's installed ups directory)")],
     ["-C", (False, "--current", "Create a list of current versions which -i can use")],
     ["-c", (False, "--create", "Create a package for distribution")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
@@ -815,7 +847,8 @@ if opts.has_option('-h'):
     opts.usage()
     sys.exit(0)
 
-useBuildFiles = opts.has_option('-B')
+if opts.has_option('-B'):
+    buildFilePath = opts.options['-B']
 
 preferFlavor = opts.has_option('-b')
 current = opts.has_option('-C')
