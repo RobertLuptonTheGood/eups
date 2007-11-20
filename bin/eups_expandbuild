@@ -52,13 +52,16 @@ if opts.has_option('-p'):
 
 svnroot = None
 if opts.has_option('-s'):
-    svnroot= opts.options['-s']
+    svnroot = opts.options['-s']
 
 verbose = opts.has_option('-v')
 
 version = None
 if opts.has_option('-V'):
     version = opts.options['-V']
+else:
+    print >> sys.stderr, "Please specify a version with --version or -V"
+    sys.exit(1)
     
 if len(opts.argv) == 0:
     print >> sys.stderr, "Please specify a build file"
@@ -72,8 +75,9 @@ if len(opts.argv) == 0:
 else:
     outdir = opts.argv[0]
     opts.argv = opts.argv[1:]
+
 #
-# Done with argument parsing; deal with IO
+# Actually open the file and do the work
 #
 try:
     ifd = open(buildFile)
@@ -93,87 +97,18 @@ if outdir:
         sys.exit(1)
 else:
     ofd = sys.stdout
-#
-# A series of functions to set/guess the values that we'll be substituting
-# into the build file
+
+
 #
 # Guess the value of PRODUCT
 #
-def guess_product(product, buildFile):
-    if product:
-        pass
-    else:
-        mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
-        if mat:
-            product = mat.group(1)
-
-    return product    
+if product:
+    pass
+else:
+    mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
+    if mat:
+        product = mat.group(1)
 #
-# Guess the value of CVSROOT
+# Actually do the work
 #
-def guess_cvsroot(cvsroot):
-    if cvsroot:
-        pass
-    elif os.environ.has_key("CVSROOT"):
-        cvsroot = os.environ["CVSROOT"]
-    elif os.path.isdir("CVS"):
-        try:
-            rfd = open("CVS/Root")
-            cvsroot = re.sub(r"\n$", "", rfd.readline())
-            del rfd
-        except IOError, e:
-            print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
-
-    return cvsroot    
-#
-# Guess the value of SVNROOT
-#
-def guess_svnroot(svnroot):
-    if svnroot:
-        pass
-    elif os.path.isdir(".svn"):
-        try:
-            rfd = os.popen("svn info .svn")
-            for line in rfd:
-                mat = re.search(r"^Repository Root: (\S+)", line)
-                if mat:
-                    svnroot = mat.group(1)
-                    break
-            del rfd
-        except IOError, e:
-            print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
-
-    return svnroot
-#
-# Guess the value of SVNROOT
-#
-def guess_version(version):
-    if version:
-        return version
-
-    print >> sys.stderr, "I can't expand @VERSION@; please specify a version with --version or -V"
-    sys.exit(1)
-    
-#
-# Here's the function to do the substitutions
-#
-subs = {}                               # dictionary of substitutions
-subs["CVSROOT"] = guess_cvsroot(cvsroot)
-subs["SVNROOT"] = guess_svnroot(svnroot)
-subs["PRODUCT"] = guess_product(product, buildFile)
-subs["VERSION"] = guess_version(version)
-
-def subVar(name):
-    var = name.group(1).upper()
-    if subs.has_key(var):
-        return subs[var]
-    return "XXX"
-#
-# Actually read the file and do the work
-#
-for line in ifd:
-    # Attempt substitutions
-    line = re.sub(r"@([^@]+)@", subVar, line)
-
-    print >> ofd, line,
-    
+eups.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)

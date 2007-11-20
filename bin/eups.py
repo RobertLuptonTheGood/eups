@@ -445,4 +445,69 @@ Options:""" % self.msg
             if self.cmd_aliases.has_key(opt):
                 print >> sys.stderr, "                         Alias%s:" % \
                       (len(self.cmd_aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(self.cmd_aliases[opt])
+#
+# Expand a build file
+#
+def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None):
+    """Expand a build file, reading from ifd and writing to ofd"""
+    #
+    # A couple of functions to set/guess the values that we'll be substituting
+    # into the build file
+    #
+    # Guess the value of CVSROOT
+    #
+    def guess_cvsroot(cvsroot):
+        if cvsroot:
+            pass
+        elif os.environ.has_key("CVSROOT"):
+            cvsroot = os.environ["CVSROOT"]
+        elif os.path.isdir("CVS"):
+            try:
+                rfd = open("CVS/Root")
+                cvsroot = re.sub(r"\n$", "", rfd.readline())
+                del rfd
+            except IOError, e:
+                print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
 
+        return cvsroot    
+    #
+    # Guess the value of SVNROOT
+    #
+    def guess_svnroot(svnroot):
+        if svnroot:
+            pass
+        elif os.path.isdir(".svn"):
+            try:
+                rfd = os.popen("svn info .svn")
+                for line in rfd:
+                    mat = re.search(r"^Repository Root: (\S+)", line)
+                    if mat:
+                        svnroot = mat.group(1)
+                        break
+                del rfd
+            except IOError, e:
+                print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
+
+        return svnroot
+    #
+    # Here's the function to do the substitutions
+    #
+    subs = {}                               # dictionary of substitutions
+    subs["CVSROOT"] = guess_cvsroot(cvsroot)
+    subs["SVNROOT"] = guess_svnroot(svnroot)
+    subs["PRODUCT"] = product
+    subs["VERSION"] = version
+
+    def subVar(name):
+        var = name.group(1).upper()
+        if subs.has_key(var):
+            return subs[var]
+        return "XXX"
+    #
+    # Actually do the work
+    #
+    for line in ifd:
+        # Attempt substitutions
+        line = re.sub(r"@([^@]+)@", subVar, line)
+
+        print >> ofd, line,
