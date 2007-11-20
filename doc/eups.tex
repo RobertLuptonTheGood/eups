@@ -676,7 +676,8 @@ only updates the current.chain.
 Usage:
    eups distrib [opts] [product [version]]
 Options:
-   -B, --build     arg   Use specified build file (@ => use product's installed build file)
+   -B, --build           Search for build files on this :-separated path
+                         (@ -> product's installed ups directory)
    -b, --prefer-flavor   Prefer distributions that are flavor-specific
    -C, --current         Create a list of current versions which -i can use
    -c, --create          Create a package for distribution
@@ -1495,14 +1496,14 @@ another is to write simple `build files'.  The former is far more sophisticated
 and bullet-proof; the latter is simpler.
 
 If you put a file \code{prod.build} in \code{prod/ups} and install it along
-with the table file, \code{eups distrib --build buildFilePath --create} will set things up
-so that a subsequent \code{eups distrib --install} will copy the build files
+with the table file, \code{eups distrib --build @ --create} will set things up
+so that a subsequent \code{eups distrib --install} will copy the build file
 to the new machine and execute it;  if you have a set of dependent products
-they will be executed in the proper order.
-
-The \code{buildFilePath} is a standard \code{:}-separated unix path; the entry
-\code{@} means, ``The product's installed ups directory''.  A common choice
-would be \code{--build .:@}.
+they will be executed in the proper order.  By default, the products will be downloaded
+and built in \code{EupsBuildDir} in a flavor subdirectory of your \code{\$EUPS\_PATH};
+e.g. \code{/u/act/Products/DarwinX86/EupsBuildDir} (but you can change this with
+the \code{-T} flag). The build files are put in the same place, in case you want
+to look at them or fix buglets (simply say \code{sh prod-1.2.3.build}).
 
 At their simplest, build files could simply
 be the commands that you'd type (such as those listed above); \eups{} will take

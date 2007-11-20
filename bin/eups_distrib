@@ -173,7 +173,7 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         sys.exit(1)
 
     if not build_dir:
-        build_dir = os.path.join(products_root, "build")
+        build_dir = os.path.join(products_root, "EupsBuildDir")
 
     if not os.path.isdir(build_dir):
         if not noaction:
@@ -818,7 +818,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 #
 options = dict([
     ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
-    ["-B", (True,  "--build", "Search for build file on this :-separated path\n\t\t(@ -> product's installed ups directory)")],
+    ["-B", (True,  "--build", "Search for build files on this :-separated path\n\t\t(@ -> product's installed ups directory)")],
     ["-C", (False, "--current", "Create a list of current versions which -i can use")],
     ["-c", (False, "--create", "Create a package for distribution")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
