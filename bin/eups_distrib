@@ -184,6 +184,8 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     
     if verbose > 0:
         print >> sys.stderr, "Building %s in %s" % (builder, build_dir)
+
+    shutil.copy2(tfile, os.path.join(build_dir, builder))
     #
     # Does this build file look OK?  In particular, does it contain a valid
     # CVS/SVN location?
