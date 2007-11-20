@@ -156,9 +156,9 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     # Does this build file look OK?  In particular, does it contain a valid
     # CVS/SVN location?
     #
-    (cvsroot, svnroot) = get_root_from_buildfile(tfile)
-    if not (cvsroot or svnroot):
-        print >> sys.stderr, "Unable to find a cvs/svn root in %s" % (tfile)
+    (cvsroot, svnroot, url) = get_root_from_buildfile(tfile)
+    if not (cvsroot or svnroot or url):
+        print >> sys.stderr, "Unable to find a cvs/svn root or wget/curl command in %s" % (tfile)
         sys.exit(1)
     #
     # Prepare to actually do some work
@@ -323,6 +323,9 @@ def find_file(filename, packagePath=None):
         for loc in locs:
             try:
                 (tfile, msg) = file_retrieve("%s%s/%s" % (package_base, loc, filename), transport)
+                package_base = "%s%s" % (package_base, loc)
+                if verbose > 0:
+                    print >> sys.stderr, "Found %s in %s" % (filename, package_base)
                 break
             except RuntimeError:
                 pass
@@ -357,10 +360,10 @@ def find_file(filename, packagePath=None):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def get_root_from_buildfile(buildFile):
-    """Given the name of a buildfile, return (cvsroot, svnroot);
+    """Given the name of a buildfile, return (cvsroot, svnroot, url);
     presumably only one will be valid"""
 
-    cvsroot = None; svnroot = None
+    cvsroot = None; svnroot = None; url = None
 
     try:
         fd = open(buildFile)
@@ -381,7 +384,13 @@ def get_root_from_buildfile(buildFile):
                 if verbose:
                     print >> sys.stderr, "Unknown root type:", line,
 
-    return (cvsroot, svnroot)
+            continue
+
+        mat = re.search(r"^\s*(wget|curl)\s+(--?\S+\s+)*\s*(\S*)", line)
+        if mat:
+            url = mat.group(3)
+
+    return (cvsroot, svnroot, url)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
