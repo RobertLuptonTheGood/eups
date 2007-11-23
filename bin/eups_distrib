@@ -455,8 +455,6 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if verbose > 1:
             print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
-        if product == "python":
-            print "XXX", eups.list(product, version, dbz, flavor)
         try:
             (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
         except KeyboardInterrupt:
@@ -615,7 +613,7 @@ def write_current(current, products, noaction = False):
 
 def create_current(top_product, top_version, dbz, flavor,
                    noaction, verbose):
-    """Create a list of packages that are declared current to eups_distrib"""
+    """Create a list of packages that are declared current to eups distrib"""
 
     current = "%s/%s" % (package_base, currentFile())
 
@@ -652,7 +650,7 @@ def create_current(top_product, top_version, dbz, flavor,
     if top_product and verbose:
         (product, version) = dp[0]
         assert (product == top_product)
-        print >> sys.stderr, "Declaring version %s of %s current to eups_depend" % (version, product)
+        print >> sys.stderr, "Declaring version %s of %s current to eups distrib" % (version, product)
     #
     # Now write the file containing current version info
     #
@@ -676,7 +674,7 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
             top_version = lookup_current_version(top_product, from_eups = False)
 
             if top_version == "":
-                print >> sys.stderr, ("No version of %s is declared current to eups_distrib\n" + \
+                print >> sys.stderr, ("No version of %s is declared current to eups distrib\n" + \
                       "Please specify a version or a manifest file with -m") % (top_product)
                 sys.exit(1)
 
