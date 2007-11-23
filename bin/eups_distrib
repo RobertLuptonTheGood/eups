@@ -5,7 +5,7 @@
 # product from a package
 #
 import atexit
-import os
+import os, stat
 import re, sys
 import tempfile
 import shutil
@@ -29,6 +29,21 @@ def system(cmd):
     else:
         if os.system(cmd) != 0:
             raise RuntimeError, cmd
+
+def copyfile(file1, file2):
+    """Like shutil.copy2, but don't fail copying a file onto itself"""
+
+    try:
+        stat1 = os.stat(file1)
+        stat2 = os.stat(file2)
+        if \
+               stat1[stat.ST_DEV] == stat2[stat.ST_DEV] and \
+               stat1[stat.ST_INO] == stat2[stat.ST_INO]:
+            return
+    except OSError:
+        pass
+
+    shutil.copy2(file1, file2)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -135,7 +150,7 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
     try:
         full_builder = os.path.join(package_base, builder)
         if False:
-            shutil.copyfile(buildFile, full_builder)
+            copyfile(buildFile, full_builder)
         else:
             try:
                 ifd = open(buildFile)
@@ -164,13 +179,12 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
 def install_from_builder(setups, products_root, package_base, builder, build_dir=None):
     """Setups is a list of setup commands needed to build this product"""
     
-    tfile = "%s/%s" % (package_base, builder)
-    if transport != LOCAL and not noaction:
-        (tfile, msg) = file_retrieve(tfile, transport)
+    tfile = find_file(builder)
 
-    if not noaction and not os.access(tfile, os.R_OK):
-        print >> sys.stderr, "Unable to read %s" % (tfile)
-        sys.exit(1)
+    if False:
+        if not noaction and not os.access(tfile, os.R_OK):
+            print >> sys.stderr, "Unable to read %s" % (tfile)
+            sys.exit(1)
 
     if not build_dir:
         build_dir = os.path.join(products_root, "EupsBuildDir")
@@ -185,15 +199,15 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     if verbose > 0:
         print >> sys.stderr, "Building %s in %s" % (builder, build_dir)
 
-    shutil.copy2(tfile, os.path.join(build_dir, builder))
+    copyfile(tfile, os.path.join(build_dir, builder))
     #
     # Does this build file look OK?  In particular, does it contain a valid
     # CVS/SVN location?
     #
     (cvsroot, svnroot, url) = get_root_from_buildfile(tfile)
     if not (cvsroot or svnroot or url):
-        print >> sys.stderr, "Unable to find a {cvs,svn}root or wget/curl command in %s" % (tfile)
-        sys.exit(1)
+        print >> sys.stderr, "Warning: unable to find a {cvs,svn}root or wget/curl command in %s; skipping" % (tfile)
+        return 0
     #
     # Prepare to actually do some work
     #
@@ -308,6 +322,8 @@ def createLocationList(filename, packagePath):
     locs = []
     if re.search('\.table$', filename):
         locs.append('/tables')
+    if re.search('\.build$', filename):
+        locs.append('/build')
     if preferFlavor:
         locs.extend(['/%s' % flavor, ''])
     else:
@@ -368,7 +384,7 @@ def find_file(filename, packagePath=None):
             filename = tfile
         else:
             print >> sys.stderr, \
-                     "Failed to find and retrive filename %s from %s" % \
+                     "Failed to find and retrieve filename %s from %s" % \
                      (filename, package_base)
             sys.exit(1)
     else:
@@ -507,7 +523,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 if verbose > 1:
                     print >> sys.stderr, "Copying %s to %s/%s-%s" % \
                           (fulltablename, tabledir, product, ptablefile)
-                shutil.copy2(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
+                copyfile(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
 
         products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
 
