@@ -139,7 +139,16 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
         print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
         sys.exit(1)
 
-    if os.access("%s/%s" % (package_base, builder), os.R_OK) and not force:
+    builderDir = os.path.join(package_base, "build")
+    if not os.path.isdir(builderDir):
+        try:
+            os.mkdir(builderDir)
+        except:
+            print >> sys.stderr, "Pacman failed to create %s" % (builderDir)
+            sys.exit(1)
+    
+    full_builder = os.path.join(builderDir, builder)
+    if os.access(full_builder, os.R_OK) and not force:
         if verbose > 0:
             print >> sys.stderr, "Not recreating", builder
         return builder
@@ -148,7 +157,6 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
         print >> sys.stderr, "Writing", builder
 
     try:
-        full_builder = os.path.join(package_base, builder)
         if False:
             copyfile(buildFile, full_builder)
         else:
@@ -167,9 +175,9 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
             eups.expandBuildFile(ofd, ifd, product, version, verbose)
             del ifd; del ofd
     except IOError, param:
-        print >> sys.stderr, "Failed to write %s/%s: %s" % (package_base, builder, param)
+        print >> sys.stderr, "Failed to write %s: %s" % (full_builder, param)
         try:
-            os.unlink("%s/%s" % (package_base, builder))
+            os.unlink(full_builder)
         except OSError:
             pass                        # probably didn't exist
         sys.exit(1)
@@ -994,7 +1002,7 @@ if not os.path.isdir(db + "/ups_db"):
     sys.exit(1)
 
 if not package_base:
-    package_base = str.join("/", [db, "packages", flavor])
+    package_base = os.path.join(db, "packages")
 #
 # To work
 #
