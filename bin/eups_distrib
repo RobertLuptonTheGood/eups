@@ -240,7 +240,7 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         print "Issuing commands:"
         print "\t", str.join("\n\t", cmd)
         
-    return os.system(str.join("\n", cmd))
+    system(str.join("\n", cmd))
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -294,7 +294,9 @@ def scpretrieve(file):
 
     tfile = os.tmpnam()
 
-    if os.system("scp %s %s" % (file, tfile)) != 0:
+    try:
+        system("scp %s %s" % (file, tfile))
+    except:
         print >> sys.stderr, "Failed to retrieve %s" % file
         sys.exit(1)
 
@@ -320,10 +322,12 @@ def createLocationList(filename, packagePath):
         packagePath = 'manifests'
     
     locs = []
-    if re.search('\.table$', filename):
-        locs.append('/tables')
     if re.search('\.build$', filename):
-        locs.append('/build')
+        locs.append('/builds')
+    elif re.search('\.manifest$', filename):
+        locs.append('/manifests')
+    elif re.search('\.table$', filename):
+        locs.append('/tables')
     if preferFlavor:
         locs.extend(['/%s' % flavor, ''])
     else:
@@ -534,7 +538,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
     # Time to write enough information to declare the products
     #
     if not manifest:
-        manifest = "%s/%s" % (package_base, manifestFile(top_product, top_version))
+        manifest = "%s/manifests/%s" % (package_base, manifestFile(top_product, top_version))
         
     if verbose > 0:
         print >> sys.stderr, "Manifest is", manifest
@@ -776,7 +780,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             info = []
 
         if info and len(info) > 0 and info[0] != "LOCAL":
-            if current:
+            if current and not force:
                 eups.declareCurrent(flavor, dbz, product, version, noaction)
                 continue
             else:
@@ -798,8 +802,12 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         if method == "pacman":
             install_from_pacman(products_root, cacheID)
         elif method == "build":
-            if install_from_builder(setups, products_root, package_base, cacheID, tmp_dir) == 0:
+            try:
+                install_from_builder(setups, products_root, package_base, cacheID, tmp_dir)
                 setups += ["setup %s %s" % (product, version)]
+            except Exception, e:
+                print >> sys.stderr, e
+                sys.exit(1);
         else:
             install_from_tarball(products_root, package_base, distID)
         #
