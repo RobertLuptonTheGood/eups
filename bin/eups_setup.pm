@@ -1458,7 +1458,7 @@ sub eups_list {
 
    if ($one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
       if (!$setup_prod_dir) {		# not setup in environment
-	 if (!$found_product) {
+	 if (!$found_product && !$quiet) {
 	    warn "I don't know anything about product \"$prod\"\n";
 	 }
       } else {			# yes; it's setup
@@ -1713,9 +1713,7 @@ sub eups_parse_argv
 	    $val = $ARGV[0]; shift @ARGV;
 	 }
 	 
-	 if ($opt eq "-q") {
-	    $ENV{"EUPS_DEBUG"}--;
-	 } elsif ($opt eq "-v") {
+	 if ($opt eq "-v") {
 	    $ENV{"EUPS_DEBUG"}++;
 	 } elsif ($opt eq "-V") {
 	    my($version) = &get_version();
@@ -1807,11 +1805,13 @@ sub eups_setshell {
 
 sub eups_show_options
 {
-   my($opts, $setup) = @_;	# $setup => options for [un]setup
+   my($opts, $command) = @_;	# "setup" => options for [un]setup etc.
 
    my $strings = {
        -h => "Print this help message",
-       -c => $setup ? "Show current version" : "[Un]declare this product current",
+       -c => ($command eq "setup") ? "Show current version" :
+	   (command eq "declare") ? "Declare this product current" :
+	       "Declare this product to not be current",
        -d => "Print product directory to stderr (useful with -s)",
        -D => "Only setup dependencies, not this product",
        -f => "Use this flavor. Default: \$EUPS_FLAVOR or \`eups_flavor\`",
@@ -1820,12 +1820,12 @@ sub eups_show_options
        -j => "Just setup product, no dependencies",
        -l => "List available versions (-v => include root directories)",
        -n => "Don\'t actually do anything",
-       -m => ($setup ? "Print name of" : "Use"). " table file (may be \"none\") Default: product.table",
-       -M => $setup ?
-	   "Setup the dependent products in this table file" :
-	   "Import the given table file directly into the database (may be \"-\" for stdin)",
-       -q => "Be extra quiet (the opposite of -v)",
-       -r => "Location of product being " . ($setup ? "setup" : "declared"),
+       -m => ($command eq "setup" ? "Print name of" : "Use"). " table file (may be \"none\") Default: product.table",
+	       -M => $command eq "setup" ?
+		   "Setup the dependent products in this table file" :
+		       "Import the given table file directly into the database (may be \"-\" for stdin)",
+       -q => "Be extra quiet",
+       -r => "Location of product being " . ($command eq "setup"? "setup" : $command . "d"),
        -s => "Show which version is setup",
        -t => "Specify type of setup (permitted values: build)",
        -v => "Be chattier (repeat for even more chat)",

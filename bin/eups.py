@@ -176,7 +176,7 @@ def flavor():
         return os.environ["EUPS_FLAVOR"]
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
 
-def list(product, version = "", dbz = "", flavor = ""):
+def list(product, version = "", dbz = "", flavor = "", quiet=False):
     """Return a list of declared versions of a product; if the
     version is specified, just return the properties of that version.
     The version may be "current" or "setup" to return the current
@@ -200,7 +200,7 @@ def list(product, version = "", dbz = "", flavor = ""):
         opts += " --flavor %s" % (flavor)
 
     result = []
-    for info in os.popen("eups list %s --verbose %s %s" % (opts, product, version)).readlines():
+    for info in os.popen("eups list %s --quiet --verbose %s %s" % (opts, product, version)).readlines():
         oneResult = re.findall(r"\S+", info)
 
         if len(oneResult) == 3:

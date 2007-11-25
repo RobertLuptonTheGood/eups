@@ -113,6 +113,7 @@ if (defined($$options{-t})) {
 $current = defined($$options{-c}) ? 1 : 0; # Only process "current" version (default, except for -l)
 $debug = $ENV{"EUPS_DEBUG"};
 $debug = 0 if ($debug eq "");
+$quiet = defined($$options{-q}) ? 1 : 0; # Be extra quiet
 $noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
 $just_directory = 0;
 $just_tablefile = 0;
@@ -231,7 +232,7 @@ if ($select eq "list") {
    if($build) {
       warn "Option --build makes no sense with --list and is ignored\n";
    }
-   eups_list($comm,$tmpfile,$debug,0,$current,$setup,$just_directory,$just_tablefile);
+   eups_list($comm,$tmpfile,$debug,$quiet,$current,$setup,$just_directory,$just_tablefile);
 } else {
    if($current) {
       warn "Option --current is always assumed and may be omitted\n";
@@ -245,7 +246,7 @@ if ($select eq "list") {
    if ($select eq "setup") {
       $retval = eups_setup($comm, $tmpfile, $no_dependencies,
 			   $only_dependencies, \%flags, $user_table_file,
-			   $debug, 0, 0, \%oldenv, $force);
+			   $debug, $quiet, 0, \%oldenv, $force);
       if ($retval < 0) {
 	 eups_unsetup($comm, $tmpfile, $no_dependencies, 
 		      $only_dependencies, \%flags, $user_table_file, $debug, 1);
@@ -255,7 +256,7 @@ if ($select eq "list") {
       }
    } elsif ($select eq "unsetup") {
       $retval = eups_unsetup($comm, $tmpfile, $no_dependencies,
-			     $only_dependencies, \%flags, $user_table_file, $debug, 0);
+			     $only_dependencies, \%flags, $user_table_file, $debug, $quiet);
       if ($retval < 0) {
 	 if ($debug >= 0) {
 	    print STDERR "FATAL ERROR: unsetup$comm failed\n";
@@ -340,5 +341,5 @@ CVS Version : $Name: not supported by cvs2svn $
 
 Usage: setup [options] [product [version]]
 EOT
-    eups_show_options($opts, 1);
+    eups_show_options($opts, "setup");
 }

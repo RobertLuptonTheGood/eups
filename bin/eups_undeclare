@@ -186,5 +186,5 @@ sub usage
 Usage:
    eups_undeclare [options] product version
 EOT
-    eups_show_options($opts);
+    eups_show_options($opts, "undeclare");
 }
