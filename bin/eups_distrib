@@ -139,7 +139,7 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
         print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
         sys.exit(1)
 
-    builderDir = os.path.join(package_base, "build")
+    builderDir = os.path.join(package_base, "builds")
     if not os.path.isdir(builderDir):
         try:
             os.mkdir(builderDir)
@@ -545,8 +545,16 @@ def create_distrib(top_product, top_version, dbz, flavor,
     #
     # Time to write enough information to declare the products
     #
+    manifestDir = os.path.join(package_base, "manifests")
+    if not os.path.isdir(manifestDir):
+        try:
+            os.mkdir(manifestDir)
+        except:
+            print >> sys.stderr, "Pacman failed to create %s" % (manifestDir)
+            sys.exit(1)
+    
     if not manifest:
-        manifest = "%s/manifests/%s" % (package_base, manifestFile(top_product, top_version))
+        manifest = os.path.join(manifestDir, manifestFile(top_product, top_version))
         
     if verbose > 0:
         print >> sys.stderr, "Manifest is", manifest
