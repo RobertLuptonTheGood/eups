@@ -1503,7 +1503,8 @@ they will be executed in the proper order.  By default, the products will be dow
 and built in \code{EupsBuildDir} in a flavor subdirectory of your \code{\$EUPS\_PATH};
 e.g. \code{/u/act/Products/DarwinX86/EupsBuildDir} (but you can change this with
 the \code{-T} flag). The build files are put in the same place, in case you want
-to look at them or fix buglets (simply say \code{sh prod-1.2.3.build}).
+to look at them or fix buglets (simply say \code{sh prod-1.2.3.build}).  If your
+verbosity is 3 or higher, the commands will be executed with \code{-v -x} set.
 
 At their simplest, build files could simply
 be the commands that you'd type (such as those listed above); \eups{} will take
@@ -1540,6 +1541,11 @@ the installed version (assuming that \code{\$(VERSION)} is
     make install  
 \end{verbatim}
 and everyone's happy.\footnote{
+  N.b. \code{eups distrib} is responsible for setting up products
+  for you, so if you source the build script by hand you'll first
+  have to issue appropriate setup commands by hand.}
+  }
+  \footnote{
 There's a subtlety here.  Imagine that we had a product \code{prod2}
 which depended on \code{prod1}.
 As we source each build file separately,

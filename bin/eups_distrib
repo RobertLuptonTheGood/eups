@@ -27,8 +27,9 @@ def system(cmd):
     if noaction:
         print cmd
     else:
-        if os.system(cmd) != 0:
-            raise RuntimeError, cmd
+        errno = os.system(cmd)
+        if errno != 0:
+            raise RuntimeError, ("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno >> 8)))
 
 def copyfile(file1, file2):
     """Like shutil.copy2, but don't fail copying a file onto itself"""
@@ -221,6 +222,9 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     #
     cmd = ["cd %s" % (build_dir)]
     cmd += setups
+
+    if verbose > 2:
+        cmd += ["set -vx"]
     #
     # Rewrite build file to replace any setup commands by "setup -j" as
     # we're not necessarily declaring products current, so we're setting
@@ -326,16 +330,7 @@ HTTPError = urllib2.HTTPError
 def createLocationList(filename, packagePath):
     """Create a list of places to look"""
     
-    if packagePath is None and re.search('\.manifest$', filename):
-        packagePath = 'manifests'
-    
     locs = []
-    if re.search('\.build$', filename):
-        locs.append('/builds')
-    elif re.search('\.manifest$', filename):
-        locs.append('/manifests')
-    elif re.search('\.table$', filename):
-        locs.append('/tables')
     if preferFlavor:
         locs.extend(['/%s' % flavor, ''])
     else:
@@ -374,6 +369,14 @@ def find_file(filename, packagePath=None):
 
     locs = createLocationList(filename, packagePath)
 
+    subDirs = [""]
+    if re.search('\.build$', filename):
+        subDirs += ['builds']
+    elif re.search('\.manifest$', filename):
+        subDirs += ['manifests']
+    elif re.search('\.table$', filename):
+        subDirs += ['tables']
+
     if verbose > 1:
         print >> sys.stderr, "Looking for %s in:" % (filename), \
               str.join("", map(lambda str: "\n   %s%s" % (package_base, str), locs))
@@ -383,14 +386,16 @@ def find_file(filename, packagePath=None):
     elif transport != LOCAL:
         tfile = None
         for loc in locs:
-            try:
-                (tfile, msg) = file_retrieve("%s%s/%s" % (package_base, loc, filename), transport)
-                package_base = "%s%s" % (package_base, loc)
-                if verbose > 0:
-                    print >> sys.stderr, "Found %s in %s" % (filename, package_base)
-                break
-            except RuntimeError:
-                pass
+            for sd in subDirs:
+                try:
+                    extended_package_base = "%s%s" % (package_base, loc)
+                    (tfile, msg) = file_retrieve(os.path.join(extended_package_base, sd, filename), transport)
+                    package_base = extended_package_base
+                    if verbose > 0:
+                        print >> sys.stderr, "Found %s in %s" % (filename, package_base)
+                    break
+                except RuntimeError:
+                    pass
 
         if tfile:
             filename = tfile
@@ -795,6 +800,8 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             info = []
 
         if info and len(info) > 0 and info[0] != "LOCAL":
+            setups += ["setup %s %s" % (product, version)]
+            
             if current and not force:
                 eups.declareCurrent(flavor, dbz, product, version, noaction)
                 continue
@@ -848,6 +855,9 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 
             eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
                          product, version, current, noaction)
+        else:                           # we may still need to declare it current
+            if current:
+                eups.declareCurrent(flavor, dbz, product, version, noaction)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
