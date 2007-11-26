@@ -677,9 +677,8 @@ def create_current(top_product, top_version, dbz, flavor,
         except:
             print >> sys.stderr, "WARNING: failed to find a version \"%s\" of product %s" % \
                   (top_version, top_product)
-
     else:
-        dp = eups.current(top_product, dbz, flavor)
+        dp = [(top_product, eups.current(top_product, dbz, flavor))]
         
     products += dp
 
