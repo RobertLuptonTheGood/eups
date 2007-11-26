@@ -101,11 +101,12 @@ def dependencies(product, version, dbz="", flavor=""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    productList = os.popen("eups_setup setup %s -n --verbose %s %s 2>&1 1> /dev/null" % \
+    productList = os.popen("eups_setup setup %s -n --verbose --verbose %s %s 2>&1 1> /dev/null" % \
                     (opts, product, version)).readlines()
 
     dep_products = {}
     deps = []
+    productList.reverse()               # we want to keep the LAST occurrence
     for line in productList:
         if re.search("^FATAL ERROR:", line):
             raise RuntimeError, ("Fatal error setting up %s:" % (product), "\t".join(["\n"] + productList))
@@ -124,6 +125,8 @@ def dependencies(product, version, dbz="", flavor=""):
         dep_products[oneProduct] = versionHash
 
         deps += [oneDep]
+
+    deps.reverse()               # we reversed productList to keep the last occurence; switch back
 
     return deps
 
