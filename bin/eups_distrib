@@ -44,6 +44,11 @@ def copyfile(file1, file2):
     except OSError:
         pass
 
+    try:
+        os.unlink(file2)
+    except OSError:
+        pass
+
     shutil.copy2(file1, file2)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
