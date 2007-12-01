@@ -435,7 +435,8 @@ Options:""" % self.msg
             else:
                 return 1
 
-        for opt in sorted(self.cmd_options.keys(), cmp = asort):
+        skeys = self.cmd_options.keys(); skeys.sort(asort) # python <= 2.3 doesn't support "sorted"
+        for opt in skeys:
             optstr = "%2s%1s %s" % \
                      (opt,
                       (not self.cmd_options[opt][1] and [""] or [","])[0],
