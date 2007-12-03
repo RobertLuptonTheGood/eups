@@ -1686,6 +1686,10 @@ sub show_product_version
 	     '--verbose',	'-v',
 	     );
 
+%aliasopts = (
+	      '-C', '-c',
+	      );
+
 sub eups_parse_argv
 {
    my($opts, $args, $words) = @_;
@@ -1700,6 +1704,9 @@ sub eups_parse_argv
       
       if (defined($longopts{$opt})) {
 	 $opt = $longopts{$opt};
+      }
+      if (defined($aliasopt{$opt})) {
+	 $opt = $aliasopt{$opt};
       }
       
       if ($opt eq "-h") {
@@ -1810,7 +1817,7 @@ sub eups_show_options
    my $strings = {
        -h => "Print this help message",
        -c => ($command eq "setup") ? "Show current version" :
-	   (command eq "declare") ? "Declare this product current" :
+	   ($command eq "declare") ? "Declare this product current" :
 	       "Declare this product to not be current",
        -d => "Print product directory to stderr (useful with -s)",
        -D => "Only setup dependencies, not this product",
@@ -1823,7 +1830,7 @@ sub eups_show_options
        -m => ($command eq "setup" ? "Print name of" : "Use"). " table file (may be \"none\") Default: product.table",
 	       -M => $command eq "setup" ?
 		   "Setup the dependent products in this table file" :
-		       "Import the given table file directly into the database (may be \"-\" for stdin)",
+		       "Import the given table file directly into the database\n(may be \"-\" for stdin)",
        -q => "Be extra quiet",
        -r => "Location of product being " . ($command eq "setup"? "setup" : $command . "d"),
        -s => "Show which version is setup",
@@ -1838,9 +1845,16 @@ sub eups_show_options
       $rlongopts{$longopts{$key}} = $key;
    }
 
+   my(%aliases);
+   foreach $key (keys %aliasopts) {
+      if (defined($$opts{$aliasopts{$key}})) {
+	 $aliases{$key} = $aliasopts{$key};
+      }
+   }
+
    warn "Options:\n";
 
-   foreach $opt ("-h", sort {lc($a) cmp lc($b)} keys %$opts) {
+   foreach $opt ("-h", sort {lc($a) cmp lc($b)} (keys(%$opts), keys(%aliases))) {
       my($line) = "$opt";
       if (defined($rlongopts{$opt})) {
 	 $line .= ", $rlongopts{$opt}";
@@ -1849,8 +1863,16 @@ sub eups_show_options
 	 $line .= " arg";
       }
 	 
-      $line .= 
-      printf STDERR "\t%-20s\t$$strings{$opt}\n", "$line";
+      my($descrip) = $$strings{$opt};
+      if (!$descrip && defined($aliases{$opt})) {
+	 $descrip = "Alias for $aliases{$opt}";
+      }
+
+      my(@details) = split("\n", $descrip);
+      foreach (@details) {
+	 printf STDERR "\t%-20s\t$_\n", "$line";
+	 $line = "";
+      }
    }
 }
 
