@@ -50,7 +50,7 @@ def _current_or_setup(characteristic, product="", dbz="", flavor = ""):
 
     return products
 
-def declare(flavor, dbz, tablefile, products_root, product_dir, product, version, declare_current = False,
+def declare(product, version, flavor, dbz, tablefile, products_root, product_dir, declare_current = False,
             noaction = False):
     """Declare a product.  product_dir may be None to just declare the product current (or
     use declareCurrent)"""
@@ -84,11 +84,42 @@ def declare(flavor, dbz, tablefile, products_root, product_dir, product, version
         print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
               (product, version, flavor)
 
-def declareCurrent(flavor, dbz, product, version, noaction = False):
+def declareCurrent(product, version, flavor, dbz, noaction = False):
     """Declare a product current"""
 
-    declare(flavor, dbz, None, None, None, product, version, declare_current=True,
+    declare(product, version, flavor, dbz, None, None, None, declare_current=True,
             noaction=noaction)
+
+def undeclare(product, version, flavor=None, dbz=None, undeclare_current=False,
+              noaction = False):
+    """Undeclare a product."""
+
+    opts = ""
+    if undeclare_current:
+        opts += " -c"
+    if dbz:
+        opts += " -z %s" % dbz
+    if flavor:
+        opts += " --flavor %s" % flavor
+
+    try:
+        cmd = "eups_undeclare %s %s %s" % (opts, product, version)
+        if noaction:
+            print cmd
+        else:
+            if os.system(cmd) != 0:
+                raise RuntimeError, cmd
+    except KeyboardInterrupt:
+        raise
+    except:
+        print >> sys.stderr, "Failed to undeclare product %s (version %s, flavor %s)" % \
+              (product, version, flavor)
+
+def undeclareCurrent(flavor, dbz, product, version, noaction = False):
+    """Undeclare a product current"""
+
+    undeclare(product, version, flavor, dbz, undeclare_current=True,
+              noaction=noaction)
 
 def dependencies(product, version, dbz="", flavor=""):
     """Return a product's dependencies in the form of a list of tuples
@@ -287,8 +318,7 @@ def table(product, version, flavor = ""):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def version(versionString='$Name: not supported by cvs2svn $'):
-    """Set a version ID from env, or
-    a cvs or svn ID string (dollar name dollar or dollar HeadURL dollar)"""
+    """Return a version name based on a cvs or svn ID string (dollar name dollar or dollar HeadURL dollar)"""
 
     if re.search(r"^[$]Name:\s+", versionString):
         # CVS.  Extract the tagname
@@ -480,6 +510,8 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None):
     def guess_svnroot(svnroot):
         if svnroot:
             pass
+        elif os.environ.has_key("SVNROOT"):
+            cvsroot = os.environ["SVNROOT"]
         elif os.path.isdir(".svn"):
             try:
                 rfd = os.popen("svn info .svn")
@@ -490,7 +522,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None):
                         break
                 del rfd
             except IOError, e:
-                print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
+                print >> sys.stderr, "Tried to read \".svn\" but failed: %s" % e
 
         return svnroot
     #
@@ -505,7 +537,10 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None):
     def subVar(name):
         var = name.group(1).upper()
         if subs.has_key(var):
+            if not subs[var]:
+                raise RuntimeError, "I can't guess a %s for you; please set $%s" % (var, var)
             return subs[var]
+
         return "XXX"
     #
     # Actually do the work
