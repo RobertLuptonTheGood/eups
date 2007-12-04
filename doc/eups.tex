@@ -452,37 +452,6 @@ offers features not present in python's regular \code{getopt} module.
 To use \eups{} from python, you need to \code{import eups};
 \code{help(eups)} then reveals:
 \begin{verbatim}
-CLASSES
-    Getopt
-    
-    class Getopt
-     |  Methods defined here:
-     |  
-     |  __init__(self, options, argv=[''], aliases={}, msg=None)
-     |      A class to represent the processed command line arguments.
-     |      
-     |      options is a dictionary whose keys are is the short name of the option
-     |      (and the one that it'll be indexed as), and the value is a tuple; the
-     |      first element is a boolean specifying if the option takes a value; the
-     |      second (if not None) is a long alias for the option, and the third is
-     |      a help string.  E.g.
-     |          ["-i", (False, "--install", "Extract and install the specified package")],
-     |      
-     |      aliases is another dictionary, with values that specify additional long versions
-     |      of options; e.g.
-     |          ["-i", ["--extract"]],
-     |      
-     |      Options may be accessed as Getopt.options[], and non-option arguments as Getopt.argv[]
-     |      
-     |      msg is the help message associated with the command
-     |  
-     |  has_option(self, opt)
-     |      Whas the option "opt" provided
-     |  
-     |  usage(self)
-     |      Print a usage message based on the options list
-
-FUNCTIONS
     current(product='', dbz='', flavor='')
         Return the current version of a product; if product is omitted,
         return a list of (product, version) for all products
@@ -490,16 +459,29 @@ FUNCTIONS
     database(product, version='current', dbz='', flavor='')
         Return the database for the specified product and version
     
-    declare(flavor, dbz, tablefile, products_root, product_dir, product, version,
-            declare_current=False, noaction=False)
-        Declare a product
+    declare(product, version, flavor, dbz, tablefile, products_root, product_dir, declare_current=False, noaction=False)
+        Declare a product.  product_dir may be None to just declare the product current (or
+        use declareCurrent)
+    
+    declareCurrent(product, version, flavor, dbz, noaction=False)
+        Declare a product current
     
     dependencies(product, version, dbz='', flavor='')
         Return a product's dependencies in the form of a list of tuples
         (product, version, flavor)
     
+    dependencies_from_table(tableFile)
+        Return a list of tuples (product, version) that need to be
+        setup, given a table file.
+        
+        N.b. Note that conditionals aren't handled properly
+        N.b. This is the top-level requirements, it isn't computed recursively
+    
     directory(product, version='current', dbz='', flavor='')
         Return the PRODUCT_DIR for the specified product and version
+    
+    expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None)
+        Expand a build file, reading from ifd and writing to ofd
     
     flavor()
         Return the current flavor
@@ -510,7 +492,7 @@ FUNCTIONS
     isSetup(product, version, dbz='', flavor='')
         Return True iff the the specified product and version is setup
     
-    list(product, version='', dbz='', flavor='')
+    list(product, version='', dbz='', flavor='', quiet=False)
         Return a list of declared versions of a product; if the
         version is specified, just return the properties of that version.
         The version may be "current" or "setup" to return the current
@@ -521,6 +503,9 @@ FUNCTIONS
         (if only one version matches, the return is a single list; if no versions
         match, you'll get None)
     
+    productDir = directory(product, version='current', dbz='', flavor='')
+        Return the PRODUCT_DIR for the specified product and version
+    
     setup(product='', dbz='', flavor='')
         Return the setup version of a product; if product is omitted,
         return a list of (product, version) for all products
@@ -528,8 +513,16 @@ FUNCTIONS
     table(product, version, flavor='')
         Return the full path of a product's tablefile
     
-    version()
-        Return eups' current cvs version
+    undeclare(product, version, flavor=None, dbz=None, undeclare_current=False, noaction=False)
+        Undeclare a product.
+    
+    undeclareCurrent(flavor, dbz, product, version, noaction=False)
+        Undeclare a product current
+    
+    version(versionString='$Name: not supported by cvs2svn $')
+        Return a version name based on a cvs or svn ID string
+	(dollar name dollar or dollar HeadURL dollar); the
+	default is the \eups{} version.
 \end{verbatim}
 
 \appendix
@@ -563,6 +556,12 @@ for help with command "cmd"
   
 A consistent front-end to all the other \eups{} commands.  The commands
 starting \code{eups\_} will eventually go away, leaving only \code{eups}.
+
+There's no \code{eups setup} or \code{eups unsetup} as these actions
+modify your environment and are in fact aliases for commands
+that source files of \code{export ...} (or \code{setenv ...}) lines
+into your current shell.
+
 
 %------------------------------------------------------------------------------
 
@@ -688,6 +687,7 @@ Options:
                          Alias: --extract
    -j, --nodepend        Just install product, but not its dependencies
    -n, --noaction        Don't actually do anything
+   -N, --noeups          Don't loopup product in eups when creating a distribution
    -p, --pacman    arg   Use this pacman cache to install packages
    -r, --root      arg   Location of manifests and tarballs (may be a URL or scp location);
                          Default: $EUPS_PKGROOT
@@ -753,7 +753,10 @@ relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
 that all product directories start with a directory listed in \code{EUPS\_PATH}.
 This is probably a good idea, as otherwise \code{eups distrib} would tar up
 all of /usr/local for you.
-  
+
+\textit{N.b.} A decent description of the \code{--build} version of this command
+needs to be written!  This would include the \code{--noeups} flag.
+
 %------------------------------------------------------------------------------
 
   \item \code{eups expandbuild} (or \code{eups\_expandbuild})
