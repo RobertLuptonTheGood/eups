@@ -156,11 +156,11 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
     full_builder = os.path.join(builderDir, builder)
     if os.access(full_builder, os.R_OK) and not force:
         if verbose > 0:
-            print >> sys.stderr, "Not recreating", builder
+            print >> sys.stderr, "Not recreating", full_builder
         return builder
     
     if verbose > 0:
-        print >> sys.stderr, "Writing", builder
+        print >> sys.stderr, "Writing", full_builder
 
     try:
         if False:
@@ -178,7 +178,12 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
                 print >> sys.stderr, "Failed to open file \"%s\" for write" % full_builder
                 sys.exit(1)
 
-            eups.expandBuildFile(ofd, ifd, product, version, verbose)
+            try:
+                eups.expandBuildFile(ofd, ifd, product, version, verbose)
+            except RuntimeError, e:
+                print >> sys.stderr, "Failed to expand build file \"%s\": %s" % (full_builder, e)
+                sys.exit(1)
+
             del ifd; del ofd
     except IOError, param:
         print >> sys.stderr, "Failed to write %s: %s" % (full_builder, param)
@@ -212,16 +217,21 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     
     if verbose > 0:
         print >> sys.stderr, "Building %s in %s" % (builder, build_dir)
-
-    copyfile(tfile, os.path.join(build_dir, builder))
     #
     # Does this build file look OK?  In particular, does it contain a valid
     # CVS/SVN location?
     #
     (cvsroot, svnroot, url) = get_root_from_buildfile(tfile)
     if not (cvsroot or svnroot or url):
-        print >> sys.stderr, "Warning: unable to find a {cvs,svn}root or wget/curl command in %s; skipping" % (tfile)
-        return 0
+        if force:
+            action = "continuing"
+        else:
+            action = "aborting"
+        print >> sys.stderr, "Warning: unable to find a {cvs,svn}root or wget/curl command in %s; %s" % (tfile, action)
+        if force:
+            return
+        else:
+            sys.exit(1)
     #
     # Prepare to actually do some work
     #
@@ -256,6 +266,18 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     if verbose:
         print "Issuing commands:"
         print "\t", str.join("\n\t", cmd)
+    #
+    # Write modified (== as run) build file to build_dir
+    #
+    bfile = os.path.join(build_dir, builder)
+    try:
+        bfd = open(bfile, "w")
+        for line in cmd:
+            print >> bfd, line
+        del bfd
+    except Exception, e:
+        os.unlink(bfile)
+        print >> sys.stderr, "Failed to write %s" % bfile
         
     system(str.join("\n", cmd))
 
@@ -482,53 +504,61 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not top_version:
         top_version = lookup_current_version(top_product, True, dbz, flavor)
 
-    try:
-        productList = eups.dependencies(top_product, top_version, dbz)
-    except RuntimeError, msg:
-        print >> sys.stderr, "".join(msg)
-        sys.exit(1)
+    if noeups:
+        productList = [(top_product, top_version, None)]
+    else:
+        try:
+            productList = eups.dependencies(top_product, top_version, dbz)
+        except RuntimeError, msg:
+            print >> sys.stderr, "".join(msg)
+            sys.exit(1)
 
     products = []
     for (product, version, flavor) in productList:
         if verbose > 1:
             print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
-        try:
-            (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
-        except KeyboardInterrupt:
-            sys.exit(1)
-        except:
-            print >> sys.stderr, "WARNING: Failed to lookup directory for", \
-                  "product:", product, "  Flavor:", flavor, "  Version:", version
-            continue
-
-        try:
-            ptablefile = eups.table(product, version, flavor)
-            if ptablefile == "":
-                ptablefile = " "
-        except KeyboardInterrupt:
-            sys.exit(1)                    
-        except:
-            print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
-                  "product:", product, "  Flavor:", flavor, "  Version:", version
-            continue
-
-        if pversion != version:
-            print >> sys.stderr, "Something's wrong with %s; %s != %s" % (product, version, pversion)
-        #
-        # We have the product's directory, and which DB it's registered in
-        #
-        try:
-            (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
-        except:
-            if verbose:
-                print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
-                      % (pdir, product)
-            if False:
-                print >> sys.stderr, "WARNING: not creating package for %s" % (product)
+        if noeups:
+            basedir, pdb, pdir = None, None, None
+            product_dir = "/dev/null"
+            ptablefile = "none"
+        else:
+            try:
+                (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
+            except KeyboardInterrupt:
+                sys.exit(1)
+            except:
+                print >> sys.stderr, "WARNING: Failed to lookup directory for", \
+                      "product:", product, "  Flavor:", flavor, "  Version:", version
                 continue
-            else:
-                basedir = ""; product_dir = pdir
+
+            try:
+                ptablefile = eups.table(product, version, flavor)
+                if ptablefile == "":
+                    ptablefile = " "
+            except KeyboardInterrupt:
+                sys.exit(1)                    
+            except:
+                print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
+                      "product:", product, "  Flavor:", flavor, "  Version:", version
+                continue
+
+            if pversion != version:
+                print >> sys.stderr, "Something's wrong with %s; %s != %s" % (product, version, pversion)
+            #
+            # We have the product's directory, and which DB it's registered in
+            #
+            try:
+                (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
+            except:
+                if verbose:
+                    print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
+                          % (pdir, product)
+                if False:
+                    print >> sys.stderr, "WARNING: not creating package for %s" % (product)
+                    continue
+                else:
+                    basedir = ""; product_dir = pdir
 
         if pacman:
             distID = use_pacman_cache(product, version)
@@ -550,8 +580,11 @@ def create_distrib(top_product, top_version, dbz, flavor,
         products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
 
         if no_dependencies:
-            print >> sys.stderr, "Not writing manifest as you omitted dependencies"
-            return
+            if force:
+                break
+            else:
+                print >> sys.stderr, "Not writing manifest as you omitted dependencies; use --force to write it anyway"
+                return
     #
     # Time to write enough information to declare the products
     #
@@ -583,6 +616,8 @@ def create_distrib(top_product, top_version, dbz, flavor,
     rproducts = products[:]; rproducts.reverse() # reverse the products list
     for p in rproducts:
         (product, flavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
+        if not flavor:
+            flavor = "NULL"
         if not noaction:
             print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, distID])
 
@@ -799,22 +834,25 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             (product != top_product or version != top_version)):
             continue
         
-        try:
-            info = eups.list(product, version, dbz, flavor)
-        except IndexError:
-            info = []
+        info = []
+        if not noeups:
+            try:
+                info = eups.list(product, version, dbz, flavor)
+            except IndexError:
+                pass
 
         if info and len(info) > 0 and info[0] != "LOCAL":
             setups += ["setup %s %s" % (product, version)]
             
             if current and not force:
-                eups.declareCurrent(flavor, dbz, product, version, noaction)
+                eups.declareCurrent(product, version, flavor, dbz, noaction)
                 continue
             else:
                 print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
                       (product, version, flavor)
                 if force:
                     print >> sys.stderr, "Reinstalling %s anyway" % (product)
+                    eups.undeclare(product, version, flavor, dbz, current, noaction)
                 else:
                     continue
         #
@@ -838,8 +876,14 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         else:
             install_from_tarball(products_root, package_base, distID)
         #
+        # We may be done
+        #
+        if noeups:
+            return
+        #
         # we need to see if someone (e.g. the pacman script) declared the package for us
         #
+
         dodeclare = True
 
         declared = eups.list(product, version, dbz, flavor)
@@ -858,11 +902,11 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
                     if not noaction:
                         tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
-            eups.declare(flavor, dbz, tablefile, products_root, product_dir, 
-                         product, version, current, noaction)
+            eups.declare(product, version, flavor, dbz, tablefile,
+                         products_root, product_dir, current, noaction)
         else:                           # we may still need to declare it current
             if current:
-                eups.declareCurrent(flavor, dbz, product, version, noaction)
+                eups.declareCurrent(product, version, flavor, dbz, noaction)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -879,6 +923,7 @@ options = dict([
     ["-i", (False, "--install", "Extract and install the specified package")],
     ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
     ["-n", (False, "--noaction", "Don\'t actually do anything")],
+    ["-N", (False, "--noeups", "Don\'t attempt to lookup product in eups")],
     ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
     ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")],
     ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
@@ -926,6 +971,8 @@ install = opts.has_option('-i')
 manifest = None
 if opts.has_option('-m'):
     manifest = opts.options['-m']
+
+noeups = opts.has_option('-N')
 
 noaction = opts.has_option('-n')
 
@@ -1028,11 +1075,15 @@ if not package_base:
 #
 # To work
 #
-if not create and not install:
+if create + install != 1:
     print >> sys.stderr, "Please specify exactly one of --create and --install"
     sys.exit(1)
 
 if create:
+    if noeups and not top_version:
+        print >> sys.stderr, "You must specify a version if you use --noeups"
+        sys.exit(1)
+
     create_distrib(top_product, top_version, dbz, flavor,
                    force, manifest, noaction, transport, verbose)
     if current:
