@@ -745,6 +745,12 @@ sub eups_unsetup {
 	 print STDERR "ERROR: Environment variable $prod $capprod not set\n" if ($debug >= 1);
 	 return -1;
       }
+
+      if ($vers =~ /^LOCAL:(\S*)/) { # they setup a local directory
+	 $prod_dir = $1;	# here it is
+	 $vers = "";
+      }
+
       # Not necessarily correct anymore.
       $ups_dir = catfile($prod_dir,"ups");
       
@@ -1259,6 +1265,7 @@ sub eups_setup {
       
       if ($table_file ne "" && $debug >= 1) {
 	 print STDERR "WARNING: Using table file $table_file\n";
+	 $vers = "LOCAL:$prod_dir";
       }
    } 
 
@@ -1451,6 +1458,21 @@ sub eups_list {
 	   }
        }
    }
+   #
+   # Look for any products that are setup locally (i.e. via --root)
+   #
+   if (!$one_product) {
+      foreach $key (keys %ENV) {
+	 if($key =~ /^([A-Z_]+)_DIR$/) {
+	    my($prod) = $1;
+	    if ($ENV{"SETUP_$prod"} =~ /LOCAL:/) {
+	       my($msg) = print_local_product(sprintf("%-20s", "\L$prod"),
+					       $ENV{$key}, $just_directory, $just_tablefile);
+	       print $outfile "echo \"$msg\"\n";
+	    }
+	 }
+      }
+   }
 
    if($current && $one_product && !$printed_current) {
       warn "No version is declared current\n";
@@ -1462,22 +1484,33 @@ sub eups_list {
 	    warn "I don't know anything about product \"$prod\"\n";
 	 }
       } else {			# yes; it's setup
-	 if ($just_directory) {
-	    print $outfile "echo \"$setup_prod_dir\"\n";
-	 } elsif ($just_tablefile) {
-	    my($table_file) = "$setup_prod_dir/ups/$prod.table"; # just an inspired guess
-	    if (-f $table_file) {
-	       print $outfile "echo \"$table_file\"\n";
-	    }
-	 } else {
-	    my($info) = "\t\t Setup";
-	    $vers = sprintf("%-10s", "LOCAL");
-	    if ($debug) {
-	       $vers .= sprintf("\t%-20s\t%-30s", "LOCAL", $setup_prod_dir);
-	    }
-	    print $outfile "echo \"$msg   ${vers}$info\"\n";
-	 } 
+	 my($msg) = print_local_product("", $setup_prod_dir, $just_directory, $just_tablefile);
+	 print $outfile "echo \"$msg\"\n";
       }
+   }
+}
+
+#
+# Print the properties of a product found only in the environment
+#
+sub print_local_product($$$$)
+{
+   my($prod_name, $prod_dir, $just_directory, $just_tablefile) = @_;
+
+   if ($just_directory) {
+      return $prod_dir;
+   } elsif ($just_tablefile) {
+      my($table_file) = "$prod_dir/ups/$prod.table"; # just an inspired guess
+      if (-f $table_file) {
+	 return $table_file;
+      }
+   } else {
+      my($info) = "\t\t Setup";
+      my($vers) = sprintf("%-10s", "LOCAL:$prod_dir");
+      if ($debug) {
+	 $vers .= sprintf("\t%-20s\t%-30s", "LOCAL", $prod_dir);
+      }
+      return "$prod_name   ${vers}$info";
    }
 }
 

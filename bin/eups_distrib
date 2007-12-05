@@ -31,8 +31,8 @@ def system(cmd):
         if errno != 0:
             raise RuntimeError, ("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno >> 8)))
 
-def copyfile(file1, file2):
-    """Like shutil.copy2, but don't fail copying a file onto itself"""
+def issamefile(file1, file2):
+    """Are two files identical?"""
 
     try:
         stat1 = os.stat(file1)
@@ -40,9 +40,17 @@ def copyfile(file1, file2):
         if \
                stat1[stat.ST_DEV] == stat2[stat.ST_DEV] and \
                stat1[stat.ST_INO] == stat2[stat.ST_INO]:
-            return
+            return True
     except OSError:
         pass
+
+    return False
+
+def copyfile(file1, file2):
+    """Like shutil.copy2, but don't fail copying a file onto itself"""
+
+    if issamefile(file1, file2):
+        return
 
     try:
         os.unlink(file2)
@@ -262,23 +270,28 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         cmd += [line]
 
     del fd
-
-    if verbose:
-        print "Issuing commands:"
-        print "\t", str.join("\n\t", cmd)
     #
     # Write modified (== as run) build file to build_dir
     #
     bfile = os.path.join(build_dir, builder)
-    try:
-        bfd = open(bfile, "w")
-        for line in cmd:
-            print >> bfd, line
-        del bfd
-    except Exception, e:
-        os.unlink(bfile)
-        print >> sys.stderr, "Failed to write %s" % bfile
+    if issamefile(bfile, tfile):
+        print >> sys.stderr, "%s and %s are the same; not adding setups to installed build file" % \
+              (bfile, tfile)
+    else:
+        try:
+            bfd = open(bfile, "w")
+            for line in cmd:
+                print >> bfd, line
+            del bfd
+        except Exception, e:
+            os.unlink(bfile)
+            print >> sys.stderr, "Failed to write %s" % bfile
+            os.exit(1)
         
+    if verbose:
+        print "Issuing commands:"
+        print "\t", str.join("\n\t", cmd)
+
     system(str.join("\n", cmd))
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
