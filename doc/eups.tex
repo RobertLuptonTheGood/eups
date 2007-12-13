@@ -589,9 +589,7 @@ Options:
                         (default: all)
 \end{verbatim}
 
-Declares \code{version} of \code{product} into the database given by \code{\$EUPS\_PATH/ups\_db}.
-The product root directory is where the product has been installed, and can either
-be an absolute pathname or specified relative to \code{\$EUPS\_PATH}.
+Declares \code{version} of \code{product} to \eups.
 
 The flavor is usually determined by the command \code{\$EUPS\_DIR/bin/eups flavor},
 but may be set using the
@@ -621,7 +619,7 @@ into products. You can pipe the table file to \code{eups declare} by
 specifying \code{-} as the filename.
 
 If you omit the \code{-r dir}, \eups{} will attempt to guess it for you based
-on your products directory, flavor, product and version; alternatively,
+on your \code{\$EUPS\_PATH}, flavor, product and version; alternatively,
 if you omit both \code{product} and \code{version}, but provide \code{-r dir},
 the product and version will be guessed from the last two parts of the directory
 name (e.g. \code{-r /home/eups/products/Linux/xpa/v2\_1\_6} will be taken to be
@@ -632,6 +630,7 @@ present in the root directory. For example, the following are all equivalent:
   eups declare -r /u/lsst/products/DarwinX86/foo/1.2.3 foo 1.2.3
   eups declare -r /u/lsst/products/DarwinX86/foo/1.2.3 1.2.3
   eups declare -r /u/lsst/products/DarwinX86/foo/1.2.3
+  eups declare foo 1.2.3
 \end{verbatim}
 (assuming that the file \code{/u/lsst/products/DarwinX86/foo/1.2.3/ups/foo.table}
 exists). You may need to specify the version, e.g.
@@ -645,8 +644,8 @@ there is presumably no file \code{/u/rhl/foo/ups/rhl.table}.  You needed to say
 \end{verbatim}
 
 You may specify \code{-r none}, in which case you don't have any files; this
-is only permitted if you also specify \code{-M} to provide a table file.  This
-can be handy if you want an alias; e.g.
+is only permitted if you also specify \code{-M} to provide a table file (or \code{-m none}).
+This can be handy if you want an alias; e.g.
 \begin{verbatim}
 echo "setupRequired(visionWorkbench)" | eups declare -r none -M - vw current
 \end{verbatim}
@@ -657,7 +656,6 @@ setup visionWorkbench 1.0.0
 echo "setupRequired(visionWorkbench)" | eups expandtable | \
 	eups declare -r none -M - vw 1.0.0
 \end{verbatim}
-
 
 If you want to
 know what \code{vw} does, type e.g.
@@ -676,7 +674,7 @@ Usage:
    eups distrib [opts] [product [version]]
 Options:
    -B, --build           Search for build files on this :-separated path
-                         (@ -> product's installed ups directory)
+                         ("" -> product's installed ups directory)
    -b, --prefer-flavor   Prefer distributions that are flavor-specific
    -C, --current         Create a list of current versions which -i can use
    -c, --create          Create a package for distribution
@@ -755,7 +753,16 @@ This is probably a good idea, as otherwise \code{eups distrib} would tar up
 all of /usr/local for you.
 
 \textit{N.b.} A decent description of the \code{--build} version of this command
-needs to be written!  This would include the \code{--noeups} flag.
+needs to be written!  This would include the \code{--noeups} flag, and its use
+of product.table files in the BuildFilePath
+
+E.g.
+\begin{verbatim}
+eups distrib --create -v --build ~/ACT/BuildFiles: --current moby &&
+rsync -rv /Users/rhl/NewACT/products/packages apache2:/u/act/WWW/public
+
+eups distrib -v -i --current moby --root http://www.astro.princeton.edu/~act/packages/build
+\end{verbatim}
 
 %------------------------------------------------------------------------------
 
@@ -780,12 +787,14 @@ otherwise it'll be written to stdout.
 Modify a ups build file (see section \ref{buildFiles}) expanding certain variables:
 \begin{description}
   \item[\small @CVSROOT@] The value of \code{\$CVSROOT} used to check out this product.
-    This is guessed from \code{./CVS} if not specified with \code{--cvs} (or \code{-c}).
+    This is guessed from \code{./CVS} if not specified with \code{--cvs} (or \code{-c})
+    or \code{\$CVSROOT}.
   \item[\small @PRODUCT@] The name of the product. This is guessed from \code{buildFile}
     (by dropping the suffix \code{.build}) if not provided with \code{--product} (or \code{-p}).
   \item[\small @SVNROOT@] The \code{svn} locator (e.g. \code{svn+ssh://svn.lsstcorp.org/DC2/fw/trunk})
     used to check out this product.
-    This is guessed from \code{./.svn} if not specified with \code{--svn} (or \code{-s}).
+    This is guessed from \code{./.svn} if not specified with \code{--svn} (or \code{-s})
+    or \code{\$SVNROOT}.
   \item[\small @VERSION@] The version of the product.  This is taken from the \code{--version} (or
     \code{-V}) option.
 \end{description}
@@ -1499,7 +1508,7 @@ another is to write simple `build files'.  The former is far more sophisticated
 and bullet-proof; the latter is simpler.
 
 If you put a file \code{prod.build} in \code{prod/ups} and install it along
-with the table file, \code{eups distrib --build @ --create} will set things up
+with the table file, \code{eups distrib --build "" --create} will set things up
 so that a subsequent \code{eups distrib --install} will copy the build file
 to the new machine and execute it;  if you have a set of dependent products
 they will be executed in the proper order.  By default, the products will be downloaded
