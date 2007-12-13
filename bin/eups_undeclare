@@ -126,6 +126,15 @@ if (-e $fn ) {
 if($just_undeclare_current) {
    exit 0;
 }
+#
+# Check that we're not undeclaring a setup product
+#
+if (defined($ENV{"SETUP_\U$prod"})) {
+   my($p, $v) = split(" ", $ENV{"SETUP_\U$prod"});
+   if ($v eq $vers) {
+      die "You have $prod $v setup; please unsetup that version and try again\n";
+   }
+}
 
 # Open the version file
 $fn = catfile($db,$prod,"$vers.version");
