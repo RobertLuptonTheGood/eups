@@ -169,6 +169,41 @@ if (defined($$options{-r})) {
    }
 } else {
    $new_root = 0;
+   if (!$prodroot) {		# we failed to look this version up; try
+      ;				# to guess a prodroot from product/version
+      my($dbr);
+      foreach $dbr (@dbroots) {
+	 $prodroot_candidate = catfile($dbr, $flavor, $prod, $vers);
+	 if (! -d $prodroot_candidate) {
+	    if ($debug > 1) {
+	       warn "Guessed --root $prodroot_candidate but it isn't a directory\n";
+	    }
+	 } else {
+	    warn "Guessing --root $prodroot_candidate\n" if($debug > 0);
+	    if (! -d "$prodroot_candidate/ups") { # can't check product from table file name
+	       $prodroot = $prodroot_candidate;
+	       last;
+	    } else {	       
+	       my(@products) = grep(s|^.*/([^/]+)\.table$|\1|, glob("$prodroot_candidate/ups/*.table"));
+	       my $nproduct = @products;
+	    
+	       if ($nproduct == 0) {
+		  ;
+	       } elsif ($nproduct == 1) {
+		  my($prod_from_tablefile) = $products[0];
+		  if ($prod_from_tablefile ne $prod) {
+		     die "ERROR: Declaring product $prod version $vers, but tablefile is for $prod_from_tablefile\n";
+		  }
+		  $prodroot = $prodroot_candidate;
+		  last;
+	       } else {
+		  warn "I can't guess which product you want; ups directory defines: " . join(" ", @products) . "\n";
+		  last;
+	       }
+	    }
+	 }
+      }
+   }
    if (!$prodroot) {
       if (defined($$options{-M})) {
 	 $prodroot = "none"
