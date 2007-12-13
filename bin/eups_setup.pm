@@ -641,6 +641,7 @@ sub parse_table {
 	   print STDERR "WARNING: Deprecated command $comm\n" if ($debug > 1);
 	} elsif (($comm eq "setuprequired" || $comm eq "setupoptional") && $fwd==0) {
 	   if (!$no_dependencies) {
+	      local($processing_optional) = ($comm eq "setupoptional"); # not my!  used in eups_setup
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      my($foo) = eups_unsetup($qaz, $outfile, $no_dependencies,
 				  $only_dependencies_recursive, $flags, undef,
@@ -650,7 +651,7 @@ sub parse_table {
 		 $foo = 0;
 	      }
 	      
-	      if($comm eq "setuprequired") {
+	      if($comm eq "setuprequired" && !defined($processing_optional)) {
 		  $retval =+ $foo;
 		  print STDERR "ERROR: REQUIRED UNSETUP $qaz failed \n" if ($foo < 0 && $debug >= 0);
 	      } else {
@@ -665,11 +666,14 @@ sub parse_table {
 	      $foo = eups_setup($qaz, $outfile, $no_dependencies,
 				$only_dependencies_recursive, $flags, undef,
 				$debug, $quiet,0);
-	      $retval =+ $foo;
-	      print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
+	      if (!defined($processing_optional)) {
+		 print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
+	      }
+	      $retval += $foo;
 	   }
         } elsif ($comm eq "setupoptional" && $fwd==1) {
 	   if (!$no_dependencies) {
+	      local($processing_optional) = 1; # not my!  used in eups_setup
 	      $qaz = get_argument($arg, $fn, $i+1, $lines[$i]);
 	      if (eups_setup($qaz, $outfile, $no_dependencies,
 			     $only_dependencies_recursive, $flags, undef,
@@ -716,6 +720,7 @@ sub eups_unsetup {
    $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
    @args = split " ",$args;
    my($prod) = $args[0];
+   my($uservers) = $args[1];
    my($vers, $flavor, $root);
    if ($user_table_file) {
       ($prod_dir, $table_file) = (undef, $user_table_file);
@@ -729,6 +734,12 @@ sub eups_unsetup {
       my($status);
       ($status, $vers, $flavor, $root) = parse_setup_prod($prod);
       my $db = catfile($root, 'ups_db');
+
+      if ($vers && $uservers && $vers ne $uservers) {
+	 if ($debug > 0) {
+	    warn "You are unsetting up $prod $vers, but you asked to unsetup $uservers\n";
+	 }
+      }
 
       if($status ne "ok") {
 	 print STDERR "WARNING: $prod is not setup\n" if ($debug > 1);
@@ -897,14 +908,10 @@ sub find_best_version(\@$$$$$) {
 		@versions = reverse sort by_version_cmp @versions; # so we\'ll try the latest version first
 
 		my($cvers) = undef; # current version
-		if (grep(/^(current)$/, @versions)) { # give the current version priority
-		   $fn = catfile($root,'ups_db',$prod,"current.chain");
-		   @versions = grep(!/^(current)$/, @versions);
-
-		   if (-e $fn) {
-		      $cvers = read_chain_file($fn, $flavor, $optional || $debug <= 1);
-		      unshift @versions, $cvers;
-		   }
+		my($fn) = catfile($root,'ups_db',$prod,"current.chain");
+		if (-e $fn) {
+		   $cvers = read_chain_file($fn, $flavor, $optional || $debug <= 1);
+		   unshift @versions, $cvers;
 		}
 
 		my($vname);
@@ -1156,7 +1163,7 @@ sub eups_setup {
       warn "WARNING: ignoring extra arguments: @args\n";
    }
    
-   my($initial_eups_path) = $ENV{"EUPS_PATH"}; # needed if we're setting up eups
+   my($initial_eups_path) = $ENV{"EUPS_PATH"}; # needed if we are setting up eups
    if (!$user_table_file) {
       if ($prod eq "") {
 	 print STDERR  "ERROR: Product not specified; try -h to list your options\n";
@@ -1220,7 +1227,7 @@ sub eups_setup {
 	 if ($optional) {
 	    warn "WARNING: $msg\n" if ($debug > 1);
 	 } else {
-	    warn "ERROR: $msg\n";
+	    warn "WARNING: $msg\n";
 	    return -1;
 	 }
       }
@@ -1253,7 +1260,7 @@ sub eups_setup {
 	  $root = $Xroot;
       }
       
-      # Yuck. All this should be controllable with eups_declare's table file machinery.
+      # Yuck. All this should be controllable with eups_declare\'s table file machinery.
       $table_file = "$prod.table";
       $table_file = catfile("ups",$table_file);
       if (!($prod_dir =~ m"^/")) {
@@ -1268,8 +1275,6 @@ sub eups_setup {
 	 $vers = "LOCAL:$prod_dir";
       }
    } 
-
-   return undef if (not defined($root));
 
    if (($debug >= 1 && !$quiet) || $debug > 1) {
       if (defined($prod)) {
@@ -1478,7 +1483,7 @@ sub eups_list {
       warn "No version is declared current\n";
    }
 
-   if ($one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
+   if (!$current && $one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
       if (!$setup_prod_dir) {		# not setup in environment
 	 if (!$found_product && !$quiet) {
 	    warn "I don't know anything about product \"$prod\"\n";
@@ -1787,8 +1792,12 @@ sub eups_parse_argv
    }
 
    if ($ENV{"EUPS_PATH"} eq "") {
-       warn("ERROR: no product directories available (check eups path and the -Z/-z options)\n");
-       return -1;
+      if (0) {
+	 warn("ERROR: no product directories available (check eups path and the -Z/-z options)\n");
+	 return -1;
+      } else {
+	 warn("WARNING: no product directories available (check eups path and the -Z/-z options)\n");
+      }
    }
 
 
