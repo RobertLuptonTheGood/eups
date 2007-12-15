@@ -81,7 +81,7 @@ def declare(product, version, flavor, dbz, tablefile, products_root, product_dir
     except KeyboardInterrupt:
         raise
     except:
-        print >> sys.stderr, "Failed to declare product %s (version %s, flavor %s)" % \
+        raise RuntimeError, "Failed to declare product %s (version %s, flavor %s)" % \
               (product, version, flavor)
 
 def declareCurrent(product, version, flavor, dbz, noaction = False):
@@ -222,10 +222,12 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
     match, you'll get None)
     """
 
-    if version == "current":
-        version = current(product)
-    elif version == "setup":
-        version = setup(product)
+    if version:
+        versionRequested = True         # they did specify a version, even if none is current or setup
+        if version == "current":
+            version = current(product)
+        elif version == "setup":
+            version = setup(product)
 
     opts = ""
     if dbz:
@@ -254,7 +256,7 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
 
         result += [oneResult]
 
-        if version:
+        if versionRequested:
             return oneResult
         
     if len(result):
