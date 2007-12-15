@@ -35,12 +35,7 @@ def issamefile(file1, file2):
     """Are two files identical?"""
 
     try:
-        stat1 = os.stat(file1)
-        stat2 = os.stat(file2)
-        if \
-               stat1[stat.ST_DEV] == stat2[stat.ST_DEV] and \
-               stat1[stat.ST_INO] == stat2[stat.ST_INO]:
-            return True
+        return os.path.samefile(file1, file2)
     except OSError:
         pass
 
@@ -131,25 +126,12 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
     """Given a buildfile (which contains information about its' CVS/SVN root,
     write a small file to the manifest directory allowing us to bootstrap the
     build.  The build file is looked for in buildFilePath, a : separated set of
-    directories ("@" -> the installed product's ups directory)"""
+    directories ("" -> the installed product's ups directory)"""
 
     builder = "%s-%s.build" % (product, version)
+    buildFile = find_file_on_path("%s.build" % product, buildFilePath, os.path.join(basedir, product_dir, "ups"))
 
-    foundIt = False
-    for bd in buildFilePath.split(":"):
-        if bd == "@":
-            buildFile = os.path.join(basedir, product_dir, "ups", "%s.build" % product)
-        else:
-            buildFile = os.path.join(bd, "%s.build" % product)
-
-        if os.path.exists(buildFile):
-            foundIt = True
-            break;
-
-    if foundIt:
-        if verbose:
-            print "Using build file %s" % (buildFile)
-    else:
+    if not buildFile:
         print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
         sys.exit(1)
 
@@ -158,7 +140,7 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
         try:
             os.mkdir(builderDir)
         except:
-            print >> sys.stderr, "Pacman failed to create %s" % (builderDir)
+            print >> sys.stderr, "Failed to create %s" % (builderDir)
             sys.exit(1)
     
     full_builder = os.path.join(builderDir, builder)
@@ -270,6 +252,16 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         cmd += [line]
 
     del fd
+    #
+    # Did they ask to have group permissions honoured?
+    #
+    if group:
+        if verbose > 2:
+            print "Giving group %s r/w access" % group
+
+        cmd += ["chgrp -R %s %s*" % (group, os.path.splitext(builder)[0])]
+        cmd += ["chmod -R g+rwX %s*" % (group, os.path.splitext(builder)[0])]
+        
     #
     # Write modified (== as run) build file to build_dir
     #
@@ -418,12 +410,11 @@ def find_file(filename, packagePath=None):
         subDirs += ['tables']
 
     if verbose > 1:
-        print >> sys.stderr, "Looking for %s in:" % (filename), \
+        print >> sys.stderr, "Looking for %s in subdirectories [%s] of:" % \
+              (filename, str.join(", ", map(lambda sd: "\"%s\"" % sd, subDirs))), \
               str.join("", map(lambda str: "\n   %s%s" % (package_base, str), locs))
-            
-    if os.path.isfile(filename):
-        pass
-    elif transport != LOCAL:
+
+    if transport != LOCAL:
         tfile = None
         for loc in locs:
             for sd in subDirs:
@@ -445,14 +436,17 @@ def find_file(filename, packagePath=None):
                      (filename, package_base)
             sys.exit(1)
     else:
-        if not package_base:
+        if False and not package_base:
             package_base = "%s/packages/%s" % (db, flavor)
 
         tfile = None
         for loc in locs:
-            guess = "%s%s/%s" % (package_base, loc, filename)
-            if os.path.isfile(guess):
-                tfile = guess
+            for sd in subDirs:
+                guess = os.path.join(package_base, loc, sd, filename)
+                if os.path.isfile(guess):
+                    tfile = guess
+                    break
+            if tfile:
                 break
 
         if tfile is None:
@@ -462,7 +456,31 @@ def find_file(filename, packagePath=None):
 
         filename = tfile
 
+    if verbose > 1:
+        print >> sys.stderr, "Found %s" % (filename)
+
     return filename
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def find_file_on_path(file, path, auxDir = None):
+    """Look for a file on :-separated path, looking in auxDir if
+    an element of path is empty"""
+    
+    for bd in path.split(":"):
+        if bd == "":
+            if auxDir:
+                bd = auxDir
+            else:
+                continue
+        full_file = os.path.join(bd, file)
+
+        if os.path.exists(full_file):
+            if verbose:
+                print "Found %s (%s)" % (file, full_file)
+            return full_file
+
+    return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -534,7 +552,11 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if noeups:
             basedir, pdb, pdir = None, None, None
             product_dir = "/dev/null"
-            ptablefile = "none"
+            ptablefile = find_file_on_path("%s.table" % product, buildFilePath)
+            if not ptablefile:
+                if verbose > 0:
+                    print >> sys.stderr, "Unable to find a table file for %s" % product
+                ptablefile = "none"
         else:
             try:
                 (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
@@ -561,17 +583,20 @@ def create_distrib(top_product, top_version, dbz, flavor,
             #
             # We have the product's directory, and which DB it's registered in
             #
-            try:
-                (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
-            except:
-                if verbose:
-                    print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
-                          % (pdir, product)
-                if False:
-                    print >> sys.stderr, "WARNING: not creating package for %s" % (product)
-                    continue
-                else:
-                    basedir = ""; product_dir = pdir
+            if pdir == "none":
+                basedir = ""; product_dir = pdir
+            else:
+                try:
+                    (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
+                except:
+                    if verbose:
+                        print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
+                              % (pdir, product)
+                    if False:
+                        print >> sys.stderr, "WARNING: not creating package for %s" % (product)
+                        continue
+                    else:
+                        basedir = ""; product_dir = pdir
 
         if pacman:
             distID = use_pacman_cache(product, version)
@@ -583,12 +608,21 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if ptablefile != "none":
             fulltablename = ptablefile
             ptablefile = os.path.basename(ptablefile)
-            if ("%s.table" % (product)) != ptablefile:
-                tabledir = get_tabledir(transport)
+            tabledir = get_tabledir(transport)
+
+            if noeups:                  # the file's called product.table as if it were in a product's
+                     # repository, but it still needs to be installed
+                tablefile_for_distrib = os.path.join(os.path.dirname(fulltablename),
+                                                     "%s-%s.table" % (top_product, top_version))
+            elif ("%s.table" % (product)) == ptablefile:
+                tablefile_for_distrib = None
+            else:
+                tablefile_for_distrib = os.path.join(tabledir, ptablefile)
+
+            if tablefile_for_distrib:
                 if verbose > 1:
-                    print >> sys.stderr, "Copying %s to %s/%s-%s" % \
-                          (fulltablename, tabledir, product, ptablefile)
-                copyfile(fulltablename, "%s/%s-%s" % (tabledir, product, ptablefile))
+                    print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
+                copyfile(fulltablename, tablefile_for_distrib)
 
         products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
 
@@ -612,9 +646,6 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not manifest:
         manifest = os.path.join(manifestDir, manifestFile(top_product, top_version))
         
-    if verbose > 0:
-        print >> sys.stderr, "Manifest is", manifest
-
     try:
         if not noaction:
             ofd = open(manifest, "w")
@@ -780,10 +811,10 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
             mat = re.search(r"^(.*)/([^/]+)$", manifest)
             if mat:
                 pb = mat.groups()[0]
-                if package_base and pb != package_base:
-                    print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
+                if package_base and package_base != os.path.commonprefix([package_base, pb]):
+                    print >> sys.stderr, "Warning: manifest file %s has different base from -r %s" % \
                           (manifest, package_base)
-                package_base = pb
+                    package_base = pb
     #
     # OK, we've found the manifest (phew)
     #
@@ -795,7 +826,7 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
     if verbose > 2:
         try:
             fd = open(manifest, "r")
-            print "Manifest file:\n", "".join(fd.readlines()),
+            print "Manifest file:\n\t", "\t".join(fd.readlines()),
             del fd
         except:
             pass
@@ -854,8 +885,9 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             except IndexError:
                 pass
 
-        if info and len(info) > 0 and info[0] != "LOCAL":
-            setups += ["setup %s %s" % (product, version)]
+        if info and len(info) > 0 and not re.search("^LOCAL:", info[0]):
+            if product != top_product:
+                setups += ["setup %s %s" % (product, version)]
             
             if current and not force:
                 eups.declareCurrent(product, version, flavor, dbz, noaction)
@@ -894,13 +926,12 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         if noeups:
             return
         #
-        # we need to see if someone (e.g. the pacman script) declared the package for us
+        # we need to see if someone (e.g. the build/pacman script) declared the package for us
         #
-
         dodeclare = True
 
         declared = eups.list(product, version, dbz, flavor)
-        if declared and len(declared) > 0 and declared[0] != "LOCAL":
+        if declared and len(declared) > 0 and not re.search(r"^LOCAL:", declared[0]):
             dodeclare = False
         #
         # Deal with table files if not in product root (i.e. -M files)
@@ -912,8 +943,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
             if tablefile != "none":
                 if ("%s.table" % (product)) != tablefile:
                     tablefile = "%s-%s" % (product, tablefile)
-                    if not noaction:
-                        tablefile = find_file(tablefile, "%s/%s" % (product, version))
+                    tablefile = find_file(tablefile, "%s/%s" % (product, version))
 
             eups.declare(product, version, flavor, dbz, tablefile,
                          products_root, product_dir, current, noaction)
@@ -932,6 +962,7 @@ options = dict([
     ["-c", (False, "--create", "Create a package for distribution")],
     ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
     ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
+    ["-g", (True,  "--groupAccess", "Give specified group r/w access to all built packages")],
     ["-h", (False, "--help", "Print this help message")],
     ["-i", (False, "--install", "Extract and install the specified package")],
     ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
@@ -976,6 +1007,11 @@ else:
     flavor = eups.flavor()
 
 force = opts.has_option('-F')
+
+if opts.has_option('-g'):
+    group = opts.options['-g']
+else:
+    group = None
 
 no_dependencies = opts.has_option('-j')
 
