@@ -1792,10 +1792,7 @@ sub eups_parse_argv
    }
 
    if ($ENV{"EUPS_PATH"} eq "") {
-      if (0) {
-	 warn("ERROR: no product directories available (check eups path and the -Z/-z options)\n");
-	 return -1;
-      } else {
+      if (!defined($opts{-r})) {
 	 warn("WARNING: no product directories available (check eups path and the -Z/-z options)\n");
       }
    }
