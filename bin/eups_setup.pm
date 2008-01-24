@@ -667,7 +667,7 @@ sub parse_table {
 				$only_dependencies_recursive, $flags, undef,
 				$debug, $quiet,0);
 	      if (!defined($processing_optional)) {
-		 print STDERR "ERROR: REQUIRED SETUP $qaz failed \n" if ($foo < 0);
+		 print STDERR "ERROR: REQUIRED SETUP $qaz failed while setting up $prod $vers\n" if ($foo < 0);
 	      }
 	      $retval += $foo;
 	   }
@@ -958,7 +958,7 @@ sub find_best_version(\@$$$$$) {
     # Now construct the version file\'s name, then read and parse it
     $fn = catfile($matchdb,$prod,"$vers.version");
     my ($prod_dir, $table_file) = read_version_file($matchroot, $fn, $prod, $flavor, 0, 0);
-    if (not $prod_dir) {
+    if (!$prod_dir) {
 	return undef, undef, undef, undef;
     }
     
