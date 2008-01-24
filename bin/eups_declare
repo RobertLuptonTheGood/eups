@@ -58,7 +58,7 @@ $name = $ENV{"LOGNAME"};
 $now_string = strftime "%a %b %e %H:%M:%S %Y", gmtime;
 
 # Get the command line parameters
-$opts = {-f => 1, -F => 0, -c => 0, -m => 1, -M => 1, -r => 1,
+$opts = {-f => 1, -F => 0, -c => 0, -m => 1, -n => 0, -M => 1, -r => 1,
 	 -v => 0, -V => 0, -z => 1, -Z => 1}; # permitted options (1: requires argument)
 
 my $options = eups_parse_argv($opts, \@args, \@words);
@@ -75,6 +75,7 @@ if ($options eq "-h") {
 #
 # Process those arguments
 #
+$noaction = defined($$options{-n}) ? 1 : 0; # don't actually do anything
 if (defined($$options{-f})) {
    $flavor = $$options{-f}
 } elsif (defined($ENV{"EUPS_FLAVOR"})) {
@@ -346,7 +347,11 @@ if ($prodfound and $doredeclare) {
 	warn "INFO : Undeclaring $prod $vers (flavor: $flavor)\n";
     }
     $comm = "eups_undeclare -f $flavor -Z $dbroot $prod $vers";
-    system($comm);
+    if($noaction) {
+       print "$comm\n";
+    } else {
+       system($comm);
+    }
 }
 
 if ($copytable_from) {
@@ -360,8 +365,10 @@ if ($copytable_from) {
 
     # And put the table file into that directory.
     $tablepath = catfile($tablepath, $tablefile);
-    unlink($tablepath);		# although it may not exist
-    copy($copytable_from, $tablepath);
+    if(!$noaction) {
+       unlink($tablepath);		# although it may not exist
+       copy($copytable_from, $tablepath);
+    }
 }
 
 # Now that any previous declarations are removed simply create/append
@@ -378,26 +385,32 @@ if ($copytable_from) {
 #  UPS_DIR = ups
 #  TABLE_FILE = foobar.table
 if (not -e $fn or $doredeclare) {
-    if (-e $fn) {
-	warn "INFO : modifying version file $fn for $prod $vers (flavor: $flavor)\n" if ($debug);
-	die "ERROR opening file $fn\n" if (!(open FILE, ">>$fn"));
-    } else {
-	warn "INFO : creating version file $fn for $prod $vers (flavor: $flavor, db: $dbroot)\n" if ($debug);
-	die "ERROR creating file $fn\n" if (!(open FILE, ">$fn"));
-	print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
-    }
-    
-    print FILE "FLAVOR = $flavor\n";
-    print FILE "QUALIFIERS = \"\"\n";
-    print FILE "   DECLARER = $name\n";
-    print FILE "   DECLARED = $now_string\n";
-    print FILE "   MODIFIER = $name\n";
-    print FILE "   MODIFIED = $now_string\n";
-    print FILE "   PROD_DIR = $prodroot\n";
-    print FILE "   UPS_DIR = $tabledir\n";
-    print FILE "   TABLE_FILE = $tablefile\n";
-    print FILE "$sep\n";
-    close FILE;
+   if (-e $fn) {
+      warn "INFO : modifying version file $fn for $prod $vers (flavor: $flavor)\n" if ($debug);
+      if(!$noaction) {
+	 die "ERROR opening file $fn\n" if (!(open FILE, ">>$fn"));
+      }
+   } else {
+      warn "INFO : creating version file $fn for $prod $vers (flavor: $flavor, db: $dbroot)\n" if ($debug);
+      if(!$noaction) {
+	 die "ERROR creating file $fn\n" if (!(open FILE, ">$fn"));
+	 print FILE "FILE = Version\nPRODUCT = $prod\nVERSION = $vers\n$sep\n";
+      }
+   }
+   
+   if(!$noaction) {
+      print FILE "FLAVOR = $flavor\n";
+      print FILE "QUALIFIERS = \"\"\n";
+      print FILE "   DECLARER = $name\n";
+      print FILE "   DECLARED = $now_string\n";
+      print FILE "   MODIFIER = $name\n";
+      print FILE "   MODIFIED = $now_string\n";
+      print FILE "   PROD_DIR = $prodroot\n";
+      print FILE "   UPS_DIR = $tabledir\n";
+      print FILE "   TABLE_FILE = $tablefile\n";
+      print FILE "$sep\n";
+      close FILE;
+   }
 }
 
 if (!$make_current) {
@@ -414,54 +427,56 @@ $fn = catfile($db,$prod,"current.chain");
 if (-e $fn) {
     warn "INFO : Modifying current.chain for $prod $vers (flavor: $flavor)\n";
 # Similar code to that in ups_undeclare
-    open FILE, "<$fn" or die "Error reading $fn\n";;
-    read FILE, $versinfo, 100000;
-    close FILE;
+    if (!$noaction) {
+       open FILE, "<$fn" or die "Error reading $fn\n";;
+       read FILE, $versinfo, 100000;
+       close FILE;
 # Now strip out all comments
-    $versinfo =~ s/\#.*\n//g;
-    $versinfo =~ s/flavor/##FLAVOR/gsi;
-    @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
+       $versinfo =~ s/\#.*\n//g;
+       $versinfo =~ s/flavor/##FLAVOR/gsi;
+       @groups2 = $versinfo =~ m/#(flavor.+?)#/gsi;
 # Match the last flavor
-    @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
-    @group = (@groups2,@groups3);
+       @groups3 = $versinfo =~ m/.*(flavor.+\Z)/gsi;
+       @group = (@groups2,@groups3);
 
-    open FILE, ">$fn" or die "Error writing $fn\n";
-    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
-#Now enter in all groups that don't match the flavor
-    $flavor = fix_special($flavor);
-    $pattern = "FLAVOR *= *$flavor( |\n)";
-    $matched = 0;
-    for ($i = 0; ($i<@group);$i++) {
+       open FILE, ">$fn" or die "Error writing $fn\n";
+       print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
+#Now enter in all groups that don\'t match the flavor
+       $flavor = fix_special($flavor);
+       $pattern = "FLAVOR *= *$flavor( |\n)";
+       $matched = 0;
+       for ($i = 0; ($i<@group);$i++) {
 # Both the flavor and the version must match
-	if (($group[$i] =~ m/$pattern/gsi)) {
-	    $matched = 1;
-	    print FILE "FLAVOR = $flavor\n";
-	    print FILE "VERSION = $vers\n";
-	    print FILE "QUALIFIERS = \"\"\n";
-	    print FILE "   DECLARER = $name\n";
-	    print FILE "   DECLARED = $now_string\n";
-	    print FILE "   MODIFIER = $name\n";
-	    print FILE "   MODIFIED = $now_string\n$sep\n";
-	} else {
-	    print FILE "$group[$i]\n$sep\n";
-	}
-    }
+	  if (($group[$i] =~ m/$pattern/gsi)) {
+	     $matched = 1;
+	     print FILE "FLAVOR = $flavor\n";
+	     print FILE "VERSION = $vers\n";
+	     print FILE "QUALIFIERS = \"\"\n";
+	     print FILE "   DECLARER = $name\n";
+	     print FILE "   DECLARED = $now_string\n";
+	     print FILE "   MODIFIER = $name\n";
+	     print FILE "   MODIFIED = $now_string\n$sep\n";
+	  } else {
+	     print FILE "$group[$i]\n$sep\n";
+	  }
+       }
 # Suppose the flavor was never declared...?
-    if ($matched == 0) {
-	print FILE "FLAVOR = $flavor\n";
-	print FILE "VERSION = $vers\n";
-	print FILE "QUALIFIERS = \"\"\n";
-	print FILE "   DECLARER = $name\n";
-	print FILE "   DECLARED = $now_string\n";
-	print FILE "   MODIFIER = $name\n";
-	print FILE "   MODIFIED = $now_string\n$sep\n";
+       if ($matched == 0) {
+	  print FILE "FLAVOR = $flavor\n";
+	  print FILE "VERSION = $vers\n";
+	  print FILE "QUALIFIERS = \"\"\n";
+	  print FILE "   DECLARER = $name\n";
+	  print FILE "   DECLARED = $now_string\n";
+	  print FILE "   MODIFIER = $name\n";
+	  print FILE "   MODIFIED = $now_string\n$sep\n";
+       }
+       close FILE;
     }
-    close FILE;
-
 } else {
-    warn "INFO : Creating current.chain for $prod $vers (flavor: $flavor)\n" if ($debug);
-    die "ERROR : opening current chain $fn\n" if (!(open FILE, ">$fn"));
-    print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
+   warn "INFO : Creating current.chain for $prod $vers (flavor: $flavor)\n" if ($debug);
+   if(!$noaction) {
+      die "ERROR : opening current chain $fn\n" if (!(open FILE, ">$fn"));
+      print FILE "FILE = Version\nPRODUCT = $prod\nCHAIN=current\n$sep\n";
 # Another example
 #FLAVOR = Linux
 #VERSION = v0_1
@@ -470,14 +485,15 @@ if (-e $fn) {
 #  DECLARED = 2003-01-17 02.07.41 GMT
 #  MODIFIER = paddy
 #  MODIFIED = 2003-01-17 02.07.41 GMT
-    print FILE "FLAVOR = $flavor\n";
-    print FILE "VERSION = $vers\n";
-    print FILE "QUALIFIERS = \"\"\n";
-    print FILE "   DECLARER = $name\n";
-    print FILE "   DECLARED = $now_string\n";
-    print FILE "   MODIFIER = $name\n";
-    print FILE "   MODIFIED = $now_string\n$sep\n";
-    close FILE;
+      print FILE "FLAVOR = $flavor\n";
+      print FILE "VERSION = $vers\n";
+      print FILE "QUALIFIERS = \"\"\n";
+      print FILE "   DECLARER = $name\n";
+      print FILE "   DECLARED = $now_string\n";
+      print FILE "   MODIFIER = $name\n";
+      print FILE "   MODIFIED = $now_string\n$sep\n";
+      close FILE;
+   }
 }
 
 exit(0);
