@@ -10,6 +10,24 @@ import sys
 if not os.environ.has_key('SHELL'):
     os.environ['SHELL'] = '/bin/sh'
 
+def path():
+    """Return the eups path as a python list"""
+    return str.split(os.environ['EUPS_PATH'], ":")
+
+def setPath(*args):
+    """Set eups' path to the arguments, which may be strings or lists"""
+
+    newPath = []
+    for a in args:
+        if isinstance(a, str):
+            a = [a]
+            
+        newPath += a
+
+    os.environ["EUPS_PATH"] = ":".join(newPath)
+
+    return path()
+
 def current(product="", dbz="", flavor = ""):
     """Return the current version of a product; if product is omitted,
     return a list of (product, version) for all products"""
@@ -62,7 +80,8 @@ def declare(product, version, flavor, dbz, tablefile, products_root, product_dir
         opts += " -z %s" % dbz
 
     if product_dir:
-        opts += " --root %s" % os.path.join(products_root, product_dir)
+        if product_dir != "/dev/null":
+            opts += " --root %s" % os.path.join(products_root, product_dir)
 
         tableopt = "-m"
         if tablefile != "none":
