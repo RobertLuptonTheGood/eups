@@ -318,10 +318,11 @@ sub myexit
 
    if ($status && !$force) {
       if ($debug <= 3) {
-	 unlink($fn);
+	 open $tmpfile, ">$fn";
+      } else {
+	 open $tmpfile, ">>$fn";
       }
-
-      $fn = "/dev/null";
+      print $tmpfile ($exit ? "false" : "true") . "\n";
    }
 
    print "$fn\n";
