@@ -789,7 +789,9 @@ eups distrib -z act --create --build ~/ACT/BuildFiles: --noeups scipy 0.6.0
 
 eups distrib -z act --install scipy 0.6.0 --root http://www.astro.princeton.edu/~act/packages scipy 0.6.0
 \end{verbatim}
-N.b. this uses \code{scipy.table} from the build file directory, \code{\~/ACT/BuildFiles}.
+N.b. this uses \code{scipy.table} from the build file directory, \code{\~/ACT/BuildFiles}. The
+\code{--noeups} only applies at the top level;  if your table file specifies dependencies
+they'll be honoured (the current versions will be used if you don't specific desired versions)
 
 %------------------------------------------------------------------------------
 

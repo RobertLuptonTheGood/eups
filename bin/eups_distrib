@@ -534,7 +534,19 @@ def create_distrib(top_product, top_version, dbz, flavor,
         top_version = lookup_current_version(top_product, True, dbz, flavor)
 
     if noeups:
-        productList = [(top_product, top_version, None)]
+        product = top_product
+
+        ptablefile = find_file_on_path("%s.table" % product, buildFilePath)
+        if not ptablefile:
+            if verbose > 0:
+                print >> sys.stderr, "Unable to find a table file for %s" % product
+            ptablefile = "none"
+
+        productList = [(product, top_version, None)]
+        for (product, version) in eups.dependencies_from_table(ptablefile):
+            if not version:
+                version = eups.current(product)
+            productList += [(product, version, flavor)]
     else:
         try:
             productList = eups.dependencies(top_product, top_version, dbz)
@@ -547,14 +559,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if verbose > 1:
             print "Product:", product, "  Flavor:", flavor, "  Version:", version
 
-        if noeups:
+        if product == top_product and noeups:
             basedir, pdb, pdir = None, None, None
             product_dir = "/dev/null"
-            ptablefile = find_file_on_path("%s.table" % product, buildFilePath)
-            if not ptablefile:
-                if verbose > 0:
-                    print >> sys.stderr, "Unable to find a table file for %s" % product
-                ptablefile = "none"
         else:
             try:
                 (pversion, pdb, pdir, pcurrent, psetup) = eups.list(product, version, dbz, flavor)
@@ -608,7 +615,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
             ptablefile = os.path.basename(ptablefile)
             tabledir = get_tabledir(transport)
 
-            if noeups:                  # the file's called product.table as if it were in a product's
+            if product == top_product and noeups: # the file's called product.table as if it were in a product's
                      # repository, but it still needs to be installed
                 tablefile_for_distrib = os.path.join(tabledir,
                                                      "%s-%s.table" % (top_product, top_version))
@@ -662,7 +669,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
     for p in rproducts:
         (product, flavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
         if not flavor:
-            flavor = "NULL"
+            flavor = eups.flavor()
         if not noaction:
             print >> ofd, "%-15s %-12s %-10s %-25s %-25s %s" % \
                   (product, flavor, version, ptablefile, product_dir, distID)

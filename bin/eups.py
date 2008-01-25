@@ -208,8 +208,6 @@ def dependencies_from_table(tableFile):
                 else:
                     args += [a]
             
-            print args
-
             if len(args) == 1:
                 args += [None]
             elif len(args) == 2:
