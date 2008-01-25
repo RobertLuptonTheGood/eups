@@ -147,7 +147,7 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
     if os.access(full_builder, os.R_OK) and not force:
         if verbose > 0:
             print >> sys.stderr, "Not recreating", full_builder
-        return builder
+        return "build:" + builder
     
     if verbose > 0:
         print >> sys.stderr, "Writing", full_builder
@@ -209,7 +209,7 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         print >> sys.stderr, "Building %s in %s" % (builder, build_dir)
     #
     # Does this build file look OK?  In particular, does it contain a valid
-    # CVS/SVN location?
+    # CVS/SVN location or curl/wget command?
     #
     (cvsroot, svnroot, url) = get_root_from_buildfile(tfile)
     if not (cvsroot or svnroot or url):
@@ -218,9 +218,7 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         else:
             action = "aborting"
         print >> sys.stderr, "Warning: unable to find a {cvs,svn}root or wget/curl command in %s; %s" % (tfile, action)
-        if force:
-            return
-        else:
+        if not force:
             sys.exit(1)
     #
     # Prepare to actually do some work
@@ -612,8 +610,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
 
             if noeups:                  # the file's called product.table as if it were in a product's
                      # repository, but it still needs to be installed
-                tablefile_for_distrib = os.path.join(os.path.dirname(fulltablename),
+                tablefile_for_distrib = os.path.join(tabledir,
                                                      "%s-%s.table" % (top_product, top_version))
+                ptablefile = "%s.table" % top_version
             elif ("%s.table" % (product)) == ptablefile:
                 tablefile_for_distrib = None
             else:
@@ -631,7 +630,6 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 break
             else:
                 print >> sys.stderr, "Not writing manifest as you omitted dependencies; use --force to write it anyway"
-                return
     #
     # Time to write enough information to declare the products
     #
@@ -646,6 +644,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
     if not manifest:
         manifest = os.path.join(manifestDir, manifestFile(top_product, top_version))
         
+    if verbose > 0:
+        print >> sys.stderr, "Writing", manifest
+
     try:
         if not noaction:
             ofd = open(manifest, "w")
@@ -663,7 +664,8 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if not flavor:
             flavor = "NULL"
         if not noaction:
-            print >> ofd, str.join("\t", [product, flavor, version, ptablefile, product_dir, distID])
+            print >> ofd, "%-15s %-12s %-10s %-25s %-25s %s" % \
+                  (product, flavor, version, ptablefile, product_dir, distID)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1087,7 +1089,7 @@ if opts.has_option('-Z'):
     os.environ['EUPS_PATH'] = opts.options['-Z']
     
 try:
-    eups_path = str.split(os.environ['EUPS_PATH'], ":")
+    eups_path = eups.path()
 except KeyError:
     print >> sys.stderr, "Please set EUPS_PATH and try again"
     sys.exit(1)
@@ -1103,6 +1105,7 @@ if dbz:
         sys.exit(1)
     elif len(db) == 1:
         db = db[0]
+        eups.setPath(db, eups_path)
     else:
         print >> sys.stderr, "Choice of DB %s is ambiguous:" % dbz, " ".join(db)
         sys.exit(1)
