@@ -685,7 +685,7 @@ Options:
                          Alias: --extract
    -j, --nodepend        Just install product, but not its dependencies
    -n, --noaction        Don't actually do anything
-   -N, --noeups          Don't loopup product in eups when creating a distribution
+   -N, --noeups          Don't lookup product in eups when creating a distribution
    -p, --pacman    arg   Use this pacman cache to install packages
    -r, --root      arg   Location of manifests and tarballs (may be a URL or scp location);
                          Default: $EUPS_PKGROOT
@@ -756,13 +756,40 @@ all of /usr/local for you.
 needs to be written!  This would include the \code{--noeups} flag, and its use
 of product.table files in the BuildFilePath
 
-E.g.
+For example, to create a distribution of product \code{moby} (already declared
+to \eups{} on my machine), install it in a central place (on \code{apache2})),
+and then install in on some other machine I first created a build file
+\code{moby.build} in \code{moby}'s ups directory:
+\begin{verbatim}
+export CVSROOT="@CVSROOT@"
+
+cvs co -P -d @PRODUCT@-@VERSION@ -r @VERSION@ @PRODUCT@ &&
+cd @PRODUCT@-@VERSION@ &&
+setup -r . &&
+./configure &&
+make &&
+make install
+\end{verbatim}
+and then typed:
 \begin{verbatim}
 eups distrib --create -v --build ~/ACT/BuildFiles: --current moby &&
-rsync -rv /Users/rhl/NewACT/products/packages apache2:/u/act/WWW/public
+rsync -rv /u/act/products/packages apache2:/u/act/WWW/public
 
-eups distrib -v -i --current moby --root http://www.astro.princeton.edu/~act/packages/build
+eups distrib -v --install --current moby --root http://www.astro.princeton.edu/~act/packages
 \end{verbatim}
+The \code{~/ACT/BuildFiles:} tells \eups{} to first look for build files
+in \code{~/ACT/BuildFiles} and then the product's \code{ups} directory (that's what
+the trailing \code{:} means). The \code{rsync} should be clear, and the second
+\code{eups distrib} does the install.
+
+What if your product isn't (yet) declared to \eups?  Write a build file \code{scipy.build} and
+table file \code{scipy.table} in \code{\~/ACT/BuildFiles}, and incant:
+\begin{verbatim}
+eups distrib -z act --create --build ~/ACT/BuildFiles: --noeups scipy 0.6.0
+
+eups distrib -z act --install scipy 0.6.0 --root http://www.astro.princeton.edu/~act/packages scipy 0.6.0
+\end{verbatim}
+N.b. this uses \code{scipy.table} from the build file directory, \code{\~/ACT/BuildFiles}.
 
 %------------------------------------------------------------------------------
 
