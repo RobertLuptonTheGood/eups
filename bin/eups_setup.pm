@@ -1054,10 +1054,10 @@ sub eups_version_cmp {
 	 }
       }
 
-      @c1[0] =~ s//^$prefix/;
-      @c2[0] =~ s//^$prefix/;      
+      @c1[0] =~ s/^$prefix//;
+      @c2[0] =~ s/^$prefix//;      
    }
-   
+
    my($n1, $n2); $n1 = @c1; $n2 = @c2;
    my($i, $n); $n = $n1 < $n2 ? $n1 : $n2;
 
@@ -1483,7 +1483,7 @@ sub eups_list {
       warn "No version is declared current\n";
    }
 
-   if (!$current && $one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
+   if (!$current && !$version && $one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
       if (!$setup_prod_dir) {		# not setup in environment
 	 if (!$found_product && !$quiet) {
 	    warn "I don't know anything about product \"$prod\"\n";
