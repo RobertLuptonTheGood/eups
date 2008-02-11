@@ -239,8 +239,9 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
     match, you'll get None)
     """
 
+    versionRequested = False         # did they specify a version, even if none is current or setup?
     if version:
-        versionRequested = True         # they did specify a version, even if none is current or setup
+        versionRequested = True
         if version == "current":
             version = current(product)
         elif version == "setup":
@@ -253,6 +254,7 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
         opts += " --flavor %s" % (flavor)
 
     result = []
+    print "eups list %s --quiet --verbose %s %s" % (opts, product, version)
     for info in os.popen("eups list %s --quiet --verbose %s %s" % (opts, product, version)).readlines():
         oneResult = re.findall(r"\S+", info)
 

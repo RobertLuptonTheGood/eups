@@ -1487,14 +1487,17 @@ sub eups_list {
       warn "No version is declared current\n";
    }
 
-   if (!$current && !$version && $one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
+   if (!$current && (!$version || $version =~ s/^LOCAL://) &&
+       $one_product && !$found_prod_dir) { # we haven't seen the directory that's actually setup; must be declared -r
       if (!$setup_prod_dir) {		# not setup in environment
 	 if (!$found_product && !$quiet) {
 	    warn "I don't know anything about product \"$prod\"\n";
 	 }
       } else {			# yes; it's setup
-	 my($msg) = print_local_product("", $setup_prod_dir, $just_directory, $just_tablefile);
-	 print $outfile "echo \"$msg\"\n";
+	 if (!$version || $version eq $setup_prod_dir) {
+	    my($msg) = print_local_product("", $setup_prod_dir, $just_directory, $just_tablefile);
+	    print $outfile "echo \"$msg\"\n";
+	 }
       }
    }
 }
