@@ -254,7 +254,6 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
         opts += " --flavor %s" % (flavor)
 
     result = []
-    print "eups list %s --quiet --verbose %s %s" % (opts, product, version)
     for info in os.popen("eups list %s --quiet --verbose %s %s" % (opts, product, version)).readlines():
         oneResult = re.findall(r"\S+", info)
 
