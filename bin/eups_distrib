@@ -896,7 +896,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 
         if info and len(info) > 0 and not re.search("^LOCAL:", info[0]):
             if product != top_product:
-                setups += ["setup %s %s" % (product, version)]
+                setups += ["setup %s %s &&" % (product, version)]
             
             if current and not force:
                 eups.declareCurrent(product, version, flavor, dbz, noaction)
@@ -923,7 +923,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         elif method == "build":
             try:
                 install_from_builder(setups, products_root, package_base, cacheID, tmp_dir)
-                setups += ["setup %s %s" % (product, version)]
+                setups += ["setup %s %s &&" % (product, version)]
             except Exception, e:
                 print >> sys.stderr, e
                 sys.exit(1);
