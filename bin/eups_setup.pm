@@ -1232,6 +1232,10 @@ sub eups_setup {
 	 }
       }
    } else {
+      if ($prod_dir =~ s|~/|/|) {
+	 $prod_dir = $ENV{"HOME"} . $prod_dir;
+      }
+
       if ($prod_dir !~ m|^/|) {
 	 use Cwd;
 	 if ($prod_dir eq ".") {
