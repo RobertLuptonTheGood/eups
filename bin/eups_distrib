@@ -153,28 +153,29 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
         print >> sys.stderr, "Writing", full_builder
 
     try:
-        if False:
-            copyfile(buildFile, full_builder)
-        else:
-            try:
-                ifd = open(buildFile)
-            except IOError, e:
-                print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
-                sys.exit(1)
+        if not noaction:
+            if False:
+                copyfile(buildFile, full_builder)
+            else:
+                try:
+                    ifd = open(buildFile)
+                except IOError, e:
+                    print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
+                    sys.exit(1)
 
-            try:
-                ofd = open(full_builder, "w")
-            except IOError, e:
-                print >> sys.stderr, "Failed to open file \"%s\" for write" % full_builder
-                sys.exit(1)
+                try:
+                    ofd = open(full_builder, "w")
+                except IOError, e:
+                    print >> sys.stderr, "Failed to open file \"%s\" for write" % full_builder
+                    sys.exit(1)
 
-            try:
-                eups.expandBuildFile(ofd, ifd, product, version, verbose)
-            except RuntimeError, e:
-                print >> sys.stderr, "Failed to expand build file \"%s\": %s" % (full_builder, e)
-                sys.exit(1)
+                try:
+                    eups.expandBuildFile(ofd, ifd, product, version, verbose)
+                except RuntimeError, e:
+                    print >> sys.stderr, "Failed to expand build file \"%s\": %s" % (full_builder, e)
+                    sys.exit(1)
 
-            del ifd; del ofd
+                del ifd; del ofd
     except IOError, param:
         print >> sys.stderr, "Failed to write %s: %s" % (full_builder, param)
         try:
@@ -337,10 +338,9 @@ def scpretrieve(file):
     tfile = os.tmpnam()
 
     try:
-        system("scp %s %s" % (file, tfile))
+        system("scp %s %s 2>/dev/null" % (file, tfile))
     except:
-        print >> sys.stderr, "Failed to retrieve %s" % file
-        sys.exit(1)
+        raise RuntimeError, ("Failed to retrieve %s" % file)
 
     return tfile, None
 
@@ -543,10 +543,12 @@ def create_distrib(top_product, top_version, dbz, flavor,
             ptablefile = "none"
 
         productList = [(product, top_version, None)]
-        for (product, version) in eups.dependencies_from_table(ptablefile):
-            if not version:
-                version = eups.current(product)
-            productList += [(product, version, flavor)]
+        dependencies = eups.dependencies_from_table(ptablefile)
+        if dependencies:
+            for (product, version) in dependencies:
+                if not version:
+                    version = eups.current(product)
+                productList += [(product, version, flavor)]
     else:
         try:
             productList = eups.dependencies(top_product, top_version, dbz)
