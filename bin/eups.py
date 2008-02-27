@@ -28,6 +28,15 @@ def setPath(*args):
 
     return path()
 
+def findVersion(product, version):
+    """Return the requested version of product; may be "current", "setup", or a version string"""
+    if version == "current":
+        return current(product)
+    elif version == "setup":
+        return setup(product)
+    else:
+        return version
+
 def current(product="", dbz="", flavor = ""):
     """Return the current version of a product; if product is omitted,
     return a list of (product, version) for all products"""
@@ -140,10 +149,13 @@ def undeclareCurrent(flavor, dbz, product, version, noaction = False):
     undeclare(product, version, flavor, dbz, undeclare_current=True,
               noaction=noaction)
 
-def dependencies(product, version, dbz="", flavor=""):
+def dependencies(product, version, dbz="", flavor="", depth=9999):
     """Return a product's dependencies in the form of a list of tuples
     (product, version, flavor)
+    Only return depth levels of dependencies (0 -> just top level)
 """
+
+    version = findVersion(product, version)
 
     opts = ""
     if dbz:
@@ -151,8 +163,8 @@ def dependencies(product, version, dbz="", flavor=""):
     if flavor:
         opts += " --flavor %s" % (flavor)
 
-    productList = os.popen("eups_setup setup %s -n --verbose --verbose %s %s 2>&1 1> /dev/null" % \
-                    (opts, product, version)).readlines()
+    productList = os.popen("eups_setup setup %s -n --verbose --verbose %s --max-depth %s %s 2>&1 1> /dev/null" % \
+                    (opts, product, depth, version)).readlines()
 
     dep_products = {}
     deps = []
@@ -242,10 +254,7 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
     versionRequested = False         # did they specify a version, even if none is current or setup?
     if version:
         versionRequested = True
-        if version == "current":
-            version = current(product)
-        elif version == "setup":
-            version = setup(product)
+        version = findVersion(product, version)
 
     opts = ""
     if dbz:
