@@ -1282,7 +1282,7 @@ sub eups_setup {
 
    if (($debug >= 1 && !$quiet) || $debug > 1) {
       if (defined($prod)) {
-	 if ($debug > 1 || !defined($setupVersion{$prod})) {	     
+	 if (($debug > 1 || !defined($setupVersion{$prod})) && $$flags{show_depth} >= $indent - 1) {
 	    show_product_version("Setting up", $indent, $prod, $vers, $flavor);
 	 }
       }
@@ -1726,6 +1726,7 @@ sub show_product_version
 	     '--quiet',		'-q',
 	     '--root',		'-r',
 	     '--setup',		'-s',
+	     '--max-depth',	'-S',
 	     '--type',		'-t',
 	     '--version',	'-V',
 	     '--verbose',	'-v',
@@ -1880,6 +1881,7 @@ sub eups_show_options
        -q => "Be extra quiet",
        -r => "Location of product being " . ($command eq "setup"? "setup" : $command . "d"),
        -s => "Show which version is setup",
+       -S => "Only show this many levels of dependencies (use with -v)",
        -t => "Specify type of setup (permitted values: build)",
        -v => "Be chattier (repeat for even more chat)",
        -V => "Print eups version number and exit",
