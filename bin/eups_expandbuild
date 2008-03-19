@@ -111,4 +111,4 @@ else:
 #
 # Actually do the work
 #
-eups.expandBuildFile(ofd, ifd, product, version, svnroot=svnroot, cvsroot=cvsroot)
+eups.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
