@@ -135,6 +135,10 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
         print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
         if os.path.exists(os.path.join("ups", "%s.build" % product)):
             print >> sys.stderr, "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (product)
+        if force:
+            return
+
+        print >> sys.stderr, "I'm giving up. Use --force if you want to proceed with a partial distribution"
         sys.exit(1)
 
     builderDir = os.path.join(package_base, "builds")
@@ -1147,7 +1151,7 @@ if not os.path.isdir(db + "/ups_db"):
     sys.exit(1)
 
 if not package_base:
-    package_base = os.path.join(db, "packages")
+    package_base = os.path.join(db, "packages", flavor)
 #
 # To work
 #
