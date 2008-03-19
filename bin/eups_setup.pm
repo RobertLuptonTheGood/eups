@@ -307,7 +307,7 @@ sub extract_table_commands {
 	my $record = 1;		# keep this line
 	my $block = "";
 	for ($i = 0; $i < @lines; $i++) {
-	    my $line = $lines[$i]; 
+	    my $line = $lines[$i];
 	    if ($line =~ /^\s*if\s*\((.*)\)\s*{\s*$/i) {
 	       $record = eval_logical($1, $flavor, $build);
 	       next;
@@ -700,6 +700,20 @@ sub parse_table {
 
     return $retval;
 }
+#
+# Convert a string containing arguments back to a list, removing all flags
+#
+# Sigh.  We shouldn't be doing this.
+#
+sub split_args {
+   my($args) = @_;
+
+   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
+   @args = ($args =~ /[\'\"]([^\'\"]+)[\'\"]|(\S+)/g);
+   @args = grep(!/^$/, @args);	# drop null matches from whitespace
+
+   return @args;
+}
 
 sub eups_unsetup {
 
@@ -717,8 +731,7 @@ sub eups_unsetup {
    # Need to extract the parameters carefully
    local ($args, $outfile, $no_dependencies, $only_dependencies, $flags,
 	  $user_table_file, $debug, $quiet) = @_;
-   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
-   @args = split " ",$args;
+   @args = split_args($args);
    my($prod) = $args[0];
    my($uservers) = $args[1];
    my($vers, $flavor, $root);
@@ -1152,8 +1165,7 @@ sub eups_setup {
    my($user_table_file) = $_user_table_file; undef($_user_table_file);
 
    my $qaz = $args;
-   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
-   @args = split " ",$args;
+   $args = split_args($args);
    $prod = $args[0]; shift(@args);
    # Extract version info if any
    my($vers) = $args[0]; shift(@args);
@@ -1348,8 +1360,7 @@ sub eups_list {
    local ($args,$outfile,$debug,$quiet,$current, $setup, $just_directory, $just_tablefile) = @_;
 
    my $qaz = $args;
-   $args =~ s/\-[a-zA-Z]\s+[^ ]+//g;
-   @args = split " ",$args;
+   $args = split_args($args);
    $prod = $args[0]; shift(@args);
    my($version) = $args[0]; shift(@args);
    if ($args[0]) {
@@ -1742,7 +1753,11 @@ sub eups_parse_argv
    
    while ($ARGV[0]) {
       if ($ARGV[0] !~ /^-/) {	# not an option
-	 push(@$words, $ARGV[0]); shift @ARGV;
+	 $arg = $ARGV[0];
+	 if ($arg =~ /\s/) {
+	    $arg = "'$arg'";
+	 }
+	 push(@$words, $arg); shift @ARGV;
 	 next;
       }
       
