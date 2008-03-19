@@ -133,6 +133,8 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
 
     if not buildFile:
         print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
+        if os.path.exists(os.path.join("ups", "%s.build" % product)):
+            print >> sys.stderr, "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (product)
         sys.exit(1)
 
     builderDir = os.path.join(package_base, "builds")
@@ -540,10 +542,13 @@ def create_distrib(top_product, top_version, dbz, flavor,
         if not ptablefile:
             if verbose > 0:
                 print >> sys.stderr, "Unable to find a table file for %s" % product
+            if os.path.exists(os.path.join("ups", "%s.table" % product)):
+                print >> sys.stderr, "N.b. found %s.table in ./ups; consider adding ./ups to --build path" % (product)
+                
             ptablefile = "none"
 
         productList = [(product, top_version, None)]
-        dependencies = eups.dependencies_from_table(ptablefile)
+        dependencies = eups.dependencies_from_table(ptablefile, verbose)
         if dependencies:
             for (product, version) in dependencies:
                 if not version:
