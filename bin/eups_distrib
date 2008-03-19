@@ -426,29 +426,29 @@ def createLocationList(filename, packagePath):
     
     locs = []
     if preferFlavor:
-        locs.extend(['/%s' % flavor, ''])
+        locs.extend(['%s' % flavor, ''])
     else:
-        locs.extend(['', '/%s' % flavor])
+        locs.extend(['', '%s' % flavor])
 
     if packagePath is not None:
         if preferFlavor:
             if tag is not None:
-                locs.extend(['/%s/%s/%s' % (packagePath, flavor, tag),
-                             '/%s/%s' % (packagePath, flavor),
-                             '/%s/%s' % (packagePath, tag),
-                             '/%s' % (packagePath)])
+                locs.extend(['%s/%s/%s' % (packagePath, flavor, tag),
+                             '%s/%s' % (packagePath, flavor),
+                             '%s/%s' % (packagePath, tag),
+                             '%s' % (packagePath)])
             else:
-                locs.extend(['/%s/%s' % (packagePath, flavor),
-                             '/%s' % (packagePath)])
+                locs.extend(['%s/%s' % (packagePath, flavor),
+                             '%s' % (packagePath)])
         else:
             if tag is not None:
-                locs.extend(['/%s/%s' % (packagePath, tag),
-                             '/%s/%s/%s' % (packagePath, flavor, tag),
-                             '/%s' % (packagePath),
-                             '/%s/%s' % (packagePath, flavor)])
+                locs.extend(['%s/%s' % (packagePath, tag),
+                             '%s/%s/%s' % (packagePath, flavor, tag),
+                             '%s' % (packagePath),
+                             '%s/%s' % (packagePath, flavor)])
             else:
-                locs.extend(['/%s' % (packagePath),
-                             '/%s/%s' % (packagePath, flavor)])
+                locs.extend(['%s' % (packagePath),
+                             '%s/%s' % (packagePath, flavor)])
 
     return locs
 
@@ -474,14 +474,14 @@ def find_file(filename, packagePath=None):
     if verbose > 1:
         print >> sys.stderr, "Looking for %s in subdirectories [%s] of:" % \
               (filename, str.join(", ", map(lambda sd: "\"%s\"" % sd, subDirs))), \
-              str.join("", map(lambda str: "\n   %s%s" % (package_base, str), locs))
+              str.join("", map(lambda str: "\n   %s" % os.path.join(package_base, str), locs))
 
     if transport != LOCAL:
         tfile = None
         for loc in locs:
             for sd in subDirs:
                 try:
-                    extended_package_base = "%s%s" % (package_base, loc)
+                    extended_package_base = os.path.join(package_base, loc)
                     (tfile, msg) = file_retrieve(os.path.join(extended_package_base, sd, filename), transport)
                     package_base = extended_package_base
                     if verbose > 0:
@@ -570,6 +570,20 @@ def get_root_from_buildfile(buildFile):
             else:
                 if verbose:
                     print >> sys.stderr, "Unknown root type:", line,
+
+            continue
+
+        mat = re.search(r"^\s*(cvs|svn)\s+(co|checkout)\s+(\S)", line)
+        if mat:
+            type = mat.group(1); val = re.sub("\"", "", mat.group(3))
+            
+            if type == "cvs":
+                cvsroot = val
+            elif type == "svn":
+                svnroot = val
+            else:
+                if verbose:
+                    print >> sys.stderr, "Unknown src manager type:", line,
 
             continue
 
@@ -881,7 +895,9 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
     if True or os.path.isdir(flavor_dir): # Always use the flavor_dir as products_root
         products_root = flavor_dir
 
-    if not manifest:
+    if manifest:
+        raw_manifest = manifest
+    else:
         if not top_version:
             top_version = lookup_current_version(top_product, from_eups = False)
 
