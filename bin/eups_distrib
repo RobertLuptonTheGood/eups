@@ -601,14 +601,24 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 try:
                     (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pdir).groups()
                 except:
-                    if verbose:
-                        print >> sys.stderr, "Failed to split \"%s\" into basedir and productdir at \"%s\"" \
+                    if verbose > 1:
+                        print >> sys.stderr, "Split of \"%s\" at \"%s\" failed; proceeding" \
                               % (pdir, product)
                     if False:
                         print >> sys.stderr, "WARNING: not creating package for %s" % (product)
                         continue
                     else:
-                        basedir = ""; product_dir = pdir
+                        try:
+                            (basedir, product_dir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pdir).groups()
+                            if verbose > 1:
+                                print >> sys.stderr, "Guessing \"%s\" has productdir \"%s\"" \
+                              % (pdir, product_dir)
+                        except:
+                            if verbose:
+                                print >> sys.stderr, "Again failed to split \"%s\" into basedir and productdir" \
+                                      % (pdir)
+
+                            basedir = ""; product_dir = pdir
 
         if pacman:
             distID = use_pacman_cache(product, version)
