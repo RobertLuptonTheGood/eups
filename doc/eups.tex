@@ -783,7 +783,7 @@ the trailing \code{:} means). The \code{rsync} should be clear, and the second
 \code{eups distrib} does the install.
 
 What if your product isn't (yet) declared to \eups?  Write a build file \code{scipy.build} and
-table file \code{scipy.table} in \code{\~/ACT/BuildFiles}, and incant:
+maybe table file \code{scipy.table} in \code{\~/ACT/BuildFiles}, and incant:
 \begin{verbatim}
 eups distrib -z act --create --build ~/ACT/BuildFiles: --noeups scipy 0.6.0
 
@@ -792,6 +792,13 @@ eups distrib -z act --install scipy 0.6.0 --root http://www.astro.princeton.edu/
 N.b. this uses \code{scipy.table} from the build file directory, \code{\~/ACT/BuildFiles}. The
 \code{--noeups} only applies at the top level;  if your table file specifies dependencies
 they'll be honoured (the current versions will be used if you don't specific desired versions)
+
+You can also use \code{--noeups} to create a distribution from a checked out version without
+first installing it.  You'll need to tell \eups{} where to look for the table/build files
+in \code{./ups}:
+\begin{verbatim}
+eups distrib --create --build ups --noeups mwi 2.4
+\end{verbatim}
 
 %------------------------------------------------------------------------------
 
@@ -1582,12 +1589,7 @@ the installed version (assuming that \code{\$(VERSION)} is
     setup -r .
     make install  
 \end{verbatim}
-and everyone's happy.\footnote{
-  N.b. \code{eups distrib} is responsible for setting up products
-  for you, so if you source the build script by hand you'll first
-  have to issue appropriate setup commands by hand.}
-  }
-  \footnote{
+and everyone's happy.  \footnote{
 There's a subtlety here.  Imagine that we had a product \code{prod2}
 which depended on \code{prod1}.
 As we source each build file separately,
@@ -1597,9 +1599,10 @@ the time that \code{prod2}'s being built (as it's run in a different shell), so
 tries to setup \code{prod1} itself (as it's a dependency), which requests the \emph{current} version
 of \code{prod1}.  We don't want \code{eups distrib} to always declare
 products current, so what should we do?  The answer is that \code{eups distrib}
-inserts explicit setup statements into the the build script as it
-executes it, and replaces the \code{setup} with \code{setup -j}; try
-running with the \code{--verbose} flag if you want to see this in action.
+inserts explicit setup statements into the the build script
+and replaces the \code{setup} with \code{setup -j}; try
+running with the \code{--verbose} flag if you want to see this in action,
+or simply read the installed build file.
 }
 
 \end{document}
