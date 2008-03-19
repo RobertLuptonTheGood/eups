@@ -192,11 +192,10 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
 
     return deps
 
-def dependencies_from_table(tableFile):
+def dependencies_from_table(tableFile, verbose=0):
     """Return a list of tuples (product, version) that need to be
     setup, given a table file.
 
-    N.b. Note that conditionals aren't handled properly
     N.b. This is the top-level requirements, it isn't computed recursively"""
 
     try:
@@ -225,8 +224,19 @@ def dependencies_from_table(tableFile):
             elif len(args) == 2:
                 pass
             else:
-                print >> sys.stderr, "Failed to parse: ", line,
-                args = args[0:2]
+                version_properties = list(args[0], "".join(args[1:])) # maybe a conditional
+                if version_properties:
+                    version = version_properties[0]
+
+                    if verbose > 2:
+                        print >> sys.stderr, "%-30s -> %s" % (" ".join(args), version)
+                    args = args[0:1] + [version]
+
+                if len(args) == 2:
+                    pass
+                else:
+                    print >> sys.stderr, "Failed to parse: ", line,
+                    args = args[0:2]
 
             products += [tuple(args)]
 
@@ -263,7 +273,7 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
         opts += " --flavor %s" % (flavor)
 
     result = []
-    for info in os.popen("eups list %s --quiet --verbose %s %s" % (opts, product, version)).readlines():
+    for info in os.popen("eups list %s --quiet --verbose %s '%s'" % (opts, product, version)).readlines():
         oneResult = re.findall(r"\S+", info)
 
         if len(oneResult) == 3:
@@ -511,7 +521,7 @@ Options:""" % self.msg
 #
 # Expand a build file
 #
-def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None):
+def expandBuildFile(ofd, ifd, product, version, verbose=False, svnroot=None, cvsroot=None):
     """Expand a build file, reading from ifd and writing to ofd"""
     #
     # A couple of functions to set/guess the values that we'll be substituting
@@ -540,7 +550,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None):
         if svnroot:
             pass
         elif os.environ.has_key("SVNROOT"):
-            cvsroot = os.environ["SVNROOT"]
+            svnroot = os.environ["SVNROOT"]
         elif os.path.isdir(".svn"):
             try:
                 rfd = os.popen("svn info .svn")
