@@ -683,6 +683,7 @@ Options:
    -h, --help            Print this help message
    -i, --install         Extract and install the specified package
                          Alias: --extract
+   -l, --list            List available products
    -j, --nodepend        Just install product, but not its dependencies
    -n, --noaction        Don't actually do anything
    -N, --noeups          Don't lookup product in eups when creating a distribution
@@ -707,6 +708,12 @@ package is a set of tarballs (i.e. gzipped tar archives), a set of build files\f
 caches and
 a file (ending in \code{.manifest})
 listing a product's dependencies, including the names of the proper tarballs/caches. 
+
+You may use \code{eups distrib --list} to list available products; with \code{--current}
+only current products are listed.  E.g.
+\begin{verbatim}
+eups distrib --list --root http://www.astro/~rhl/LSST/packages --current mwi 2.4
+\end{verbatim}
 
 Once you've created a package with \code{eups distrib --create} you can log on to
 another machine and use \code{eups distrib --install} to
@@ -745,12 +752,13 @@ a product, the list will in fact be identical to your local preferences.
 Alternatively, you can update a single product's version number (e.g.
 \code{eups distrib --current moby}) or specify a version (\code{eups distrib --current moby v1\_2}).
 
-\textit{N.b.} As presently written, \code{eups distrib} assumes that you've
+\textit{N.b.} As presently written, \code{eups distrib} assumes that (unless you're
+using \code{--noeups}) you've
 installed all the products into \eups, as opposed to simple declaring them, but
 relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
 that all product directories start with a directory listed in \code{EUPS\_PATH}.
 This is probably a good idea, as otherwise \code{eups distrib} would tar up
-all of /usr/local for you.
+all of /usr/local for you.  
 
 \textit{N.b.} A decent description of the \code{--build} version of this command
 needs to be written!  This would include the \code{--noeups} flag, and its use

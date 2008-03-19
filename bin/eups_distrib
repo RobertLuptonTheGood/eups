@@ -363,6 +363,64 @@ HTTPError = urllib2.HTTPError
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def listdir(url):
+    """Return a list of the files specified by a directory URL"""
+
+    if transport == LOCAL:
+        return os.listdir(url)
+    elif transport == URL:
+        """Read a URL, looking for the hrefs that apache uses in directory listings"""
+        import HTMLParser, urlparse
+        class LinksParser(HTMLParser.HTMLParser):
+            """Based on code in Martelli's "Python in a Nutshell" """
+            def __init__(self):
+
+                HTMLParser.HTMLParser.__init__(self)
+                self.nrow = 0
+                self.seen = set()
+                self.files = [] # files listed in table
+                self.is_attribute = False # next data is value of <attribute>
+                self.is_apache = False # are we reading data from apache?
+
+            def handle_starttag(self, tag, attributes):
+                if tag == "tr": # count rows in table
+                    self.nrow += 1
+
+                if tag == "address":
+                    self.is_attribute = True
+
+                if self.nrow <= 1 or tag != "a":
+                    return
+
+                for name, value in attributes:
+                    if name != "href":
+                        continue
+                    if re.search(r"/$", value): # a directory
+                        continue
+
+                    self.files += [value]
+
+            def handle_data(self, data):
+                if self.is_attribute:
+                    self.is_apache = re.search(r"^Apache", data)
+                    self.is_attribute = False
+
+        p = LinksParser()
+        for line in open(url, "r").readlines():
+            p.feed(line)
+
+        if not p.is_apache:
+            print >> sys.stderr, \
+                  "Warning: I'm assuming that the manifest directory listing comes from an Apache server"
+
+        return p.files
+    else:
+        print >> sys.stderr, "I don't know how to handle transport == %d" % transport
+        sys.exit(1)
+
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def createLocationList(filename, packagePath):
     """Create a list of places to look"""
     
@@ -447,7 +505,7 @@ def find_file(filename, packagePath=None):
         for loc in locs:
             for sd in subDirs:
                 guess = os.path.join(package_base, loc, sd, filename)
-                if os.path.isfile(guess):
+                if os.path.isfile(guess) or os.path.isdir(guess):
                     tfile = guess
                     break
             if tfile:
@@ -814,7 +872,7 @@ def create_current(top_product, top_version, dbz, flavor,
 
 def read_manifest(top_product, top_version, db, dbz, flavor,
                   force, manifest, noaction, transport, verbose):
-    """Read a manifest and return products_root, top_version, and a list of products"""
+    """Read a manifest and return the product and version, and products_root, top_version, and a list of products"""
 
     global package_base
 
@@ -872,6 +930,8 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
     if not mat:
         print >> sys.stderr, "First line of file %s is corrupted:\n\t%s" % (manifest, line),
         sys.exit(1)
+    manifest_product, manifest_product_version, version = mat.groups()
+
     version = mat.groups()[2]
     if version != eups_distrib_version:
         print >> sys.stderr, "WARNING. Saw version %s; expected %s" % (version, eups_distrib_version)
@@ -888,7 +948,7 @@ def read_manifest(top_product, top_version, db, dbz, flavor,
             print >> sys.stderr, "Failed to parse line:", line,
             sys.exit(1)
 
-    return products_root, top_version, products
+    return manifest_product, manifest_product_version, products_root, top_version, products
 
 def install_distrib(top_product, top_version, db, dbz, flavor,
                     force, manifest, noaction, transport, verbose):
@@ -896,8 +956,9 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 
     global package_base
 
-    products_root, top_version, products = read_manifest(top_product, top_version, db, dbz, flavor,
-                                                         force, manifest, noaction, transport, verbose)
+    manifest_product, manifest_product_version, products_root, top_version, products = \
+                      read_manifest(top_product, top_version, db, dbz, flavor,
+                                    force, manifest, noaction, transport, verbose)
     if os.path.isdir(products_root):
         if verbose > 0:
             print >> sys.stderr, "Installing products into", products_root
@@ -982,6 +1043,50 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
                 eups.declareCurrent(product, version, flavor, dbz, noaction)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def list_distrib(top_product, top_version, db, dbz, flavor,
+                    force, manifest, noaction, transport, verbose):
+    """List available packages"""
+
+    global package_base
+
+    available = []                      # available products
+    if current:
+        currentFile = find_file("current.list")
+        fd = open(currentFile, "r")
+        fd.readline()                   # skip header
+
+        for line in fd.readlines():
+            line = line[:-1]            # remove newline
+            available += [line.split("\t")]
+    else:
+        #
+        # That would have been easy. We need to read the list of manifests
+        #
+        manifestDir = find_file("manifests")
+        for file in listdir(manifestDir):
+            manifest = find_file(file)
+            manifest_product, manifest_product_version = \
+                              read_manifest(None, None, db, dbz, flavor,
+                                            force, manifest, noaction, transport, verbose)[0:2]
+
+            available += [[manifest_product, None, manifest_product_version]]
+
+    for a in available:
+        manifest_product, manifest_flavor, manifest_product_version = a
+        
+        if manifest_flavor and manifest_flavor != flavor:
+            continue
+        if top_product and top_product != manifest_product:
+            continue
+        if top_version and top_version != manifest_product_version:
+            continue
+        
+        print manifest_product, manifest_product_version
+
+    sys.exit(0)
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Deal with arguments
 #
@@ -996,6 +1101,7 @@ options = dict([
     ["-h", (False, "--help", "Print this help message")],
     ["-i", (False, "--install", "Extract and install the specified package")],
     ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
+    ["-l", (False, "--list", "List available products")],
     ["-n", (False, "--noaction", "Don\'t actually do anything")],
     ["-N", (False, "--noeups", "Don\'t attempt to lookup product in eups")],
     ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
@@ -1047,6 +1153,8 @@ no_dependencies = opts.has_option('-j')
 
 install = opts.has_option('-i')
 
+listProducts = opts.has_option('-l')
+
 manifest = None
 if opts.has_option('-m'):
     manifest = opts.options['-m']
@@ -1078,9 +1186,9 @@ if opts.has_option('-T'):
     tmp_dir = opts.options['-T']
 
 if package_base is not None:
-    if install and re.search(r"^http://", package_base):
+    if (install or listProducts) and re.search(r"^http://", package_base):
         transport = URL
-    elif install and re.search(r"^scp:", package_base):
+    elif (install or listProducts) and re.search(r"^scp:", package_base):
         transport = SCP
         package_base = re.sub(r"^scp:", "", package_base)
 
@@ -1097,6 +1205,8 @@ try:
 except IndexError:
     if current:
         top_product = ""
+    elif listProducts:
+        top_product = None
     elif manifest == None:
         print >> sys.stderr, "Please specify a product\n"
         opts.usage()
@@ -1155,8 +1265,8 @@ if not package_base:
 #
 # To work
 #
-if create + install != 1:
-    print >> sys.stderr, "Please specify exactly one of --create and --install"
+if create + install + listProducts != 1:
+    print >> sys.stderr, "Please specify exactly one of --create, --install, and --list"
     sys.exit(1)
 
 if create:
@@ -1172,3 +1282,9 @@ if create:
 elif install:
     install_distrib(top_product, top_version, db, dbz, flavor,
                     force, manifest, noaction, transport, verbose)
+elif listProducts:
+    list_distrib(top_product, top_version, db, dbz, flavor,
+                 force, manifest, noaction, transport, verbose)
+else:
+    print >> sys.stderr, "You can't get here; complain to RHL"
+    
