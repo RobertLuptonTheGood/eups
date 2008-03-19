@@ -577,7 +577,7 @@ def expandBuildFile(ofd, ifd, product, version, verbose=False, svnroot=None, cvs
         var = name.group(1).upper()
         if subs.has_key(var):
             if not subs[var]:
-                raise RuntimeError, "I can't guess a %s for you; please set $%s" % (var, var)
+                raise RuntimeError, "I can't guess a %s for you -- please set $%s" % (var, var)
             return subs[var]
 
         return "XXX"
