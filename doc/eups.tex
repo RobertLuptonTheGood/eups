@@ -1449,6 +1449,7 @@ This may only be of interest to the authors.  You can declare \eups{} as a full-
 between them.  To make this easier, the main Makefile allows you to say,
 \code{make declare} to declare your new version.
 
+\section{Changes}
 \subsection{New features}
 
 \eups{} has undergone significant enhancements recently.  Some
@@ -1490,7 +1491,7 @@ highlights are:
 
 
   \item
-    Support \eups{eups declare -r XXX version}
+    Support \code{eups declare -r XXX version}
 
   \item
     Allow version expressions in \code{eups list}
@@ -1516,9 +1517,9 @@ highlights are:
     Support \code{eups declare -n}
 
   \item
-    Support \code{$\sim$} (but not \code{$\sim$user}) when using -r to specify product directories;
+    Support \code{\~} (but not \code{\~{}user}) when using -r to specify product directories;
     this only matters in table files (where the shell didn't already expand
-    the $\sim$ for you)
+    the \~{} for you)
 
   \item
     Support \code{eups list prod LOCAL:/product/dir}
