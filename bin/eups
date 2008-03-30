@@ -29,6 +29,7 @@ Supported commands are:
 			or create such a distribution 
 	expandbuild	Expand variables in a .build file
 	expandtable	Insert explicit version tags into a table file
+	flags		Show the value of \$EUPS_FLAGS
 	flavor		Return the current flavor
 	list            List some or all products
         path [n]        Print the current eups path, or an element thereof
@@ -48,6 +49,12 @@ cmd=$1; shift
 case $cmd in
  declare|distrib|expandbuild|expandtable|flavor|pkg-config|undeclare)
     eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
+ flags)
+    if [ X"$EUPS_FLAGS" = X"" ]; then
+	echo "You have no EUPS_FLAGS set"
+    else
+	echo "EUPS_FLAGS == $EUPS_FLAGS"
+    fi;;
  list)
     source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
  path)
