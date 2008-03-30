@@ -505,8 +505,13 @@ sub get_argument {
 
 sub parse_table {
    my($fn, $proddir, $upsdir, $prod, $vers, $flavor,
-      $root, $fwd, $outfile, $only_dependencies, $build, $quiet) = @_;
-   
+      $root, $fwd, $outfile, $only_dependencies, $flags, $quiet) = @_;
+   #
+   # Unpack flags
+   #
+   local($build) = $$flags{build};
+   local($keep) = $$flags{keep};
+
    my $data = 0;
 
 # Define the return value
@@ -589,13 +594,31 @@ sub parse_table {
     $group =~ s/\$\{UPS_PROD_NAME\}/$prod/g;
     $group =~ s/\$\{UPS_PROD_VERSION\}/$vers/g;
     $group =~ s/\$\{UPS_UPS_DIR\}/$upsdir/g;
-    
+
 # Execute the proddir and setupenv commands directly
     $comm = "setupenv";
     $qaz = $prod;
     $qaz =~ tr/[a-z]/[A-Z]/;
     $arg[0] = "SETUP_$qaz";
     $arg[1] = "$prod $vers -f $flavor -Z $root";
+    # Is this product setup in the environment?
+    if (defined($ENV{$arg[0]}) && defined($ENV{"${qaz}_DIR"})) {
+       my($setup_cmd) = $ENV{$arg[0]};
+       my($prod_dir) = $ENV{"${qaz}_DIR"};
+       if ($setup_cmd =~ /-Z\s+(\S+)/) {
+	  my($root) = $1;
+	  if ($prod_dir !~ m|^$root/|) { # a local setup is already present
+	     if ($keep) {
+		if ($fwd && !$quiet) {
+		   warn "Not setting up $prod as it is already set in the environment\n";
+		}
+
+		return;
+	     }
+	  }
+       }
+    }
+
     if (!$only_dependencies) {
        if ($fwd == 0) {
 	  $switchback{$comm}->(@arg);
@@ -732,8 +755,8 @@ sub eups_unsetup {
    local ($args, $outfile, $no_dependencies, $only_dependencies, $flags,
 	  $user_table_file, $debug, $quiet) = @_;
    @args = split_args($args);
-   my($prod) = $args[0];
-   my($uservers) = $args[1];
+   my($prod) = $args[0]; shift(@args);
+   my($uservers) = join(" ", @args);
    my($vers, $flavor, $root);
    if ($user_table_file) {
       ($prod_dir, $table_file) = (undef, $user_table_file);
@@ -748,7 +771,7 @@ sub eups_unsetup {
       ($status, $vers, $flavor, $root) = parse_setup_prod($prod);
       my $db = catfile($root, 'ups_db');
 
-      if ($vers && $uservers && $vers ne $uservers) {
+      if ($vers && $uservers && eups_version_cmp($vers, $uservers) > 0) {
 	 if ($debug > 0) {
 	    warn "You are unsetting up $prod $vers, but you asked to unsetup $uservers\n";
 	 }
@@ -804,7 +827,7 @@ sub eups_unsetup {
 
    $fwd = 0;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,
-		      $root,$fwd,$outfile,$only_dependencies,$$flags{build}, $quiet);
+		      $root,$fwd,$outfile,$only_dependencies,$flags, $quiet);
 }
 
 # Search for the best version for a given product, return the essential paths.
@@ -1302,8 +1325,12 @@ sub eups_setup {
    if (!defined($setupVersion{$prod})) {
       $setupVersion{$prod} = $vers;
    } else {
-      if ($setupVersion{$prod} ne $vers) {
-	 print STDERR "WARNING: You setup $prod $setupVersion{$prod}, and are now setting up $vers \n";
+      if ($setupVersion{$prod} ne $vers && !$quiet) {
+	 my($versName) = $vers;
+	 if (!$versName) {
+	    $versName = "\"current\"";
+	 }
+	 print STDERR "WARNING: You setup $prod $setupVersion{$prod}, and are now setting up $versName\n";
       }
       $setupVersion{$prod} = $vers;
    }
@@ -1316,7 +1343,7 @@ sub eups_setup {
    #Call the table parser here 
    $fwd = 1;
    return parse_table($table_file,$prod_dir,$ups_dir,$prod,$vers,$flavor,
-		      $root,$fwd,$outfile,$only_dependencies,$$flags{build},$quiet);
+		      $root,$fwd,$outfile,$only_dependencies,$flags,$quiet);
 }
 
 ###############################################################################
@@ -1731,6 +1758,7 @@ sub show_product_version
 	     '--help',		'-h',
 	     '--ignore-versions', '-i',
 	     '--just'	,	'-j',
+	     '--keep'	,	'-k',
 	     '--list'	,	'-l',
 	     '--noaction',	'-n',
 	     '--table'	,	'-m',
@@ -1750,7 +1778,30 @@ sub show_product_version
 sub eups_parse_argv
 {
    my($opts, $args, $words) = @_;
-   
+   #
+   # Process $EUPS_FLAGS, keeping only flags that make sense in opts
+   # (which allows one EUPS_FLAGS to be used with setup and eups_declare)
+   #
+   if (defined($ENV{"EUPS_FLAGS"}) && $ENV{"EUPS_FLAGS"}) {
+      if (grep(/^(-v|--verbose)/, @ARGV) > 1) {	# we haven't set $debug yet
+	 warn "Processing EUPS_FLAGS == \"$ENV{EUPS_FLAGS}\"\n";
+      }
+
+      my($opt);
+      foreach $opt (reverse(split(" ", $ENV{"EUPS_FLAGS"}))) {
+	 if (defined($longopts{$opt})) {
+	    $opt = $longopts{$opt};
+	 }
+	 if (defined($aliasopt{$opt})) {
+	    $opt = $aliasopt{$opt};
+	 }
+
+	 if (defined($$opts{$opt})) {
+	    unshift(@ARGV, $opt);
+	 }
+      }
+   }
+
    while ($ARGV[0]) {
       if ($ARGV[0] !~ /^-/) {	# not an option
 	 $arg = $ARGV[0];
@@ -1888,6 +1939,7 @@ sub eups_show_options
        -i => "Ignore any explicit versions in table files",
        -j => "Just setup product, no dependencies",
        -l => "List available versions (-v => include root directories)",
+       -k => "Keep any products with local setups (i.e. not in EUPS_PATH)",
        -n => "Don\'t actually do anything",
        -m => ($command eq "setup" ? "Print name of" : "Use"). " table file (may be \"none\") Default: product.table",
 	       -M => $command eq "setup" ?
