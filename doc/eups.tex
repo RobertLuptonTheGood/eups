@@ -734,8 +734,8 @@ if you were using \code{scp}, prefixed by \code{scp:}; e.g.
 When creating an distribution, tarballs that already present are not recreated
 (unless you specify \code{--force}),
 so repeating a \code{eups distrib --create} command to create a manifest for another
-product won't lead to duplication of tarballs.  If you want to use \pacman{},
-see App. \ref{pacman}.
+product won't lead to duplication of tarballs.  If you want to use buildfiles
+see App. \ref{buildFiles}; if you'd like to try \pacman{}, see App. \ref{pacman}.
 
 When unpacking a distribution with \code{eups distrib --install}, products that are
 already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{--force}).
@@ -975,6 +975,7 @@ Options:
         -F, --force     Force requested behaviour, even if product's already setup
         -i, --ignore-versions Ignore any explicit versions in table files
         -j, --just      Just setup product, no dependencies
+        -k, --keep      Keep any products with local setups (i.e. not in EUPS_PATH)
         -l, --list      List available versions (-v => include root directories)
         -l, --list      List available versions (-v => include root directories)
         -m, --table     Print table file name to stderr (useful with -s)
@@ -1031,6 +1032,12 @@ If you set verbose to three or more, the file that \code{setup} writes (and
 which is sourced to modify your current shell's variables) is not deleted
 after use, allowing you to peruse it at your leisure.
 
+The \code{-k} (`keep') makes \eups{} preserve your pre-existing setups
+of any products with directories that don't appear in
+\code{EUPS\_PATH}; in this case all version requirements
+(e.g. \code{>= 1.2}) are ignored. You can achieve the same effect
+by carefully chosing your setup order, but this is easier.
+
 The \code{-D} option specifies that the product itself \textit{not} be
 setup, but that it's dependencies should be processed as normal.
 
@@ -1084,15 +1091,20 @@ Required variables -
 Optional Variables -
 
 \begin{itemize}
-  \item \code{EUPS\_FLAVOR}
-    Set to the default flavor (if not set \eups{} will use the value returned
-    by \code{eups flavor}).
-
   \item \code{EUPS\_DEBUG}
     This sets the verbosity; equal to the difference between the number of \code{-v}s
     and \code{-q}s.
 
     If you are confused by some error, or simply nosy, try adding a \code{-v}.
+
+  \item \code{EUPS\_FLAVOR}
+    Set to the default flavor (if not set \eups{} will use the value returned
+    by \code{eups flavor}).
+
+  \item \code{EUPS\_FLAGS}
+    A list of options prepended to all setup/unsetup/declare/undeclare commands. Options
+    that are not permitted by a given command are silently ignored (e.g. \code{-k}
+    with \code{eups\_declare}).
 \end{itemize}
 
 \subsection{The Database}
@@ -1463,12 +1475,63 @@ highlights are:
 
   \item
     \code{eups distrib} can now use ``build files'' to
-    build products locally;  a sort of poor-man's equivalent
-    of \pacman{}.
+    build products locally; \code{sh} scripts that
+    play nicely with \eups{}.
 
   \item
     \code{eups distrib} can now use scp as well as http to
     retrieve files.
+
+    \XXXX
+
+  \item
+    support \code{\$?\{name\}} in table files
+
+  \item
+    Don't print setup/current with \code{eups list -d}
+
+
+  \item
+    Support \eups{eups declare -r XXX version}
+
+  \item
+    Allow version expressions in \code{eups list}
+
+  \item
+    Support \code{eups path n} to print part of a \code{EUPS\_PATH}
+
+  \item
+    Added \code{setup -C} as an alias for \code{setup -c}, for consistency with \code{eups distrib}
+
+
+  \item
+    Added \code{eups distrib --noeups} to generate build/manifests for non-eups or non-installed products
+
+  \item
+    Allow \code{eups declare} to guess the directory given the product and version,
+    e.g. \code{eups declare moby 3.1.4}.
+
+  \item
+    Don't allow a user to undeclare a setup product (as it couldn't be unsetup later)
+
+  \item
+    Support \code{eups declare -n}
+
+  \item
+    Support \code{$\sim$} (but not \code{$\sim$user}) when using -r to specify product directories;
+    this only matters in table files (where the shell didn't already expand
+    the $\sim$ for you)
+
+  \item
+    Support \code{eups list prod LOCAL:/product/dir}
+
+  \item
+    Support \code{setup --max-depth}/\code{-S} for use with \code{setup -v}.
+
+  \item
+    Add \code{eups distrib --list}
+
+    
 \end{itemize}
 
 \subsection{Obsolete features}
@@ -1481,7 +1544,7 @@ highlights are:
     with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}. This is no longer supported.
 \end{itemize}
 
-\section{Pacman}
+\section{``Transport Layers'' for \code{eups build}}
 \label{pacman}
 
 \pacman{} is a package used by the HEP community (e.g. Atlas) to distribute
@@ -1551,6 +1614,7 @@ install on a bunch of machines that don't share an
 One approach would be to bite the bullet and learn \pacman{} (see Appendix \ref{pacman});
 another is to write simple `build files'.  The former is far more sophisticated
 and bullet-proof; the latter is simpler.
+\textit{Note: we may remove \pacman{} support in a future \eups{} release}
 
 If you put a file \code{prod.build} in \code{prod/ups} and install it along
 with the table file, \code{eups distrib --build "" --create} will set things up
