@@ -246,6 +246,14 @@ if ($select eq "list") {
    }
    
    if ($select eq "setup") {
+      if ($flags{keep}) {	# we have to unsetup the toplevel product even if LOCAL
+	 my(%flags2) = %flags;
+	 $flags2{keep} = 0;
+
+	 eups_unsetup($comm, $tmpfile, 1, 
+		      $only_dependencies, \%flags2, $user_table_file, $debug, 1);
+
+      }
       $retval = eups_setup($comm, $tmpfile, $no_dependencies,
 			   $only_dependencies, \%flags, $user_table_file,
 			   $debug, $quiet, 0, \%oldenv, $force);
