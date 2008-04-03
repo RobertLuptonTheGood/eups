@@ -610,7 +610,7 @@ sub parse_table {
 	  if ($prod_dir !~ m|^$root/|) { # a local setup is already present
 	     if ($keep) {
 		if ($fwd && !$quiet) {
-		   warn "Not setting up $prod as it is already set in the environment\n";
+		   warn "Not setting up $prod as it is already setup locally\n";
 		}
 
 		return;
