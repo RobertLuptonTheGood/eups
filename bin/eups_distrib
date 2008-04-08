@@ -426,29 +426,29 @@ def createLocationList(filename, packagePath):
     
     locs = []
     if preferFlavor:
-        locs.extend(['%s' % flavor, ''])
+        locs.extend(['%s' % installFlavor, ''])
     else:
-        locs.extend(['', '%s' % flavor])
+        locs.extend(['', '%s' % installFlavor])
 
     if packagePath is not None:
         if preferFlavor:
             if tag is not None:
-                locs.extend(['%s/%s/%s' % (packagePath, flavor, tag),
-                             '%s/%s' % (packagePath, flavor),
+                locs.extend(['%s/%s/%s' % (packagePath, installFlavor, tag),
+                             '%s/%s' % (packagePath, installFlavor),
                              '%s/%s' % (packagePath, tag),
                              '%s' % (packagePath)])
             else:
-                locs.extend(['%s/%s' % (packagePath, flavor),
+                locs.extend(['%s/%s' % (packagePath, installFlavor),
                              '%s' % (packagePath)])
         else:
             if tag is not None:
                 locs.extend(['%s/%s' % (packagePath, tag),
-                             '%s/%s/%s' % (packagePath, flavor, tag),
+                             '%s/%s/%s' % (packagePath, installFlavor, tag),
                              '%s' % (packagePath),
-                             '%s/%s' % (packagePath, flavor)])
+                             '%s/%s' % (packagePath, installFlavor)])
             else:
                 locs.extend(['%s' % (packagePath),
-                             '%s/%s' % (packagePath, flavor)])
+                             '%s/%s' % (packagePath, installFlavor)])
 
     return locs
 
@@ -499,7 +499,7 @@ def find_file(filename, packagePath=None):
             sys.exit(1)
     else:
         if False and not package_base:
-            package_base = "%s/packages/%s" % (db, flavor)
+            package_base = "%s/packages/%s" % (db, installFlavor)
 
         tfile = None
         for loc in locs:
@@ -595,7 +595,7 @@ def get_root_from_buildfile(buildFile):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def create_distrib(top_product, top_version, dbz, flavor,
+def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
                    force, manifest, noaction, transport, verbose):
     """Create a distribution"""
 
@@ -629,7 +629,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
             for (product, version) in dependencies:
                 if not version:
                     version = eups.current(product)
-                productList += [(product, version, flavor)]
+                productList += [(product, version, installFlavor)]
     else:
         try:
             productList = eups.dependencies(top_product, top_version, dbz)
@@ -638,9 +638,9 @@ def create_distrib(top_product, top_version, dbz, flavor,
             sys.exit(1)
 
     products = []
-    for (product, version, flavor) in productList:
+    for (product, version, installFlavor) in productList:
         if verbose > 1:
-            print "Product:", product, "  Flavor:", flavor, "  Version:", version
+            print "Product:", product, "  Flavor:", installFlavor, "  Version:", version
 
         if product == top_product and noeups:
             basedir, pdb, pdir = None, None, None
@@ -652,7 +652,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
                 sys.exit(1)
             except:
                 print >> sys.stderr, "WARNING: Failed to lookup directory for", \
-                      "product:", product, "  Flavor:", flavor, "  Version:", version
+                      "product:", product, "  Flavor:", installFlavor, "  Version:", version
                 continue
 
             try:
@@ -723,7 +723,7 @@ def create_distrib(top_product, top_version, dbz, flavor,
                     print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
                 copyfile(fulltablename, tablefile_for_distrib)
 
-        products += [[product, flavor, version, pdb, pdir, ptablefile, product_dir, distID]]
+        products += [[product, installFlavor, version, pdb, pdir, ptablefile, product_dir, distID]]
 
         if no_dependencies:
             if force:
@@ -760,12 +760,12 @@ def create_distrib(top_product, top_version, dbz, flavor,
         
     rproducts = products[:]; rproducts.reverse() # reverse the products list
     for p in rproducts:
-        (product, flavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
-        if not flavor:
-            flavor = eups.flavor()
+        (product, installFlavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
+        if not installFlavor:
+            installFlavor = eups.flavor()
         if not noaction:
             print >> ofd, "%-15s %-12s %-10s %-25s %-25s %s" % \
-                  (product, flavor, version, ptablefile, product_dir, distID)
+                  (product, installFlavor, version, ptablefile, product_dir, distID)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -836,9 +836,9 @@ def write_current(current, products, noaction = False):
     for p in products:
         (product, version) = p[0:2]
         if not noaction:
-            print >> ofd, str.join("\t", [product, flavor, version])
+            print >> ofd, str.join("\t", [product, installFlavor, version])
 
-def create_current(top_product, top_version, dbz, flavor,
+def create_current(top_product, top_version, dbz, installFlavor,
                    noaction, verbose):
     """Create a list of packages that are declared current to eups distrib"""
 
@@ -869,7 +869,7 @@ def create_current(top_product, top_version, dbz, flavor,
             print >> sys.stderr, "WARNING: failed to find a version \"%s\" of product %s" % \
                   (top_version, top_product)
     else:
-        dp = [(top_product, eups.current(top_product, dbz, flavor))]
+        dp = [(top_product, eups.current(top_product, dbz, installFlavor))]
         
     products += dp
 
@@ -1060,7 +1060,7 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def list_distrib(top_product, top_version, db, dbz, flavor,
+def list_distrib(top_product, top_version, db, dbz, installFlavor,
                     force, manifest, noaction, transport, verbose):
     """List available packages"""
 
@@ -1083,7 +1083,7 @@ def list_distrib(top_product, top_version, db, dbz, flavor,
         for file in listdir(manifestDir):
             manifest = find_file(file)
             manifest_product, manifest_product_version = \
-                              read_manifest(None, None, db, dbz, flavor,
+                              read_manifest(None, None, db, dbz, installFlavor,
                                             force, manifest, noaction, transport, verbose)[0:2]
 
             available += [[manifest_product, None, manifest_product_version]]
@@ -1091,7 +1091,7 @@ def list_distrib(top_product, top_version, db, dbz, flavor,
     for a in available:
         manifest_product, manifest_flavor, manifest_product_version = a
         
-        if manifest_flavor and manifest_flavor != flavor:
+        if manifest_flavor and manifest_flavor != installFlavor:
             continue
         if top_product and top_product != manifest_product:
             continue
@@ -1124,6 +1124,7 @@ options = dict([
     ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")],
     ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
     ["-T", (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")],
+    ["-\001", (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")],
     ["-V", (False, "--version", "Print eups version number and exit")],
     ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
     ["-Z", (True,  "--database", "Use this products path. Default: $EUPS_PATH")],
@@ -1146,6 +1147,7 @@ if opts.has_option('-h'):
     opts.usage()
     sys.exit(0)
 
+buildFilePath = None
 if opts.has_option('-B'):
     buildFilePath = opts.options['-B']
 
@@ -1196,6 +1198,10 @@ else:
 tag = None
 if opts.has_option('-t'):
     tag = opts.options['-t']
+
+installFlavor = flavor
+if opts.has_option('-\001'):
+    installFlavor = opts.options['-\001']
 
 tmp_dir = None
 if opts.has_option('-T'):
@@ -1277,7 +1283,7 @@ if not os.path.isdir(db + "/ups_db"):
     sys.exit(1)
 
 if not package_base:
-    package_base = os.path.join(db, "packages", flavor)
+    package_base = os.path.join(db, "packages", installFlavor)
 #
 # To work
 #
@@ -1290,16 +1296,16 @@ if create:
         print >> sys.stderr, "You must specify a version if you use --noeups"
         sys.exit(1)
 
-    create_distrib(top_product, top_version, dbz, flavor,
+    create_distrib(top_product, top_version, dbz, flavor, installFlavor,
                    force, manifest, noaction, transport, verbose)
     if current:
-        create_current(top_product, top_version, dbz, flavor,
+        create_current(top_product, top_version, dbz, installFlavor,
                        noaction, verbose)
 elif install:
     install_distrib(top_product, top_version, db, dbz, flavor,
                     force, manifest, noaction, transport, verbose)
 elif listProducts:
-    list_distrib(top_product, top_version, db, dbz, flavor,
+    list_distrib(top_product, top_version, db, dbz, installFlavor,
                  force, manifest, noaction, transport, verbose)
 else:
     print >> sys.stderr, "You can't get here; complain to RHL"
