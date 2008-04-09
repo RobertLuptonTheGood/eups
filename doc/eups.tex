@@ -799,7 +799,12 @@ eups distrib -z act --install scipy 0.6.0 --root http://www.astro.princeton.edu/
 \end{verbatim}
 N.b. this uses \code{scipy.table} from the build file directory, \code{\~/ACT/BuildFiles}. The
 \code{--noeups} only applies at the top level;  if your table file specifies dependencies
-they'll be honoured (the current versions will be used if you don't specific desired versions)
+they'll be honoured (the current versions will be used if you don't specify desired versions). A
+simplified version (in this case installing the just-released \code{swig 1.3.35} on my laptop) is:
+\begin{verbatim}
+eups distrib --create --build \~/ACT/BuildFiles swig 1.3.35 --noeups
+eups distrib --install swig 1.3.35
+\end{verbatim}
 
 You can also use \code{--noeups} to create a distribution from a checked out version without
 first installing it.  You'll need to tell \eups{} where to look for the table/build files
@@ -817,6 +822,7 @@ Usage:
 Options:
    -c, --cvs        arg  Use this CVSROOT
    -h, --help            Print this help message
+   -i, --inplace         Modify file in situ
    -p, --product    arg  The name of the product
    -s, --svn        arg  Use this SVNROOT   
    -V, --version    arg  Specify version that you're installing
@@ -825,7 +831,7 @@ Options:
 Expand a .build file as part of installing it.
 
 If outDir is provided, the expanded file will be written there;
-otherwise it'll be written to stdout.
+otherwise it'll be written to stdout unless you specify --inplace.
 \end{verbatim}
 
 Modify a ups build file (see section \ref{buildFiles}) expanding certain variables:
@@ -856,13 +862,20 @@ cvs co -d prod1-v1_0_1 -r v1_0_1 prod1
 
 If a directory is specified, the modified build file will be written
 there, with the same name as the original; otherwise it's written to
-standard out.
+standard out unless you specify \code{--inplace}.
 
 For example, the make target in a ups directory might contain the line:
 \begin{verbatim}
       eups expandbuild -V $(VERSION) ups/prod1.build $(prefix)/ups
 \end{verbatim}				% $ for emacs
-  
+
+There is one special case when rewriting build files:  If the version
+is of the form \code{svn\#\#\#} (e.g. \code{svn666}), any occurrence of
+\code{/tags/svn\#\#\#} is replaced by \code{/trunk -r \#\#\#}. This will usually
+lead to \code{svn co svn+ssh://host.edu/product/tags/svn666}
+being replaced by \code{svn co svn+ssh://host.edu/product/trunk -r 666}
+which is probably what you want.
+
 %------------------------------------------------------------------------------
 
   \item \code{eups expandtable} (or \code{eups\_expandtable})
@@ -890,7 +903,7 @@ than one \code{-p} command is permitted.
 
 If a directory is specified, the modified table file will be written
 there, with the same name as the original; otherwise it's written to
-standard out unless you specify \code{--inplace}, in which case the
+standard output unless you specify \code{--inplace}, in which case the
 substitution will be done in situ.
 You may omit file.table, or specify it as "-", to read standard input;
 this implies \code{--inplace}.
