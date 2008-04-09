@@ -39,7 +39,7 @@ if opts.has_option('-h'):
 Expand a .build file as part of installing it.
 
 If outDir is provided, the expanded file will be written there;
-otherwise it'll be written to stdout.\
+otherwise it'll be written to stdout unless you specify --inplace.\
 """
     sys.exit(0)
 
@@ -76,8 +76,17 @@ else:
 if len(opts.argv) == 0:
     outdir = None
 else:
+    if in_situ:
+        print >> sys.stderr, "You may not specify both --inplace and a target directory"
+        sys.exit(1);
+        
     outdir = opts.argv[0]
     opts.argv = opts.argv[1:]
+
+if len(opts.argv) != 0:
+    print >> sys.stderr, "Unprocessed arguments: %s; quitting" % " ".join(opts.argv)
+    sys.exit(1);
+    
 #
 # Guess the value of PRODUCT
 #
@@ -135,7 +144,8 @@ except Exception, e:
         os.rename(backup, file)
         os.unlink(backup)
 
-    raise e
+    print >> sys.stderr, e
+    sys.exit(1)
 
 if backup and os.path.exists(backup):
     os.unlink(backup)
