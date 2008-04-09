@@ -16,6 +16,7 @@ import os, re, sys
 options = {
     "-c": (True, '--cvs', "Use this CVSROOT"),
     "-h": (False, "--help", "Print this help message"),
+    "-i": (False, "--inplace", "Modify file in situ"),
     "-p": (True, '--product', "The name of the product"),
     "-s": (True, '--svn', "Use this SVNROOT"),
     "-v": (False, "--verbose", "Be chattier (repeat for even more chat)"),
@@ -46,6 +47,8 @@ cvsroot = None
 if opts.has_option('-c'):
     cvsroot = opts.options['-c']
 
+in_situ = opts.has_option('-i')
+
 product = None
 if opts.has_option('-p'):
     product = opts.options['-p']
@@ -75,13 +78,31 @@ if len(opts.argv) == 0:
 else:
     outdir = opts.argv[0]
     opts.argv = opts.argv[1:]
-
+#
+# Guess the value of PRODUCT
+#
+if product:
+    pass
+else:
+    mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
+    if mat:
+        product = mat.group(1)
 #
 # Actually open the file and do the work
 #
+backup = None
 try:
-    ifd = open(buildFile)
+    if in_situ:
+        backup = buildFile + ".bak"
+        os.rename(buildFile, backup)
+        ifd = open(backup, "r")
+    else:
+        ifd = open(buildFile)
 except IOError, e:
+    if backup and os.path.exists(backup):
+        os.rename(backup, file)
+        os.unlink(backup)
+
     print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
     sys.exit(1)
 
@@ -95,20 +116,26 @@ if outdir:
     except IOError, e:
         print >> sys.stderr, "Failed to open file \"%s\" for write" % outfile
         sys.exit(1)
+elif in_situ:
+    try:
+        ofd = open(buildFile, "w")
+    except Exception:
+        if backup and os.path.exists(backup):
+            os.rename(backup, file)
+            os.unlink(backup)
 else:
     ofd = sys.stdout
-
-
-#
-# Guess the value of PRODUCT
-#
-if product:
-    pass
-else:
-    mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
-    if mat:
-        product = mat.group(1)
 #
 # Actually do the work
 #
-eups.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
+try:
+    eups.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
+except Exception, e:
+    if backup and os.path.exists(backup):
+        os.rename(backup, file)
+        os.unlink(backup)
+
+    raise e
+
+if backup and os.path.exists(backup):
+    os.unlink(backup)
