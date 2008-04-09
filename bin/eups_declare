@@ -226,7 +226,7 @@ if (defined($$options{-m}) and defined($$options{-M})) {
 # ... a file to be copied into the DB
 if (defined($$options{-M})) {
    $copytable_from = $$options{-M};
-   if ($copytable_from eq "-") { # Can we assume /dev/stdin exists?
+   if ($copytable_from eq "-") {
       if (-r "/dev/stdin") {
 	 $copytable_from = "/dev/stdin";
       } else {
