@@ -598,6 +598,6 @@ def expandBuildFile(ofd, ifd, product, version, verbose=False, svnroot=None, cvs
     for line in ifd:
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
-        line = re.sub(r"tags/svn", "trunk -r ", line);
+        line = re.sub(r"/tags/svn", "/trunk -r ", line);
 
         print >> ofd, line,
