@@ -102,6 +102,7 @@ def install_from_tarball(products_root, package_base, tarball):
     """Retrieve and unpack a tarball"""
     
     tfile = "%s/%s" % (package_base, tarball)
+
     if transport != LOCAL and not noaction:
         (tfile, msg) = file_retrieve(tfile, transport)
 
@@ -132,11 +133,11 @@ def write_builder(basedir, product_dir, package_base, product, version, buildFil
     buildFile = find_file_on_path("%s.build" % product, buildFilePath, os.path.join(basedir, product_dir, "ups"))
 
     if not buildFile:
-        print >> sys.stderr, "I can't find a build file %s.build anywhere on %s" % (product, buildFilePath)
+        print >> sys.stderr, "I can't find a build file %s.build anywhere on \"%s\"" % (product, buildFilePath)
         if os.path.exists(os.path.join("ups", "%s.build" % product)):
             print >> sys.stderr, "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (product)
         if force:
-            return
+            return None
 
         print >> sys.stderr, "I'm giving up. Use --force if you want to proceed with a partial distribution"
         sys.exit(1)
@@ -623,22 +624,34 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
                 
             ptablefile = "none"
 
-        productList = [(product, top_version, None)]
+        productList = [(product, top_version, None, False)]
         dependencies = eups.dependencies_from_table(ptablefile, verbose)
         if dependencies:
-            for (product, version) in dependencies:
+            for (product, version, optional) in dependencies:
                 if not version:
                     version = eups.current(product)
-                productList += [(product, version, installFlavor)]
+                productList += [(product, version, installFlavor, optional)]
     else:
         try:
-            productList = eups.dependencies(top_product, top_version, dbz)
+            productList0 = eups.dependencies(top_product, top_version, dbz)
+            #
+            # Now look to see if they're optional
+            #
+            try:
+                table_dependencies = eups.dependencies_from_table(eups.table(top_product, top_version), verbose)
+
+                productList = []
+                for (product, version, productFlavor) in productList0:
+                    optional = filter(lambda p: p[0] == product and p[2], table_dependencies) != []
+                    productList += [(product, version, productFlavor, optional)]
+            except RuntimeError, msg:
+                productList = productList0
         except RuntimeError, msg:
             print >> sys.stderr, "".join(msg)
             sys.exit(1)
 
     products = []
-    for (product, version, installFlavor) in productList:
+    for (product, version, productFlavor, optional) in productList:
         if verbose > 1:
             print "Product:", product, "  Flavor:", installFlavor, "  Version:", version
 
@@ -700,6 +713,10 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
             distID = use_pacman_cache(product, version)
         elif buildFilePath:
             distID = write_builder(basedir, product_dir, package_base, product, version, buildFilePath)
+            if optional and not distID:
+                if verbose > -1:
+                    print >> sys.stderr, "Skipping optional product %s" % (product)
+                continue
         else:
             distID = write_tarball(basedir, product_dir, package_base, product, version)
 
@@ -714,9 +731,11 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
                                                      "%s-%s.table" % (top_product, top_version))
                 ptablefile = "%s.table" % top_version
             elif ("%s.table" % (product)) == ptablefile:
-                tablefile_for_distrib = None
+                # we want the version with expanded dependencies
+                tablefile_for_distrib = os.path.join(tabledir, "%s-%s.table" % (product, version))
+                ptablefile = "%s.table" % version
             else:
-                tablefile_for_distrib = os.path.join(tabledir, ptablefile)
+                tablefile_for_distrib = os.path.join(tabledir, "%s-%s" % (product, ptablefile))
 
             if tablefile_for_distrib:
                 if verbose > 1:
@@ -738,7 +757,7 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
         try:
             os.mkdir(manifestDir)
         except:
-            print >> sys.stderr, "Pacman failed to create %s" % (manifestDir)
+            print >> sys.stderr, "I failed to create %s" % (manifestDir)
             sys.exit(1)
     
     if not manifest:
@@ -1010,23 +1029,31 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         #
         # We need to install and declare this product
         #
-        method = None
-        mat = re.search(r"(build|pacman):(.*)", distID)
-        if mat:
-            method = mat.group(1)
-            cacheID = mat.group(2)
+        dodeclare = True
 
-        if method == "pacman":
-            install_from_pacman(products_root, cacheID)
-        elif method == "build":
-            try:
-                install_from_builder(setups, products_root, package_base, cacheID, tmp_dir)
-                setups += ["setup %s %s &&" % (product, version)]
-            except Exception, e:
-                print >> sys.stderr, e
-                sys.exit(1);
+        if distID == "None":              # we don't know how to install this product
+            if verbose > 0:
+                print >> sys.stderr, "I don't know how to install %s" % (product)
+            setups += ["setup %s %s &&" % (product, version)]
+            dodeclare = False
         else:
-            install_from_tarball(products_root, package_base, distID)
+            method = None
+            mat = re.search(r"(build|pacman):(.*)", distID)
+            if mat:
+                method = mat.group(1)
+                cacheID = mat.group(2)
+
+            if method == "pacman":
+                install_from_pacman(products_root, cacheID)
+            elif method == "build":
+                try:
+                    install_from_builder(setups, products_root, package_base, cacheID, tmp_dir)
+                    setups += ["setup %s %s &&" % (product, version)]
+                except Exception, e:
+                    print >> sys.stderr, e
+                    sys.exit(1);
+            else:
+                install_from_tarball(products_root, package_base, distID)
         #
         # We may be done
         #
@@ -1035,8 +1062,6 @@ def install_distrib(top_product, top_version, db, dbz, flavor,
         #
         # we need to see if someone (e.g. the build/pacman script) declared the package for us
         #
-        dodeclare = True
-
         declared = eups.list(product, version, dbz, flavor)
         if declared and len(declared) > 0 and not re.search(r"^LOCAL:", declared[0]):
             dodeclare = False
