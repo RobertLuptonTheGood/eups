@@ -171,7 +171,9 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
     productList.reverse()               # we want to keep the LAST occurrence
     for line in productList:
         if re.search("^FATAL ERROR:", line):
-            raise RuntimeError, ("Fatal error setting up %s:" % (product), "\t".join(["\n"] + productList))
+            raise RuntimeError, ("Fatal error setting up %s:" % (product),
+                                 "\t".join(["\n"] + productList),
+                                 "Fatal error: listing %s's dependencies failed" % (product))
 
         mat = re.search(r"^Setting up:\s+(\S+)\s+Flavor:\s+(\S+)\s+Version:\s+(\S+)", line)
         if not mat:
@@ -208,6 +210,7 @@ def dependencies_from_table(tableFile, verbose=0):
         mat = re.search(r"^\s*(setupRequired|setupOptional)\s*\(\s*([^)]+)\s*\)", line)
         if mat:
             args = []
+            optional = not not re.search(r"^\s*setupOptional", mat.group(1))
             ignore = False;             # ignore next argument
             for a in re.sub(r'^"|"$', "", mat.group(2)).split():
                 if a == "-f" or a == "--flavor": # ignore flavor specifications
@@ -237,6 +240,8 @@ def dependencies_from_table(tableFile, verbose=0):
                 else:
                     print >> sys.stderr, "Failed to parse: ", line,
                     args = args[0:2]
+
+            args += [optional]
 
             products += [tuple(args)]
 
@@ -491,6 +496,9 @@ Options:""" % self.msg
         def asort(a,b):
             """Sort alphabetically, so -C, --cvs, and -c appear together"""
 
+            a = self.cmd_options[a][1]
+            b = self.cmd_options[b][1]
+
             a = re.sub(r"^-*", "", a)       # strip leading -
             b = re.sub(r"^-*", "", b)       # strip leading -
 
@@ -506,17 +514,20 @@ Options:""" % self.msg
 
         skeys = self.cmd_options.keys(); skeys.sort(asort) # python <= 2.3 doesn't support "sorted"
         for opt in skeys:
+            popt = opt
+            if ord(popt[1]) < ord(' '): # not printable; only long option matters
+                popt = ""
             optstr = "%2s%1s %s" % \
-                     (opt,
-                      (not self.cmd_options[opt][1] and [""] or [","])[0],
+                     (popt,
+                      ((not popt or not self.cmd_options[opt][1]) and [""] or [","])[0],
                       self.cmd_options[opt][1] or "")
             optstr = "%-16s %s" % \
                      (optstr, (not self.cmd_options[opt][0] and [""] or ["arg"])[0])
             
-            print >> sys.stderr, "   %-21s %s" % \
-                  (optstr, ("\n%25s"%"").join(self.cmd_options[opt][2].split("\n")))
+            print >> sys.stderr, "   %-23s %s" % \
+                  (optstr, ("\n%27s"%"").join(self.cmd_options[opt][2].split("\n")))
             if self.cmd_aliases.has_key(opt):
-                print >> sys.stderr, "                         Alias%s:" % \
+                print >> sys.stderr, "                           Alias%s:" % \
                       (len(self.cmd_aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(self.cmd_aliases[opt])
 #
 # Expand a build file
@@ -587,5 +598,6 @@ def expandBuildFile(ofd, ifd, product, version, verbose=False, svnroot=None, cvs
     for line in ifd:
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
+        line = re.sub(r"tags/svn", "trunk -r ", line);
 
         print >> ofd, line,
