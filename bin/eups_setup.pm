@@ -1882,12 +1882,15 @@ sub eups_parse_argv
 sub
 get_version()
 {
-   my($version) = '\$Name: not supported by cvs2svn $';	# 'version from cvs
+   my($versionStr) = '$HeadURL$';	# 'version from svn
 
-   if ($version =~ /^\\\$[N]ame:\s*(\S+)\s*\$$/) {
-      $version = $1;
-   } else {
-      $version = "(NOCVS)";
+   my(@parts) = split("/", $versionStr);
+   my($version) = "(NOSVN)";
+   for ($i = 0; $i < @parts - 1; $i++) {
+      if($parts[$i] eq "tags" || $parts[$i] eq "TAGS") {
+	 $version = $parts[$i + 1];
+	 break;
+      }
    }
 
    return $version;
