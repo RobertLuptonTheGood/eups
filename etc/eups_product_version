@@ -2,8 +2,8 @@
 import os
 import eups
 
-versionCVS = eups.version('$Name: not supported by cvs2svn $')  # Will be expanded if you're using CVS
-versionSVN = eups.version('$HeadURL: ')# Will be expanded by SVN; remember to say svn propset svn:keywords HeadURL
+versionCVS = eups.version('$Name: $')  # Will be expanded if you're using CVS
+versionSVN = eups.version('$HeadURL: $')# Will be expanded by SVN; remember to say svn propset svn:keywords HeadURL
 
 if versionCVS != "cvs":                 # Name was properly expanded
    version = versionCVS

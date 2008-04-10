@@ -348,7 +348,7 @@ sub usage
 {
    warn <<"EOT";
 EUPS : A Unix Versioning System
-CVS Version : $Name: not supported by cvs2svn $
+SVN Version : $HeadURL$
 
 Usage: setup [options] [product [version]]
 EOT
