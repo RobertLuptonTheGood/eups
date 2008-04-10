@@ -361,7 +361,7 @@ def table(product, version, flavor = ""):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def version(versionString='$Name: not supported by cvs2svn $'):
+def version(versionString='$HeadURL$'):
     """Return a version name based on a cvs or svn ID string (dollar name dollar or dollar HeadURL dollar)"""
 
     if re.search(r"^[$]Name:\s+", versionString):
@@ -570,6 +570,15 @@ def expandBuildFile(ofd, ifd, product, version, verbose=False, svnroot=None, cvs
                     if mat:
                         svnroot = mat.group(1)
                         break
+
+                if not svnroot:         # Repository Root is absent in svn 1.1
+                    rfd = os.popen("svn info .svn")
+                    for line in rfd:
+                        mat = re.search(r"^URL: ([^/]+//[^/]+)", line)
+                        if mat:
+                            svnroot = mat.group(1)
+                            break
+
                 del rfd
             except IOError, e:
                 print >> sys.stderr, "Tried to read \".svn\" but failed: %s" % e
