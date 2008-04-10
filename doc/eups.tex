@@ -264,10 +264,9 @@ The script \code{eups\_product\_version} is rather like:
 #!/usr/bin/env python
 import eups
 
-print eups.version('$Name: not supported by cvs2svn $')
+print eups.version('$Name: $')
 \end{verbatim}
-\def\Name{Name}
-where the \code{\$\Name:  \$} is a magic cvs keyword that expands to your
+where the \code{\$Name:  \$} is a magic cvs keyword that expands to your
 current tagname, so you need to put a copy of the script in your own
 package, so as to get \emph{your} tagname.
 
@@ -519,10 +518,9 @@ To use \eups{} from python, you need to \code{import eups};
     undeclareCurrent(flavor, dbz, product, version, noaction=False)
         Undeclare a product current
     
-    version(versionString='$Name: not supported by cvs2svn $')
+    version(versionString='$HeadURL: $')
         Return a version name based on a cvs or svn ID string
-	(dollar name dollar or dollar HeadURL dollar); the
-	default is the \eups{} version.
+	($Name$ or $HeadURL$); the default is the \eups{} version.
 \end{verbatim}
 
 \appendix
