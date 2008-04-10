@@ -376,6 +376,7 @@ def version(versionString='$HeadURL$'):
         for i in range(0, len(parts) - 1):
             if parts[i] == "tags" or parts[i] == "TAGS":
                 version = parts[i + 1]
+                break
     else:
         version = "unknown"
 
