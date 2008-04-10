@@ -109,7 +109,7 @@ try:
         ifd = open(buildFile)
 except IOError, e:
     if backup and os.path.exists(backup):
-        os.rename(backup, file)
+        os.rename(backup, buildFile)
         os.unlink(backup)
 
     print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
@@ -130,7 +130,7 @@ elif in_situ:
         ofd = open(buildFile, "w")
     except Exception:
         if backup and os.path.exists(backup):
-            os.rename(backup, file)
+            os.rename(backup, buildFile)
             os.unlink(backup)
 else:
     ofd = sys.stdout
@@ -141,8 +141,7 @@ try:
     eups.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
 except Exception, e:
     if backup and os.path.exists(backup):
-        os.rename(backup, file)
-        os.unlink(backup)
+        os.rename(backup, buildFile)
 
     print >> sys.stderr, e
     sys.exit(1)
