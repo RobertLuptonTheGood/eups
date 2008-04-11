@@ -5,6 +5,7 @@
 
 import os
 import re
+import shutil
 import sys
 
 if not os.environ.has_key('SHELL'):
@@ -12,7 +13,10 @@ if not os.environ.has_key('SHELL'):
 
 def path():
     """Return the eups path as a python list"""
-    return str.split(os.environ['EUPS_PATH'], ":")
+    try:
+        return str.split(os.environ['EUPS_PATH'], ":")
+    except KeyError:
+        raise RuntimeError, "Please set EUPS_PATH and try again"
 
 def setPath(*args):
     """Set eups' path to the arguments, which may be strings or lists"""
@@ -21,12 +25,46 @@ def setPath(*args):
     for a in args:
         if isinstance(a, str):
             a = [a]
-            
-        newPath += a
 
-    os.environ["EUPS_PATH"] = ":".join(newPath)
+        if a:
+            newPath += a
+
+    if newPath:
+        os.environ["EUPS_PATH"] = ":".join(newPath)
+    else:
+        raise RuntimeError, "New eups path is empty"
 
     return path()
+
+def selectPathComponent(dbz=0, eups_path=None):
+    """Return a component of a eups path given a specifier (as in the -z option) or
+    an index, and optionally a value of EUPS_PATH (default: path());
+    the path may be a string or a list of values"""
+
+    if not eups_path:
+        eups_path = path()
+
+    if isinstance(eups_path, str):
+        eups_path = eups_path.split(":")
+
+    try:
+        db = eups_path[dbz]
+    except TypeError:
+        if dbz:
+            db = filter(lambda x: re.search("/%s/" % dbz, x), eups_path)
+            if len(db) == 0:
+                raise RuntimeError, ("DB %s is not found in EUPS_PATH: %s" % (dbz, str.join(" ", eups_path)))
+            elif len(db) == 1:
+                db = db[0]
+            else:
+                raise RuntimeError, ("Choice of DB %s is ambiguous: %s" % (dbz, " ".join(db)))
+        else:
+            db = eups_path[0]
+
+    if not os.path.isdir(db):
+        raise RuntimeError, ("Products directory %s doesn't exist" % db)
+
+    return db
 
 def findVersion(product, version):
     """Return the requested version of product; may be "current", "setup", or a version string"""
@@ -119,7 +157,7 @@ def declareCurrent(product, version, flavor, dbz, noaction = False):
             noaction=noaction)
 
 def undeclare(product, version, flavor=None, dbz=None, undeclare_current=False,
-              noaction = False):
+              noaction = False, force=False):
     """Undeclare a product."""
 
     opts = ""
@@ -129,9 +167,11 @@ def undeclare(product, version, flavor=None, dbz=None, undeclare_current=False,
         opts += " -z %s" % dbz
     if flavor:
         opts += " --flavor %s" % flavor
+    if force:
+        opts += " --force"
 
     try:
-        cmd = "eups_undeclare %s %s %s" % (opts, product, version)
+        cmd = "eups_undeclare%s %s %s" % (opts, product, version)
         if noaction:
             print cmd
         else:
@@ -142,12 +182,42 @@ def undeclare(product, version, flavor=None, dbz=None, undeclare_current=False,
     except:
         print >> sys.stderr, "Failed to undeclare product %s (version %s, flavor %s)" % \
               (product, version, flavor)
+        return False
+
+    return True
 
 def undeclareCurrent(flavor, dbz, product, version, noaction = False):
     """Undeclare a product current"""
 
     undeclare(product, version, flavor, dbz, undeclare_current=True,
               noaction=noaction)
+
+def remove(product, version, flavor=None, dbz=None, recursive=False, force=False, noaction=False):
+    """Undeclare and remove a product.  If recursive is true also remove everything that
+    this product depends on"""
+
+    if recursive:
+        for p, v, f in dependencies(product, version, dbz, flavor):
+            remove(p, v, f, dbz, (p != product), force, noaction)
+        return
+
+    dir = directory(product, version)
+    if not dir:
+        raise RuntimeError, ("Product %s with version %s doesn't seem to exist" % (product, version))
+
+    if not undeclare(product, version, flavor, dbz, False, noaction, force):
+        raise RuntimeError, ("Not removing %s %s" % (product, version))
+
+    if dir and dir != "none":
+        if noaction:
+            print "rm -rf %s" % dir
+        else:
+            try:
+                shutil.rmtree(dir)
+            except OSError, e:
+                raise RuntimeError, e
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def dependencies(product, version, dbz="", flavor="", depth=9999):
     """Return a product's dependencies in the form of a list of tuples
@@ -247,6 +317,66 @@ def dependencies_from_table(tableFile, verbose=0):
 
     return products
 
+def uses(product, version=None, dbz="", flavor="", quiet=False):
+    """Return a list of all products which depend on the specified product in the form of a list of tuples
+    (product, productVersion, versionNeeded)
+"""
+
+    cache = {}
+
+    productList = list(None, dbz=dbz, flavor=flavor)
+    if not productList:
+        return []
+    
+    consumerDict = {}
+    for (p, v, db, dir, isCurrent, isSetup) in productList:
+        for pd, vd, fd in dependencies(p, v, dbz, flavor):
+            key = "%s:%s|%s:%s" % (p, v, pd, vd)
+            if cache.has_key(key):
+                continue
+            else:
+                cache[key] = 1
+
+            if pd == product:
+                if not version or vd == version:
+                    if p != product and (v != version): # you don't depend on yourself
+                        key2 = "%s:%s" % (p, v)
+                        if not consumerDict.has_key(key2):
+                            consumerDict[key2] = []
+
+                        consumerDict[key2] += [vd]
+    #
+    # Be nice; sort list
+    #
+    def pvsort(a,b):
+        """Sort by product then version then dependent version"""
+
+        if a[0] == b[0]:
+            if a[1] == b[1]:
+                return cmp(a[2], b[2])
+            else:
+                return cmp(a[1], b[1])
+        else:
+            return cmp(a[0], b[0])
+
+    consumerList = []
+    for k in consumerDict.keys():
+        el = k.split(":")
+
+        if len(consumerDict[k]) > 1:
+            if not quiet:
+                print >> sys.stderr, "Warning: %s %s depends on %s versions [%s]" % \
+                      (el[0], el[1], product, ", ".join(consumerDict[k]))
+
+        for v in consumerDict[k]:
+            consumerList += [el + [v]]
+
+    consumerList.sort(pvsort)
+    
+    return consumerList
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def flavor():
     """Return the current flavor"""
     
@@ -264,12 +394,21 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
        [[version, database, directory, isCurrent, isSetup], ...]
     (if only one version matches, the return is a single list; if no versions
     match, you'll get None)
+
+    If you specify product as "" (or None) the inner list will have an extra
+    field, the product name.
     """
+
+    if not product:
+        product = ""
 
     versionRequested = False         # did they specify a version, even if none is current or setup?
     if version:
         versionRequested = True
         version = findVersion(product, version)
+
+    if versionRequested and not product:
+        raise RuntimeError, "You may not request a specific version but not choose a product"
 
     opts = ""
     if dbz:
@@ -280,6 +419,10 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
     result = []
     for info in os.popen("eups list %s --quiet --verbose %s '%s'" % (opts, product, version)).readlines():
         oneResult = re.findall(r"\S+", info)
+
+        if not product:
+            p = oneResult[0]
+            oneResult = oneResult[1:]
 
         if len(oneResult) == 3:
             oneResult += [False]
@@ -295,6 +438,9 @@ def list(product, version = "", dbz = "", flavor = "", quiet=False):
             assert (oneResult[4] == "Setup")
             oneResult[4] = True
         assert len(oneResult) == 5
+
+        if not product:
+            oneResult = [p] + oneResult
 
         result += [oneResult]
 

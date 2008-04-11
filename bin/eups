@@ -34,7 +34,9 @@ Supported commands are:
 	list            List some or all products
         path [n]        Print the current eups path, or an element thereof
 	pkg-config	Return the options associated with product
+	remove          Remove an eups product from the system
 	undeclare	Undeclare a product
+        uses            List everything which depends on the specified product and version
 Use
 	eups --help cmd
 for help with command "cmd"
@@ -47,7 +49,7 @@ fi
 cmd=$1; shift
 
 case $cmd in
- declare|distrib|expandbuild|expandtable|flavor|pkg-config|undeclare)
+ declare|distrib|expandbuild|expandtable|flavor|pkg-config|remove|undeclare|uses)
     eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
  flags)
     if [ X"$EUPS_FLAGS" = X"" ]; then

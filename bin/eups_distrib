@@ -1131,35 +1131,35 @@ def list_distrib(top_product, top_version, db, dbz, installFlavor,
 #
 # Deal with arguments
 #
-options = dict([
-    ["-b", (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")],
-    ["-B", (True,  "--build", "Search for build files on this :-separated path\n\t\t(@ -> product's installed ups directory)")],
-    ["-C", (False, "--current", "Create a list of current versions which -i can use")],
-    ["-c", (False, "--create", "Create a package for distribution")],
-    ["-F", (False, "--force", "Force requested behaviour (e.g. redeclare a product)")],
-    ["-f", (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")],
-    ["-g", (True,  "--groupAccess", "Give specified group r/w access to all built packages")],
-    ["-h", (False, "--help", "Print this help message")],
-    ["-i", (False, "--install", "Extract and install the specified package")],
-    ["-j", (False, "--nodepend", "Just install product, but not its dependencies")],
-    ["-l", (False, "--list", "List available products")],
-    ["-n", (False, "--noaction", "Don\'t actually do anything")],
-    ["-N", (False, "--noeups", "Don\'t attempt to lookup product in eups")],
-    ["-p", (True,  "--pacman", "Use this pacman cache to install packages")],
-    ["-r", (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")],
-    ["-t", (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")],
-    ["-T", (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")],
-    ["-\001", (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")],
-    ["-V", (False, "--version", "Print eups version number and exit")],
-    ["-v", (False, "--verbose", "Be chattier (repeat for even more chat)")],
-    ["-Z", (True,  "--database", "Use this products path. Default: $EUPS_PATH")],
-    ["-z", (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all")],
-    ])
+options = {
+    "-b" : (False, "--prefer-flavor", "Prefer distributions that are flavor-specific"),
+    "-B" : (True,  "--build", "Search for build files on this :-separated path\n\t\t(@ -> product's installed ups directory)"),
+    "-C" : (False, "--current", "Create a list of current versions which -i can use"),
+    "-c" : (False, "--create", "Create a package for distribution"),
+    "-F" : (False, "--force", "Force requested behaviour (e.g. redeclare a product)"),
+    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
+    "-g" : (True,  "--groupAccess", "Give specified group r/w access to all built packages"),
+    "-h" : (False, "--help", "Print this help message"),
+    "-i" : (False, "--install", "Extract and install the specified package"),
+    "-j" : (False, "--nodepend", "Just install product, but not its dependencies"),
+    "-l" : (False, "--list", "List available products"),
+    "-n" : (False, "--noaction", "Don\'t actually do anything"),
+    "-N" : (False, "--noeups", "Don\'t attempt to lookup product in eups"),
+    "-p" : (True,  "--pacman", "Use this pacman cache to install packages"),
+    "-r" : (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT"),
+    "-t" : (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag"),
+    "-T" : (True,  "--tmp-dir", "Build products in this directory (when --build is specified)"),
+    "-\001" : (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)"),
+    "-V" : (False, "--version", "Print eups version number and exit"),
+    "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
+    "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
+    "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    }
 
-aliases = dict([
-    ["-i", ["--extract"]],
-    ["-Z", ["--with-eups"]],
-    ])
+aliases = {
+    "-i" : ["--extract"],
+    "-Z" : ["--with-eups"],
+    }
 
 try:
     opts = eups.Getopt(options, sys.argv, aliases, "eups_distrib [options] [product [version]]")
@@ -1271,35 +1271,20 @@ if len(opts.argv) > 2:
 # Figure out which database to use
 #
 if opts.has_option('-Z'):
-    os.environ['EUPS_PATH'] = opts.options['-Z']
+    eups.setPath(opts.options['-Z'])
     
-try:
-    eups_path = eups.path()
-except KeyError:
-    print >> sys.stderr, "Please set EUPS_PATH and try again"
-    sys.exit(1)
-
 dbz = ""
 if opts.has_option('-z'):
     dbz = opts.options['-z']
 
-if dbz:
-    db = filter(lambda x: re.search("/%s/" % dbz, x), eups_path)
-    if len(db) == 0:
-        print >> sys.stderr, "DB %s is not found in EUPS_PATH:" % dbz, str.join(" ", eups_path)
-        sys.exit(1)
-    elif len(db) == 1:
-        db = db[0]
-        eups.setPath(db, eups_path)
-    else:
-        print >> sys.stderr, "Choice of DB %s is ambiguous:" % dbz, " ".join(db)
-        sys.exit(1)
-else:
-    db = eups_path[0]
-
-if not os.path.isdir(db):
-    print >> sys.stderr, "Products directory %s doesn't exist" % db
+try:
+    eups_path = eups.path()
+    db = eups.selectPathComponent(dbz, eups_path)
+except RuntimeError, e:
+    print >> sys.stderr, e
     sys.exit(1)
+
+eups.setPath(db, eups_path)
 #
 # Check that eups is installed in that db
 #

@@ -538,19 +538,23 @@ To use \eups{} from python, you need to \code{import eups};
 Usage:
         eups [--help|--version] command [options]
 Supported commands are:
+        uses       List everything which depends on the specified product and version
         declare         Declare a product
         distrib         Install a product from a remote distribution,
                         or create such a distribution 
+        expandbuild     Expand variables in a .build file
         expandtable     Insert explicit version tags into a table file
+        flags           Show the value of $EUPS_FLAGS
         flavor          Return the current flavor
         list            List some or all products
         path [n]        Print the current eups path, or an element thereof
         pkg-config      Return the options associated with product
+        remove          Remove an eups product from the system
         undeclare       Undeclare a product
 Use
         eups --help cmd
 for help with command "cmd"
-\end{verbatim}
+\end{verbatim}				% $
   
 A consistent front-end to all the other \eups{} commands.  The commands
 starting \code{eups\_} will eventually go away, leaving only \code{eups}.
@@ -559,9 +563,6 @@ There's no \code{eups setup} or \code{eups unsetup} as these actions
 modify your environment and are in fact aliases for commands
 that source files of \code{export ...} (or \code{setenv ...}) lines
 into your current shell.
-
-
-%------------------------------------------------------------------------------
 
 \item \code{eups declare} (or \code{eups\_declare})
 \begin{verbatim}
@@ -941,6 +942,32 @@ in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\foot
   
 %------------------------------------------------------------------------------
 
+\item \code{eups remove} (or \code{eups\_remove})
+\begin{verbatim}
+Remove an eups product from the system
+
+Usage:
+    eups remove [options] product version
+Options:
+   -Z, --database   arg    Use this products path. Default: $EUPS_PATH
+   -f, --flavor     arg    Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
+   -F, --force             Force requested behaviour (e.g. redeclare a product)
+   -h, --help              Print this help message
+   -n, --noaction          Don't actually do anything
+   -R, --recursive         Recursively also remove everything that this product depends on
+   -z, --select-db  arg    Select the product paths which contain this directory.
+                           Default: all
+   -v, --verbose           Be chattier (repeat for even more chat)
+\end{verbatim}
+
+Undeclare the specified product, and remove it from the system. If you specify
+\code{--recursive} then all dependent products will also be removed --- note
+that this is dangerous as they may be needed by someone else.  You are strongly
+advised to use \code{eups uses} to check that nothing bad will happen
+before you do this.
+  
+%------------------------------------------------------------------------------
+
   \item \code{eups undeclare} (or \code{eups\_undeclare})
 \begin{verbatim}
 Usage:
@@ -971,6 +998,31 @@ overwritten with the \code{-Z} option. And if the \code{-z} option is
 used, it selects the paths in the list which have a matching directory
 name. (e.g. \code{-Z /home/proj1/eups:/home/proj2/eups -z proj2} would
 yield \code{/home/proj2/eups}).
+
+%------------------------------------------------------------------------------
+
+\item \code{eups uses}
+\begin{verbatim}
+List everything which depends on the specified product and (optionally) version
+
+Usage:
+    eups uses [options] product [version]
+Options:
+   -Z, --database   arg    Use this products path. Default: $EUPS_PATH
+   -f, --flavor     arg    Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
+   -h, --help              Print this help message
+   -q, --quiet             Suppress some warning messages
+   -z, --select-db  arg    Select the product paths which contain this directory.
+                           Default: all
+\end{verbatim}
+
+Go through the \eups{} databases and return every product that depends upon
+the specified product and version;  if the version's omitted then everything
+that depends on product is returned, along with the version required.
+
+Unless you specify \code{--quiet} you'll be warned if a product depends on
+more than one version;  this may sound unlikely but can happen if you setup
+the something more than once when setting up a product.
 
 %------------------------------------------------------------------------------
 
@@ -1546,7 +1598,11 @@ highlights are:
     Add \code{eups undeclare --force} to undeclare products that are currently
     setup
 
-    % Up to date as of 2008/04/03
+  \item
+    Add \code{eups remove} to remove installed products
+
+  \item \code{eups uses} to list everything that depends on a given product
+    % Up to date as of 2008/04/11
     
 \end{itemize}
 

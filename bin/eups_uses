@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+# -*- python -*-
+#
+# List all the products which depend on a given product/version
+#
+import os, re, sys
+import shutil
+import eups
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
+options = {
+    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
+    "-h" : (False, "--help", "Print this help message"),
+    "-q" : (False, "--quiet", "Suppress some warning messages"),
+    "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
+    "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    }
+aliases = {}
+
+try:
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_uses [options] product [version]")
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+
+if opts.has_option('-h'):
+    print >> sys.stderr, "List everything which depends on the specified product and (optionally) version\n"
+    opts.usage()
+    sys.exit(0)
+
+if opts.has_option('-f'):
+    flavor = opts.options['-f']
+else:
+    flavor = eups.flavor()
+
+quiet = opts.has_option('-q')
+#
+# Figure out which database to use
+#
+if opts.has_option('-Z'):
+    eups.setPath(opts.options['-Z'])
+
+dbz = ""
+if opts.has_option('-z'):
+    dbz = opts.options['-z']
+
+try:
+    eups_path = eups.path()
+    db = eups.selectPathComponent(dbz)
+except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
+
+try:
+    product = opts.argv[0]
+except IndexError:
+    print >> sys.stderr, "Please specify a product"
+    sys.exit(1)    
+
+try:
+    version = opts.argv[1]
+except IndexError:
+    version = None
+    
+if len(opts.argv) > 2:
+    print >> sys.stderr, "Junk at end of arguments:", " ".join(opts.argv[2:])
+    sys.exit(1)    
+#
+# Do the work
+#
+try:
+    fmt = "%-20s %-15s"
+
+    for (p, pv, requestedVersion) in eups.uses(product, version, dbz, flavor, quiet):
+        if version:
+            print fmt % (p, pv)
+        else:
+            print (fmt + " %s") % (p, pv, requestedVersion)
+except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
