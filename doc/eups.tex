@@ -949,6 +949,7 @@ Remove an eups product from the system
 Usage:
     eups remove [options] product version
 Options:
+   -C, --check             Check that recursively removed products aren'r needed (very slow!)
    -Z, --database   arg    Use this products path. Default: $EUPS_PATH
    -f, --flavor     arg    Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
    -F, --force             Force requested behaviour (e.g. redeclare a product)

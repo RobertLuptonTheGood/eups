@@ -12,6 +12,7 @@ import eups
 # Deal with arguments
 #
 options = {
+    "-C" : (False, "--check", "Check that recursively removed products aren'r needed (very slow!)"),
     "-F" : (False, "--force", "Force requested behaviour (e.g. redeclare a product)"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
     "-h" : (False, "--help", "Print this help message"),
@@ -33,6 +34,8 @@ if opts.has_option('-h'):
     print >> sys.stderr, "Remove an eups product from the system\n"
     opts.usage()
     sys.exit(0)
+
+check = opts.has_option('-C')
 
 force = opts.has_option('-F')
 
@@ -82,7 +85,7 @@ if len(opts.argv) > 2:
 # Do the work
 #
 try:
-    eups.remove(product, version, flavor, dbz, recursive, force, noaction)
+    eups.remove(product, version, flavor, dbz, recursive, force, check, noaction)
 except RuntimeError, e:
     print >> sys.stderr, e
     sys.exit(1)

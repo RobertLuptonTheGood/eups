@@ -192,12 +192,36 @@ def undeclareCurrent(flavor, dbz, product, version, noaction = False):
     undeclare(product, version, flavor, dbz, undeclare_current=True,
               noaction=noaction)
 
-def remove(product, version, flavor=None, dbz=None, recursive=False, force=False, noaction=False):
+def remove(product, version, flavor=None, dbz=None, recursive=False, force=False, checkRecursive=False, noaction=False):
     """Undeclare and remove a product.  If recursive is true also remove everything that
     this product depends on"""
 
     if recursive:
-        for p, v, f in dependencies(product, version, dbz, flavor):
+        try:
+            deps = dependencies(product, version, dbz, flavor)
+        except RuntimeError, e:
+            raise RuntimeError, ("product %s %s doesn't seem to exist" % (product, version))
+        
+        for p, v, f in deps:
+            if checkRecursive:
+                usedBy = uses(p, v)
+                if usedBy:
+                    tmp = []
+                    for user in usedBy:
+                        tmp += ["%s %s" % (user[0], user[1])]
+
+                    if len(tmp) == 1:
+                        tmp = str(tmp[0])
+                    else:
+                        tmp = "(%s)" % "), (".join(tmp)
+                    msg = "%s %s is required by products %s" % (p, v, tmp)
+
+                    if force:
+                        print >> sys.stderr, "%s; removing anyway" % (msg)
+                    else:
+                        print >> sys.stderr, "%s; specify --force to remove" % (msg)
+                        continue
+                
             remove(p, v, f, dbz, (p != product), force, noaction)
         return
 
@@ -321,7 +345,6 @@ def uses(product, version=None, dbz="", flavor="", quiet=False):
     """Return a list of all products which depend on the specified product in the form of a list of tuples
     (product, productVersion, versionNeeded)
 """
-
     cache = {}
 
     productList = list(None, dbz=dbz, flavor=flavor)
@@ -339,7 +362,7 @@ def uses(product, version=None, dbz="", flavor="", quiet=False):
 
             if pd == product:
                 if not version or vd == version:
-                    if p != product and (v != version): # you don't depend on yourself
+                    if p != product or (v != version): # you don't depend on yourself
                         key2 = "%s:%s" % (p, v)
                         if not consumerDict.has_key(key2):
                             consumerDict[key2] = []
@@ -537,7 +560,7 @@ def version(versionString='$HeadURL$'):
 # number of occurrences of the flag
 
 class Getopt:
-    def __init__(self, options, argv = sys.argv, aliases = dict(), msg = None):
+    def __init__(self, options, argv = sys.argv, aliases = {}, msg = None):
         """A class to represent the processed command line arguments.
 
 options is a dictionary whose keys are is the short name of the option
