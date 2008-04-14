@@ -254,6 +254,9 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
         if re.search("^#!/bin/(ba|k)?sh", line):      # a #!/bin/sh line; not needed
             continue
 
+        line =  re.sub(r"^(\s*)#(.*)",
+                       r"\1:\2", line) # make comments executable statements that can be chained with &&
+
         line = re.sub(r"^\s*setup\s", "setup -j ", line)
         cmd += [line]
 
@@ -561,7 +564,7 @@ def get_root_from_buildfile(buildFile):
         sys.exit(1)
 
     for line in fd:
-        if re.search(r"^\s*#.*\bBuild\s+File\b", line, re.IGNORECASE):
+        if re.search(r"^\s*[:#].*\bBuild\s+File\b", line, re.IGNORECASE):
             other = True
 
         mat = re.search(r"^\s*export\s+(CVS|SVN)ROOT\s*=\s*(\S*)", line)

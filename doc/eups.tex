@@ -1706,6 +1706,12 @@ care of the declarations.  This isn't very satisfactory, as it requires the
 build file to include the version string, and that the correct value of \code{\$CVSROOT}
 be already set\footnote{This is problematic if you're getting code from a number
   of different places.}
+Because \code{eups distrib} chains commands together with \code{\&\&} (to check
+that the previous command succeeded) comments in build files are slightly
+problematic (in particular ones at the top of your file, as \code{eups distrib}
+usually preceeds your commands with some of its own while preparing to do
+the distribution).  Accordingly, lines starting with \code{\#} are rewritten
+to use the shell's executable comment, \code{:} instead.
 
 This is where the \code{eups expandbuild} command comes in;  it's used to install
 build files expanding \code{CVSROOT} (or \code{SVNROOT}), \code{PRODUCT}, and
