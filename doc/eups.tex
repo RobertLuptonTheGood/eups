@@ -542,7 +542,7 @@ Supported commands are:
         declare         Declare a product
         distrib         Install a product from a remote distribution,
                         or create such a distribution 
-        expandbuild     Expand variables in a .build file
+        expandbuild     Expand variables in a build file
         expandtable     Insert explicit version tags into a table file
         flags           Show the value of $EUPS_FLAGS
         flavor          Return the current flavor
@@ -1617,7 +1617,7 @@ highlights are:
     with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}. This is no longer supported.
 \end{itemize}
 
-\section{``Transport Layers'' for \code{eups build}}
+\section{``Transport Layers'' for \code{eups distrib}}
 \label{pacman}
 
 \pacman{} is a package used by the HEP community (e.g. Atlas) to distribute
@@ -1749,6 +1749,15 @@ and replaces the \code{setup} with \code{setup -j}; try
 running with the \code{--verbose} flag if you want to see this in action,
 or simply read the installed build file.
 }
+
+We do try to check that build files are sensible (although you can skip the
+checks with \code{--force};  more specifically, we look for a \code{curl},
+\code{cvs}, \code{svn}, or \code{wget} command.  If you want to bypass
+this check, include a comment line containing the phrase \code{Build File}
+somewhere in your file, e.g.
+\begin{verbatim}
+# Tell eups distrib that this is a valid Build File
+\end{verbatim}
 
 \end{document}
 

@@ -219,8 +219,8 @@ def install_from_builder(setups, products_root, package_base, builder, build_dir
     # Does this build file look OK?  In particular, does it contain a valid
     # CVS/SVN location or curl/wget command?
     #
-    (cvsroot, svnroot, url) = get_root_from_buildfile(tfile)
-    if not (cvsroot or svnroot or url):
+    (cvsroot, svnroot, url, other) = get_root_from_buildfile(tfile)
+    if not (cvsroot or svnroot or url or other):
         if force:
             action = "continuing"
         else:
@@ -552,6 +552,7 @@ def get_root_from_buildfile(buildFile):
     presumably only one will be valid"""
 
     cvsroot = None; svnroot = None; url = None
+    other = None                  # this build file is Other, but valid
 
     try:
         fd = open(buildFile)
@@ -560,6 +561,9 @@ def get_root_from_buildfile(buildFile):
         sys.exit(1)
 
     for line in fd:
+        if re.search(r"^\s*#.*\bBuild\s+File\b", line, re.IGNORECASE):
+            other = True
+
         mat = re.search(r"^\s*export\s+(CVS|SVN)ROOT\s*=\s*(\S*)", line)
         if mat:
             type = mat.group(1); val = re.sub("\"", "", mat.group(2))
@@ -592,7 +596,7 @@ def get_root_from_buildfile(buildFile):
         if mat:
             url = mat.group(3)
 
-    return (cvsroot, svnroot, url)
+    return (cvsroot, svnroot, url, other)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
