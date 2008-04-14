@@ -645,11 +645,12 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
             # Now look to see if they're optional
             #
             try:
-                table_dependencies = eups.dependencies_from_table(eups.table(top_product, top_version), verbose)
+                table_dependencies = eups.dependencies_from_table(eups.table(top_product, top_version, dbz, flavor),
+                                                                  verbose)
 
                 productList = []
-                for (product, version, productFlavor) in productList0:
-                    optional = filter(lambda p: p[0] == product and p[2], table_dependencies) != []
+                for (product, version, productFlavor, optionalInTable) in productList0:
+                    optional = optionalInTable or filter(lambda p: p[0] == product and p[2], table_dependencies) != []
                     productList += [(product, version, productFlavor, optional)]
             except RuntimeError, msg:
                 productList = productList0
@@ -676,7 +677,7 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
                 continue
 
             try:
-                ptablefile = eups.table(product, version, flavor)
+                ptablefile = eups.table(product, version, dbz, flavor)
                 if ptablefile == "":
                     ptablefile = " "
             except KeyboardInterrupt:

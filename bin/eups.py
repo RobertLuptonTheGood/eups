@@ -242,10 +242,13 @@ def remove(product, version, flavor=None, dbz=None, recursive=False, force=False
                 raise RuntimeError, e
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-def dependencies(product, version, dbz="", flavor="", depth=9999):
+#
+# This version is faster than dependencies, but it doesn't handle
+# optional setups correctly
+#
+def OLDdependencies(product, version, dbz="", flavor="", depth=9999):
     """Return a product's dependencies in the form of a list of tuples
-    (product, version, flavor)
+    (product, version, flavor, optional)
     Only return depth levels of dependencies (0 -> just top level)
 """
 
@@ -276,7 +279,7 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
             continue
         
         (oneProduct, oneFlavor, oneVersion) = mat.groups()
-        oneDep = (oneProduct, oneVersion, oneFlavor) # note the change in order
+        oneDep = (oneProduct, oneVersion, oneFlavor, False) # note the change in order
 
         # prune repeats of identical product version/flavor
         versionHash = "%s:%s" % (oneVersion, oneFlavor)
@@ -289,6 +292,85 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
     deps.reverse()               # we reversed productList to keep the last occurence; switch back
 
     return deps
+
+def dependencies(product, version, dbz="", flavor="", depth=9999):
+    """Return a product's dependencies in the form of a list of tuples
+    (product, version, flavor, optional)
+    Only return depth levels of dependencies (0 -> just top level)
+"""
+
+    if not flavor:
+        flavor = getFlavor()
+
+    global dep_products; dep_products = {}
+
+    optional = False
+    productList = dependencies_from_table(table(product, version, dbz, flavor))
+    deps = [(product, version, flavor, optional)] + \
+           _dependencies(productList, dbz, flavor, optional, depth - 1)
+    #
+    # We have potentially got both optional and non-optional setups in deps, so
+    # go through and keep the required one if it's there
+    #
+    def key(p, v, f):
+        return "%s:%s:%s" % (p, v, f)
+    #
+    # Find which products are optional (i.e. never required)
+    #
+    optional = {}
+    for p, v, f, o in deps:
+        k = key(p, v, f)
+        if not optional.has_key(k):
+            optional[k] = o
+        else:
+            optional[k] = optional[k] and o
+    #
+    # Use optional{} to generate the list of unique products
+    #
+    seen = {}
+    udeps = []
+    for p, v, f, o in deps:
+        k = key(p, v, f)
+        if not seen.has_key(k):
+            udeps += [(p, v, f, optional[k])]
+            seen[k] = 1
+
+    return udeps
+
+def _dependencies(productList, dbz, flavor, optional, depth):
+    """Here's the workhorse for dependencies"""
+
+    if depth <= 0 or not productList:
+        return []
+
+    productList.reverse()               # we want to keep the LAST occurrence
+
+    global dep_products
+    deps = []
+
+    for oneProduct, oneVersion, oneOptional in productList:
+        oneOptional = optional or oneOptional
+
+        if not oneVersion:
+            oneVersion = findVersion(oneProduct, "current")
+
+        oneDep = (oneProduct, oneVersion, flavor, oneOptional)
+
+        # prune repeats of identical product version/flavor/optional
+        versionHash = "%s:%s:%d" % (oneVersion, flavor, oneOptional)
+        if dep_products.has_key(oneProduct) and dep_products[oneProduct] == versionHash:
+            continue
+
+        dep_products[oneProduct] = versionHash
+
+        oneProductList = dependencies_from_table(table(oneProduct, oneVersion, dbz, flavor))
+        deps += [_dependencies(oneProductList, dbz, flavor, optional, depth - 1)]
+
+        deps += [[oneDep]]
+
+    deps.reverse() # we reversed productList to keep the last occurence; switch back
+    
+    return sum(deps, [])                # flatten the list
 
 def dependencies_from_table(tableFile, verbose=0):
     """Return a list of tuples (product, version) that need to be
@@ -342,6 +424,16 @@ def dependencies_from_table(tableFile, verbose=0):
             products += [tuple(args)]
 
     return products
+
+#
+# Cache for the Uses tree
+#
+class Uses(object):
+    def __init__(self):
+        self.invalidate()               # invalidate the cache
+
+    def invalidate(self):
+        self._dependencies = {}
 
 def uses(product, version=None, dbz="", flavor="", quiet=False):
     """Return a list of all products which depend on the specified product in the form of a list of tuples
@@ -408,6 +500,8 @@ def flavor():
     if os.environ.has_key("EUPS_FLAVOR"):
         return os.environ["EUPS_FLAVOR"]
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
+
+getFlavor = flavor                      # useful in this file if you have a variable named flavor
 
 def list(product, version = "", dbz = "", flavor = "", quiet=False):
     """Return a list of declared versions of a product; if the
@@ -515,13 +609,19 @@ def isSetup(product, version, dbz = "", flavor = ""):
     else:
         False
 
-def table(product, version, flavor = ""):
+def table(product, version, dbz="", flavor=""):
     """Return the full path of a product's tablefile"""
+
+    version = findVersion(product, version)
+
+    opts = ""
+    if dbz:
+        opts += " --select-db %s" % (dbz)
     if flavor:
-        flavor = "--flavor %s" % (flavor)
+        opts += " --flavor %s" % (flavor)
         
     info = os.popen("eups list %s --table %s %s" % \
-                    (flavor, product, version)).readlines()[0].split("\n")
+                    (opts, product, version)).readlines()[0].split("\n")
     for i in info:
         if re.search("^WARNING", i):
             print >> sys.stderr, i
