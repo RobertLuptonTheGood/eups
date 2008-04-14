@@ -27,7 +27,7 @@ Supported commands are:
 	declare		Declare a product
 	distrib		Install a product from a remote distribution,
 			or create such a distribution 
-	expandbuild	Expand variables in a .build file
+	expandbuild	Expand variables in a build file
 	expandtable	Insert explicit version tags into a table file
 	flags		Show the value of \$EUPS_FLAGS
 	flavor		Return the current flavor

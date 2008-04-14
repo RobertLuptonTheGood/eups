@@ -1738,8 +1738,12 @@ sub eups_find_roots() {
 sub show_product_version
 {
    my($str, $indent, $prod, $vers, $flavor) = @_;
-   printf STDERR "%-14s %-20s  Flavor: %-10s Version: %s\n",
-   sprintf("%s:", $str), sprintf("%*s%s", $indent, "", $prod) ,$flavor,
+   my($indentStr) = "";
+   for ($i = 1; $i < $indent; $i++) {
+      $indentStr .= $i%2 ? "|" : " ";
+   }
+   printf STDERR "%-12s %-30s  Flavor: %-10s Version: %s\n",
+   sprintf("%s:", $str), sprintf("%s%s", $indentStr, $prod) ,$flavor,
    ($vers eq "" ? "LOCAL" : $vers);
 }
 

@@ -264,6 +264,8 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
     deps = []
     productList.reverse()               # we want to keep the LAST occurrence
     for line in productList:
+        line = re.sub(r"\|", " ", line)
+
         if re.search("^FATAL ERROR:", line):
             raise RuntimeError, ("Fatal error setting up %s:" % (product),
                                  "\t".join(["\n"] + productList),
