@@ -719,7 +719,7 @@ def create_distrib(top_product, top_version, dbz, flavor, installFlavor,
 
         if pacman:
             distID = use_pacman_cache(product, version)
-        elif buildFilePath:
+        elif buildFilePath != None:
             distID = write_builder(basedir, product_dir, package_base, product, version, buildFilePath)
             if optional and not distID:
                 if verbose > -1:
