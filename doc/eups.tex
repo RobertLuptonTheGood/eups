@@ -673,7 +673,7 @@ Usage:
    eups distrib [opts] [product [version]]
 Options:
    -B, --build           Search for build files on this :-separated path
-                         ("" -> product's installed ups directory)
+                         (: -> product's installed ups directory)
    -b, --prefer-flavor   Prefer distributions that are flavor-specific
    -C, --current         Create a list of current versions which -i can use
    -c, --create          Create a package for distribution
@@ -786,7 +786,11 @@ eups distrib -v --install --current moby --root http://www.astro.princeton.edu/~
 \end{verbatim}
 The \code{~/ACT/BuildFiles:} tells \eups{} to first look for build files
 in \code{~/ACT/BuildFiles} and then the product's \code{ups} directory (that's what
-the trailing \code{:} means). The \code{rsync} should be clear, and the second
+the trailing \code{:} means); that's why \code{--build :} means to only search \code{ups}
+directories\footnote{
+  You can use an empty string instead, but don't forget to quote it so that it isn't
+  stripped by your shell, e.g. \code{--build "''"} --- \code{--build :} is easier.
+  }. The \code{rsync} should be clear, and the second
 \code{eups distrib} does the install.
 
 What if your product isn't (yet) declared to \eups?  Write a build file \code{scipy.build} and
@@ -954,7 +958,10 @@ Options:
    -f, --flavor     arg    Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
    -F, --force             Force requested behaviour (e.g. redeclare a product)
    -h, --help              Print this help message
+   -i, --interactive       Prompt user before actually removing products (default if -R)
    -n, --noaction          Don't actually do anything
+   -N, --noCheck           Don't check whether recursively removed products are needed
+       --noInteractive     Don't prompt user before actually removing products
    -R, --recursive         Recursively also remove everything that this product depends on
    -z, --select-db  arg    Select the product paths which contain this directory.
                            Default: all
@@ -962,10 +969,13 @@ Options:
 \end{verbatim}
 
 Undeclare the specified product, and remove it from the system. If you specify
-\code{--recursive} then all dependent products will also be removed --- note
-that this is dangerous as they may be needed by someone else.  You are strongly
-advised to use \code{eups uses} to check that nothing bad will happen
-before you do this.
+\code{--recursive} then all dependent products will also be removed; this is dangerous
+as they may be needed by someone else. \eups{} accordingly checks for products
+that are in use and refuses to remove them unless you specify \code{--force}.  As
+an added safeguard, \code{eups remove --recursive} will prompt you before doing anything
+(you can bypass this check with \code{--noInteractive}.
+
+You can use \code{eups uses} to check whether a product's in use.
   
 %------------------------------------------------------------------------------
 
@@ -1010,8 +1020,10 @@ Usage:
     eups uses [options] product [version]
 Options:
    -Z, --database   arg    Use this products path. Default: $EUPS_PATH
+   -d, --depth      arg    Only search down this many layers of dependency
    -f, --flavor     arg    Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`
    -h, --help              Print this help message
+   -o, --optional          Show optional setups
    -q, --quiet             Suppress some warning messages
    -z, --select-db  arg    Select the product paths which contain this directory.
                            Default: all
@@ -1019,7 +1031,8 @@ Options:
 
 Go through the \eups{} databases and return every product that depends upon
 the specified product and version;  if the version's omitted then everything
-that depends on product is returned, along with the version required.
+that depends on product is returned, along with the version required. \textit{N.b.
+  this is quite slow --- it needs to read every table file that \eups{} knows about.}
 
 Unless you specify \code{--quiet} you'll be warned if a product depends on
 more than one version;  this may sound unlikely but can happen if you setup
@@ -1690,12 +1703,12 @@ and bullet-proof; the latter is simpler.
 \textit{Note: we may remove \pacman{} support in a future \eups{} release}
 
 If you put a file \code{prod.build} in \code{prod/ups} and install it along
-with the table file, \code{eups distrib --build "" --create} will set things up
+with the table file, \code{eups distrib --build : --create} will set things up
 so that a subsequent \code{eups distrib --install} will copy the build file
 to the new machine and execute it;  if you have a set of dependent products
 they will be executed in the proper order.  By default, the products will be downloaded
 and built in \code{EupsBuildDir} in a flavor subdirectory of your \code{\$EUPS\_PATH};
-e.g. \code{/u/act/Products/DarwinX86/EupsBuildDir} (but you can change this with
+e.g. \code{/u/act/products/DarwinX86/EupsBuildDir} (but you can change this with
 the \code{-T} flag). The build files are put in the same place, in case you want
 to look at them or fix buglets (simply say \code{sh prod-1.2.3.build}).  If your
 verbosity is 3 or higher, the commands will be executed with \code{-v -x} set.

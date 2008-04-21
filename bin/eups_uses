@@ -12,8 +12,10 @@ import eups
 # Deal with arguments
 #
 options = {
+    "-d" : (True,  "--depth", "Only search down this many layers of dependency"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
     "-h" : (False, "--help", "Print this help message"),
+    "-o" : (False, "--optional", "Show optional setups"),
     "-q" : (False, "--quiet", "Suppress some warning messages"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
@@ -31,10 +33,16 @@ if opts.has_option('-h'):
     opts.usage()
     sys.exit(0)
 
+depth = 9999
+if opts.has_option('-d'):
+    depth = int(opts.options['-d'])
+
 if opts.has_option('-f'):
     flavor = opts.options['-f']
 else:
     flavor = eups.flavor()
+
+showOptional = opts.has_option('-o')
 
 quiet = opts.has_option('-q')
 #
@@ -71,14 +79,30 @@ if len(opts.argv) > 2:
 #
 # Do the work
 #
-try:
-    fmt = "%-20s %-15s"
+fmt = "%-20s %-15s"
+if version:                             # we know the product version, so don't print it again
+    print fmt % ("product", "version")
+else:
+    fmt += " %-15s"
+    print fmt % ("product", "version", "%s version" % product)
 
-    for (p, pv, requestedVersion) in eups.uses(product, version, dbz, flavor, quiet):
+try:
+    for (p, pv, requestedInfo) in eups.uses(product, version, dbz, flavor, depth, quiet):
+        requestedVersion, optional = requestedInfo
+        
+        if optional and not showOptional:
+            continue
+        
         if version:
-            print fmt % (p, pv)
+            str = fmt % (p, pv)
         else:
-            print (fmt + " %s") % (p, pv, requestedVersion)
+            str = fmt % (p, pv, requestedVersion)
+
+        if showOptional:
+            if optional:
+                str += "Optional"
+
+        print str
 except RuntimeError, e:
     print >> sys.stderr, e
     sys.exit(1)

@@ -12,11 +12,13 @@ import eups
 # Deal with arguments
 #
 options = {
-    "-C" : (False, "--check", "Check that recursively removed products aren'r needed (very slow!)"),
     "-F" : (False, "--force", "Force requested behaviour (e.g. redeclare a product)"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
     "-h" : (False, "--help", "Print this help message"),
+    "-i" : (False, "--interactive", "Prompt user before actually removing products (default if -R)"),
+    "-\001" : (False, "--noInteractive", "Don't prompt user before actually removing products"),
     "-n" : (False, "--noaction", "Don\'t actually do anything"),
+    "-N" : (False, "--noCheck", "Don't check whether recursively removed products are needed"),
     "-R" : (False, "--recursive", "Recursively also remove everything that this product depends on"),
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
@@ -35,8 +37,6 @@ if opts.has_option('-h'):
     opts.usage()
     sys.exit(0)
 
-check = opts.has_option('-C')
-
 force = opts.has_option('-F')
 
 if opts.has_option('-f'):
@@ -44,9 +44,21 @@ if opts.has_option('-f'):
 else:
     flavor = eups.flavor()
 
+#
+# Process interactive/check options once we know if recursive is true
+#
+recursive = opts.has_option('-R')
+
+interactive = recursive or opts.has_option('-i')
+
+if opts.has_option('-\001'):
+    interactive = False
+
+noCheck = not recursive or opts.has_option('-N')
+
 noaction = opts.has_option('-n')
 
-recursive = opts.has_option('-R')
+#recursive = opts.has_option('-R')       # we processed -R above -i/-N
 
 verbose = 0
 if opts.has_option('-v'):
@@ -85,7 +97,11 @@ if len(opts.argv) > 2:
 # Do the work
 #
 try:
-    eups.remove(product, version, flavor, dbz, recursive, force, check, noaction)
+    eups.remove(product, version, flavor, dbz, recursive, force, not noCheck, noaction, interactive=interactive)
 except RuntimeError, e:
     print >> sys.stderr, e
     sys.exit(1)
+except KeyboardInterrupt:
+    print ""
+    sys.exit(1)
+    

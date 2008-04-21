@@ -66,9 +66,9 @@ def selectPathComponent(dbz=0, eups_path=None):
 
     return db
 
-def findVersion(product, version):
-    """Return the requested version of product; may be "current", "setup", or a version string"""
-    if version == "current":
+def findVersion(product, version=None):
+    """Return the requested version of product; may be "current" (== None), "setup", or a version string"""
+    if version == None or version == "current":
         return current(product)
     elif version == "setup":
         return setup(product)
@@ -192,29 +192,97 @@ def undeclareCurrent(flavor, dbz, product, version, noaction = False):
     undeclare(product, version, flavor, dbz, undeclare_current=True,
               noaction=noaction)
 
-def remove(product, version, flavor=None, dbz=None, recursive=False, force=False, checkRecursive=False, noaction=False):
+def remove(product, version, flavor=None, dbz=None, recursive=False, force=False, checkRecursive=False, noaction=False,
+           topProduct=None, topVersion=None, userInfo=None, interactive=False):
     """Undeclare and remove a product.  If recursive is true also remove everything that
-    this product depends on"""
+    this product depends on; if checkRecursive is True, you won't be able to remove any
+    product that's in use elsewhere unless force is also True.  N.b. The checkRecursive
+    option is quite slow (it has to read every table file on the system).  If you're
+    calling remove repeatedly, you can pass in a userInfo object (returned by uses(None, None))
+    to save remove() having to read all those table files on every call.    
+    """
 
+    if not topProduct:
+        topProduct = product
+    if not topVersion:
+        topVersion = version
+
+    #
+    # Gather the required information
+    #
+    if checkRecursive and not userInfo:
+        userInfo = uses()
+    #
+    # Figure out what to remove
+    #
+    productsToRemove = _remove(product, version, flavor, dbz, recursive, force, checkRecursive, noaction,
+                               topProduct, topVersion, userInfo)
+
+    productsToRemove = blist(set(productsToRemove)) # remove duplicates
+    #
+    # Actually wreak destruction. Don't do this in _remove as we're relying on the static userInfo
+    #
+    default_yn = "y"                    # default reply to interactive question
+    for product, version in productsToRemove:
+        dir = directory(product, version)
+        if not dir:
+            raise RuntimeError, ("Product %s with version %s doesn't seem to exist" % (product, version))
+
+        if interactive:
+            while True:
+                yn = raw_input("Remove %s %s: [%s] " % (product, version, default_yn))
+                
+                if yn == "":
+                    yn = default_yn
+                if yn == "y" or yn == "n":
+                    default_yn = yn
+                    break
+                else:
+                    print >> sys.stderr, "Please answer y or n, not %s" % yn
+
+            if yn == "n":
+                continue
+
+        if not undeclare(product, version, flavor, dbz, False, noaction, force):
+            raise RuntimeError, ("Not removing %s %s" % (product, version))
+
+        if dir and dir != "none":
+            if noaction:
+                print "rm -rf %s" % dir
+            else:
+                try:
+                    shutil.rmtree(dir)
+                except OSError, e:
+                    raise RuntimeError, e
+
+def _remove(product, version, flavor, dbz, recursive, force, checkRecursive, noaction,
+            topProduct, topVersion, userInfo):
+    """The workhorse for remove"""
+    
     if recursive:
         try:
             deps = dependencies(product, version, dbz, flavor)
         except RuntimeError, e:
             raise RuntimeError, ("product %s %s doesn't seem to exist" % (product, version))
-        
-        for p, v, f in deps:
+
+        productsToRemove = []
+        for p, v, f, o in deps:
             if checkRecursive:
-                usedBy = uses(p, v)
+                usedBy = filter(lambda el: el[0] != topProduct or el[1] != topVersion, userInfo.users(p, v))
+
                 if usedBy:
                     tmp = []
                     for user in usedBy:
                         tmp += ["%s %s" % (user[0], user[1])]
 
                     if len(tmp) == 1:
+                        plural = ""
                         tmp = str(tmp[0])
                     else:
+                        plural = "s"
                         tmp = "(%s)" % "), (".join(tmp)
-                    msg = "%s %s is required by products %s" % (p, v, tmp)
+
+                    msg = "%s %s is required by product%s %s" % (p, v, plural, tmp)
 
                     if force:
                         print >> sys.stderr, "%s; removing anyway" % (msg)
@@ -222,76 +290,13 @@ def remove(product, version, flavor=None, dbz=None, recursive=False, force=False
                         print >> sys.stderr, "%s; specify --force to remove" % (msg)
                         continue
                 
-            remove(p, v, f, dbz, (p != product), force, noaction)
-        return
+            productsToRemove += _remove(p, v, f, dbz, (p != product), force, checkRecursive, noaction,
+                                        topProduct=topProduct, topVersion=topVersion, userInfo=userInfo)
+        return productsToRemove
 
-    dir = directory(product, version)
-    if not dir:
-        raise RuntimeError, ("Product %s with version %s doesn't seem to exist" % (product, version))
-
-    if not undeclare(product, version, flavor, dbz, False, noaction, force):
-        raise RuntimeError, ("Not removing %s %s" % (product, version))
-
-    if dir and dir != "none":
-        if noaction:
-            print "rm -rf %s" % dir
-        else:
-            try:
-                shutil.rmtree(dir)
-            except OSError, e:
-                raise RuntimeError, e
+    return [(product, version)]
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#
-# This version is faster than dependencies, but it doesn't handle
-# optional setups correctly
-#
-def OLDdependencies(product, version, dbz="", flavor="", depth=9999):
-    """Return a product's dependencies in the form of a list of tuples
-    (product, version, flavor, optional)
-    Only return depth levels of dependencies (0 -> just top level)
-"""
-
-    version = findVersion(product, version)
-
-    opts = ""
-    if dbz:
-        opts += " --select-db %s" % (dbz)
-    if flavor:
-        opts += " --flavor %s" % (flavor)
-
-    productList = os.popen("eups_setup setup %s -n --verbose --verbose %s --max-depth %s %s 2>&1 1> /dev/null" % \
-                    (opts, product, depth, version)).readlines()
-
-    dep_products = {}
-    deps = []
-    productList.reverse()               # we want to keep the LAST occurrence
-    for line in productList:
-        line = re.sub(r"\|", " ", line)
-
-        if re.search("^FATAL ERROR:", line):
-            raise RuntimeError, ("Fatal error setting up %s:" % (product),
-                                 "\t".join(["\n"] + productList),
-                                 "Fatal error: listing %s's dependencies failed" % (product))
-
-        mat = re.search(r"^Setting up:\s+(\S+)\s+Flavor:\s+(\S+)\s+Version:\s+(\S+)", line)
-        if not mat:
-            continue
-        
-        (oneProduct, oneFlavor, oneVersion) = mat.groups()
-        oneDep = (oneProduct, oneVersion, oneFlavor, False) # note the change in order
-
-        # prune repeats of identical product version/flavor
-        versionHash = "%s:%s" % (oneVersion, oneFlavor)
-        if dep_products.has_key(oneProduct) and dep_products[oneProduct] == versionHash:
-            continue
-        dep_products[oneProduct] = versionHash
-
-        deps += [oneDep]
-
-    deps.reverse()               # we reversed productList to keep the last occurence; switch back
-
-    return deps
 
 def dependencies(product, version, dbz="", flavor="", depth=9999):
     """Return a product's dependencies in the form of a list of tuples
@@ -305,7 +310,7 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
     global dep_products; dep_products = {}
 
     optional = False
-    productList = dependencies_from_table(table(product, version, dbz, flavor))
+    productList = dependencies_from_table(table(product, version, dbz, flavor, quiet=True))
     deps = [(product, version, flavor, optional)] + \
            _dependencies(productList, dbz, flavor, optional, depth - 1)
     #
@@ -340,7 +345,7 @@ def dependencies(product, version, dbz="", flavor="", depth=9999):
 def _dependencies(productList, dbz, flavor, optional, depth):
     """Here's the workhorse for dependencies"""
 
-    if depth <= 0 or not productList:
+    if depth < 0 or not productList:
         return []
 
     productList.reverse()               # we want to keep the LAST occurrence
@@ -363,7 +368,7 @@ def _dependencies(productList, dbz, flavor, optional, depth):
 
         dep_products[oneProduct] = versionHash
 
-        oneProductList = dependencies_from_table(table(oneProduct, oneVersion, dbz, flavor))
+        oneProductList = dependencies_from_table(table(oneProduct, oneVersion, dbz, flavor, quiet=True))
         deps += [_dependencies(oneProductList, dbz, flavor, optional, depth - 1)]
 
         deps += [[oneDep]]
@@ -378,10 +383,13 @@ def dependencies_from_table(tableFile, verbose=0):
 
     N.b. This is the top-level requirements, it isn't computed recursively"""
 
+    if not tableFile:
+        return []
+
     try:
         fd = open(tableFile)
     except IOError:
-        return None
+        return []
 
     products = []
     for line in fd:
@@ -430,66 +438,147 @@ def dependencies_from_table(tableFile, verbose=0):
 #
 class Uses(object):
     def __init__(self):
-        self.invalidate()               # invalidate the cache
+        self._depends_on = {} # info about products that depend on key
+        self._setup_by = {}       # info about products that setup key, directly or indirectly
 
-    def invalidate(self):
-        self._dependencies = {}
+    def _getKey(self, p, v):
+        return "%s:%s" % (p, v)
 
-def uses(product, version=None, dbz="", flavor="", quiet=False):
+    def _remember(self, p, v, info):
+        key = self._getKey(p, v)
+
+        if not self._depends_on.has_key(key):
+            self._depends_on[key] = []
+
+        self._depends_on[key] += [info]
+
+    def _do_invert(self, product, version, k, depth, optional=False):
+        """Workhorse for _invert"""
+        if depth <= 0 or not self._depends_on.has_key(k):
+            return
+        
+        for p, v, o in self._depends_on[k]:
+            o = o or optional
+
+            key = self._getKey(p, v)
+            if not self._setup_by.has_key(key):
+                self._setup_by[key] = []
+
+            self._setup_by[key] += [(product, version, (v, o))]
+
+            self._do_invert(product, version, self._getKey(p, v), depth - 1, o)
+
+    def _invert(self, depth):
+        """ Invert the dependencies to tell us who uses what, not who depends on what"""
+        pattern = re.compile(r"^(?P<product>[\w]+):(?P<version>[\w.+\-]+)")
+
+        self._setup_by = {}
+        for k in self._depends_on.keys():
+            mat = pattern.match(k)
+            assert mat
+
+            product = mat.group("product")
+            version = mat.group("version")
+
+            self._do_invert(product, version, k, depth)
+
+        if False:
+            for k in self._depends_on.keys():
+                print "%-30s" % k, self._depends_on[k]
+        if False:
+            print; print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; print
+        if False:
+            for k in self._setup_by.keys():
+                print "XX %-20s" % k, self._setup_by[k]
+        #
+        # Make values in _setup_by unique
+        #
+        for k in self._setup_by.keys():
+            self._setup_by[k] = blist(set(self._setup_by[k]))
+
+    def users(self, product, version=None):
+        """Return a list of the users of product/productVersion; each element of the list is:
+        (user, userVersion, (productVersion, optional)"""
+        if version:
+            version = re.escape(version)
+        else:
+            version = r"[\w.+\-]+"
+            
+        version = r"(?P<version>%s)" % version
+
+        pattern = re.compile(r"^%s$" % self._getKey(product, version))
+        consumerList = []
+        for k in self._setup_by.keys():
+            mat = pattern.match(k)
+            if mat:
+                consumerList += (self._setup_by[k])
+        #
+        # Be nice; sort list
+        #
+        def pvsort(a,b):
+            """Sort by product then version then information"""
+
+            if a[0] == b[0]:
+                if a[1] == b[1]:
+                    return cmp(a[2], b[2])
+                else:
+                    return cmp(a[1], b[1])
+            else:
+                return cmp(a[0], b[0])
+
+        consumerList.sort(pvsort)
+        
+        return consumerList
+        
+def uses(product=None, version=None, dbz="", flavor="", depth=9999, quiet=False):
     """Return a list of all products which depend on the specified product in the form of a list of tuples
-    (product, productVersion, versionNeeded)
-"""
-    cache = {}
+    (product, productVersion, (versionNeeded, optional))
 
-    productList = list(None, dbz=dbz, flavor=flavor)
+    depth tells you how indirect the setup is (depth==1 => product is setup in table file,
+    2 => we set up another product with product in its table file, etc.)
+
+    version may be None in which case all versions are returned.  If product is also None,
+    a Uses object is returned which may be used to perform further uses searches efficiently
+"""
+    useInfo = Uses()
+
+    if not product and version:
+        raise RuntimeError, ("You may not specify a version \"%s\"but not a product" % version)
+
+    if True:
+        productList = list(None, dbz=dbz, flavor=flavor)
+    else:                               # debug code only!
+        prods = ("test", "test2", "test3", "boo", "goo", "hoo")
+        #prods = (["test"])
+        #prods = (["astrotools"])
+        #prods = (["afw"])
+
+        productList = []
+        for p in prods:
+            try:
+                for pl in list(p, dbz=dbz, flavor=flavor):
+                    productList += [[p] + pl]
+            except TypeError:
+                continue
+
     if not productList:
         return []
-    
-    consumerDict = {}
-    for (p, v, db, dir, isCurrent, isSetup) in productList:
-        for pd, vd, fd in dependencies(p, v, dbz, flavor):
-            key = "%s:%s|%s:%s" % (p, v, pd, vd)
-            if cache.has_key(key):
+
+    for (p, v, db, dir, isCurrent, isSetup) in productList: # for every known product
+        for pd, vd, fd, od in dependencies(p, v, dbz, flavor, 1): # lookup top-level dependencies
+            if p == pd and v == vd:
                 continue
-            else:
-                cache[key] = 1
 
-            if pd == product:
-                if not version or vd == version:
-                    if p != product or (v != version): # you don't depend on yourself
-                        key2 = "%s:%s" % (p, v)
-                        if not consumerDict.has_key(key2):
-                            consumerDict[key2] = []
-
-                        consumerDict[key2] += [vd]
+            useInfo._remember(p, v, (pd, vd, od))
+    useInfo._invert(depth)
     #
-    # Be nice; sort list
+    # OK, we have the information stored away
     #
-    def pvsort(a,b):
-        """Sort by product then version then dependent version"""
+    if not product:
+        return useInfo
 
-        if a[0] == b[0]:
-            if a[1] == b[1]:
-                return cmp(a[2], b[2])
-            else:
-                return cmp(a[1], b[1])
-        else:
-            return cmp(a[0], b[0])
+    consumerList = useInfo.users(product, version)
 
-    consumerList = []
-    for k in consumerDict.keys():
-        el = k.split(":")
-
-        if len(consumerDict[k]) > 1:
-            if not quiet:
-                print >> sys.stderr, "Warning: %s %s depends on %s versions [%s]" % \
-                      (el[0], el[1], product, ", ".join(consumerDict[k]))
-
-        for v in consumerDict[k]:
-            consumerList += [el + [v]]
-
-    consumerList.sort(pvsort)
-    
     return consumerList
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -502,6 +591,10 @@ def flavor():
     return str.split(os.popen('eups_flavor').readline(), "\n")[0]
 
 getFlavor = flavor                      # useful in this file if you have a variable named flavor
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+from __builtin__ import list as blist
 
 def list(product, version = "", dbz = "", flavor = "", quiet=False):
     """Return a list of declared versions of a product; if the
@@ -609,7 +702,7 @@ def isSetup(product, version, dbz = "", flavor = ""):
     else:
         False
 
-def table(product, version, dbz="", flavor=""):
+def table(product, version, dbz="", flavor="", quiet=False):
     """Return the full path of a product's tablefile"""
 
     version = findVersion(product, version)
@@ -620,13 +713,21 @@ def table(product, version, dbz="", flavor=""):
     if flavor:
         opts += " --flavor %s" % (flavor)
         
-    info = os.popen("eups list %s --table %s %s" % \
-                    (opts, product, version)).readlines()[0].split("\n")
+    try:
+        info = os.popen("eups list %s --table %s %s" % \
+                        (opts, product, version)).readlines()[0].split("\n")
+    except IndexError:
+        if not quiet:
+            print >> sys.stderr, ("Unable to find table file for %s %s" % (product, version))
+
+        return None
+
     for i in info:
         if re.search("^WARNING", i):
             print >> sys.stderr, i
         else:
-            return re.findall(r"\S+", i)[0]
+            if len(i) > 0:
+                return re.findall(r"\S+", i)[0]
 
     return None
 
@@ -716,7 +817,7 @@ msg is the help message associated with the command
             i = i + 1
             a = argv[i]
 
-            if re.search(r"^[^-]", a):
+            if a == "" or re.search(r"^[^-]", a):
                 nargv += [a]
                 continue
 
