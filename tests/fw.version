@@ -1,0 +1,24 @@
+FILE = Version
+PRODUCT = fw
+VERSION = 1.2
+#***************************************
+FLAVOR = DarwinX86
+QUALIFIERS = ""
+   DECLARER = rhl
+   DECLARED = Tue Oct  9 22:05:03 2007
+   MODIFIER = rhl
+   MODIFIED = Tue Oct  9 22:05:03 2007
+   PROD_DIR = DarwinX86/fw/1.2
+   UPS_DIR = $PROD_DIR/ups
+   TABLE_FILE = fw.table
+#***************************************
+FLAVOR = Darwin
+QUALIFIERS = ""
+   DECLARER = rhl
+   DECLARED = Tue Oct  9 22:05:03 2005
+   MODIFIER = rhl
+   MODIFIED = Tue Oct  9 22:05:03 2005
+   PROD_DIR = DarwinX86/fw/1.2
+   UPS_DIR = $PROD_DIR/ups
+   TABLE_FILE = fw.table
+#***************************************
