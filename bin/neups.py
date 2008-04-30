@@ -1,6 +1,9 @@
 # -*- python -*-
 import re, os, sys
+import cPickle
 import pdb
+import eupsLock
+import eupsParser
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -182,7 +185,12 @@ but no other interpretation is applied
                 if mat:
                     if conditional:
                         conditional += " || "
-                    conditional += "FLAVOR == %s" % mat.group(1)
+
+                    flavor = mat.group(1)
+                    if flavor.lower() == "any":
+                        conditional += "FLAVOR =~ .*"
+                    else:
+                        conditional += "FLAVOR == %s" % flavor
                     continue
             #
             # New style blocks (a bad design by RHL) begin with one or more Flavor=XXX
@@ -223,7 +231,7 @@ where the actions are symbols such as Table.envAppend, e.g.
         contents = fd.readlines()
         contents = self._rewrite(contents)
 
-        logical = True                  # logical condition required to execute block
+        logical = "True"                 # logical condition required to execute block
         block = []
         for lineNo, line in contents:
             if False:
@@ -239,7 +247,7 @@ where the actions are symbols such as Table.envAppend, e.g.
                     block = []
 
                 if mat.group(2) == None: # i.e. we saw a }
-                    logical = True
+                    logical = "True"
                 else:
                     logical = mat.group(2)
 
@@ -310,14 +318,17 @@ where the actions are symbols such as Table.envAppend, e.g.
     def actions(self, flavor):
         """Return a list of actions for the specified flavor"""
 
+        if not self._actions:
+            return []
+
         for logical, block in self._actions:
-            parser = Parser(logical)
+            parser = eupsParser.Parser(logical)
             parser.define("flavor", flavor)
 
             if parser.eval():
                 return block
 
-        raise RuntimeError, ("Table has no entry for flavor %s" % flavor)
+        raise RuntimeError, ("Table %s has no entry for flavor %s" % (self.file, flavor))
 
     def __str__(self):
         s = ""
@@ -410,43 +421,57 @@ class Version(object):
                 s += "\n%-20s : %s" % (key, self.info[flavor][key])
 
         return s
-    
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def flavor():
-    """Return the current flavor"""
-    
-    if os.environ.has_key("EUPS_FLAVOR"):
-        return os.environ["EUPS_FLAVOR"]
-    #
-    # These are all the posix-defined uname options
-    #
-    uname = str.split(os.popen('uname -s').readline(), "\n")[0]
-    mach = str.split(os.popen('uname -m').readline(), "\n")[0]
+class Product(object):
+    """Represent a version of a product"""
 
-    if uname == "Linux":
-       if re.search(r"_64$", mach):
-           flav = "Linux64"
-       else:
-           flav = "Linux"
-    elif uname == "Darwin":
-       if re.search(r"i386$", mach):
-           flav = "DarwinX86"
-       else:
-           flav = "Darwin"
-    else:
-        raise RuntimeError, ("Unknown flavor: (%s, %s)" % (uname, mach))
+    def __init__(self, eups, product, version=None):
+        """Initialize a Product with the specified product and (maybe) version,
+        using the Eups parameters"""
+        self.eups = eups
 
-    return flav    
-    
-getFlavor = flavor                      # useful in this file if you have a variable named flavor
+        self.name = product
+        self.version, self.db, self.dir, tablefile = self.eups.findVersion(product, version)
+        self.table = Table(tablefile)
+        
+    def __str__(self):
+        s = ""
+        s += "%s %s -f %s -Z %s" % (self.name, self.version, self.eups.flavor, self.db)
+
+        return s
+
+    def envarDirName(self):
+        """Return the name of the product directory's environment variable"""
+        return self.name.upper() + "_DIR"
+
+    def envarSetupName(self):
+        """Return the name of the product's how-I-was-setup environment variable"""
+        return "SETUP_" + self.name.upper()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Eups(object):
     """Control eups"""
     
-    def __init__(self, shell, flavor=None, path=None, dbz=None, root=None, verbose=False, noaction=False):
+    def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True, who="???",
+                 shell=None, verbose=False, noaction=False):
+
+        if not shell:
+            try:
+                shell = os.environ["SHELL"]
+            except KeyError:
+                raise RuntimeError, "I cannot guess what shell you're running as $SHELL isn't set"
+
+            if re.search(r"(^|/)(bash|ksh|sh)$", shell):
+                shell = "sh"
+            elif re.search(r"(^|/)(csh|tcsh)$", shell):
+                shell = "csh"
+            else:
+                raise RuntimeError, ("Unknown shell type %s" % shell)    
+
+        self.shell = shell
 
         if not flavor:
             flavor = getFlavor()
@@ -469,17 +494,145 @@ class Eups(object):
 
         self.path = path
 
+        self.who = who
         self.root = root
         self.verbose = verbose
         self.noaction = noaction
 
-        if shell != "sh" and shell != "csh":
-            raise RuntimeError, ("Unknown type of shell: %s" % shell)
+        self._msgs = {}                 # used to suppress messages
+        self._msgs["setup"] = {}        # used to suppress messages about setups
 
-        self.shell = shell
+        self.locked = {}                # place holder for proper locking
+        #
+        # Read the cached version information
+        #
+        self.versions = {}
+        if readCache:
+            for p in self.path:
+                self.readDB(p)
 
+    def getPersistentDB(self, p):
+        """Get the name of the persistent database given a toplevel directory"""
+        return os.path.join(self.getUpsDB(p), ".pickleDB")
+
+    def getLockfile(self, p):
+        """Get the name of the lockfile given a toplevel directory"""
+        return os.path.join(self.getUpsDB(p), ".lock")
+
+    def lockDB(self, p, unlock=False):
+        """Lock a DB in path p"""
+
+        lockfile = self.getLockfile(p)
+        
+        if unlock:
+            if self.noaction:
+                print "unlock(%s)" % lockfile
+            else:
+                eupsLock.unlock(lockfile)
+        else:
+            if self.noaction:
+                print "lock(%s)" % lockfile
+            else:
+                eupsLock.lock(lockfile, self.who, max_wait=10)
+
+    def unlinkDB(self, product_base):
+        """Delete a persistentDB"""
+        
+        persistentDB = self.getPersistentDB(product_base)
+
+        if not os.path.exists(persistentDB):
+            return
+
+        self.lockDB(product_base)
+
+        try:
+            if self.noaction:
+                print "rm %s" % persistentDB
+            else:
+                os.unlink(persistentDB)
+        except Exception, e:
+            self.lockDB(product_base, unlock=True)
+
+        self.lockDB(product_base, unlock=True)
+
+    def readDB(self, product_base):
+        """Read a saved version DB from persistentDB"""
+        
+        persistentDB = self.getPersistentDB(product_base)
+
+        if not os.path.exists(persistentDB):
+            return
+
+        self.lockDB(product_base)
+
+        try:
+            fd = open(persistentDB)
+            unpickled = cPickle.Unpickler(fd)
+        except Exception, e:
+            print >> sys.stderr, e
+            self.lockDB(product_base, unlock=True)
+            raise
+
+        self.lockDB(product_base, unlock=True)
+
+        try:
+            type(self.versions)
+        except:
+            self.versions = {}
+
+        versions = unpickled.load()
+        
+        for flavor in versions.keys():
+            if not self.versions.has_key(flavor):
+                self.versions[flavor] = {}
+
+            for db in versions[flavor].keys():
+                if not self.versions[flavor].has_key(db):
+                    self.versions[flavor][db] = {}
+
+                    for p in versions[flavor][db].keys():
+                        if not self.versions[flavor][db].has_key(p):
+                            self.versions[flavor][db][p] = {}
+
+                            for v in versions[flavor][db][p]:
+                                self.versions[flavor][db][p][v] = versions[flavor][db][p][v]
+    
+    def writeDB(self, product_base):
+        """Write product_base's version DB to a persistent DB"""
+
+        if isinstance(product_base, str):
+            try:
+                versions = self.versions[self.flavor][product_base]
+            except KeyError:
+                return
+
+            persistentDB = self.getPersistentDB(product_base)
+            
+            self.lockDB(product_base)
+            
+            try:
+                fd = open(persistentDB, "w")
+                cPickle.dump(self.versions, fd, protocol=2)
+            except Exception, e:
+                print >> sys.stderr, e
+                self.lockDB(product_base, unlock=True)
+                raise
+
+            self.lockDB(product_base, unlock=True)
+        else:
+            for p in product_base:
+                self.writeDB(p)
+
+    def getUpsDB(self, product_base):
+        """Return the ups database directory given a directory from self.path"""
+        
+        return os.path.join(product_base, "ups_db")
+    
     def setEnv(self, key, val):
         """Set an environmental variable"""
+
+        if re.search(r"[\s<>]", val):
+            val = "'%s'" % val
         
         if self.shell == "sh":
             return "export %s=%s" % (key, val)
@@ -494,26 +647,42 @@ class Eups(object):
         elif self.shell == "csh":
             return "unsetenv %s" % (key)
 
-    def findVersionInfo(self, product, version):
+    def findCurrentVersion(self, product):
+        """Find current version of a product, returning the db and version"""
+        
         vinfo = None
         for product_base in self.path:
-            ups_db = os.path.join(product_base, "ups_db")
+            ups_db = self.getUpsDB(product_base)
 
-            if not version:
-                cfile = os.path.join(ups_db, product, "current.chain")
-                if os.path.exists(cfile):
-                    try:
-                        version = Current(cfile).info[self.flavor]["version"]
-                    except KeyError:
-                        raise RuntimeError, "Product %s has no current version for flavor %s" % (product, self.flavor)
+            cfile = os.path.join(ups_db, product, "current.chain")
+            if os.path.exists(cfile):
+                try:
+                    version = Current(cfile).info[self.flavor]["version"]
+                    return product_base, version
+                except KeyError:
+                    raise RuntimeError, "Product %s has no current version for flavor %s" % (product, self.flavor)
 
-            if version:
-                vfile = os.path.join(ups_db, product, "%s.version" % version)
-                if os.path.exists(vfile):
-                    vers = Version(vfile)
-                    if vers.info.has_key(self.flavor):
-                        vinfo = vers.info[self.flavor]
-                        break
+        if not vinfo:                       # no version is available
+            raise RuntimeError, "Unable to locate %s/%s for flavor %s" % (product, version, self.flavor)
+
+    def findVersion(self, product, version=None):
+        """Find a version of a product (if no version is specified, return current version)"""
+        
+        if not version:
+            product_base, version = self.findCurrentVersion(product)
+            product_bases = [product_base]
+        else:
+            product_bases = self.path
+
+        vinfo = None
+        for product_base in product_bases:
+            ups_db = self.getUpsDB(product_base)
+            vfile = os.path.join(ups_db, product, "%s.version" % version)
+            if os.path.exists(vfile):
+                vers = Version(vfile)
+                if vers.info.has_key(self.flavor):
+                    vinfo = vers.info[self.flavor]
+                    break
 
         if not vinfo:                       # no version is available
             raise RuntimeError, "Unable to locate %s/%s for flavor %s" % (product, version, self.flavor)
@@ -536,9 +705,62 @@ class Eups(object):
         if not os.path.exists(tablefile):
             raise RuntimeError, ("Product %s/%s has non-existent tablefile %s" % (product, version, tablefile))
 
-        return version, product_dir, tablefile
+        return version, product_base, product_dir, tablefile
 
-    def setup(self, indent, product, version):
+    def getProduct(self, product, version):
+        """Return a Product, preferably from the cache but the hard way if needs be"""
+
+        if not version:
+            db, version = self.findCurrentVersion(product)
+        #
+        # Try to look it up in the db/product/version dictionary
+        #
+        if self.versions.has_key(self.flavor):
+            for db in self.versions[self.flavor].keys():
+                try:
+                    prod = self.versions[self.flavor][db][product][version]
+                    if self.verbose > 2:
+                        print "Found %s/%s in cache" % (product, version)
+
+                    return prod
+                except KeyError:
+                    pass
+
+        prod = Product(self, product, version)
+
+        self.intern(prod)               # save it in the cache
+
+        return prod
+
+    def buildCache(self, product_base):
+        """Build the persistent version cache"""
+
+        self.writeDB(product_base)
+    #
+    # Here is the externally visible API
+    #
+    def intern(self, product):
+        """ Declare a product"""
+
+        d = self.versions
+
+        if not d.has_key(product.eups.flavor):
+            d[product.eups.flavor] = {}
+        d = d[product.eups.flavor]            
+
+        if not d.has_key(product.db):
+            d[product.db] = {}
+        d = d[product.db]
+            
+        if not d.has_key(product.name):
+            d[product.name] = {}
+        d = d[product.name]
+        
+        d[product.version] = product
+    
+        self.writeDB(product.db)
+
+    def setup(self, product, version, indent=""):
         """The workhorse for setup.  Return (status, actions) where actions is a list of shell
         commands that we need to issue"""
 
@@ -547,54 +769,49 @@ class Eups(object):
         # Look for product directory
         #
         try:
-            version, product_dir, tablefile = self.findVersionInfo(product, version)
+            product = self.getProduct(product, version)
         except RuntimeError, e:
             if self.verbose:
                 print >> sys.stderr, e
 
             return False, shellActions
         #
-        # We have the product_dir and tablefile, along with the actual version found
+        # We have all that we need to know about the product to proceed
         #
-        table = Table(tablefile)
-
-        if True:                        # play with pickling
-            import cPickle;
-
-            tables = {tablefile : table}
-
-            dumpfile = "dump.bin"
-            fd = open(dumpfile, "w")
-            cPickle.dump(tables, fd, protocol=2)
-            del fd
-            del table; del tables
-
-            fd = open(dumpfile)
-            up = cPickle.Unpickler(fd)
-            del fd
-            
-            tables = up.load()
-            table = tables[tablefile]
+        table = product.table
             
         try:
             actions = table.actions(self.flavor)
         except RuntimeError, e:
-            print table.file, table._actions
-            print "product  %s/%s: %s" % (product, version, e)
+            print "product %s/%s: %s" % (product.name, product.version, e)
             return False, shellActions
         #
         # Ready to go
         #
         if self.verbose:
-            print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
-                  (indent + product, self.flavor, version)
-        shellActions += [self.setEnv(product.upper() + "_DIR", product_dir)]
+            # self._msgs["setup"] is used to suppress multiple messages about setting up the same product
+            if indent == "":
+                self._msgs["setup"] = {}
+            setup_msgs = self._msgs["setup"]
+
+            key = "%s:%s:%s" % (product.name, self.flavor, product.version)
+            if self.verbose > 1 or not setup_msgs.has_key(key):
+                print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
+                      (indent + product.name, self.flavor, product.version)
+                setup_msgs[key] = 1
+                
+        shellActions += [self.setEnv(product.envarDirName(), product.dir)]
+        shellActions += [self.setEnv(product.envarSetupName(),
+                                     "%s %s -f %s -Z %s" % (product.name, product.version,
+                                                            product.eups.flavor, product.db))]
 
         if len(indent)%2 == 0:
             indent += "|"
         else:
             indent += " "
-
+        #
+        # Process table file
+        #
         for cmd, args, optional in actions:
             if cmd == Table.setupRequired:
                 _args = args; args = []
@@ -612,7 +829,7 @@ class Eups(object):
                 else:
                     vers = None
 
-                productOK, more_actions = self.setup(indent, prod, vers)
+                productOK, more_actions = self.setup(prod, vers, indent)
                 if not productOK and not optional:
                     raise RuntimeError, ("Failed to setup required product %s/%s" % (prod, vers))
                 shellActions += more_actions
@@ -621,147 +838,61 @@ class Eups(object):
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def setup(product, version=None, flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
-    """ """
+def flavor():
+    """Return the current flavor"""
+    
+    if os.environ.has_key("EUPS_FLAVOR"):
+        return os.environ["EUPS_FLAVOR"]
 
-    eupsCtrl = Eups("sh", flavor, path, dbz, root, verbose, noaction)
+    uname = str.split(os.popen('uname -s').readline(), "\n")[0]
+    mach = str.split(os.popen('uname -m').readline(), "\n")[0]
 
-    return eupsCtrl.setup("", product, version)
+    if uname == "Linux":
+       if re.search(r"_64$", mach):
+           flav = "Linux64"
+       else:
+           flav = "Linux"
+    elif uname == "Darwin":
+       if re.search(r"i386$", mach):
+           flav = "DarwinX86"
+       else:
+           flav = "Darwin"
+    else:
+        raise RuntimeError, ("Unknown flavor: (%s, %s)" % (uname, mach))
+
+    return flav    
+    
+getFlavor = flavor                      # useful in this file if you have a variable named flavor
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def clearCache(flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
+    """Remove the cached product information stored in the ups DBs"""
+
+    eups = Eups(flavor, path, dbz, root=root, who="user:RHL", verbose=verbose, noaction=noaction, readCache=False)
+
+    for p in eups.path:
+        eups.unlinkDB(p)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Parser(object):
-    """Evaluate a logical expression, returning a Bool.  The grammar is:
+def clearLocks(flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
+    """Remove lockfiles"""
 
-        expr : term
-               expr || term          (or  is also accepted)
-               expr && term          (and is also accepted)
+    eups = Eups(flavor, path, dbz, root=root, who="user:RHL", verbose=verbose, noaction=noaction, readCache=False)
 
-        term : prim == prim
-               prim != prim
-               prim < prim
-               prim <= prim
-               prim > prim
-               prim >= prim
+    for p in eups.path:
+        eups.lockDB(p, unlock=True)
 
-	prim : int
-               string
-               name
-               ( expr )
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-names are declared using Parser.declare()
-        """
-    def __init__(self, exprStr):
-        self._tokens = re.split(r"([\w.+]+|\s+|==|!=|<=|>=|[()<>])", exprStr)
-        self._tokens = filter(lambda p: p and not re.search(r"^\s*$", p), self._tokens)
-        
-        self._symbols = {}
-        self._caseSensitive = False
+def setup(product, version=None, flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
+    """ """
 
-    def define(self, key, value):
-        """Define a symbol, which may be substituted using _lookup"""
-        
-        self._symbols[key] = value
+    eups = Eups(flavor, path, dbz, root=root, who="user:RHL", verbose=verbose, noaction=noaction)
 
-    def _lookup(self, key):
-        """Attempt to lookup a key in the symbol table"""
-        key0 = key
-        
-        if not self._caseSensitive:
-            key = key.lower()
-
-        try:
-            return self._symbols[key]
-        except KeyError:
-            return key0        
-
-    def _peek(self):
-        """Return the next terminal symbol, but don't pop it off the lookahead stack"""
-        
-        if not self._tokens:
-            return "EOF"
-        else:
-            tok = self._lookup(self._tokens[0])
-            try:
-                tok = int(tok)
-            except ValueError:
-                pass
-
-            return tok
-
-    def _push(self, tok):
-        """Push a token back onto the lookahead stack"""
-
-        if tok != "EOF":
-            self._tokens = [tok] + self._tokens
-    
-    def _next(self):
-        """Return the next terminal symbol, popping it off the lookahead stack"""
-        
-        tok = self._peek()
-        if tok != "EOF":
-            self._tokens.pop(0)
-
-        return tok
-    
-    def eval(self):
-        """Evaluate the logical expression, returning a Bool"""
-        val = self._expr()              # n.b. may not have consumed all tokens as || and && short circuit
-
-        if val == "EOF":
-            return False
-        else:
-            return val
-
-    def _expr(self):
-        lhs = self._term()
-
-        while True:
-            op = self._next()
-
-            if op == "||" or op == "or":
-                lhs = lhs or self._term()
-            elif op == "&&" or op == "and":
-                lhs = lhs and self._term()
-            else:
-                self._push(op)
-                return lhs
-
-    def _term(self):
-        lhs = self._prim()
-        op = self._next()
-
-        if op == "EOF":
-            return lhs
-
-        if op == "==":
-            return lhs == self._prim()
-        elif op == "!=":
-            return lhs != self._prim()
-        elif op == "<":
-            return lhs < self._prim()
-        elif op == "<=":
-            return lhs <= self._prim()
-        elif op == ">":
-            return lhs > self._prim()
-        elif op == ">=":
-            return lhs >= self._prim()
-        else:
-            self._push(op)
-            return lhs
-
-    def _prim(self):
-        next = self._peek()
-
-        if next == "(":
-            self._next()
-
-            term = self._expr()
-            
-            next = self._next()
-            if next != ")":
-                raise RuntimeError, ("Saw next = \"%s\" in prim" % next)
-
-            return term
-
-        return self._next()
+    ok, actions = eups.setup(product, version)
+    if ok:
+        for a in actions:
+            if False:
+                print a

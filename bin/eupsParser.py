@@ -10,7 +10,9 @@ class Parser(object):
                expr && term          (and is also accepted)
 
         term : prim == prim
+               prim =~ regexp
                prim != prim
+               prim !~ regexp
                prim < prim
                prim <= prim
                prim > prim
@@ -52,14 +54,18 @@ names are declared using Parser.declare()
         
         if not self._tokens:
             return "EOF"
-        else:
-            tok = self._lookup(self._tokens[0])
-            try:
-                tok = int(tok)
-            except ValueError:
-                pass
 
-            return tok
+        tok = self._lookup(self._tokens[0])
+
+        try:                            # maybe it's an int
+            tok = int(tok)
+        except ValueError:
+            pass
+
+        if tok == "True" or tok == "False": # or a bool
+            tok = (tok == "True")
+
+        return tok
 
     def _push(self, tok):
         """Push a token back onto the lookahead stack"""
@@ -78,6 +84,10 @@ names are declared using Parser.declare()
     
     def eval(self):
         """Evaluate the logical expression, returning a Bool"""
+
+        if isinstance(self._tokens, bool):
+            return self._tokens
+
         val = self._expr()              # n.b. may not have consumed all tokens as || and && short circuit
 
         if val == "EOF":
@@ -108,8 +118,12 @@ names are declared using Parser.declare()
 
         if op == "==":
             return lhs == self._prim()
+        elif op == "=~":
+            return re.search(self._prim(), lhs)
         elif op == "!=":
             return lhs != self._prim()
+        elif op == "!~":
+            return not re.search(self._prim(), lhs)
         elif op == "<":
             return lhs < self._prim()
         elif op == "<=":
