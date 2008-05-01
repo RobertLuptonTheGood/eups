@@ -1,5 +1,5 @@
 # -*- python -*-
-import re, os, sys
+import re, os, pwd, sys
 import cPickle
 import pdb
 import eupsLock
@@ -14,7 +14,7 @@ class Current(object):
         """Parse a current file"""
         
         self.file = currentFile
-        self.product = None
+        self.productName = None
         self.current = None
         self.info = {}
 
@@ -56,7 +56,7 @@ class Current(object):
                     raise RuntimeError, \
                           ("Expected \"File = Version\"; saw \"%s\" at %s:%d" % (line, self.file, lineNo))
             elif key == "product":
-                self.product = value
+                self.productName = value
             elif key == "chain":
                 self.chain = value
             elif key == "flavor": # Now look for flavor-specific blocks
@@ -75,7 +75,7 @@ class Current(object):
 
     def __str__(self):
         s = ""
-        s += "Product: %s  Chain: %s" % (self.product, self.chain)
+        s += "Product: %s  Chain: %s" % (self.productName, self.chain)
 
         flavors = self.info.keys(); flavors.sort()
         for flavor in flavors:
@@ -89,10 +89,11 @@ class Current(object):
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Table(object):
-    """A class that represents a eups table file"""
-    
-    # Possible actions; the comments apply to the field that _read adds to its tuples: (cmd, args, extra)
+
+class Action(object):
+    """An action in a Table file"""
+
+    # Possible actions; the comments apply to the field that _read adds to an Action: (cmd, args, extra)
     addAlias = "addAlias"
     envAppend = "envAppend"             # not used
     envPrepend = "envPrepend"           # extra: bool append
@@ -103,6 +104,142 @@ class Table(object):
     setupEnv = "setupEnv"
     setupOptional = "setupOptional"     # not used
     setupRequired = "setupRequired"     # extra: bool optional
+
+    def __init__(self, cmd, args, extra):
+        self.cmd = cmd
+        self.args = args
+        self.extra = extra
+
+    def execute(self, eups, indent, fwd=True):
+        """Execute an action"""
+
+        if self.cmd == Action.setupRequired:
+            return self.execute_setupRequired(eups, indent, fwd)
+        elif self.cmd == Action.envPrepend:
+            return self.execute_envPrepend(eups, fwd)
+        elif self.cmd == Action.envSet:
+            return self.execute_envSet(eups, fwd)
+        else:
+            return []
+    #
+    # Here are the real execute routines
+    #
+    def execute_setupRequired(self, eups, indent, fwd=True):
+        """Execute setupRequired"""
+
+        shellActions = []
+        optional = self.extra
+
+        _args = self.args; args = []
+        i = -1
+        while i < len(_args) - 1:
+            i += 1
+            if _args[i] == "-f":    # a flavor specification -- ignore
+                i += 1               # skip next argument (the flavor)
+                continue
+            args += [_args[i]]
+
+        prod = args.pop(0)
+        if args:
+            vers = args.pop(0)
+        else:
+            vers = None
+
+        productOK, vers, more_actions = eups.setup(prod, vers, fwd, indent)
+        if not productOK and not optional:
+            raise RuntimeError, ("Failed to setup required product %s/%s" % (prod, vers))
+        shellActions += more_actions
+
+        return shellActions
+
+    def execute_envPrepend(self, eups, fwd=True):
+        """Execute envPrepend"""
+
+        args = self.args[:]
+        append = self.extra
+
+        key = args.pop(0)
+        value = args.pop(0)
+        if args:
+            delim = args.pop(0)
+        else:
+            delim = ":"
+
+        prepend_delim = re.search(r"^%s" % delim, value) # should we prepend an extra :?
+        append_delim = re.search(r"%s$" % delim, value) # should we append an extra :?
+        value = re.sub(r"^%s+|%s+$" % (delim, delim), "", value) # strip extra : at start or end
+
+        try:                            # look for values that are optional environment variables: $?{XXX}
+            vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
+            if os.environ.has_key(vkey):
+                value = os.environ[vkey]
+            else:
+              if eups.debug > 0:
+                  print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
+                  return
+        except AttributeError:
+            pass
+
+        if not value:
+            return []
+
+        nvalue = os.environ.get(key, "")  # new value of key
+        if nvalue:
+            if append:
+                nvalue += value + delim
+            else:
+                nvalue = value + delim + nvalue
+        else:
+            nvalue = value
+
+        nvalue = self.pathUnique(nvalue, delim)
+
+        if eups.force and eups.oldenviron[key]:
+            del oldenviron[key]
+
+        if prepend_delim and not re.search(r"^%s" % delim, nvalue):
+            nvalue = delim + nvalue
+        if append_delim and not re.search(r"%s$" % delim, nvalue):
+            nvalue += delim
+
+        return [eups.setEnv(key, nvalue, interpolateEnv=True)]
+
+    def execute_envSet(self, eups, fwd=True):
+        """Execute envSet"""
+
+        args = self.args
+
+        key = args.pop(0)
+        value = args.pop(0)
+
+        if eups.force and eups.oldenviron[key]:
+            del oldenviron[key]
+
+        try:                            # look for values that are optional environment variables: $?{XXX}
+            vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
+            if os.environ.has_key(vkey):
+                value = os.environ[vkey]
+            else:
+              if eups.debug > 0:
+                  print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
+                  return []
+        except AttributeError:
+            pass
+
+        return [eups.setEnv(key, value, interpolateEnv=True)]
+
+    def pathUnique(self, path, delim):
+        """Remove repeated copies of an element in a delim-delimited path; e.g. aa:bb:aa:cc -> aa:bb:cc"""
+
+        pp = []
+        for d in path.split(delim):
+            if d not in pp:
+                pp += [d]
+                
+        return delim.join(pp)
+
+class Table(object):
+    """A class that represents a eups table file"""
 
     def __init__(self, tableFile):
         """Parse a tablefile"""
@@ -223,7 +360,7 @@ but no other interpretation is applied
 
     def _read(self, tableFile):
         """Read and parse a table file, returning a list of tuples (logical, [action, [arguments], optional])
-where the actions are symbols such as Table.envAppend, e.g.
+where the actions are symbols such as Action.envAppend, e.g.
    ('envAppend', ['PYTHONPATH', '${PRODUCT_DIR}/python'], True)
 """
         fd = file(tableFile)
@@ -263,52 +400,56 @@ where the actions are symbols such as Table.envAppend, e.g.
                 args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args)
 
                 cmd = {
-                    "addalias" : Table.addAlias,
-                    "envappend" : Table.envAppend,
-                    "envprepend" : Table.envPrepend,
-                    "envset" : Table.envSet,
-                    "envremove" : Table.envRemove,
-                    "envunset" : Table.envUnset,
-                    "pathappend" : Table.envAppend,
-                    "pathprepend" : Table.envPrepend,
-                    "pathset" : Table.envSet,
-                    "proddir" : Table.prodDir,
-                    "setupenv" : Table.setupEnv,
-                    "setenv" : Table.envSet,
-                    "setuprequired" : Table.setupRequired,
-                    "setupoptional" : Table.setupOptional,
+                    "addalias" : Action.addAlias,
+                    "envappend" : Action.envAppend,
+                    "envprepend" : Action.envPrepend,
+                    "envset" : Action.envSet,
+                    "envremove" : Action.envRemove,
+                    "envunset" : Action.envUnset,
+                    "pathappend" : Action.envAppend,
+                    "pathprepend" : Action.envPrepend,
+                    "pathset" : Action.envSet,
+                    "proddir" : Action.prodDir,
+                    "setupenv" : Action.setupEnv,
+                    "setenv" : Action.envSet,
+                    "setuprequired" : Action.setupRequired,
+                    "setupoptional" : Action.setupOptional,
                     }[cmd]
 
             else:
                 cmd = line; args = []
 
             extra = None
-            if cmd == Table.prodDir or cmd == Table.setupEnv:
+            if cmd == Action.prodDir or cmd == Action.setupEnv:
                 pass                 # the actions are always executed
-            elif cmd == Table.addAlias:
+            elif cmd == Action.addAlias:
                 pass
-            elif cmd == Table.setupOptional or cmd == Table.setupRequired:
-                if cmd == Table.setupRequired:
+            elif cmd == Action.setupOptional or cmd == Action.setupRequired:
+                if cmd == Action.setupRequired:
                     extra = False       # optional?
                 else:
-                    cmd = Table.setupRequired
+                    cmd = Action.setupRequired
                     extra = True        # optional?
-            elif cmd == Table.envAppend or cmd == Table.envPrepend:
-                if cmd == Table.envAppend:
+            elif cmd == Action.envAppend or cmd == Action.envPrepend:
+                if cmd == Action.envAppend:
+                    cmd = Action.envPrepend
                     extra = True        # append?
                 else:
-                    cmd = Table.envPrepend
                     extra = False       # append?
-            elif cmd == Table.envSet:
-                pass
-            elif cmd == Table.envRemove or cmd == Table.envUnset:
+
+                if len(args) < 2 or len(args) > 3:
+                    raise RuntimeError, ("%s expected 2 (or 3) arguments, saw %s" % (cmd, " ".join(args)))
+            elif cmd == Action.envSet:
+                if len(args) != 2:
+                    raise RuntimeError, ("%s expected 2 arguments, saw %s" % (cmd, " ".join(args)))
+            elif cmd == Action.envRemove or cmd == Action.envUnset:
                 print >> sys.stderr, "Ignoring unsupported entry %s at %s:%d" % (line, self.file, lineNo)
                 continue
             else:
                 print >> sys.stderr, "Unrecognised line: %s at %s:%d" % (line, self.file, lineNo)
                 continue
 
-            block += [(cmd, args, extra)]
+            block += [Action(cmd, args, extra)]
         #
         # Push any remaining actions onto current logical block
         #
@@ -349,7 +490,7 @@ class Version(object):
         """Parse a version file"""
         
         self.file = versionFile
-        self.product = None
+        self.productName = None
         self.version = None
         self.info = {}
 
@@ -391,7 +532,7 @@ class Version(object):
                     raise RuntimeError, \
                           ("Expected \"File = Version\"; saw \"%s\" at %s:%d" % (line, self.file, lineNo))
             elif key == "product":
-                self.product = value
+                self.productName = value
             elif key == "version":
                 self.version = value
             elif key == "flavor": # Now look for flavor-specific blocks
@@ -410,7 +551,7 @@ class Version(object):
 
     def __str__(self):
         s = ""
-        s += "Product: %s  Version: %s" % (self.product, self.version)
+        s += "Product: %s  Version: %s" % (self.productName, self.version)
 
         flavors = self.info.keys(); flavors.sort()
         for flavor in flavors:
@@ -427,13 +568,28 @@ class Version(object):
 class Product(object):
     """Represent a version of a product"""
 
-    def __init__(self, eups, product, version=None):
+    def __init__(self, eups, productName=None, version=None):
         """Initialize a Product with the specified product and (maybe) version,
         using the Eups parameters"""
         self.eups = eups
 
-        self.name = product
-        self.version, self.db, self.dir, tablefile = self.eups.findVersion(product, version)
+        if productName:
+            self.name = productName
+            self.version, self.db, self.dir, tablefile = self.eups.findVersion(productName, version)
+            self.table = Table(tablefile)
+        else:
+            self.name = None
+            self.version = None,
+            self.db = None
+            self.dir = None
+            self.table = None
+
+    def init(self, productName, version, flavor, product_base):
+        """Initialize a product given full information about a product"""
+
+        self.name = productName
+        self.version, self.db, self.dir, tablefile = \
+                      self.eups.findFullySpecifiedVersion(productName, version, flavor, product_base)
         self.table = Table(tablefile)
         
     def __str__(self):
@@ -455,8 +611,8 @@ class Product(object):
 class Eups(object):
     """Control eups"""
     
-    def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True, who="???",
-                 shell=None, verbose=False, noaction=False):
+    def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
+                 shell=None, verbose=False, noaction=False, debug=0, force=False):
 
         if not shell:
             try:
@@ -494,10 +650,12 @@ class Eups(object):
 
         self.path = path
 
-        self.who = who
+        self.who = pwd.getpwuid(os.getuid())[4]
         self.root = root
         self.verbose = verbose
         self.noaction = noaction
+        self.debug = debug
+        self.force = force
 
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
@@ -526,12 +684,14 @@ class Eups(object):
         
         if unlock:
             if self.noaction:
-                print "unlock(%s)" % lockfile
+                if self.verbose > 1:
+                    print >> sys.stderr, "unlock(%s)" % lockfile
             else:
                 eupsLock.unlock(lockfile)
         else:
             if self.noaction:
-                print "lock(%s)" % lockfile
+                if self.verbose > 1:
+                    print >> sys.stderr, "lock(%s)" % lockfile
             else:
                 eupsLock.lock(lockfile, self.who, max_wait=10)
 
@@ -547,7 +707,7 @@ class Eups(object):
 
         try:
             if self.noaction:
-                print "rm %s" % persistentDB
+                print >> sys.stderr, "rm %s" % persistentDB
             else:
                 os.unlink(persistentDB)
         except Exception, e:
@@ -628,16 +788,25 @@ class Eups(object):
         
         return os.path.join(product_base, "ups_db")
     
-    def setEnv(self, key, val):
+    def setEnv(self, key, val, interpolateEnv=False):
         """Set an environmental variable"""
 
-        if re.search(r"[\s<>]", val):
+        if interpolateEnv:              # replace ${ENV} by its value if known
+            val = re.sub(r"(\${([^}]*)})", lambda x : os.environ.get(x.group(2), x.group(1)), val)
+
+        if not re.search(r"^['\"].*['\"]$", val) and \
+               re.search(r"[\s<>|&;]", val):   # quote characters that the shell cares about
             val = "'%s'" % val
         
         if self.shell == "sh":
-            return "export %s=%s" % (key, val)
+            cmd = "export %s=%s" % (key, val)
         elif self.shell == "csh":
-            return "setenv %s %s" % (key, val)
+            cmd = "setenv %s %s" % (key, val)
+
+        if self.noaction:
+            cmd = "echo %s" % cmd
+
+        return cmd
 
     def unsetEnv(self, key):
         """Unset an environmental variable"""
@@ -647,29 +816,29 @@ class Eups(object):
         elif self.shell == "csh":
             return "unsetenv %s" % (key)
 
-    def findCurrentVersion(self, product):
+    def findCurrentVersion(self, productName):
         """Find current version of a product, returning the db and version"""
         
         vinfo = None
         for product_base in self.path:
             ups_db = self.getUpsDB(product_base)
 
-            cfile = os.path.join(ups_db, product, "current.chain")
+            cfile = os.path.join(ups_db, productName, "current.chain")
             if os.path.exists(cfile):
                 try:
                     version = Current(cfile).info[self.flavor]["version"]
                     return product_base, version
                 except KeyError:
-                    raise RuntimeError, "Product %s has no current version for flavor %s" % (product, self.flavor)
+                    raise RuntimeError, "Product %s has no current version for flavor %s" % (productName, self.flavor)
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate %s/%s for flavor %s" % (product, version, self.flavor)
+            raise RuntimeError, "Unable to locate a current version of %s for flavor %s" % (productName, self.flavor)
 
-    def findVersion(self, product, version=None):
+    def findVersion(self, productName, version=None):
         """Find a version of a product (if no version is specified, return current version)"""
         
         if not version:
-            product_base, version = self.findCurrentVersion(product)
+            product_base, version = self.findCurrentVersion(productName)
             product_bases = [product_base]
         else:
             product_bases = self.path
@@ -677,7 +846,7 @@ class Eups(object):
         vinfo = None
         for product_base in product_bases:
             ups_db = self.getUpsDB(product_base)
-            vfile = os.path.join(ups_db, product, "%s.version" % version)
+            vfile = os.path.join(ups_db, productName, "%s.version" % version)
             if os.path.exists(vfile):
                 vers = Version(vfile)
                 if vers.info.has_key(self.flavor):
@@ -685,17 +854,39 @@ class Eups(object):
                     break
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate %s/%s for flavor %s" % (product, version, self.flavor)
+            raise RuntimeError, "Unable to locate %s/%s for flavor %s" % (productName, version, self.flavor)
 
+        return self._finishFinding(vinfo, productName, version, product_base)
+
+    def findFullySpecifiedVersion(self, productName, version, flavor, product_base):
+        """Find a version given full details of where to look"""
+        
+        vinfo = None
+        ups_db = self.getUpsDB(product_base)
+        vfile = os.path.join(ups_db, productName, "%s.version" % version)
+        if os.path.exists(vfile):
+            vers = Version(vfile)
+            if vers.info.has_key(flavor):
+                vinfo = vers.info[flavor]
+
+        if not vinfo:                       # no version is available
+            raise RuntimeError, "Unable to locate %s/%s for flavor %s in %s" % \
+                  (productName, version, flavor, product_base)
+
+        return self._finishFinding(vinfo, productName, version, product_base)
+
+    def _finishFinding(self, vinfo, productName, version, product_base):
         product_dir = vinfo["prod_dir"]
         if not re.search(r"^/", product_dir):
             product_dir = os.path.join(product_base, vinfo["prod_dir"])
 
         if not os.path.isdir(product_dir):
-            raise RuntimeError, ("Product %s/%s has non-existent product_dir %s" % (product, version, product_dir))
+            raise RuntimeError, ("Product %s/%s has non-existent product_dir %s" % (productName, version, product_dir))
         #
         # Look for the directory with the tablefile
         #
+        ups_db = self.getUpsDB(product_base)
+
         ups_dir = vinfo["ups_dir"]
         ups_dir = re.sub(r"\$PROD_DIR", product_dir, ups_dir)
         ups_dir = re.sub(r"\$UPS_DB", ups_db, ups_dir)
@@ -703,39 +894,68 @@ class Eups(object):
         tablefile = os.path.join(ups_dir, vinfo["table_file"])
 
         if not os.path.exists(tablefile):
-            raise RuntimeError, ("Product %s/%s has non-existent tablefile %s" % (product, version, tablefile))
+            raise RuntimeError, ("Product %s/%s has non-existent tablefile %s" % (productName, version, tablefile))
 
         return version, product_base, product_dir, tablefile
 
-    def getProduct(self, product, version):
+    def getProduct(self, productName, version):
         """Return a Product, preferably from the cache but the hard way if needs be"""
 
         if not version:
-            db, version = self.findCurrentVersion(product)
+            db, version = self.findCurrentVersion(productName)
         #
         # Try to look it up in the db/product/version dictionary
         #
         if self.versions.has_key(self.flavor):
             for db in self.versions[self.flavor].keys():
                 try:
-                    prod = self.versions[self.flavor][db][product][version]
+                    prod = self.versions[self.flavor][db][productName][version]
                     if self.verbose > 2:
-                        print "Found %s/%s in cache" % (product, version)
+                        print >> sys.stderr, "Found %s/%s in cache" % (productName, version)
 
                     return prod
                 except KeyError:
                     pass
 
-        prod = Product(self, product, version)
+        product = Product(self, productName, version)
 
-        self.intern(prod)               # save it in the cache
+        self.intern(product)               # save it in the cache
 
-        return prod
+        return product
 
     def buildCache(self, product_base):
         """Build the persistent version cache"""
 
         self.writeDB(product_base)
+
+    def isSetup(self, product):
+        """Is specified Product already setup?"""
+        return os.environ.has_key(product.envarSetupName())
+
+    def unsetupSetupProduct(self, product):
+        """ """
+
+        if not self.isSetup(product):
+            return
+
+        if product.name == "eups":
+            print >> sys.stderr, "Not unsetting up eups -- complain to RHL"
+            return
+        
+        setup_args = os.environ[product.envarSetupName()].split()
+        try:
+            if setup_args[2] == "-f":
+                del setup_args[2]; del setup_args[3] # remove -f and -Z
+        except IndexError:
+            pass
+            
+        productName, version, flavor, product_base = setup_args
+
+        product = Product(self)
+        product.init(productName, version, flavor, product_base)
+
+        if False:
+            self.setup(product, fwd=False)
     #
     # Here is the externally visible API
     #
@@ -760,21 +980,24 @@ class Eups(object):
     
         self.writeDB(product.db)
 
-    def setup(self, product, version, indent=""):
-        """The workhorse for setup.  Return (status, actions) where actions is a list of shell
+    def setup(self, productName, version=None, fwd=True, indent=""):
+        """The workhorse for setup.  Return (success?, version, actions) where actions is a list of shell
         commands that we need to issue"""
 
         shellActions = []                   # actions that we need to take
         #
         # Look for product directory
         #
-        try:
-            product = self.getProduct(product, version)
-        except RuntimeError, e:
-            if self.verbose:
-                print >> sys.stderr, e
+        if isinstance(productName, Product): # it's already a full Product
+            product = productName
+        else:
+            try:
+                product = self.getProduct(productName, version)
+            except RuntimeError, e:
+                if self.verbose:
+                    print >> sys.stderr, e
 
-            return False, shellActions
+                return False, version, shellActions
         #
         # We have all that we need to know about the product to proceed
         #
@@ -783,8 +1006,8 @@ class Eups(object):
         try:
             actions = table.actions(self.flavor)
         except RuntimeError, e:
-            print "product %s/%s: %s" % (product.name, product.version, e)
-            return False, shellActions
+            print >> sys.stderr, "product %s/%s: %s" % (product.name, product.version, e)
+            return False, product.version, shellActions
         #
         # Ready to go
         #
@@ -799,11 +1022,17 @@ class Eups(object):
                 print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
                       (indent + product.name, self.flavor, product.version)
                 setup_msgs[key] = 1
-                
-        shellActions += [self.setEnv(product.envarDirName(), product.dir)]
-        shellActions += [self.setEnv(product.envarSetupName(),
-                                     "%s %s -f %s -Z %s" % (product.name, product.version,
-                                                            product.eups.flavor, product.db))]
+
+        if fwd:
+            self.unsetupSetupProduct(product)
+
+            shellActions += [self.setEnv(product.envarDirName(), product.dir)]
+            shellActions += [self.setEnv(product.envarSetupName(),
+                                         "%s %s -f %s -Z %s" % (product.name, product.version,
+                                                                product.eups.flavor, product.db))]
+        else:
+            shellActions += [self.unsetEnv(product.envarDirName())]
+            shellActions += [self.unsetEnv(product.envarSetupName())]
 
         if len(indent)%2 == 0:
             indent += "|"
@@ -812,29 +1041,10 @@ class Eups(object):
         #
         # Process table file
         #
-        for cmd, args, optional in actions:
-            if cmd == Table.setupRequired:
-                _args = args; args = []
-                i = -1
-                while i < len(_args) - 1:
-                    i += 1
-                    if _args[i] == "-f": # a flavor specification -- ignore
-                        i += 1       # skip next argument (the flavor)
-                        continue
-                    args += [_args[i]]
+        for a in actions:
+            shellActions += a.execute(self, indent, fwd)
 
-                prod = args.pop(0)
-                if args:
-                    vers = args.pop(0)
-                else:
-                    vers = None
-
-                productOK, more_actions = self.setup(prod, vers, indent)
-                if not productOK and not optional:
-                    raise RuntimeError, ("Failed to setup required product %s/%s" % (prod, vers))
-                shellActions += more_actions
-
-        return True, shellActions
+        return True, product.version, shellActions
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -869,7 +1079,7 @@ getFlavor = flavor                      # useful in this file if you have a vari
 def clearCache(flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
     """Remove the cached product information stored in the ups DBs"""
 
-    eups = Eups(flavor, path, dbz, root=root, who="user:RHL", verbose=verbose, noaction=noaction, readCache=False)
+    eups = Eups(flavor, path, dbz, root=root, verbose=verbose, noaction=noaction, readCache=False)
 
     for p in eups.path:
         eups.unlinkDB(p)
@@ -879,20 +1089,39 @@ def clearCache(flavor=None, path=None, dbz=None, root=None, verbose=True, noacti
 def clearLocks(flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
     """Remove lockfiles"""
 
-    eups = Eups(flavor, path, dbz, root=root, who="user:RHL", verbose=verbose, noaction=noaction, readCache=False)
+    eups = Eups(flavor, path, dbz, root=root, verbose=verbose, noaction=noaction, readCache=False)
 
     for p in eups.path:
         eups.lockDB(p, unlock=True)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def setup(product, version=None, flavor=None, path=None, dbz=None, root=None, verbose=True, noaction=False):
+def setup(eups, productName, version=None, fwd=True):
+    """Return a filename which, when sourced, will setup a product (if fwd is false, unset it up)"""
+
+    ok, version, actions = eups.setup(productName, version, fwd)
+    if ok:
+        import tempfile
+
+        tfd, tmpfile = tempfile.mkstemp("", "eups")
+        tfd = os.fdopen(tfd, "w")
+
+        for a in actions:
+            tfd.write(a + "\n")
+
+        if eups.verbose > 3:
+            print >> sys.stderr, "Not deleting %s" % tmpfile
+        else:
+            tfd.write("/bin/rm -f %s\n" % tmpfile)
+
+        return tmpfile
+    else:
+        print >> sys.stderr, "Failed to setup %s %s" % (productName, version)
+        return ""
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def unsetup(eups, productName, version=None):
     """ """
 
-    eups = Eups(flavor, path, dbz, root=root, who="user:RHL", verbose=verbose, noaction=noaction)
-
-    ok, actions = eups.setup(product, version)
-    if ok:
-        for a in actions:
-            if False:
-                print a
+    return setup(eups, productName, version, False)

@@ -1,0 +1,108 @@
+#!/usr/bin/env python
+#
+import os, sys
+
+syntax = "Usage: mksetup EUPS_DIR EUPS_PATH";
+
+sys.argv.pop(0)                         # remove script name
+try:
+    eupsdir = sys.argv[0]
+    prefix = sys.argv[1]
+except IndexError:
+    print >> sys.stderr, "Usage"
+    sys.exit(1)
+
+ups_db = os.path.join(prefix, "ups_db")
+
+bindir = os.path.join("$EUPS_DIR","bin")
+setup = os.path.join('$EUPS_DIR',"bin","neups_setup");
+unsetup = os.path.join('$EUPS_DIR',"bin","neups_unsetup");
+
+# Keep only one copy of each directory in sys.argv[1]
+unique_path="""
+import sys
+pp = []
+for d in sys.argv[1].split(":"):
+    if d not in pp:
+        pp += [d]
+print ":".join(pp)"""
+
+print "Writing a csh startup script";
+try:
+    fd = open("setups.csh", "w")
+except IOError, e:
+    print >> sys.stderr, "Unable to open setups.csh: %s" % e
+    sys.exit(1)
+
+print >> fd, """
+if ("$?EUPS_DIR" == "1" ) then
+   setenv PATH `echo $PATH | perl -pe "s|:%(bindir)s||g"`
+   if ("$?PYTHONPATH" == "1" ) then
+      setenv PYTHONPATH `echo $PYTHONPATH | perl -pe "s|:%(bindir)s||g"`
+   endif
+endif
+
+setenv EUPS_DIR %(eupsdir)s
+if ("$?EUPS_PATH" == "0" ) then
+    setenv EUPS_PATH ""
+endif
+
+setenv EUPS_PATH `python -c '%(unique_path)s' %(prefix)s:$EUPS_PATH`
+# Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
+setenv SETUP_EUPS "eups"
+# Deprecated variables
+unsetenv PROD_DIR_PREFIX
+unsetenv PRODUCTS
+
+setenv PATH ${PATH}:%(bindir)s
+if ("$?PYTHONPATH" == "1" ) then
+   setenv PYTHONPATH ${PYTHONPATH}:%(bindir)s
+else
+   setenv PYTHONPATH %(bindir)s
+endif
+
+alias nsetup 'eval `%(setup)s \\!*`'
+alias nunsetup 'eval `%(unsetup)s \\!*`'
+
+""" % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
+       "setup" : setup,  "unsetup" : unsetup, "unique_path" : unique_path}
+
+del fd
+
+print "Writing a sh startup script";
+try:
+    fd = open("setups.sh", "w")
+except IOError, e:
+    print >> sys.stderr, "Unable to open setups.sh: %s" % e
+    sys.exit(1)
+
+print >> fd, """
+if [ "$EUPS_DIR" != "" ]; then
+   PATH=`echo $PATH | perl -pe "s|:%(bindir)s||g"`
+   PYTHONPATH=`echo $PYTHONPATH | perl -pe "s|:%(bindir)s||g"`
+fi
+
+export EUPS_DIR=%(eupsdir)s
+export EUPS_PATH=`python -c '%(unique_path)s' %(prefix)s:$EUPS_PATH`
+# Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
+export SETUP_EUPS="eups"
+# Deprecated variables
+unset PROD_DIR_PREFIX
+unset PRODUCTS
+
+export PATH="$PATH:$bindir"
+if [ X"$PYTHONPATH" != X"" ]; then
+    export PYTHONPATH="$PYTHONPATH:%(bindir)s"
+else
+    export PYTHONPATH="%(bindir)s"
+fi
+
+function nsetup   { eval `%(setup)s $@`; };   export -f setup
+function nunsetup { eval `%(unsetup)s $@`; }; export -f unsetup
+
+""" % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
+       "setup" : setup,  "unsetup" : unsetup, "unique_path" : unique_path}
+
+del fd
+
+sys.exit(0)

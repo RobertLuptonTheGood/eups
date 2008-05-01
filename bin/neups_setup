@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+import glob, os, re, sys
+import neups
+import eupsGetopt
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
+options = {
+    "-F" : (False, "--force", "Force requested behaviour"),
+    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
+    "-D" : (False, "--only-dependencies", "Only setup dependencies, not this product"),
+    "-h" : (False, "--help", "Print this help message"),
+    "-i" : (False, "--ignore-versions", "Ignore any explicit versions in table files"),
+    "-j" : (False, "--just", "Just setup product, no dependencies"),
+    "-l" : (False, "--list", "List available versions; not supported --- use \"eups list\""),
+    "-k" : (False, "--keep", "Keep any products with local setups (i.e. not in EUPS_PATH)"),
+    "-M" : (True,  "", "Setup the dependent products in this table file (ignored)"),
+    "-n" : (False, "--noaction", "Don\'t actually do anything"),
+    "-N" : (False, "--noCheck", "Don't check whether recursively removed products are needed"),
+    "-q" : (False, "--quiet", "Be extra quiet"),
+    "-r" : (True,  "--root", "Location of product being setup"),
+    "-S" : (False, "--max-depth", "Only show this many levels of dependencies (use with -v)"),
+    "-t" : (True,  "--type", "Specify type of setup (permitted values: build)"),
+    "-V" : (False, "--version", "Print eups version number and exit"),
+    "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
+    "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
+    "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    }
+aliases = {}
+
+try:
+    opts = eupsGetopt.Getopt(options, sys.argv, aliases, "setup [options] [product [version]]")
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+
+if opts.options.get('-h'):
+    print >> sys.stderr, "Remove an eups product from the system"
+    opts.usage()
+    sys.exit(0)
+
+if opts.options.get('-l'):
+    print >> sys.stderr, "setup --list is no longer supported; use \"eups list\""
+    sys.exit(1)
+if opts.options.get('-M'):
+    print >> sys.stderr, "setup -M is no longer supported; complain to RHL"
+    sys.exit(1)
+if opts.options.get('-V'):
+    print >> sys.stderr, "Version: %s" % "XXX"
+    sys.exit(0)    
+
+dbz = opts.options.get('-z')
+flavor = opts.options.get('-f', neups.flavor())
+force = opts.options.get('-F', False)
+ignore_versions = opts.options.get("-i", False)
+just = opts.options.get("-j", False)
+keep = opts.options.get("-k", False)
+max_depth = opts.options.get("-S")
+noaction = opts.options.get('-n')
+only_dependencies = opts.options.get('-D', False)
+path = opts.options.get('-Z')
+root = opts.options.get('-r')
+verbose = opts.options.get('-v', 0)
+
+if ignore_versions:
+    raise RuntimeError, "Option --ignore-versions is not (yet) supported"
+if just:
+    raise RuntimeError, "Option --just is not (yet) supported"
+if keep:
+    raise RuntimeError, "Option --keep is not (yet) supported"
+if max_depth:
+    raise RuntimeError, "Option --max-depth is not (yet) supported"
+if only_dependencies:
+    raise RuntimeError, "Option --only-dependencies is not (yet) supported"
+
+product = None
+if opts.argv:
+    product = opts.argv.pop(0)
+
+if root:
+    products = map(lambda t: re.sub(r".*/([^/]+)\.table$", r"\1", t), glob.glob(os.path.join(root, "ups", "*.table")))
+
+    if product:
+        if not products or product in products: # we've chosen the product and it's present in root (or nothing is)
+            products = [product]
+        else:
+            print >> sys.stderr, "You chose product %s, but I can't find its table file in %s/ups" % (product, root)
+            sys.exit(1)
+
+    if not products:
+        print >> sys.stderr, "I can't find any table files in %s/ups" % root
+        sys.exit(1)
+    elif len(products) == 1:
+        product = products[0]
+    else:
+        print >> sys.stderr, "I can't guess which product you want; ups directory defines: %s" %" ".join(products);
+        sys.exit(1)
+
+if opts.argv:
+    version = opts.argv.pop(0)
+else:
+    version = None
+
+if opts.argv:
+    pass
+
+if not product:
+    print >> sys.stderr, "Please specify a product"
+    opts.usage()
+    sys.exit(1)
+#
+# Do the work
+#
+try:
+    eupsCtrl = neups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
+                          verbose=verbose, noaction=noaction)
+    tmpfile = neups.setup(eupsCtrl, product, version)
+except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
+
+if tmpfile:
+    if eupsCtrl.shell == "sh":
+        print ". %s" % tmpfile
+    else:
+        print "source %s" % tmpfile
+else:
+    if eupsCtrl.shell == "sh":
+        print ":"
+    else:
+        print "#"
+        
