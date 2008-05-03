@@ -114,20 +114,19 @@ class Action(object):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
-            return self.execute_setupRequired(eups, indent, fwd)
+            self.execute_setupRequired(eups, indent, fwd)
         elif self.cmd == Action.envPrepend:
-            return self.execute_envPrepend(eups, fwd)
+            self.execute_envPrepend(eups, fwd)
         elif self.cmd == Action.envSet:
-            return self.execute_envSet(eups, fwd)
+            self.execute_envSet(eups, fwd)
         else:
-            return []
+            return
     #
     # Here are the real execute routines
     #
     def execute_setupRequired(self, eups, indent, fwd=True):
         """Execute setupRequired"""
 
-        shellActions = []
         optional = self.extra
 
         _args = self.args; args = []
@@ -145,12 +144,9 @@ class Action(object):
         else:
             vers = None
 
-        productOK, vers, more_actions = eups.setup(prod, vers, fwd, indent)
+        productOK, vers = eups.setup(prod, vers, fwd, indent)
         if not productOK and not optional:
             raise RuntimeError, ("Failed to setup required product %s/%s" % (prod, vers))
-        shellActions += more_actions
-
-        return shellActions
 
     def execute_envPrepend(self, eups, fwd=True):
         """Execute envPrepend"""
@@ -171,8 +167,8 @@ class Action(object):
 
         try:                            # look for values that are optional environment variables: $?{XXX}
             vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
-            if os.environ.has_key(vkey):
-                value = os.environ[vkey]
+            if self.env.has_key(vkey):
+                value = self.env[vkey]
             else:
               if eups.debug > 0:
                   print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
@@ -181,7 +177,7 @@ class Action(object):
             pass
 
         if not value:
-            return []
+            return
 
         nvalue = os.environ.get(key, "")  # new value of key
         if nvalue:
@@ -194,15 +190,15 @@ class Action(object):
 
         nvalue = self.pathUnique(nvalue, delim)
 
-        if eups.force and eups.oldenviron[key]:
-            del oldenviron[key]
+        if eups.force and eups.oldenv.has_key(key):
+            del oldenv[key]
 
         if prepend_delim and not re.search(r"^%s" % delim, nvalue):
             nvalue = delim + nvalue
         if append_delim and not re.search(r"%s$" % delim, nvalue):
             nvalue += delim
 
-        return [eups.setEnv(key, nvalue, interpolateEnv=True)]
+        eups.setEnv(key, nvalue, interpolateEnv=True)
 
     def execute_envSet(self, eups, fwd=True):
         """Execute envSet"""
@@ -212,21 +208,21 @@ class Action(object):
         key = args.pop(0)
         value = args.pop(0)
 
-        if eups.force and eups.oldenviron[key]:
-            del oldenviron[key]
+        if eups.force and eups.oldenv.has_key(key):
+            del oldenv[key]
 
         try:                            # look for values that are optional environment variables: $?{XXX}
             vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
-            if os.environ.has_key(vkey):
-                value = os.environ[vkey]
+            if self.env.has_key(vkey):
+                value = self.env[vkey]
             else:
               if eups.debug > 0:
                   print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
-                  return []
+                  return
         except AttributeError:
             pass
 
-        return [eups.setEnv(key, value, interpolateEnv=True)]
+        eups.setEnv(key, value, interpolateEnv=True)
 
     def pathUnique(self, path, delim):
         """Remove repeated copies of an element in a delim-delimited path; e.g. aa:bb:aa:cc -> aa:bb:cc"""
@@ -657,10 +653,11 @@ class Eups(object):
         self.debug = debug
         self.force = force
 
+        self.env = os.environ.copy() # copy of environmental variables to make changes too
+        self.oldenv = os.environ.copy() # initial value of environmental variables
+
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
-
-        self.locked = {}                # place holder for proper locking
         #
         # Read the cached version information
         #
@@ -788,33 +785,44 @@ class Eups(object):
         
         return os.path.join(product_base, "ups_db")
     
-    def setEnv(self, key, val, interpolateEnv=False):
-        """Set an environmental variable"""
+    def setEnvVariable(self, key):
+        """Return the command needed to set an environmental variable"""
 
-        if interpolateEnv:              # replace ${ENV} by its value if known
-            val = re.sub(r"(\${([^}]*)})", lambda x : os.environ.get(x.group(2), x.group(1)), val)
-
-        if not re.search(r"^['\"].*['\"]$", val) and \
-               re.search(r"[\s<>|&;]", val):   # quote characters that the shell cares about
-            val = "'%s'" % val
-        
+        val = self.env[key]
         if self.shell == "sh":
             cmd = "export %s=%s" % (key, val)
         elif self.shell == "csh":
             cmd = "setenv %s %s" % (key, val)
 
         if self.noaction:
-            cmd = "echo %s" % cmd
+            cmd = re.sub(r"([\"'])", r"\\\1", "echo %s" % cmd)
 
         return cmd
 
-    def unsetEnv(self, key):
-        """Unset an environmental variable"""
+    def unsetEnvVariable(self, key):
+        """Return the command needed to unset an environmental variable"""
         
         if self.shell == "sh":
             return "unset %s" % (key)
         elif self.shell == "csh":
             return "unsetenv %s" % (key)
+
+    def setEnv(self, key, val, interpolateEnv=False):
+        """Set an environmental variable"""
+
+        if interpolateEnv:              # replace ${ENV} by its value if known
+            val = re.sub(r"(\${([^}]*)})", lambda x : self.env.get(x.group(2), x.group(1)), val)
+
+        if not re.search(r"^['\"].*['\"]$", val) and \
+               re.search(r"[\s<>|&;]", val):   # quote characters that the shell cares about
+            val = "'%s'" % val
+
+        self.env[key] = val
+
+    def unsetEnv(self, key):
+        """Unset an environmental variable"""
+
+        del self.env[key]
 
     def findCurrentVersion(self, productName):
         """Find current version of a product, returning the db and version"""
@@ -984,7 +992,6 @@ class Eups(object):
         """The workhorse for setup.  Return (success?, version, actions) where actions is a list of shell
         commands that we need to issue"""
 
-        shellActions = []                   # actions that we need to take
         #
         # Look for product directory
         #
@@ -997,7 +1004,7 @@ class Eups(object):
                 if self.verbose:
                     print >> sys.stderr, e
 
-                return False, version, shellActions
+                return False, version
         #
         # We have all that we need to know about the product to proceed
         #
@@ -1007,7 +1014,7 @@ class Eups(object):
             actions = table.actions(self.flavor)
         except RuntimeError, e:
             print >> sys.stderr, "product %s/%s: %s" % (product.name, product.version, e)
-            return False, product.version, shellActions
+            return False, product.version
         #
         # Ready to go
         #
@@ -1026,13 +1033,13 @@ class Eups(object):
         if fwd:
             self.unsetupSetupProduct(product)
 
-            shellActions += [self.setEnv(product.envarDirName(), product.dir)]
-            shellActions += [self.setEnv(product.envarSetupName(),
-                                         "%s %s -f %s -Z %s" % (product.name, product.version,
-                                                                product.eups.flavor, product.db))]
+            self.setEnv(product.envarDirName(), product.dir)
+            self.setEnv(product.envarSetupName(),
+                        "%s %s -f %s -Z %s" % (product.name, product.version,
+                                               product.eups.flavor, product.db))
         else:
-            shellActions += [self.unsetEnv(product.envarDirName())]
-            shellActions += [self.unsetEnv(product.envarSetupName())]
+            self.unsetEnv(product.envarDirName())
+            self.unsetEnv(product.envarSetupName())
 
         if len(indent)%2 == 0:
             indent += "|"
@@ -1042,9 +1049,9 @@ class Eups(object):
         # Process table file
         #
         for a in actions:
-            shellActions += a.execute(self, indent, fwd)
+            a.execute(self, indent, fwd)
 
-        return True, product.version, shellActions
+        return True, product.version
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1099,15 +1106,16 @@ def clearLocks(flavor=None, path=None, dbz=None, root=None, verbose=True, noacti
 def setup(eups, productName, version=None, fwd=True):
     """Return a filename which, when sourced, will setup a product (if fwd is false, unset it up)"""
 
-    ok, version, actions = eups.setup(productName, version, fwd)
+    ok, version = eups.setup(productName, version, fwd)
     if ok:
         import tempfile
 
         tfd, tmpfile = tempfile.mkstemp("", "eups")
         tfd = os.fdopen(tfd, "w")
 
-        for a in actions:
-            tfd.write(a + "\n")
+        for k in eups.env.keys():
+            if not eups.oldenv.has_key(k) or eups.oldenv[k] != eups.env[k]:
+                tfd.write(eups.setEnvVariable(k) + "\n")
 
         if eups.verbose > 3:
             print >> sys.stderr, "Not deleting %s" % tmpfile
