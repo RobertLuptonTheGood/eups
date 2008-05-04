@@ -2,6 +2,7 @@ FILE = Version
 PRODUCT = fw
 VERSION = 1.2
 #***************************************
+Group:
 FLAVOR = DarwinX86
 QUALIFIERS = ""
    DECLARER = rhl
@@ -11,6 +12,7 @@ QUALIFIERS = ""
    PROD_DIR = DarwinX86/fw/1.2
    UPS_DIR = $PROD_DIR/ups
    TABLE_FILE = fw.table
+End:
 #***************************************
 FLAVOR = Darwin
 QUALIFIERS = ""

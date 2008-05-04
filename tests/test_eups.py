@@ -59,6 +59,7 @@ class currentFileTestCase(unittest.TestCase):
     """Test reading current files"""
     def setUp(self):
         self.current = neups.Current("fw.current")
+        self.assertTrue = lambda x, y: x == y
 
     def tearDown(self):
         del self.current
@@ -70,22 +71,93 @@ class currentFileTestCase(unittest.TestCase):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class versionOrdering(unittest.TestCase):
+    """Test eups's version ordering"""
+
+    def setUp(self):
+        self.eups = neups.Eups()
+
+    def tearDown(self):
+        del self.eups
+
+    def testVersions(self):
+        # return -1 if v1 < v2; 0 if v1 == v2; 1 if v1 > v2
+        tests = (
+            ["aa", "aa", 0],
+            ["aa.2","aa.1", 1],
+            ["aa.2.1","aa.2", 1],
+            ["aa.2.1","aa.2.2", -1],
+            ["aa.2.1","aa.3", -1],
+            ["aa.2.b","aa.2.a", 1],
+            ["aa.2.b","aa.2.c", -1],
+            ["v1_0_0","1.0.2", -1],
+            ["1_0_0","v1.0.2", -1],
+            ["v1_0_3","a1.0.2", -1],
+            ["v1_0_0","v1.0.2", -1],
+            ["v1_0_3","v1.0.2", 1],
+            ["v1_0_3","v1_0_3", 0],
+            ["v1_0_3m1","v1_0_3", -1],
+            ["v1_0_3p1","v1_0_3", +1],
+            ["v2_0","v1_0", +1],
+            ["v2_0","v3_0", -1],
+            ["v1.2.3","v1.2.3+a", -1],
+            ["v1.2-0","v1.2.3", -1],
+            ["v1.2-4","v1.2.3", -1],
+            ["1","1-a", 1],
+            ["1","1+a", -1],
+            ["1-a","1", -1],
+            ["1-b","1-a", 1],
+            ["1+a","1+b", -1],
+            ["1-a", "1+a", -1],
+            ["1+a", "1-a", 1],
+            ["1-rc2+a", "1-rc2", 1],
+            ["1-rc2+a", "1-rc2+b", -1],
+            ["1", "1", 0 ],
+            ["1.2", "1.1", +1],
+            ["1.2.1", "1.2", +1],
+            ["1.2.1", "1.2.2", -1],
+            ["1.2.1", "1.3", -1],
+            ["1_0_2", "1.0.0", +1],
+            ["1.2-rc1", "1.2", -1],
+            ["1.2-rc1", "1.2-rc2", -1],
+            ["1.2-rc1", "1.2.3", -1],
+            ["1.2-rc4", "1.2.3", -1],
+            ["1.2+h1", "1.2", +1],
+            ["1.2-rc1+h1", "1.2-rc1", +1],
+            )
+
+        nbad = 0
+        for test in tests:
+            vname, v, expected = test
+            result = self.eups.version_cmp(vname, v)
+            #print >> sys.stderr, "version_cmp(\"%s\", \"%s\") == %s" % (vname, v, result)
+            if result != expected:
+                nbad += 1
+                print >> sys.stderr, "%-10s %-10s: %2d (expected %2d)" % (vname, v, result, expected)
+
+        assert(nbad == 0)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def suite():
     """Returns a suite containing all the test cases in this module."""
 
-    suites = []
-    if False:
-        suites += unittest.makeSuite(tableTestCase)
-        suites += unittest.makeSuite(oldTableTestCase)
-        suites += unittest.makeSuite(versionFileTestCase)
-    suites += unittest.makeSuite(currentFileTestCase)
+    suites = unittest.TestSuite()
+    suites.addTest(unittest.makeSuite(tableTestCase))
+    suites.addTest(unittest.makeSuite(oldTableTestCase))
+    suites.addTest(unittest.makeSuite(versionFileTestCase))
+    #suites.addTest(unittest.makeSuite(currentFileTestCase))
+    suites.addTest(unittest.makeSuite(versionOrdering))
 
-    return unittest.TestSuite(suites)
+    return suites
 
 def run(exit=False):
     """Run the tests"""
 
-    status = 0 if unittest.TextTestRunner().run(suite()).wasSuccessful() else 1
+    if unittest.TextTestRunner().run(suite()).wasSuccessful():
+        status = 0
+    else:
+        status = 1
 
     if exit:
         sys.exit(status)
