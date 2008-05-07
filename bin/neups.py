@@ -1,5 +1,5 @@
 # -*- python -*-
-import re, os, pwd, sys
+import glob, re, os, pwd, sys
 import cPickle
 import pdb
 import eupsLock
@@ -91,7 +91,7 @@ class Current(object):
 
 
 class Action(object):
-    """An action in a Table file"""
+    """An action in a table file"""
 
     # Possible actions; the comments apply to the field that _read adds to an Action: (cmd, args, extra)
     addAlias = "addAlias"
@@ -110,21 +110,29 @@ class Action(object):
         self.args = args
         self.extra = extra
 
-    def execute(self, eups, indent, fwd=True):
+    def __str__(self):
+        return "%s %s %s" % (self.cmd, self.args, self.extra)
+
+    def execute(self, eups, nestedLevel, fwd=True):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
-            self.execute_setupRequired(eups, indent, fwd)
+            if nestedLevel == eups.max_depth + 1:
+                return
+
+            self.execute_setupRequired(eups, nestedLevel, fwd)
         elif self.cmd == Action.envPrepend:
             self.execute_envPrepend(eups, fwd)
         elif self.cmd == Action.envSet:
             self.execute_envSet(eups, fwd)
+        elif self.cmd == Action.addAlias:
+            self.execute_addAlias(eups, fwd)
         else:
-            return
+            print >> sys.stderr, "Unimplemented action", self.cmd
     #
     # Here are the real execute routines
     #
-    def execute_setupRequired(self, eups, indent, fwd=True):
+    def execute_setupRequired(self, eups, nestedLevel, fwd=True):
         """Execute setupRequired"""
 
         optional = self.extra
@@ -138,91 +146,115 @@ class Action(object):
                 continue
             args += [_args[i]]
 
-        prod = args.pop(0)
-        if args:
-            vers = args.pop(0)
+        prod = args[0]
+        if len(args) > 1:
+            vers = args[1]
         else:
             vers = None
 
-        productOK, vers = eups.setup(prod, vers, fwd, indent)
+        productOK, vers = eups.setup(prod, vers, fwd, nestedLevel)
         if not productOK and not optional:
             raise RuntimeError, ("Failed to setup required product %s/%s" % (prod, vers))
 
     def execute_envPrepend(self, eups, fwd=True):
         """Execute envPrepend"""
 
-        args = self.args[:]
+        args = self.args
         append = self.extra
 
-        key = args.pop(0)
-        value = args.pop(0)
-        if args:
-            delim = args.pop(0)
+        envVar = args[0]                # environment variable to set
+        entry = args[1]                 # add/subtract this value to the variable
+        if len(args) > 2:
+            delim = args[2]
         else:
             delim = ":"
 
-        prepend_delim = re.search(r"^%s" % delim, value) # should we prepend an extra :?
-        append_delim = re.search(r"%s$" % delim, value) # should we append an extra :?
-        value = re.sub(r"^%s+|%s+$" % (delim, delim), "", value) # strip extra : at start or end
+        ovalue = eups.environ.get(envVar, "") # old value of envVar
 
-        try:                            # look for values that are optional environment variables: $?{XXX}
-            vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
-            if self.env.has_key(vkey):
-                value = self.env[vkey]
-            else:
-              if eups.debug > 0:
-                  print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
-                  return
-        except AttributeError:
-            pass
+        prepend_delim = re.search(r"^%s" % delim, ovalue) # should we prepend an extra :?
+        append_delim = re.search(r"%s$" % delim, ovalue) # should we append an extra :?
 
-        if not value:
-            return
+        ovalue = filter(lambda el: el, ovalue.split(delim)) # strip extra : at start or end
 
-        nvalue = os.environ.get(key, "")  # new value of key
-        if nvalue:
+        if fwd:
+            try:                            # look for values that are optional environment variables: $?{XXX}
+                key = re.search(r"^$\?{([^}]*)}", entry).group(0)
+                if eups.environ.has_key(key):
+                    entry = eups.environ[key]
+                else:
+                  if eups.verbose > 0:
+                      print >> sys.stderr, "$%s is not defined; not setting %s" % (key, entry)
+                      return
+            except AttributeError:
+                pass
+
+            if not entry:
+                return
+
             if append:
-                nvalue += value + delim
+                nvalue = ovalue + [entry]
             else:
-                nvalue = value + delim + nvalue
+                nvalue = [entry] + ovalue
         else:
-            nvalue = value
+            nvalue = filter(lambda d: d != entry, ovalue)
 
-        nvalue = self.pathUnique(nvalue, delim)
-
-        if eups.force and eups.oldenv.has_key(key):
-            del oldenv[key]
-
+        nvalue = delim.join(nvalue)     # convert back to a string
+        
         if prepend_delim and not re.search(r"^%s" % delim, nvalue):
             nvalue = delim + nvalue
         if append_delim and not re.search(r"%s$" % delim, nvalue):
             nvalue += delim
 
-        eups.setEnv(key, nvalue, interpolateEnv=True)
+        nvalue = self.pathUnique(nvalue, delim)
+
+        if eups.force and eups.oldEnviron[envVar]:
+            del eups.oldEnviron[envVar]
+
+        eups.setEnv(envVar, nvalue, interpolateEnv=True)
+
+    def execute_addAlias(self, eups, fwd=True):
+        """Execute addAlias"""
+
+        args = self.args
+
+        key = args[0]
+        if fwd:
+            value = " ".join(args[1:])
+        if eups.force and eups.oldAliases[key]:
+            del eups.oldAliases[key]    # Does this actually work? 
+
+        if fwd:
+            eups.setAlias(key, value)
+        else:
+            eups.unsetAlias(key)
 
     def execute_envSet(self, eups, fwd=True):
         """Execute envSet"""
 
         args = self.args
 
-        key = args.pop(0)
-        value = args.pop(0)
+        key = args[0]
+        if fwd:
+            value = args[1]
 
-        if eups.force and eups.oldenv.has_key(key):
-            del oldenv[key]
+        if eups.force and eups.oldEnviron[key]:
+            del oldEnviron[key]
 
-        try:                            # look for values that are optional environment variables: $?{XXX}
-            vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
-            if self.env.has_key(vkey):
-                value = self.env[vkey]
-            else:
-              if eups.debug > 0:
-                  print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
-                  return
-        except AttributeError:
-            pass
+        if fwd:
+            try:                            # look for values that are optional environment variables: $?{XXX}
+                vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
+                if eups.environ.has_key(vkey):
+                    value = eups.environ[vkey]
+                else:
+                  if eups.verbose > 0:
+                      print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
+                      return
+            except AttributeError:
+                pass
 
-        eups.setEnv(key, value, interpolateEnv=True)
+            eups.setEnv(key, value, interpolateEnv=True)
+        else:
+            eups.unsetEnv(key)
 
     def pathUnique(self, path, delim):
         """Remove repeated copies of an element in a delim-delimited path; e.g. aa:bb:aa:cc -> aa:bb:cc"""
@@ -282,6 +314,14 @@ but no other interpretation is applied
             elif self.old:
                 if re.search(r"^Product\s*=\s*(\w+)", line, re.IGNORECASE):
                     continue
+            # Older synonyms for eups variables in table files
+            line = re.sub(r"\${PROD_DIR}", "${PRODUCT_DIR}", line)
+            line = re.sub(r"\${UPS_PROD_DIR}", "${PRODUCT_DIR}", line)
+            line = re.sub(r"\${UPS_PROD_FLAVOR}", "${PRODUCT_FLAVOR}", line)
+            line = re.sub(r"\${UPS_PROD_NAME}", "${PRODUCT_NAME}", line)
+            line = re.sub(r"\${UPS_PROD_VERSION}", "${PRODUCT_VERSION}", line)
+            line = re.sub(r"\${UPS_DB}", "${PRODUCTS}", line)
+            line = re.sub(r"\${UPS_UPS_DIR}", "${UPS_DIR}", line)
             #
             # Check for lines that we think are always the same (and can thus be ignored)
             #
@@ -354,6 +394,25 @@ but no other interpretation is applied
             
         return ncontents
 
+    def expandEupsVariables(self, product):
+        """Expand eups-related variables such as $PRODUCT_DIR"""
+
+        for action in self._actions:
+            for a in action[1]:
+                for i in range(len(a.args)):
+                    value = a.args[i]
+
+                    value = re.sub(r"\${PRODUCTS}", product.db, value)
+                    value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
+                    value = re.sub(r"\${PRODUCT_FLAVOR}", product.eups.flavor, value)
+                    value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
+                    value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
+                    value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
+
+                    a.args[i] = value
+
+        return self
+    
     def _read(self, tableFile):
         """Read and parse a table file, returning a list of tuples (logical, [action, [arguments], optional])
 where the actions are symbols such as Action.envAppend, e.g.
@@ -393,7 +452,7 @@ where the actions are symbols such as Action.envAppend, e.g.
                 cmd = mat.group(1).lower()
                 args = re.sub(r'^"(.*)"$', r'\1', mat.group(2))
                 args = filter(lambda s: s, re.split("[, ]", args))
-                args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args)
+                args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args) # remove quotes
 
                 cmd = {
                     "addalias" : Action.addAlias,
@@ -511,6 +570,11 @@ class Version(object):
             if not line:
                 continue
             #
+            # Ignore Group: and End:
+            #
+            if re.search(r"^(Group|End)\s*:", line):
+                continue
+            #
             # Get key = value
             #
             mat = re.search(r"^(\w+)\s*=\s*(.*)", line, re.IGNORECASE)
@@ -533,15 +597,15 @@ class Version(object):
                 self.version = value
             elif key == "flavor": # Now look for flavor-specific blocks
                 flavor = value
-                self.info[flavor] = {}
+                if not self.info.has_key(flavor):
+                    self.info[flavor] = {}
             else:
                 value = re.sub(r"^\"(.*)\"$", r"\1", mat.group(2)) # strip ""
 
                 if key == "qualifiers":
-                    if value:
-                        raise RuntimeError, ("Unsupported qualifiers \"%s\" at %s:%d" % (value, self.file, lineNo))
-                    else:
-                        continue
+                    if value:           # flavor becomes e.g. Linux:build
+                        flavor += ":%s" % value
+                        self.info[flavor] = {}
                 else:
                     self.info[flavor][key] = value
 
@@ -564,29 +628,44 @@ class Version(object):
 class Product(object):
     """Represent a version of a product"""
 
-    def __init__(self, eups, productName=None, version=None):
+    def __init__(self, eups, productName=None, version=None, noInit=False):
         """Initialize a Product with the specified product and (maybe) version,
-        using the Eups parameters"""
+        using the eups parameters"""
         self.eups = eups
 
-        if productName:
-            self.name = productName
-            self.version, self.db, self.dir, tablefile = self.eups.findVersion(productName, version)
-            self.table = Table(tablefile)
-        else:
-            self.name = None
-            self.version = None,
-            self.db = None
-            self.dir = None
-            self.table = None
+        self.name = productName         # product's name
+        self.version = None,            # product's version
+        self.db = None                  # ups_db that we found the product in
+        self.dir = None                 # product's directory
+        self.table = None               # product's Table
 
-    def init(self, productName, version, flavor, product_base):
+        if not self.name or noInit:
+            pass
+        else:
+            self.version, self.db, self.dir, tablefile = self.eups.findVersion(productName, version)
+            self.table = Table(tablefile).expandEupsVariables(self)
+
+    def init(self, version, flavor, product_base):
         """Initialize a product given full information about a product"""
 
-        self.name = productName
         self.version, self.db, self.dir, tablefile = \
-                      self.eups.findFullySpecifiedVersion(productName, version, flavor, product_base)
-        self.table = Table(tablefile)
+                      self.eups.findFullySpecifiedVersion(self.name, version, flavor, product_base)
+        self.table = Table(tablefile).expandEupsVariables(self)
+
+    def tableFileName(self):
+        """Return a fully qualified tablefile name"""
+        
+        return os.path.join(self.dir, "ups", "%s.table" % self.name)
+
+    def initFromDirectory(self, product_dir):
+        """Initialize product eups itself, given only its directory.  This is needed as we
+        eups can be initialised by sourcing setups.c?sh rather than via a setup command; in
+        the former case it needn't even be declared to eups"""
+
+        self.version = "LOCAL:" + product_dir
+        self.db = "(none)"
+        self.dir = product_dir
+        self.table = Table(self.tableFileName()).expandEupsVariables(self)
         
     def __str__(self):
         s = ""
@@ -608,8 +687,9 @@ class Eups(object):
     """Control eups"""
     
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
-                 shell=None, verbose=False, noaction=False, debug=0, force=False):
-
+                 shell=None, verbose=False, noaction=False, force=False, ignore_versions=False,
+                 keep=False, max_depth=-1, only_dependencies=False):
+                 
         if not shell:
             try:
                 shell = os.environ["SHELL"]
@@ -646,18 +726,41 @@ class Eups(object):
 
         self.path = path
 
+        self.environ = os.environ.copy() # the environment variables that we want when we're done
+        self.oldEnviron = os.environ.copy() # the initial version of the environment
+
+        self.aliases = {}               # aliases that we should set
+        self.oldAliases = {}            # initial value of aliases.  This is a bit of a fake, as we
+                                        # don't know how to set it but (un)?setAlias knows how to handle this
+
         self.who = pwd.getpwuid(os.getuid())[4]
+
+        if root:
+            root = os.path.join(os.getcwd(), root)
+            while re.search(r"/\.\.", root):
+                root = re.sub(r"([^/]+)/\.\.", "", root)
+            root = re.sub("/*$", "", root)
+            
         self.root = root
+            
+        self.quiet = 0
+        self.keep = keep
         self.verbose = verbose
         self.noaction = noaction
-        self.debug = debug
         self.force = force
-
-        self.env = os.environ.copy() # copy of environmental variables to make changes too
-        self.oldenv = os.environ.copy() # initial value of environmental variables
+        self.ignore_versions = ignore_versions
+        self.max_depth = max_depth      # == 0 => only setup toplevel package
+        self.only_dependencies = only_dependencies
 
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
+        #
+        # Check for unsupported features
+        #
+        if self.only_dependencies:
+            raise RuntimeError, "Option only_dependencies is not (yet?) supported"
+        if self.keep:
+            raise RuntimeError, "Option keep is not (yet) supported"
         #
         # Read the cached version information
         #
@@ -681,13 +784,13 @@ class Eups(object):
         
         if unlock:
             if self.noaction:
-                if self.verbose > 1:
+                if self.verbose > 2:
                     print >> sys.stderr, "unlock(%s)" % lockfile
             else:
                 eupsLock.unlock(lockfile)
         else:
             if self.noaction:
-                if self.verbose > 1:
+                if self.verbose > 2:
                     print >> sys.stderr, "lock(%s)" % lockfile
             else:
                 eupsLock.lock(lockfile, self.who, max_wait=10)
@@ -785,81 +888,139 @@ class Eups(object):
         
         return os.path.join(product_base, "ups_db")
     
-    def setEnvVariable(self, key):
-        """Return the command needed to set an environmental variable"""
-
-        val = self.env[key]
-        if self.shell == "sh":
-            cmd = "export %s=%s" % (key, val)
-        elif self.shell == "csh":
-            cmd = "setenv %s %s" % (key, val)
-
-        if self.noaction:
-            cmd = re.sub(r"([\"'])", r"\\\1", "echo %s" % cmd)
-
-        return cmd
-
-    def unsetEnvVariable(self, key):
-        """Return the command needed to unset an environmental variable"""
-        
-        if self.shell == "sh":
-            return "unset %s" % (key)
-        elif self.shell == "csh":
-            return "unsetenv %s" % (key)
-
     def setEnv(self, key, val, interpolateEnv=False):
         """Set an environmental variable"""
-
+            
         if interpolateEnv:              # replace ${ENV} by its value if known
-            val = re.sub(r"(\${([^}]*)})", lambda x : self.env.get(x.group(2), x.group(1)), val)
+            val = re.sub(r"(\${([^}]*)})", lambda x : eups.environ.get(x.group(2), x.group(1)), val)
 
-        if not re.search(r"^['\"].*['\"]$", val) and \
-               re.search(r"[\s<>|&;]", val):   # quote characters that the shell cares about
-            val = "'%s'" % val
-
-        self.env[key] = val
+        self.environ[key] = val
 
     def unsetEnv(self, key):
         """Unset an environmental variable"""
 
-        del self.env[key]
+        if self.environ.has_key(key):
+            del self.environ[key]
 
-    def findCurrentVersion(self, productName):
-        """Find current version of a product, returning the db and version"""
-        
+    def setAlias(self, key, val):
+        """Set an alias.  The value is in sh syntax --- we'll mangle it for csh later"""
+
+        self.aliases[key] = val
+
+    def unsetAlias(self, key):
+        """Unset an alias"""
+
+        if self.aliases.has_key(key):
+            del self.aliases[key]
+        self.oldAliases[key] = 1        # so it'll be deleted if no new alias is defined
+
+    def findCurrentVersion(self, productName, path=None):
+        """Find current version of a product, returning the db and vinfo"""
+
+        if not path:
+            path = self.path
+        elif isinstance(path, str):
+            path = [path]
+
         vinfo = None
-        for product_base in self.path:
+        for product_base in path:
             ups_db = self.getUpsDB(product_base)
 
             cfile = os.path.join(ups_db, productName, "current.chain")
             if os.path.exists(cfile):
                 try:
                     version = Current(cfile).info[self.flavor]["version"]
-                    return product_base, version
+
+                    vfile = os.path.join(ups_db, productName, "%s.version" % version)
+                    if os.path.exists(vfile):
+                        vers = Version(vfile)
+                        if vers.info.has_key(self.flavor):
+                            vinfo = vers.info[self.flavor]
+                            return product_base, version, vinfo
+
+                    raise RuntimeError, ("Unable to find current version %s of %s for flavor %s" %
+                                         (version, productName, self.flavor))
                 except KeyError:
-                    raise RuntimeError, "Product %s has no current version for flavor %s" % (productName, self.flavor)
+                    raise RuntimeError, ("Product %s has no current version for flavor %s" % (productName, self.flavor))
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate a current version of %s for flavor %s" % (productName, self.flavor)
+            raise RuntimeError, ("Unable to locate a current version of %s for flavor %s" % (productName, self.flavor))
 
     def findVersion(self, productName, version=None):
         """Find a version of a product (if no version is specified, return current version)"""
         
+        if self.ignore_versions:
+           version = ""
+
         if not version:
-            product_base, version = self.findCurrentVersion(productName)
+            # If no version explicitly specified, get the first db with a current one.
+            product_base, version, vinfo = self.findCurrentVersion(productName)
+
             product_bases = [product_base]
         else:
             product_bases = self.path
 
         vinfo = None
-        for product_base in product_bases:
-            ups_db = self.getUpsDB(product_base)
-            vfile = os.path.join(ups_db, productName, "%s.version" % version)
-            if os.path.exists(vfile):
-                vers = Version(vfile)
-                if vers.info.has_key(self.flavor):
-                    vinfo = vers.info[self.flavor]
+        if re.search(Eups._relop_re, version): # we have a relational expression
+            expr = re.sub(r"^\s*", "", version)
+            version = None
+            matched_product_base = None
+            
+            for product_base in product_bases: # search for the first match
+                if matched_product_base:       # we got one in the last iteration
+                    product_base = matched_product_base
                     break
+                    
+                dir = os.path.join(self.getUpsDB(product_base), productName)
+
+                versions = []
+                for vfile in glob.glob(os.path.join(dir, "*.version")):
+                    vers = Version(vfile)
+                    if vers.info.has_key(self.flavor):
+                        versions += (vers.version, [vers.info[self.flavor]])
+
+                versions.sort(lambda a, b: self.version_cmp(a[0], b[0]))
+                versions.reverse() # so we'll try the latest version first
+                #
+                # Include the current version;  if it matches we'll use it
+                #
+                try:
+                    cproduct_base, cversion, cvinfo = self.findCurrentVersion(productName, product_base)
+                    if cvinfo:
+                        versions += [(cversion, cvinfo)]
+                except RuntimeError:
+                    pass
+                #
+                # We have a list of possible versions, go through them in order
+                #
+                for vname, _vinfo in versions:
+                    if self.version_match(vname, expr):
+                        matched_product_base = product_base
+                        version = vname
+                        vinfo = _vinfo
+
+                        if cvinfo and version != cversion and self.verbose > 0 + self.quiet:
+                            print >> sys.stderr, "Using version %s to satisfy \"%s\" (%s is current)" % \
+                                  (version, expr, cversion)
+
+                        extra = ""
+                        if self.verbose >= 3 + self.quiet:
+                            extra = "in %s " % root
+
+                        if self.verbose >= 2 + self.quiet:
+                            print >> sys.stderr, "Version %s %ssatisfies condition \"%s\" for product %s" % \
+                                  (version, extra, expr, productName)
+
+                        break
+        else:
+            for product_base in product_bases:
+                ups_db = self.getUpsDB(product_base)
+                vfile = os.path.join(ups_db, productName, "%s.version" % version)
+                if os.path.exists(vfile):
+                    vers = Version(vfile)
+                    if vers.info.has_key(self.flavor):
+                        vinfo = vers.info[self.flavor]
+                        break
 
         if not vinfo:                       # no version is available
             raise RuntimeError, "Unable to locate %s/%s for flavor %s" % (productName, version, self.flavor)
@@ -910,7 +1071,7 @@ class Eups(object):
         """Return a Product, preferably from the cache but the hard way if needs be"""
 
         if not version:
-            db, version = self.findCurrentVersion(productName)
+            db, version, vinfo = self.findCurrentVersion(productName)
         #
         # Try to look it up in the db/product/version dictionary
         #
@@ -938,32 +1099,179 @@ class Eups(object):
 
     def isSetup(self, product):
         """Is specified Product already setup?"""
-        return os.environ.has_key(product.envarSetupName())
+        return self.environ.has_key(product.envarSetupName())
 
     def unsetupSetupProduct(self, product):
         """ """
 
         if not self.isSetup(product):
             return
+    
+        setup_args = self.environ[product.envarSetupName()].split()
 
-        if product.name == "eups":
-            print >> sys.stderr, "Not unsetting up eups -- complain to RHL"
-            return
-        
-        setup_args = os.environ[product.envarSetupName()].split()
-        try:
-            if setup_args[2] == "-f":
-                del setup_args[2]; del setup_args[3] # remove -f and -Z
-        except IndexError:
-            pass
-            
-        productName, version, flavor, product_base = setup_args
+        oldProduct = Product(self, product.name, noInit=True)
+        if product.name == "eups" and len(setup_args) == 1: # you can get here if you setup eups by sourcing setups.c?sh
+            oldProduct.initFromDirectory(self.environ[product.envarDirName()])
+        else:
+            del setup_args[2]; del setup_args[3] # remove -f and -Z
+            productName, version, flavor, product_base = setup_args
+            assert productName == oldProduct.name
 
-        product = Product(self)
-        product.init(productName, version, flavor, product_base)
+            oldProduct.init(version, flavor, product_base)
 
-        if False:
-            self.setup(product, fwd=False)
+        self.setup(oldProduct, fwd=False)  # do the actual unsetup
+
+    # Permitted relational operators
+    _relop_re = r"<=?|>=?|==";
+
+    def version_cmp(self, v1, v2, suffix=False):
+        """Compare two version strings
+
+    The strings are split on [._] and each component is compared, numerically
+    or as strings as the case may be.  If the first component begins with a non-numerical
+    string, the other must start the same way to be declared a match.
+
+    If one version is a substring of the other, the longer is taken to be the greater
+
+    If the version string includes a '-' (say VV-EE) the version will be fully sorted on VV,
+    and then on EE iff the two VV parts are different.  VV sorts to the RIGHT of VV-EE --
+    e.g. 1.10.0-rc2 comes to the LEFT of 1.10.0
+
+    Additionally, you can specify another modifier +FF; in this case VV sorts to the LEFT of VV+FF
+    e.g. 1.10.0+hack1 sorts to the RIGHT of 1.10.0
+
+    As an alternative appealing to cvs users, you can replace -EE by mEE or +FF by pFF, but in
+    this case EE and FF must be integers
+    """
+        def split_version(version):
+            # Split a version string of the form VVV([m-]EEE)?([p+]FFF)?
+            if not version:
+                return "", "", ""
+
+            mat = re.search(r"^([^-+]+)((-)([^-+]+))?((\+)([^-+]+))?", version)
+            vvv, eee, fff = mat.group(1), mat.group(4), mat.group(7)
+
+            if not eee and not fff:             # maybe they used VVVm# or VVVp#?
+                mat = re.search(r"(m(\d+)|p(\d+))$", version)
+                if mat:
+                    suffix, eee, fff = mat.group(1), mat.group(2), mat.group(3)
+                    vvv = re.sub(r"%s$" % suffix, "", version)
+
+            return vvv, eee, fff
+
+        prim1, sec1, ter1 = split_version(v1)
+        prim2, sec2, ter2 = split_version(v2)
+
+        if prim1 == prim2:
+            if sec1 or sec2 or ter1 or ter2:
+                if sec1 or sec2:
+                    if (sec1 and sec2):
+                        ret = self.version_cmp(sec1, sec2, True)
+                    else:
+                        if sec1:
+                            return -1
+                        else:
+                            return 1
+
+                    if ret == 0:
+                        return self.version_cmp(ter1, ter2, True)
+                    else:
+                        return ret
+
+                return self.version_cmp(ter1, ter2, True)
+            else:
+                return 0
+
+        c1 = re.split(r"[._]", prim1)
+        c2 = re.split(r"[._]", prim2)
+        #
+        # Check that leading non-numerical parts agree
+        #
+        if not suffix:
+            prefix = ""
+            mat = re.search(r"^([^0-9]+)", c1[0])
+            if mat:
+                prefix = mat.group(1)
+
+                if not re.search(r"^%s" % prefix, c2[0]):
+                    return -1
+            else:
+                mat = re.search(r"^([^0-9]+)", c2[0])
+                if mat:
+                    prefix = mat.group(1)
+
+                    if not re.search(r"^%s" % prefix, c2[0]):
+                        return -1
+
+            c1[0] = re.sub(r"^%s" % prefix, "", c1[0])
+            c2[0] = re.sub(r"^%s" % prefix, "", c2[0])
+
+        n1 = len(c1); n2 = len(c2)
+        if n1 < n2:
+            n = n1
+        else:
+            n = n2
+
+        for i in range(n):
+            different = cmp(c1[i], c2[i])
+            if different:
+                return different
+
+        # So far, the two versions are identical.  The longer version should sort later
+        return cmp(n1, n2)
+
+    def version_match(self, vname, expr):
+        """Return vname if it matches the logical expression expr"""
+
+        expr = filter(lambda x: x != "", re.split(r"\s*(%s|\|\|)\s*" % Eups._relop_re, expr))
+
+        oring = True;                       # We are ||ing primitives
+        i = -1
+        while i < len(expr) - 1:
+            i += 1
+
+            if re.search(Eups._relop_re, expr[i]):
+                op = expr[i]; i += 1
+                v = expr[i]
+            elif re.search(r"^[-+.\w]+$", expr[i]):
+                op = "=="
+                v = expr[i]
+            elif expr == "||" or expr == "or":
+                oring = True;                     # fine; that is what we expected to see
+                continue
+            else:
+                print >> sys.stderr, "Unexpected operator %s in \"%s\"" % (expr[i], expr)
+                break
+
+            if oring:                # Fine;  we have a primitive to OR in
+                if self.version_match_prim(op, vname, v):
+                    return vname
+
+                oring = False
+            else:
+                print >> sys.stderr, "Expected logical operator || in \"%s\" at %s" % (expr, v)
+
+        return None
+
+    def version_match_prim(self, op, v1, v2):
+        """
+    Compare two version strings, using the specified operator (< <= == >= >), returning
+    true if the condition is satisfied
+
+    Uses version_cmp to define sort order """
+
+        if op == "<":
+            return self.version_cmp(v1, v2) <  0
+        elif (op == "<="):
+            return self.version_cmp(v1, v2) <= 0
+        elif (op == "=="):
+            return self.version_cmp(v1, v2) == 0
+        elif (op == ">"):
+            return self.version_cmp(v1, v2) >  0
+        elif (op == ">="):
+            return self.version_cmp(v1, v2) >= 0
+        else:
+            print >> sys.stderr, "Unknown operator %s used with %s, %s--- complain to RHL", (op, v1, v2)
     #
     # Here is the externally visible API
     #
@@ -988,23 +1296,27 @@ class Eups(object):
     
         self.writeDB(product.db)
 
-    def setup(self, productName, version=None, fwd=True, indent=""):
+    def setup(self, productName, version=None, fwd=True, nestedLevel=0):
         """The workhorse for setup.  Return (success?, version, actions) where actions is a list of shell
         commands that we need to issue"""
-
         #
         # Look for product directory
         #
         if isinstance(productName, Product): # it's already a full Product
+            assert nestedLevel == 0
             product = productName
         else:
-            try:
-                product = self.getProduct(productName, version)
-            except RuntimeError, e:
-                if self.verbose:
-                    print >> sys.stderr, e
+            if self.root and nestedLevel == 0:
+                product = Product(self, productName, noInit=True)
+                product.initFromDirectory(self.root)
+            else:
+                try:
+                    product = self.getProduct(productName, version)
+                except RuntimeError, e:
+                    if self.verbose:
+                        print >> sys.stderr, e
 
-                return False, version
+                    return False, version
         #
         # We have all that we need to know about the product to proceed
         #
@@ -1018,11 +1330,16 @@ class Eups(object):
         #
         # Ready to go
         #
-        if self.verbose:
+        if fwd and self.verbose:
             # self._msgs["setup"] is used to suppress multiple messages about setting up the same product
-            if indent == "":
+            if nestedLevel == 0:
                 self._msgs["setup"] = {}
+            
             setup_msgs = self._msgs["setup"]
+
+            indent = "| " * (nestedLevel/2)
+            if nestedLevel%2 == 1:
+                indent += "|"
 
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
             if self.verbose > 1 or not setup_msgs.has_key(key):
@@ -1035,21 +1352,15 @@ class Eups(object):
 
             self.setEnv(product.envarDirName(), product.dir)
             self.setEnv(product.envarSetupName(),
-                        "%s %s -f %s -Z %s" % (product.name, product.version,
-                                               product.eups.flavor, product.db))
+                        "%s %s -f %s -Z %s" % (product.name, product.version, product.eups.flavor, product.db))
         else:
             self.unsetEnv(product.envarDirName())
             self.unsetEnv(product.envarSetupName())
-
-        if len(indent)%2 == 0:
-            indent += "|"
-        else:
-            indent += " "
         #
         # Process table file
         #
         for a in actions:
-            a.execute(self, indent, fwd)
+            a.execute(self, nestedLevel + 1, fwd)
 
         return True, product.version
     
@@ -1112,11 +1423,96 @@ def setup(eups, productName, version=None, fwd=True):
 
         tfd, tmpfile = tempfile.mkstemp("", "eups")
         tfd = os.fdopen(tfd, "w")
+        #
+        # Set new variables
+        #
+        for key in eups.environ.keys():
+            val = eups.environ[key]
+            try:
+                if val == eups.oldEnviron[key]:
+                    continue
+            except KeyError:
+                pass
 
-        for k in eups.env.keys():
-            if not eups.oldenv.has_key(k) or eups.oldenv[k] != eups.env[k]:
-                tfd.write(eups.setEnvVariable(k) + "\n")
+            if not re.search(r"^['\"].*['\"]$", val) and \
+                   re.search(r"[\s<>|&;]", val):   # quote characters that the shell cares about
+                val = "'%s'" % val
 
+            if eups.shell == "sh":
+                cmd = "export %s=%s" % (key, val)
+            elif eups.shell == "csh":
+                cmd = "setenv %s %s" % (key, val)
+
+            if eups.noaction:
+                if eups.verbose < 2 and re.search(r"SETUP_", key):
+                    continue            # an implementation detail
+
+                cmd = "echo \"%s\"" % cmd
+
+            tfd.write(cmd + "\n")
+        #
+        # unset ones that have disappeared
+        #
+        for key in eups.oldEnviron.keys():
+            if re.search(r"^EUPS_(DIR|PATH)$", key): # the world will break if we delete these
+                continue        
+
+            if eups.environ.has_key(key):
+                continue
+
+            if eups.shell == "sh":
+                cmd = "unset %s" % (key)
+            elif eups.shell == "csh":
+                cmd = "unsetenv %s" % (key)
+
+            if eups.noaction:
+                if eups.verbose < 2 and re.search(r"SETUP_", key):
+                    continue            # an implementation detail
+
+                cmd = "echo \"%s\"" % cmd
+
+            tfd.write(cmd + "\n")
+        #
+        # Now handle aliases
+        #
+        for key in eups.aliases.keys():
+            value = eups.aliases[key]
+
+            try:
+                if value == eups.oldAliases[key]:
+                    continue
+            except KeyError:
+                pass
+
+            if eups.shell == "sh":
+                cmd = "function %s { %s ; }; export -f %s" % (key, value, key)
+            elif eups.shell == "csh":
+                value = re.sub(r"\$@", r"\!*", value)
+                cmd = "alias %s \'%s\'" % (key, value)
+
+            if eups.noaction:
+                cmd = "echo \"%s\"" % re.sub(r"`", r"\`", cmd)
+
+            tfd.write(cmd + "\n")
+        #
+        # and unset ones that used to be present, but are now gone
+        #
+        for key in eups.oldAliases.keys():
+            if eups.aliases.has_key(key):
+                continue
+
+            if eups.shell == "sh":
+                cmd = "unset %s" % (key)
+            elif eups.shell == "csh":
+                cmd = "unalias %s" (key)
+
+            if eups.noaction:
+                cmd = "echo \"%s\"" % cmd
+
+            tfd.write(cmd + "\n")
+        #
+        # Make the file cleanup after itself
+        #    
         if eups.verbose > 3:
             print >> sys.stderr, "Not deleting %s" % tmpfile
         else:
@@ -1132,4 +1528,4 @@ def setup(eups, productName, version=None, fwd=True):
 def unsetup(eups, productName, version=None):
     """ """
 
-    return setup(eups, productName, version, False)
+    return setup(eups, productName, version, fwd=False)

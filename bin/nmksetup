@@ -2,21 +2,19 @@
 #
 import os, sys
 
-syntax = "Usage: mksetup EUPS_DIR EUPS_PATH";
-
 sys.argv.pop(0)                         # remove script name
 try:
     eupsdir = sys.argv[0]
     prefix = sys.argv[1]
 except IndexError:
-    print >> sys.stderr, "Usage"
+    print >> sys.stderr, "Usage: mksetup EUPS_DIR EUPS_PATH"
+
     sys.exit(1)
 
 ups_db = os.path.join(prefix, "ups_db")
 
 bindir = os.path.join("$EUPS_DIR","bin")
 setup = os.path.join('$EUPS_DIR',"bin","neups_setup");
-unsetup = os.path.join('$EUPS_DIR',"bin","neups_unsetup");
 
 # Keep only one copy of each directory in sys.argv[1]
 unique_path="""
@@ -62,10 +60,10 @@ else
 endif
 
 alias nsetup 'eval `%(setup)s \\!*`'
-alias nunsetup 'eval `%(unsetup)s \\!*`'
+alias nunsetup 'eval `%(setup)s --unsetup \\!*`'
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup,  "unsetup" : unsetup, "unique_path" : unique_path}
+       "setup" : setup,  "unique_path" : unique_path}
 
 del fd
 
@@ -98,10 +96,10 @@ else
 fi
 
 function nsetup   { eval `%(setup)s $@`; };   export -f setup
-function nunsetup { eval `%(unsetup)s $@`; }; export -f unsetup
+function nunsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup,  "unsetup" : unsetup, "unique_path" : unique_path}
+       "setup" : setup,  "unique_path" : unique_path}
 
 del fd
 

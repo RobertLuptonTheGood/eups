@@ -13,7 +13,7 @@ options = {
     "-D" : (False, "--only-dependencies", "Only setup dependencies, not this product"),
     "-h" : (False, "--help", "Print this help message"),
     "-i" : (False, "--ignore-versions", "Ignore any explicit versions in table files"),
-    "-j" : (False, "--just", "Just setup product, no dependencies"),
+    "-j" : (False, "--just", "Just setup product, no dependencies (equivalent to --max-depth 0)"),
     "-l" : (False, "--list", "List available versions; not supported --- use \"eups list\""),
     "-k" : (False, "--keep", "Keep any products with local setups (i.e. not in EUPS_PATH)"),
     "-M" : (True,  "", "Setup the dependent products in this table file (ignored)"),
@@ -21,8 +21,9 @@ options = {
     "-N" : (False, "--noCheck", "Don't check whether recursively removed products are needed"),
     "-q" : (False, "--quiet", "Be extra quiet"),
     "-r" : (True,  "--root", "Location of product being setup"),
-    "-S" : (False, "--max-depth", "Only show this many levels of dependencies (use with -v)"),
+    "-S" : (True,  "--max-depth", "Only show this many levels of dependencies (use with -v)"),
     "-t" : (True,  "--type", "Specify type of setup (permitted values: build)"),
+    "-u" : (False, "--unsetup", "Unsetup the specified product"),
     "-V" : (False, "--version", "Print eups version number and exit"),
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
@@ -57,23 +58,13 @@ force = opts.options.get('-F', False)
 ignore_versions = opts.options.get("-i", False)
 just = opts.options.get("-j", False)
 keep = opts.options.get("-k", False)
-max_depth = opts.options.get("-S")
+max_depth = int(opts.options.get("-S", -1))
 noaction = opts.options.get('-n')
 only_dependencies = opts.options.get('-D', False)
 path = opts.options.get('-Z')
 root = opts.options.get('-r')
+unsetup = opts.options.get('-u', False)
 verbose = opts.options.get('-v', 0)
-
-if ignore_versions:
-    raise RuntimeError, "Option --ignore-versions is not (yet) supported"
-if just:
-    raise RuntimeError, "Option --just is not (yet) supported"
-if keep:
-    raise RuntimeError, "Option --keep is not (yet) supported"
-if max_depth:
-    raise RuntimeError, "Option --max-depth is not (yet) supported"
-if only_dependencies:
-    raise RuntimeError, "Option --only-dependencies is not (yet) supported"
 
 product = None
 if opts.argv:
@@ -110,13 +101,19 @@ if not product:
     print >> sys.stderr, "Please specify a product"
     opts.usage()
     sys.exit(1)
+
+if max_depth > 0 and just:
+    print >> sys.stderr, "You may not specify both --just and --max_depth"    
+    sys.exit(1)
 #
 # Do the work
 #
 try:
     eupsCtrl = neups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
-                          verbose=verbose, noaction=noaction)
-    tmpfile = neups.setup(eupsCtrl, product, version)
+                          verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
+                          max_depth=max_depth, only_dependencies=only_dependencies)
+                          
+    tmpfile = neups.setup(eupsCtrl, product, version, fwd=not unsetup)
 except RuntimeError, e:
     print >> sys.stderr, e
     sys.exit(1)
