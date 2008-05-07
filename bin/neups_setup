@@ -10,7 +10,6 @@ import eupsGetopt
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
-    "-D" : (False, "--only-dependencies", "Only setup dependencies, not this product"),
     "-h" : (False, "--help", "Print this help message"),
     "-i" : (False, "--ignore-versions", "Ignore any explicit versions in table files"),
     "-j" : (False, "--just", "Just setup product, no dependencies (equivalent to --max-depth 0)"),
@@ -60,7 +59,6 @@ just = opts.options.get("-j", False)
 keep = opts.options.get("-k", False)
 max_depth = int(opts.options.get("-S", -1))
 noaction = opts.options.get('-n')
-only_dependencies = opts.options.get('-D', False)
 path = opts.options.get('-Z')
 root = opts.options.get('-r')
 unsetup = opts.options.get('-u', False)
@@ -111,7 +109,7 @@ if max_depth > 0 and just:
 try:
     eupsCtrl = neups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
                           verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
-                          max_depth=max_depth, only_dependencies=only_dependencies)
+                          max_depth=max_depth)
                           
     tmpfile = neups.setup(eupsCtrl, product, version, fwd=not unsetup)
 except RuntimeError, e:

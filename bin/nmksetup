@@ -88,7 +88,7 @@ export SETUP_EUPS="eups"
 unset PROD_DIR_PREFIX
 unset PRODUCTS
 
-export PATH="$PATH:$bindir"
+export PATH="$PATH:%(bindir)s"
 if [ X"$PYTHONPATH" != X"" ]; then
     export PYTHONPATH="$PYTHONPATH:%(bindir)s"
 else
