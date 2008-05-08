@@ -5,6 +5,10 @@ import pdb
 import eupsLock
 import eupsParser
 
+def warn(*args):
+    """Print args to stderr; useful while debugging as we source the stdout when setting up"""
+    print >> sys.stderr, " ".join(args)
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Current(object):
@@ -419,7 +423,10 @@ but no other interpretation is applied
 where the actions are symbols such as Action.envAppend, e.g.
    ('envAppend', ['PYTHONPATH', '${PRODUCT_DIR}/python'], True)
 """
-        fd = file(tableFile)
+        try:
+            fd = file(tableFile)
+        except IOError, e:
+            raise RuntimeError, e
 
         contents = fd.readlines()
         contents = self._rewrite(contents)
@@ -688,6 +695,35 @@ class Product(object):
     def envarSetupName(self):
         """Return the name of the product's how-I-was-setup environment variable"""
         return "SETUP_" + self.name.upper()
+
+    def setupVersion(self, eups):
+        """Return the name, version, flavor and product_base for an already-setup product"""
+
+        productName, version, flavor, product_base = None, None, None, None
+
+        try:
+            args = eups.environ[self.envarSetupName()].split()
+        except KeyError:
+            return version, flavor, product_base
+
+        productName = args.pop(0)
+        assert productName == self.name
+        
+        if not args: # you can get here if you setup eups by sourcing setups.c?sh
+            return version, flavor, product_base
+
+        if len(args) > 1 and args[0] != "-f":
+            version = args.pop(0)
+            
+        if len(args) > 1 and args[0] == "-f":
+            args.pop(0);  flavor = args.pop(0)
+
+        if len(args) > 1 and args[0] == "-Z":
+            args.pop(0);  product_base = args.pop(0)
+
+        assert not args
+
+        return version, flavor, product_base
 
     def isCurrent(self):
         """Is the Product current?"""
@@ -1129,16 +1165,11 @@ class Eups(object):
 
     def isSetup(self, product, version=None, product_base=None):
         """Is specified Product already setup?"""
+
         if not self.environ.has_key(product.envarSetupName()):
             return False
         
-        setup_args = self.environ[product.envarSetupName()].split()
-
-        if product.name == "eups" and len(setup_args) == 1: # you can get here if you setup eups by sourcing setups.c?sh
-            return True
-        
-        del setup_args[2]; del setup_args[3] # remove -f and -Z
-        productName, sversion, sflavor, sproduct_base = setup_args
+        sversion, sflavor, sproduct_base = product.setupVersion(self)
 
         if version:
             return version == sversion
@@ -1153,16 +1184,12 @@ class Eups(object):
         if not self.isSetup(product):
             return
     
-        setup_args = self.environ[product.envarSetupName()].split()
+        version, flavor, product_base = product.setupVersion(self)
 
         oldProduct = Product(self, product.name, noInit=True)
-        if product.name == "eups" and len(setup_args) == 1: # you can get here if you setup eups by sourcing setups.c?sh
+        if product.name == "eups" and not version: # you can get here if you setup eups by sourcing setups.c?sh
             oldProduct.initFromDirectory(self.environ[product.envarDirName()])
         else:
-            del setup_args[2]; del setup_args[3] # remove -f and -Z
-            productName, version, flavor, product_base = setup_args
-            assert productName == oldProduct.name
-
             oldProduct.init(version, flavor, product_base)
 
         self.setup(oldProduct, fwd=False)  # do the actual unsetup
