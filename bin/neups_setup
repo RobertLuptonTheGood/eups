@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import glob, os, re, sys
-import neups
+import neups as eups
 import eupsGetopt
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -15,7 +15,6 @@ options = {
     "-j" : (False, "--just", "Just setup product, no dependencies (equivalent to --max-depth 0)"),
     "-l" : (False, "--list", "List available versions; not supported --- use \"eups list\""),
     "-k" : (False, "--keep", "Keep any products with local setups (i.e. not in EUPS_PATH)"),
-    "-M" : (True,  "", "Setup the dependent products in this table file (ignored)"),
     "-n" : (False, "--noaction", "Don\'t actually do anything"),
     "-N" : (False, "--noCheck", "Don't check whether recursively removed products are needed"),
     "-q" : (False, "--quiet", "Be extra quiet"),
@@ -37,22 +36,19 @@ except RuntimeError, param:
     sys.exit(1)
 
 if opts.options.get('-h'):
-    print >> sys.stderr, "Remove an eups product from the system"
+    print >> sys.stderr, "Setup an eups product"
     opts.usage()
     sys.exit(0)
 
 if opts.options.get('-l'):
     print >> sys.stderr, "setup --list is no longer supported; use \"eups list\""
     sys.exit(1)
-if opts.options.get('-M'):
-    print >> sys.stderr, "setup -M is no longer supported; complain to RHL"
-    sys.exit(1)
 if opts.options.get('-V'):
-    print >> sys.stderr, "Version: %s" % "XXX"
+    print >> sys.stderr, "Version: %s" % eups.version()
     sys.exit(0)    
 
 dbz = opts.options.get('-z')
-flavor = opts.options.get('-f', neups.flavor())
+flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
 ignore_versions = opts.options.get("-i", False)
 just = opts.options.get("-j", False)
@@ -107,22 +103,22 @@ if max_depth > 0 and just:
 # Do the work
 #
 try:
-    eupsCtrl = neups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
+    Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
                           verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
                           max_depth=max_depth)
                           
-    tmpfile = neups.setup(eupsCtrl, product, version, fwd=not unsetup)
+    tmpfile = eups.setup(Eups, product, version, fwd=not unsetup)
 except RuntimeError, e:
     print >> sys.stderr, e
     sys.exit(1)
 
 if tmpfile:
-    if eupsCtrl.shell == "sh":
+    if Eups.shell == "sh":
         print ". %s" % tmpfile
     else:
         print "source %s" % tmpfile
 else:
-    if eupsCtrl.shell == "sh":
+    if Eups.shell == "sh":
         print ":"
     else:
         print "#"

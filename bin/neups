@@ -1,0 +1,226 @@
+#!/usr/bin/env python
+#
+# The main eups programme
+#
+import os, re, sys
+import neups as eups
+import eupsGetopt
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
+options = {
+    "-F" : (False, "--force", "Force requested behaviour"),
+    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
+    "-h" : (False, "--help", "Print this help message"),
+    "-n" : (False, "--noaction", "Don\'t actually do anything"),
+    "-V" : (False, "--version", "Print eups version number and exit"),
+    "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
+    "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
+    "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    }
+aliases = {}
+
+#
+# Start by looking for our command
+#
+try:
+    cmd = filter(lambda a: not re.search(r"^-", a), sys.argv[1:])[0]
+except IndexError:
+    cmd = None
+#
+# Choose arguments based on cmd
+#
+if cmd == "admin":
+    pass
+elif cmd == "list":
+    options["-c"] = (False,  "--current", "Only show current products")
+    options["-d"] = (False,  "--directory", "Print product directory (useful with -s)")
+    options["-m"] = (False,  "--table", "Print name of table file")
+    options["-s"] = (False,  "--setup", "Only show setup products")
+#
+# Parse arguments
+#
+try:
+    opts = eupsGetopt.Getopt(options, sys.argv, aliases,
+"""	eups [--help|--version] command [options]
+Supported commands are:
+	admin		Administer the eups system
+	declare		Declare a product
+	distrib		Install a product from a remote distribution,
+			or create such a distribution 
+	expandbuild	Expand variables in a build file
+	expandtable	Insert explicit version tags into a table file
+	flags		Show the value of \$EUPS_FLAGS
+	flavor		Return the current flavor
+	list            List some or all products
+        path [n]        Print the current eups path, or an element thereof
+	pkg-config	Return the options associated with product
+	remove          Remove an eups product from the system
+	undeclare	Undeclare a product
+        uses            List everything which depends on the specified product and version
+Use
+	eups --help cmd
+for help with command "cmd"
+""")
+
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+
+if opts.argv:                           # we already found cmd
+    opts.argv.pop(0)
+
+if opts.options.get('-h') or not cmd:
+    opts.usage()
+    sys.exit(0)
+if opts.options.get('-V'):
+    print >> sys.stderr, "Version: %s" % eups.version()
+    sys.exit(0)    
+
+dbz = opts.options.get('-z')
+flavor = opts.options.get('-f', eups.flavor())
+force = opts.options.get('-F', False)
+noaction = opts.options.get('-n')
+path = opts.options.get('-Z')
+verbose = opts.options.get('-v')
+#
+# Do the work
+#
+if not cmd:
+    usage()
+    sys.exit(1)
+#
+# Do the work
+#
+def main():
+    readCache = True
+    if cmd == "admin":
+        readCache = False
+        
+    try:
+        Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, readCache=readCache, force=force,
+                         verbose=verbose, noaction=noaction)
+    except RuntimeError, e:
+        print >> sys.stderr, e
+        sys.exit(1)
+
+    if cmd == "admin":
+        if opts.argv:
+            subcmd = opts.argv.pop(0)
+        else:
+            subcmd = None
+
+        eupsAdmin(Eups, subcmd)
+    elif cmd in ["declare", "distrib", "expandbuild", "expandtable", "flavor", "pkg-config", "remove", "undeclare", "uses"]:
+        print "$EUPS_DIR/bin/eups_%s %s" % (cmd, " ".join(sys.argv[1:]))
+    elif cmd == "flags":
+        try:
+            print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
+        except KeyError:
+            print "You have no EUPS_FLAGS set"
+    elif cmd == "list":
+        current = opts.options.get('-c', False)
+        directory = opts.options.get('-d', False)
+        tablefile = opts.options.get('-m', False)
+        setup = opts.options.get('-s', False)
+
+        productName, productVersion = None, None
+        if opts.argv:
+            productName = opts.argv.pop(0)
+        if opts.argv:
+            productVersion = opts.argv.pop(0)
+
+        listProducts(Eups, productName, productVersion,
+                     current=current, setup=setup, tablefile=tablefile, directory=directory)
+    elif cmd == "path":
+        try:
+            if opts.argv:
+                a = opts.argv.pop()
+                n = int(a)
+                if n < 0:
+                    n += len(Eups.path)
+
+                print Eups.path[n]
+                return
+        except IndexError:
+            print >> sys.stderr, "Element %d of EUPS_PATH doesn't exist" % (n)
+            sys.exit(1)
+        except ValueError:
+            print >> sys.stderr, "Unrecognised argument to eups %s: %s" % (cmd, a)
+            sys.exit(1)
+        
+        for p in Eups.path:
+            print "\t%s" % p
+
+    elif cmd == "setup" or cmd == "unsetup":
+        print "Please use the command \"%s\" which modifies your environment" % " ".join([cmd] + opts + argv)
+    else:
+        print "Unknown eups command \"%s\"" % cmd
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def eupsAdmin(Eups, subcmd):
+    if not subcmd:
+        print >> sys.stderr, "Usage: eups [opts] admin [buildCache | clearCache | clearLocks]"
+        sys.exit(1)
+
+    if subcmd == "buildCache":
+        Eups.buildCache()
+    elif subcmd == "clearCache":
+        Eups.clearCache()
+    elif subcmd == "clearLocks":
+        Eups.clearLocks()
+    else:
+        print >> sys.stderr, "Unexpected sub-command: %s" % subcmd
+        print >> sys.stderr, "Usage: eups [opts] admin [buildCache | clearCache | clearLocks]"
+        sys.exit(1)
+        
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def listProducts(Eups, productName=None, productVersion=None,
+                 current=False, setup=False, tablefile=False, directory=False):
+
+    productList = Eups.listProducts(productName, productVersion, current, setup, tablefile, directory)
+    
+    for name, version, db, productDir, isCurrent, isSetup in productList:
+        info = ""
+
+        if directory or tablefile:
+            if Eups.verbose:
+                info += "%-10s" % (version)
+
+            if directory:
+                info += productDir
+            if tablefile:
+                if info:
+                    info += "\t"
+                    
+                table = Eups.Product(name, version, productPathDirs=db).table
+                if table:
+                    info += table.file
+                else:
+                    info += "none"
+        else:
+            if productName:
+                info += "   "
+            else:
+                info += "%-21s " % (name)
+            info += "%-10s" % (version)
+            if Eups.verbose:
+                info += "%-20s %-55s" % (db, productDir)
+
+            extra = []
+            if isCurrent:
+                extra += ["Current"]
+            if isSetup:
+                extra += ["Setup"]
+            if extra:
+                info += "\t" + " ".join(extra)
+
+        print info
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+main()

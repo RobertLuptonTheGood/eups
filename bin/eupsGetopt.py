@@ -89,6 +89,8 @@ msg is the help message associated with the command
                         opts[a] += 1
                     else:
                         opts[a] = 1
+            elif re.search(r"-\d+$", a): # a negative integer
+                nargv += [a]
             else:
                 raise RuntimeError, ("Unrecognised option %s" % a)
         #
