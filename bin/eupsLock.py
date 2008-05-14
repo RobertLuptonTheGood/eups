@@ -13,6 +13,13 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False):
             
             # we created the lockfile, so we're the owner
             break
+        except KeyboardInterrupt:
+            try:
+                f.close()
+            except Exception:
+                pass
+            
+            raise
         except OSError, e:
             if e.errno != errno.EEXIST:
                 # should not occur

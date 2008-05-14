@@ -307,14 +307,14 @@ class Action(object):
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
 
-    def execute(self, eups, nestedLevel, fwd=True):
+    def execute(self, eups, recursionDepth, fwd=True):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
-            if nestedLevel == eups.max_depth + 1:
+            if recursionDepth == eups.max_depth + 1:
                 return
 
-            self.execute_setupRequired(eups, nestedLevel, fwd)
+            self.execute_setupRequired(eups, recursionDepth, fwd)
         elif self.cmd == Action.envPrepend:
             self.execute_envPrepend(eups, fwd)
         elif self.cmd == Action.envSet:
@@ -328,7 +328,7 @@ class Action(object):
     #
     # Here are the real execute routines
     #
-    def execute_setupRequired(self, eups, nestedLevel, fwd=True):
+    def execute_setupRequired(self, eups, recursionDepth, fwd=True):
         """Execute setupRequired"""
 
         optional = self.extra
@@ -348,7 +348,7 @@ class Action(object):
         else:
             vers = None
 
-        productOK, vers = eups.setup(productName, vers, fwd, nestedLevel)
+        productOK, vers = eups.setup(productName, vers, fwd, recursionDepth)
         if not productOK and not optional:
             raise RuntimeError, ("Failed to setup required product %s %s" % (productName, vers))
 
@@ -365,7 +365,7 @@ class Action(object):
         else:
             delim = ":"
 
-        opath = eups.environ.get(envVar, "") # old value of envVar (generally a path of some sort, hence the name)
+        opath = os.environ.get(envVar, "") # old value of envVar (generally a path of some sort, hence the name)
 
         prepend_delim = re.search(r"^%s" % delim, opath) # should we prepend an extra :?
         append_delim = re.search(r"%s$" % delim, opath) # should we append an extra :?
@@ -375,8 +375,8 @@ class Action(object):
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}
                 key = re.search(r"^$\?{([^}]*)}", value).group(0)
-                if eups.environ.has_key(key):
-                    value = eups.environ[key]
+                if os.environ.has_key(key):
+                    value = os.environ[key]
                 else:
                   if eups.verbose > 0:
                       print >> sys.stderr, "$%s is not defined; not setting %s" % (key, value)
@@ -440,8 +440,8 @@ class Action(object):
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}
                 vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
-                if eups.environ.has_key(vkey):
-                    value = eups.environ[vkey]
+                if os.environ.has_key(vkey):
+                    value = os.environ[vkey]
                 else:
                   if eups.verbose > 0:
                       print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
@@ -698,8 +698,10 @@ but no other interpretation is applied
                 if len(args) < 2 or len(args) > 3:
                     raise RuntimeError, ("%s expected 2 (or 3) arguments, saw %s" % (cmd, " ".join(args)))
             elif cmd == Action.envSet:
-                if len(args) != 2:
+                if len(args) < 2:
                     raise RuntimeError, ("%s expected 2 arguments, saw %s" % (cmd, " ".join(args)))
+                else:
+                    args = [args[0], " ".join(args[1:])]
             elif cmd == Action.envRemove or cmd == Action.envUnset:
                 print >> sys.stderr, "Ignoring unsupported entry %s at %s:%d" % (line, self.file, lineNo)
                 continue
@@ -1003,7 +1005,7 @@ class Product(object):
                 self.table = Table(tablefile).expandEupsVariables(self)
 
     def init(self, version, flavor, eupsPathDir):
-        """Initialize a product given full information about a product"""
+        """Initialize a Product given full information about a product"""
 
         mat = re.search(r"^LOCAL:(.*)", version)
         if mat:
@@ -1013,6 +1015,14 @@ class Product(object):
             self.version, self.db, self.dir, tablefile = \
                           self.eups.findFullySpecifiedVersion(self.name, version, flavor, eupsPathDir)
             self.table = Table(tablefile).expandEupsVariables(self)
+
+    def initFromSetupVersion(self):
+        """Initialize a Product that's already setup"""
+
+        versionName, flavor, eupsPathDir = self.getSetupVersion()
+        self.init(versionName, flavor, eupsPathDir)
+
+        return self
 
     def tableFileName(self):
         """Return a fully qualified tablefile name"""
@@ -1071,7 +1081,7 @@ class Product(object):
         productName, version, flavor, eupsPathDir = None, None, None, None
 
         try:
-            args = eups.environ[self.envarSetupName()].split()
+            args = os.environ[self.envarSetupName()].split()
         except KeyError:
             return version, flavor, eupsPathDir
 
@@ -1173,7 +1183,6 @@ class Eups(object):
             else:
                 raise RuntimeError, ("No EUPS_PATH is defined")
 
-        self.environ = os.environ.copy() # the environment variables that we want when we're done
         self.oldEnviron = os.environ.copy() # the initial version of the environment
 
         self.aliases = {}               # aliases that we should set
@@ -1200,25 +1209,13 @@ class Eups(object):
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
         #
-        # Check for unsupported features
-        #
-        if self.keep:
-            raise RuntimeError, "Option keep is not (yet) supported"
-        #
         # Find locally-setup products in the environment
         #
         self.localVersions = {}
 
-        for k in self.environ.keys():
-            mat = re.search(r"^SETUP_(.*)", k)
-            if mat:
-                name = mat.group(1)
-
-                product = self.Product(name, noInit=True)
-                version, flavor, db = product.getSetupVersion()
-
-                if version and re.search(r"^LOCAL:", version):
-                    self.localVersions[product.name] = self.environ[product.envarDirName()]
+        for product in self.getSetupProducts():
+            if product.version and re.search(r"^LOCAL:", product.version):
+                self.localVersions[product.name] = os.environ[product.envarDirName()]
         #
         # Read the cached version information
         #
@@ -1407,19 +1404,34 @@ class Eups(object):
         
         return os.path.join(eupsPathDir, "ups_db")
     
+    def getSetupProducts(self):
+        """Return a list of all Products that are currently setup"""
+
+        re_setup = re.compile(r"^SETUP_(\w+)$")
+
+        productList = []
+        for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
+            product = Product(self, re.search(re_setup, key).group(1), noInit=True).initFromSetupVersion()
+
+            productList += [product]
+
+        return productList
+        
     def setEnv(self, key, val, interpolateEnv=False):
         """Set an environmental variable"""
             
         if interpolateEnv:              # replace ${ENV} by its value if known
-            val = re.sub(r"(\${([^}]*)})", lambda x : self.environ.get(x.group(2), x.group(1)), val)
+            val = re.sub(r"(\${([^}]*)})", lambda x : os.environ.get(x.group(2), x.group(1)), val)
 
-        self.environ[key] = val
+        if val == None:
+            val = ""
+        os.environ[key] = val
 
     def unsetEnv(self, key):
         """Unset an environmental variable"""
 
-        if self.environ.has_key(key):
-            del self.environ[key]
+        if os.environ.has_key(key):
+            del os.environ[key]
 
     def setAlias(self, key, val):
         """Set an alias.  The value is in sh syntax --- we'll mangle it for csh later"""
@@ -1667,9 +1679,16 @@ class Eups(object):
                 self.buildCache(pb)
             return
 
+        if self.verbose:
+            print >> sys.stderr, "Building cache for %s" % eupsPathDir
+
         re_version = re.compile(r"^(.*).version$")
         for dirpath, dirnames, filenames in os.walk(self.getUpsDB(eupsPathDir)):
             productName = os.path.basename(dirpath)
+
+            if self.verbose > 1:
+                print >> sys.stderr, "   %s" % productName
+
             for file in filenames:
                 mat = re.search(re_version, file)
                 if mat:
@@ -1694,7 +1713,7 @@ class Eups(object):
         else:
             versionName = product.version
 
-        if not self.environ.has_key(product.envarSetupName()):
+        if not os.environ.has_key(product.envarSetupName()):
             return False
         
         sversion, sflavor, seupsPathDir = product.getSetupVersion()
@@ -1719,7 +1738,7 @@ class Eups(object):
 
         oldProduct = self.Product(product.name, noInit=True)
         if product.name == "eups" and not version: # you can get here if you setup eups by sourcing setups.c?sh
-            oldProduct.initFromDirectory(self.environ[product.envarDirName()])
+            oldProduct.initFromDirectory(os.environ[product.envarDirName()])
         else:
             oldProduct.init(version, flavor, eupsPathDir)
 
@@ -1908,17 +1927,17 @@ class Eups(object):
     #
     # Here is the externally visible API
     #
-    def setup(self, productName, version=None, fwd=True, nestedLevel=0):
+    def setup(self, productName, version=None, fwd=True, recursionDepth=0):
         """The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
         eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
         #
         # Look for product directory
         #
         if isinstance(productName, Product): # it's already a full Product
-            assert nestedLevel == 0
+            assert recursionDepth <= 0
             product = productName
         else:
-            if self.root and nestedLevel == 0:
+            if self.root and recursionDepth == 0:
                 product = self.Product(productName, noInit=True)
                 product.initFromDirectory(self.root)
             else:
@@ -1932,6 +1951,14 @@ class Eups(object):
         #
         # We have all that we need to know about the product to proceed
         #
+        # If we're the toplevel, get a list of all products that are already setup
+        #
+        if recursionDepth == 0:
+            if fwd:
+                self.alreadySetupProducts = {}
+                for p in self.getSetupProducts():
+                    self.alreadySetupProducts[p.name] = p
+
         table = product.table
             
         try:
@@ -1942,15 +1969,15 @@ class Eups(object):
         #
         # Ready to go
         #
-        if fwd and self.verbose:
-            # self._msgs["setup"] is used to suppress multiple messages about setting up the same product
-            if nestedLevel == 0:
-                self._msgs["setup"] = {}
-            
+        # self._msgs["setup"] is used to suppress multiple messages about setting up the same product
+        if recursionDepth == 0:
+            self._msgs["setup"] = {}
+
+        if fwd and self.verbose and recursionDepth >= 0:
             setup_msgs = self._msgs["setup"]
 
-            indent = "| " * (nestedLevel/2)
-            if nestedLevel%2 == 1:
+            indent = "| " * (recursionDepth/2)
+            if recursionDepth%2 == 1:
                 indent += "|"
 
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
@@ -1966,7 +1993,7 @@ class Eups(object):
             sversion, sflavor, seupsPathDir = product.getSetupVersion()
             if version and sversion:
                 if version == sversion: # already setup
-                    if nestedLevel == 0: # top level should be resetup if that's what they asked for
+                    if recursionDepth <= 0: # top level should be resetup if that's what they asked for
                         pass
                     else:
                         if self.verbose > 1:
@@ -1975,10 +2002,21 @@ class Eups(object):
                             
                         return True, version
                 else:
-                    if nestedLevel > 0: # top level shouldn't whine
+                    if recursionDepth > 0: # top level shouldn't whine
                         print >> sys.stderr, "You setup %s %s, and are now setting up %s" % \
                               (product.name, sversion, version)
-                
+
+            if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
+                keptProduct = self.alreadySetupProducts[product.name]
+                if True or not self.isSetup(keptProduct):
+                    self.setup(keptProduct, recursionDepth=-9999)
+
+                if self.verbose:
+                    print >> sys.stderr, "            %s %s is already setup; keeping" % \
+                          (len(indent)*" " + product.name, product.version)
+
+                return True, version
+
             self.unsetupSetupProduct(product)
 
             self.setEnv(product.envarDirName(), product.dir)
@@ -1994,7 +2032,12 @@ class Eups(object):
         # Process table file
         #
         for a in actions:
-            a.execute(self, nestedLevel + 1, fwd)
+            a.execute(self, recursionDepth + 1, fwd)
+
+        if recursionDepth == 0:            # we can cleanup
+            if fwd:
+                del self.alreadySetupProducts
+                del self._msgs["setup"]
 
         return True, product.version
 
@@ -2056,7 +2099,6 @@ class Eups(object):
                     os.makedirs(tdir)
                 ofd = open(os.path.join(tdir, tablefile), "w")
                 for line in tfd:
-                    debug(line, eol=0)
                     print >> ofd, line,
                 del ofd
         else:
@@ -2363,8 +2405,8 @@ def setup(Eups, productName, version=None, fwd=True):
         #
         # Set new variables
         #
-        for key in Eups.environ.keys():
-            val = Eups.environ[key]
+        for key in os.environ.keys():
+            val = os.environ[key]
             try:
                 if val == Eups.oldEnviron[key]:
                     continue
@@ -2394,7 +2436,7 @@ def setup(Eups, productName, version=None, fwd=True):
             if re.search(r"^EUPS_(DIR|PATH)$", key): # the world will break if we delete these
                 continue        
 
-            if Eups.environ.has_key(key):
+            if os.environ.has_key(key):
                 continue
 
             if Eups.shell == "sh":
@@ -2457,7 +2499,12 @@ def setup(Eups, productName, version=None, fwd=True):
 
         return tmpfile
     else:
-        print >> sys.stderr, "Failed to setup %s %s" % (productName, version)
+        if fwd:
+            verb = "setup"
+        else:
+            verb = "unsetup"
+
+        print >> sys.stderr, "Failed to %s %s %s" % (verb, productName, version)
         return ""
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
