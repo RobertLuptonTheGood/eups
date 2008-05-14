@@ -1170,7 +1170,8 @@ aliases = {
     }
 
 try:
-    opts = eups.Getopt(options, sys.argv, aliases, "eups_distrib [options] [product [version]]")
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_distrib [options] [product [version]]",
+                       extras=os.environ.get("EUPS_FLAGS"))
 except RuntimeError, param:
     print >> sys.stderr, "Error parsing arguments: %s" % param
     sys.exit(1)

@@ -3,6 +3,7 @@
 # The main eups programme
 #
 import os, re, sys
+import tempfile
 import neups as eups
 import eupsGetopt
 
@@ -22,29 +23,7 @@ options = {
     }
 aliases = {}
 
-#
-# Start by looking for our command
-#
-try:
-    cmd = filter(lambda a: not re.search(r"^-", a), sys.argv[1:])[0]
-except IndexError:
-    cmd = None
-#
-# Choose arguments based on cmd
-#
-if cmd == "admin":
-    pass
-elif cmd == "list":
-    options["-c"] = (False,  "--current", "Only show current products")
-    options["-d"] = (False,  "--directory", "Print product directory (useful with -s)")
-    options["-m"] = (False,  "--table", "Print name of table file")
-    options["-s"] = (False,  "--setup", "Only show setup products")
-#
-# Parse arguments
-#
-try:
-    opts = eupsGetopt.Getopt(options, sys.argv, aliases,
-"""	eups [--help|--version] command [options]
+helpStr = """	eups [--help|--version] command [options]
 Supported commands are:
 	admin		Administer the eups system
 	declare		Declare a product
@@ -63,8 +42,55 @@ Supported commands are:
 Use
 	eups --help cmd
 for help with command "cmd"
-""")
+"""
+#
+# Start by looking for our command
+#
+try:
+    opts = eupsGetopt.Getopt(options, sys.argv[:], aliases, helpStr, checkArgs=False)
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+try:
+    cmd = opts.argv[0]
+except IndexError:
+    cmd = None
+#
+# Choose arguments based on cmd
+#
+helpStr = """eups [commonOpts] %s [opts]""" % (cmd)
+narg = 0                      # permitted number of arguments (a tuple (min, max) is permitted)
 
+if cmd == "admin":
+    helpStr += " [buildCache | clearCache | clearLocks]"
+    narg = 1
+elif cmd == "declare":
+    helpStr += " product version\nDeclare a product"
+    narg = 2
+    options["-c"] = (False,  "--current", "Declare product current")
+    options["-m"] = (True,  "--table", "Use table file (may be \"none\") Default: product.table")
+    options["-M"] = (True,  None,
+                     "Import the given table file directly into the database\n(may be \"-\" for stdin)")
+    options["-r"] = (True,  "--root", "Location of product being declared")
+elif cmd == "list":
+    helpStr += "\nPrint information about products"
+    narg = (0,2)
+    options["-c"] = (False,  "--current", "Only show current products")
+    options["-d"] = (False,  "--directory", "Print product directory (useful with -s)")
+    options["-m"] = (False,  "--table", "Print name of table file")
+    options["-s"] = (False,  "--setup", "Only show setup products")
+elif cmd == "undeclare":
+    helpStr += " product version\nUndeclare a product"
+    narg = 2
+    options["-c"] = (False,  "--current", "Stop version from being current")
+
+if isinstance(narg, int):
+    narg = (narg, narg)
+#
+# Parse arguments
+#
+try:
+    opts = eupsGetopt.Getopt(options, sys.argv, aliases, helpStr, extras=os.environ.get("EUPS_FLAGS"))
 except RuntimeError, param:
     print >> sys.stderr, "Error parsing arguments: %s" % param
     sys.exit(1)
@@ -85,6 +111,14 @@ force = opts.options.get('-F', False)
 noaction = opts.options.get('-n')
 path = opts.options.get('-Z')
 verbose = opts.options.get('-v')
+
+if not (narg[0] <= len(opts.argv) <= narg[1]):
+    if narg[0] == narg[1]:
+        print >> sys.stderr, "Expected %d arguments, saw %d" % (narg[0], len(opts.argv))
+    else:
+        print >> sys.stderr, "Expected %d--%d arguments, saw %d" % (narg[0], narg[1], len(opts.argv))
+    opts.usage()
+    sys.exit(1)
 #
 # Do the work
 #
@@ -94,17 +128,13 @@ if not cmd:
 #
 # Do the work
 #
-def main():
+def main(cmd, opts):
     readCache = True
     if cmd == "admin":
         readCache = False
         
-    try:
-        Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, readCache=readCache, force=force,
-                         verbose=verbose, noaction=noaction)
-    except RuntimeError, e:
-        print >> sys.stderr, e
-        sys.exit(1)
+    Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, readCache=readCache, force=force,
+                     verbose=verbose, noaction=noaction)
 
     if cmd == "admin":
         if opts.argv:
@@ -113,13 +143,43 @@ def main():
             subcmd = None
 
         eupsAdmin(Eups, subcmd)
-    elif cmd in ["declare", "distrib", "expandbuild", "expandtable", "flavor", "pkg-config", "remove", "undeclare", "uses"]:
-        print "$EUPS_DIR/bin/eups_%s %s" % (cmd, " ".join(sys.argv[1:]))
+    elif cmd == "declare":
+        declare_current = opts.options.get('-c', False)
+        productDir = opts.options.get('-r', None)
+        tablefile = opts.options.get('-m', None)
+        externalTablefile = opts.options.get('-M', None)
+
+        productName, productVersion = opts.argv[0:2]
+
+        if tablefile and externalTablefile:
+            print >> sys.stderr, "You may not specify both -m and -M"
+            sys.exit(1)
+
+        if externalTablefile:
+            if externalTablefile == "-":
+                tablefile = sys.stdin
+            else:
+                try:
+                    tablefile = open(externalTablefile, "r");
+                except IOError, e:
+                    print >> sys.stderr, ("Error opening %s: %s" % (externalTablefile, e))
+                    sys.exit(1)
+
+        Eups.declare(productName, productVersion, productDir=productDir, tablefile=tablefile,
+                     declare_current=declare_current)
+    elif cmd in ["distrib", "expandbuild", "expandtable", "pkg-config", "remove", "uses"]:
+        cmd = "$EUPS_DIR/bin/eups_%s %s" % (cmd, " ".join(sys.argv[1:]))
+        try:
+            system(cmd, Eups.noaction)
+        except OSError, e:
+            print >> sys.stderr, e
     elif cmd == "flags":
         try:
             print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
         except KeyError:
             print "You have no EUPS_FLAGS set"
+    elif cmd == "flavor":
+        print Eups.flavor
     elif cmd == "list":
         current = opts.options.get('-c', False)
         directory = opts.options.get('-d', False)
@@ -135,6 +195,7 @@ def main():
         listProducts(Eups, productName, productVersion,
                      current=current, setup=setup, tablefile=tablefile, directory=directory)
     elif cmd == "path":
+        _path = Eups.path
         try:
             if opts.argv:
                 a = opts.argv.pop()
@@ -142,8 +203,7 @@ def main():
                 if n < 0:
                     n += len(Eups.path)
 
-                print Eups.path[n]
-                return
+                _path = [Eups.path[n]]
         except IndexError:
             print >> sys.stderr, "Element %d of EUPS_PATH doesn't exist" % (n)
             sys.exit(1)
@@ -151,19 +211,38 @@ def main():
             print >> sys.stderr, "Unrecognised argument to eups %s: %s" % (cmd, a)
             sys.exit(1)
         
-        for p in Eups.path:
-            print "\t%s" % p
-
+        for p in _path:
+            print p
     elif cmd == "setup" or cmd == "unsetup":
         print "Please use the command \"%s\" which modifies your environment" % " ".join([cmd] + opts + argv)
+    elif cmd == "undeclare":
+        undeclare_current = opts.options.get('-c', False)
+
+        productName, productVersion = opts.argv[0:2]
+
+        Eups.undeclare(productName, productVersion, undeclare_current=undeclare_current)
     else:
         print "Unknown eups command \"%s\"" % cmd
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def system(cmd, noaction=False):
+    """Run a command, throwing an exception if a non-zero exit code is returned
+    Obeys noaction"""
+
+    if noaction:
+        print cmd
+    else:
+        errno = os.system(cmd)
+        if errno != 0:
+            raise OSError, ("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno >> 8)))
+
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def eupsAdmin(Eups, subcmd):
     if not subcmd:
-        print >> sys.stderr, "Usage: eups [opts] admin [buildCache | clearCache | clearLocks]"
+        print >> sys.stderr, helpStr
         sys.exit(1)
 
     if subcmd == "buildCache":
@@ -174,7 +253,7 @@ def eupsAdmin(Eups, subcmd):
         Eups.clearLocks()
     else:
         print >> sys.stderr, "Unexpected sub-command: %s" % subcmd
-        print >> sys.stderr, "Usage: eups [opts] admin [buildCache | clearCache | clearLocks]"
+        print >> sys.stderr, helpStr
         sys.exit(1)
         
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -196,12 +275,17 @@ def listProducts(Eups, productName=None, productVersion=None,
             if tablefile:
                 if info:
                     info += "\t"
-                    
-                table = Eups.Product(name, version, productPathDirs=db).table
-                if table:
-                    info += table.file
-                else:
-                    info += "none"
+
+                try:
+                    table = Eups.Product(name, version, eupsPathDirs=db).table
+
+                    if table:
+                        info += table.file
+                    else:
+                        info += "none"
+                except RuntimeError, e:
+                    print >> sys.stderr, e
+                    info += "???"
         else:
             if productName:
                 info += "   "
@@ -223,4 +307,10 @@ def listProducts(Eups, productName=None, productVersion=None,
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-main()
+try:
+    main(cmd, opts)
+except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
+
+sys.exit(0)

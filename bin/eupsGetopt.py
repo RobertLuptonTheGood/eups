@@ -8,7 +8,7 @@ import re, sys
 # number of occurrences of the flag
 
 class Getopt:
-    def __init__(self, options, argv = sys.argv, aliases = {}, msg = None):
+    def __init__(self, options, argv = sys.argv, aliases = {}, msg = None, checkArgs=True, extras=None):
         """A class to represent the processed command line arguments.
 
 options is a dictionary whose keys are is the short name of the option
@@ -24,8 +24,11 @@ of options; e.g.
 
 Options may be accessed as Getopt.options[], and non-option arguments as Getopt.argv[]
 
-msg is the help message associated with the command
+msg is the help message associated with the command;  if checkArgs is False, non-recognised
+options are returned in self.argv
         
+If extras is not None, it's taken to be a string specifying further arguments; if they
+are not recognised they are silently ignored
 """
         if msg:
             self.msg = msg
@@ -52,15 +55,29 @@ msg is the help message associated with the command
         for opt in aliases.keys():
             longopts[aliases[opt][0]] = opt
         #
+        # Handle extras, if present
+        #
+        if extras:
+            if isinstance(extras, str):
+                extras = extras.split(" ")
+
+            argv += [None]
+            argv += extras
+        #
         # Massage the arguments
         #
         nargv = []
         opts = {}
         verbose = 0
         i = 0
+        processingExtras = False        # we aren't yet; signalled by a None argument
         while i < len(argv) - 1:
             i = i + 1
             a = argv[i]
+
+            if a == None:               # marker for extras
+                processingExtras = True
+                continue
 
             if a == "" or re.search(r"^[^-]", a):
                 nargv += [a]
@@ -91,6 +108,10 @@ msg is the help message associated with the command
                         opts[a] = 1
             elif re.search(r"-\d+$", a): # a negative integer
                 nargv += [a]
+            elif processingExtras:
+                continue
+            elif not checkArgs:
+                nargv += [a]
             else:
                 raise RuntimeError, ("Unrecognised option %s" % a)
         #
@@ -117,11 +138,16 @@ Usage:
     %s
 Options:""" % self.msg
 
-        def asort(a,b):
+        def asort(A, B):
             """Sort alphabetically, so -C, --cvs, and -c appear together"""
 
-            a = self.cmd_options[a][1]
-            b = self.cmd_options[b][1]
+            a = self.cmd_options[A][1]
+            if not a:
+                a = A
+
+            b = self.cmd_options[B][1]
+            if not b:
+                b = B
 
             a = re.sub(r"^-*", "", a)       # strip leading -
             b = re.sub(r"^-*", "", b)       # strip leading -
