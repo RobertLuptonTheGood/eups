@@ -74,7 +74,7 @@ if root:
 if opts.argv:
     version = opts.argv.pop(0)
 else:
-    version = None
+    version = eups.Current
 
 if opts.argv:
     pass
@@ -92,8 +92,8 @@ if max_depth > 0 and just:
 #
 try:
     Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
-                          verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
-                          max_depth=max_depth)
+                     verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
+                     max_depth=max_depth)
                           
     tmpfile = eups.setup(Eups, productName, version, fwd=not unsetup)
 except RuntimeError, e:

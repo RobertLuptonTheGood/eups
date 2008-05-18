@@ -88,6 +88,16 @@ def ctimeTZ(t=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class Current(object):
+    """A class used to specify the current version (e.g. versionName=Current)"""
+    def __str__(self):
+        return "Current"
+
+class Setup(object):
+    """A class used to specify the setup version (e.g. versionName=Setup)"""
+    def __str__(self):
+        return "Setup"
+
 class CurrentChain(object):
     """A class that represents a current.chain file"""
 
@@ -346,7 +356,7 @@ class Action(object):
         if len(args) > 1:
             vers = " ".join(args[1:])
         else:
-            vers = None
+            vers = Current
 
         productOK, vers = eups.setup(productName, vers, fwd, recursionDepth)
         if not productOK and not optional:
@@ -1004,16 +1014,16 @@ class Product(object):
                               self.eups.findVersion(productName, version, eupsPathDirs=eupsPathDirs)
                 self.table = Table(tablefile).expandEupsVariables(self)
 
-    def init(self, version, flavor, eupsPathDir):
+    def init(self, versionName, flavor, eupsPathDir):
         """Initialize a Product given full information about a product"""
 
-        mat = re.search(r"^LOCAL:(.*)", version)
+        mat = isinstance(versionName, str) and re.search(r"^LOCAL:(.*)", versionName)
         if mat:
             productDir = mat.group(1)
             self.initFromDirectory(productDir)
         else:
             self.version, self.db, self.dir, tablefile = \
-                          self.eups.findFullySpecifiedVersion(self.name, version, flavor, eupsPathDir)
+                          self.eups.findFullySpecifiedVersion(self.name, versionName, flavor, eupsPathDir)
             self.table = Table(tablefile).expandEupsVariables(self)
 
     def initFromSetupVersion(self):
@@ -1071,41 +1081,17 @@ class Product(object):
 
     def envarSetupName(self):
         """Return the name of the product's how-I-was-setup environment variable"""
-        return "SETUP_" + self.name
+        name = "SETUP_" + self.name
+
+        if not os.environ.has_key(name) and os.environ.has_key(name.upper()):
+            name = name.upper()
+
+        return name
 
     def getSetupVersion(self):
-        """Return the name, version, flavor and eupsPathDir for an already-setup product"""
+        """Return the version, flavor and eupsPathDir for an already-setup product"""
 
-        eups = self.eups
-
-        productName, version, flavor, eupsPathDir = None, None, None, None
-
-        try:
-            args = os.environ[self.envarSetupName()].split()
-        except KeyError:
-            return version, flavor, eupsPathDir
-
-        productName = args.pop(0)
-        if productName != self.name:
-            if self.eups.verbose > 1:
-                print >> sys.stderr, \
-                      "Warning: product name %s != %s (probable mix of old and new eups)" %(self.name, productName)
-        
-        if not args: # you can get here if you initialised eups by sourcing setups.c?sh
-            return version, flavor, eupsPathDir
-
-        if len(args) > 1 and args[0] != "-f":
-            version = args.pop(0)
-            
-        if len(args) > 1 and args[0] == "-f":
-            args.pop(0);  flavor = args.pop(0)
-
-        if len(args) > 1 and args[0] == "-Z":
-            args.pop(0);  eupsPathDir = args.pop(0)
-
-        assert not args
-
-        return version, flavor, eupsPathDir
+        return self.eups.findSetupVersion(self.name)
 
     def checkCurrent(self, isCurrent=None):
         """check if product is current.  This shouldn't be needed if update the db when declaring products"""
@@ -1124,6 +1110,29 @@ class Product(object):
     def isCurrent(self):
         """Is the Product current?"""
         return self._current
+
+
+    def dependencies(self, eupsPathDirs=None):
+        """Return self's dependencies as a list of (Product, optional) tuples"""
+
+        deps = [(self, False)]
+        #
+        # Process table file
+        #
+        table = self.table
+            
+        for a in table.actions(self.eups.flavor):
+            if a.cmd == Action.setupRequired:
+                try:
+                    deps += [(self.eups.getProduct(a.args[0], a.args[1], eupsPathDirs), a.extra)]
+                except RuntimeError, e:
+                    debug(e)
+                    if a.extra:         # product is optional
+                        continue
+
+                    print >> sys.stderr, "Failed to find %s %s: %s" % (a.args[0], a.args[1], e)
+
+        return deps
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1411,7 +1420,12 @@ class Eups(object):
 
         productList = []
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
-            product = Product(self, re.search(re_setup, key).group(1), noInit=True).initFromSetupVersion()
+            productName = re.search(re_setup, key).group(1)
+
+            if productName == "EUPS":       # "eups" itself is a special case
+                productName = productName.lower()
+
+            product = self.Product(productName, noInit=True).initFromSetupVersion()
 
             productList += [product]
 
@@ -1446,7 +1460,7 @@ class Eups(object):
         self.oldAliases[key] = None # so it'll be deleted if no new alias is defined
 
     def findCurrentVersion(self, productName, path=None):
-        """Find current version of a product, returning the db and vinfo"""
+        """Find current version of a product, returning eupsPathDir, version, vinfo"""
 
         if not path:
             path = self.path
@@ -1460,28 +1474,67 @@ class Eups(object):
             cfile = os.path.join(ups_db, productName, "current.chain")
             if os.path.exists(cfile):
                 try:
-                    version = CurrentChain(cfile).info[self.flavor]["version"]
+                    versionName = CurrentChain(cfile).info[self.flavor]["version"]
 
-                    vfile = os.path.join(ups_db, productName, "%s.version" % version)
+                    vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
                     if os.path.exists(vfile):
                         vers = VersionFile(vfile)
                         if vers.info.has_key(self.flavor):
                             vinfo = vers.info[self.flavor]
-                            return eupsPathDir, version, vinfo
+                            return eupsPathDir, versionName, vinfo
 
                     raise RuntimeError, ("Unable to find current version %s of %s for flavor %s" %
-                                         (version, productName, self.flavor))
+                                         (versionName, productName, self.flavor))
                 except KeyError:
                     raise RuntimeError, ("Product %s has no current version for flavor %s" % (productName, self.flavor))
 
         if not vinfo:                       # no version is available
             raise RuntimeError, ("Unable to locate a current version of %s for flavor %s" % (productName, self.flavor))
 
-    def findVersion(self, productName, version=None, eupsPathDirs=None):
-        """Find a version of a product (if no version is specified, return current version)"""
+    def findSetupVersion(self, productName):
+        """Find setup version of a product, returning the version, flavor, and eupsPathDir"""
+
+        product = self.Product(productName, noInit=True)
+
+        versionName, flavor, eupsPathDir = Current, None, None
+        try:
+            args = os.environ[product.envarSetupName()].split()
+        except KeyError:
+            return None, flavor, eupsPathDir
+
+        sproductName = args.pop(0)
+        if sproductName != productName:
+            if self.verbose > 1:
+                print >> sys.stderr, \
+                      "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
+        
+        if not args: # you can get here if you initialised eups by sourcing setups.c?sh
+            pass
+        else:
+            if len(args) > 1 and args[0] != "-f":
+                versionName = args.pop(0)
+
+            if len(args) > 1 and args[0] == "-f":
+                args.pop(0);  flavor = args.pop(0)
+
+            if len(args) > 1 and args[0] == "-Z":
+                args.pop(0);  eupsPathDir = args.pop(0)
+
+            assert not args
+
+        if versionName == Current:
+            versionName = self.findCurrentVersion(productName, eupsPathDir)[1]
+            
+        return versionName, flavor, eupsPathDir
+
+    def findVersion(self, productName, versionName=Current, eupsPathDirs=None):
+        """Find a version of a product (if no version is specified, return current version)
+The return value is: versionName, eupsPathDir, productDir, tablefile
+
+        """
         
         if self.ignore_versions:
-           version = ""
+           versionName = ""
 
         if isinstance(eupsPathDirs, str):
             eupsPathDirs = [eupsPathDirs]
@@ -1489,16 +1542,16 @@ class Eups(object):
         if not eupsPathDirs:
             eupsPathDirs = self.path
 
-        if not version:
+        if not versionName or versionName == Current:
             # If no version explicitly specified, get the first db with a current one.
-            eupsPathDir, version, vinfo = self.findCurrentVersion(productName, path=eupsPathDirs)
+            eupsPathDir, versionName, vinfo = self.findCurrentVersion(productName, path=eupsPathDirs)
 
             eupsPathDirs = [eupsPathDir]
 
         vinfo = None
-        if re.search(Eups._relop_re, version): # we have a relational expression
-            expr = re.sub(r"^\s*", "", version)
-            version = None
+        if re.search(Eups._relop_re, versionName): # we have a relational expression
+            expr = re.sub(r"^\s*", "", versionName)
+            versionName = None
             matched_eupsPathDir = None
             
             for eupsPathDir in eupsPathDirs: # search for the first match
@@ -1508,36 +1561,36 @@ class Eups(object):
                     
                 dir = os.path.join(self.getUpsDB(eupsPathDir), productName)
 
-                versions = []
+                versionNames = []
                 for vfile in glob.glob(os.path.join(dir, "*.version")):
                     vers = VersionFile(vfile)
                     if vers.info.has_key(self.flavor):
-                        versions += [(vers.version, vers.info[self.flavor])]
+                        versionNames += [(vers.version, vers.info[self.flavor])]
 
-                versions.sort(lambda a, b: self.version_cmp(a[0], b[0]))
-                versions.reverse() # so we'll try the latest version first
+                versionNames.sort(lambda a, b: self.version_cmp(a[0], b[0]))
+                versionNames.reverse() # so we'll try the latest version first
                 #
                 # Include the current version;  if it matches we'll use it
                 #
                 try:
-                    ceupsPathDir, cversion, cvinfo = self.findCurrentVersion(productName, eupsPathDir)
+                    ceupsPathDir, cversionName, cvinfo = self.findCurrentVersion(productName, eupsPathDir)
                     if cvinfo:
-                        versions += [(cversion, cvinfo)]
+                        versionNames += [(cversionName, cvinfo)]
                 except RuntimeError:
                     cvinfo = None
                     pass
                 #
                 # We have a list of possible versions, go through them in order
                 #
-                for vname, _vinfo in versions:
+                for vname, _vinfo in versionNames:
                     if self.version_match(vname, expr):
                         matched_eupsPathDir = eupsPathDir
-                        version = vname
+                        versionName = vname
                         vinfo = _vinfo
 
-                        if cvinfo and version != cversion and self.verbose > 0 + self.quiet:
+                        if cvinfo and versionName != cversionName and self.verbose > 0 + self.quiet:
                             print >> sys.stderr, "Using version %s to satisfy \"%s\" (%s is current)" % \
-                                  (version, expr, cversion)
+                                  (versionName, expr, cversionName)
 
                         extra = ""
                         if self.verbose >= 3 + self.quiet:
@@ -1545,13 +1598,13 @@ class Eups(object):
 
                         if self.verbose >= 2 + self.quiet:
                             print >> sys.stderr, "Version %s %ssatisfies condition \"%s\" for product %s" % \
-                                  (version, extra, expr, productName)
+                                  (versionName, extra, expr, productName)
 
                         break
         else:
             for eupsPathDir in eupsPathDirs:
                 ups_db = self.getUpsDB(eupsPathDir)
-                vfile = os.path.join(ups_db, productName, "%s.version" % version)
+                vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
                 if os.path.exists(vfile):
                     vers = VersionFile(vfile)
                     if vers.info.has_key(self.flavor):
@@ -1559,16 +1612,16 @@ class Eups(object):
                         break
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate %s %s for flavor %s" % (productName, version, self.flavor)
+            raise RuntimeError, "Unable to locate %s %s for flavor %s" % (productName, versionName, self.flavor)
 
-        return self._finishFinding(vinfo, productName, version, eupsPathDir)
+        return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
-    def findFullySpecifiedVersion(self, productName, version, flavor, eupsPathDir):
+    def findFullySpecifiedVersion(self, productName, versionName, flavor, eupsPathDir):
         """Find a version given full details of where to look"""
         
         vinfo = None
         ups_db = self.getUpsDB(eupsPathDir)
-        vfile = os.path.join(ups_db, productName, "%s.version" % version)
+        vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
         if os.path.exists(vfile):
             vers = VersionFile(vfile)
             if vers.info.has_key(flavor):
@@ -1576,11 +1629,11 @@ class Eups(object):
 
         if not vinfo:                       # no version is available
             raise RuntimeError, "Unable to locate %s %s for flavor %s in %s" % \
-                  (productName, version, flavor, eupsPathDir)
+                  (productName, versionName, flavor, eupsPathDir)
 
-        return self._finishFinding(vinfo, productName, version, eupsPathDir)
+        return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
-    def _finishFinding(self, vinfo, productName, version, eupsPathDir):
+    def _finishFinding(self, vinfo, productName, versionName, eupsPathDir):
         productDir = vinfo["productDir"]
 
         if productDir == "none":
@@ -1590,7 +1643,7 @@ class Eups(object):
                 productDir = os.path.join(eupsPathDir, productDir)
 
             if not os.path.isdir(productDir):
-                raise RuntimeError, ("Product %s %s has non-existent productDir %s" % (productName, version, productDir))
+                raise RuntimeError, ("Product %s %s has non-existent productDir %s" % (productName, versionName, productDir))
         #
         # Look for the directory with the tablefile
         #
@@ -1617,11 +1670,12 @@ class Eups(object):
             tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
             if not os.path.exists(tablefile):
-                raise RuntimeError, ("Product %s %s has non-existent tablefile %s" % (productName, version, tablefile))
+                raise RuntimeError, ("Product %s %s has non-existent tablefile %s" %
+                                     (productName, versionName, tablefile))
 
-        return version, eupsPathDir, productDir, tablefile
+        return versionName, eupsPathDir, productDir, tablefile
 
-    def getProduct(self, productName, version, eupsPathDirs=None):
+    def getProduct(self, productName, versionName=Current, eupsPathDirs=None):
         """Return a Product, preferably from the cache but the hard way if needs be"""
 
         """N.b. we should be getting current information from the cached info, but eups declare
@@ -1634,20 +1688,27 @@ class Eups(object):
         else:
             dbs = []
             
-        if version:
-            foundCurrent = False
-        else:
+        foundCurrent, eupsPathDir = False, None
+        if versionName == Current:
             foundCurrent = True
-            db, version, vinfo = self.findCurrentVersion(productName)
-            dbs = [db] + filter(lambda d: d != db, dbs) # put db with current version first in the path
+            eupsPathDir, versionName, vinfo = self.findCurrentVersion(productName)
+        elif versionName == Setup:
+            versionName, flavor, eupsPathDir = self.findSetupVersion(productName)
+            if not versionName:
+                if self.verbose:
+                    print >> sys.stderr, "Product %s is not setup" % productName
+                return None
+
+        if eupsPathDir:
+            dbs = [eupsPathDir] + filter(lambda d: d != eupsPathDir, dbs) # put chosen version first in eupsPath
         #
         # Try to look it up in the db/product/version dictionary
         #
         for db in dbs:
             try:
-                product = self.versions[self.flavor][db][productName][version]
+                product = self.versions[self.flavor][db][productName][versionName]
                 if self.verbose > 2:
-                    print >> sys.stderr, "Found %s %s in cache" % (productName, version)
+                    print >> sys.stderr, "Found %s %s in cache" % (productName, versionName)
 
                 product.eups = self     # don't use the cached Eups
 
@@ -1660,7 +1721,7 @@ class Eups(object):
             except KeyError:
                 pass
 
-        product = self.Product(productName, version)
+        product = self.Product(productName, versionName)
 
         if foundCurrent:
             product.checkCurrent(True)
@@ -1927,7 +1988,7 @@ class Eups(object):
     #
     # Here is the externally visible API
     #
-    def setup(self, productName, version=None, fwd=True, recursionDepth=0):
+    def setup(self, productName, versionName=Current, fwd=True, recursionDepth=0):
         """The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
         eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
         #
@@ -1942,12 +2003,12 @@ class Eups(object):
                 product.initFromDirectory(self.root)
             else:
                 try:
-                    product = self.getProduct(productName, version)
+                    product = self.getProduct(productName, versionName)
                 except RuntimeError, e:
                     if self.verbose:
                         print >> sys.stderr, e
 
-                    return False, version
+                    return False, versionName
         #
         # We have all that we need to know about the product to proceed
         #
@@ -1990,9 +2051,9 @@ class Eups(object):
             #
             # Are we already setup?
             #
-            sversion, sflavor, seupsPathDir = product.getSetupVersion()
-            if version and sversion:
-                if version == sversion: # already setup
+            sversionName, sflavor, seupsPathDir = product.getSetupVersion()
+            if versionName and sversionName:
+                if versionName == sversionName: # already setup
                     if recursionDepth <= 0: # top level should be resetup if that's what they asked for
                         pass
                     else:
@@ -2000,11 +2061,17 @@ class Eups(object):
                             print >> sys.stderr, "            %s %s is already setup; skipping" % \
                                   (len(indent)*" " + product.name, product.version)
                             
-                        return True, version
+                        return True, versionName
                 else:
                     if recursionDepth > 0: # top level shouldn't whine
+                        pversionName = versionName
+                        try:
+                            pversionName = versionName() # might be Current
+                        except TypeError:
+                            pass
+                            
                         print >> sys.stderr, "You setup %s %s, and are now setting up %s" % \
-                              (product.name, sversion, version)
+                              (product.name, sversionName, pversionName)
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
                 keptProduct = self.alreadySetupProducts[product.name]
@@ -2015,7 +2082,7 @@ class Eups(object):
                     print >> sys.stderr, "            %s %s is already setup; keeping" % \
                           (len(indent)*" " + product.name, product.version)
 
-                return True, version
+                return True, versionName
 
             self.unsetupSetupProduct(product)
 
@@ -2040,6 +2107,10 @@ class Eups(object):
                 del self._msgs["setup"]
 
         return True, product.version
+
+    def unsetup(self, productName, versionName=None):
+        """Unsetup a product"""
+        self.setup(productName, versionName, fwd=False)
 
     def declare(self, productName, versionName, productDir, eupsPathDir=None, tablefile=None, declare_current = False):
         """Declare a product.  productDir may be None if declare_current.  N.b. tablefile=None means that the
@@ -2395,7 +2466,7 @@ getFlavor = flavor                      # useful in this file if you have a vari
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def setup(Eups, productName, version=None, fwd=True):
+def setup(Eups, productName, version=Current, fwd=True):
     """Return a filename which, when sourced, will setup a product (if fwd is false, unset it up)"""
 
     ok, version = Eups.setup(productName, version, fwd)
@@ -2535,3 +2606,86 @@ def guessProduct(dir, productName=None):
         else:
             raise RuntimeError, \
                   ("I can't guess which product you want; directory %s contains: %s" % (dir, " ".join(productNames)))
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Expand a build file
+#
+def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=None, cvsroot=None):
+    """Expand a build file, reading from ifd and writing to ofd"""
+    #
+    # A couple of functions to set/guess the values that we'll be substituting
+    # into the build file
+    #
+    # Guess the value of CVSROOT
+    #
+    def guess_cvsroot(cvsroot):
+        if cvsroot:
+            pass
+        elif os.environ.has_key("CVSROOT"):
+            cvsroot = os.environ["CVSROOT"]
+        elif os.path.isdir("CVS"):
+            try:
+                rfd = open("CVS/Root")
+                cvsroot = re.sub(r"\n$", "", rfd.readline())
+                del rfd
+            except IOError, e:
+                print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
+
+        return cvsroot    
+    #
+    # Guess the value of SVNROOT
+    #
+    def guess_svnroot(svnroot):
+        if svnroot:
+            pass
+        elif os.environ.has_key("SVNROOT"):
+            svnroot = os.environ["SVNROOT"]
+        elif os.path.isdir(".svn"):
+            try:
+                rfd = os.popen("svn info .svn")
+                for line in rfd:
+                    mat = re.search(r"^Repository Root: (\S+)", line)
+                    if mat:
+                        svnroot = mat.group(1)
+                        break
+
+                if not svnroot:         # Repository Root is absent in svn 1.1
+                    rfd = os.popen("svn info .svn")
+                    for line in rfd:
+                        mat = re.search(r"^URL: ([^/]+//[^/]+)", line)
+                        if mat:
+                            svnroot = mat.group(1)
+                            break
+
+                del rfd
+            except IOError, e:
+                print >> sys.stderr, "Tried to read \".svn\" but failed: %s" % e
+
+        return svnroot
+    #
+    # Here's the function to do the substitutions
+    #
+    subs = {}                               # dictionary of substitutions
+    subs["CVSROOT"] = guess_cvsroot(cvsroot)
+    subs["SVNROOT"] = guess_svnroot(svnroot)
+    subs["PRODUCT"] = productName
+    subs["VERSION"] = versionName
+
+    def subVar(name):
+        var = name.group(1).upper()
+        if subs.has_key(var):
+            if not subs[var]:
+                raise RuntimeError, "I can't guess a %s for you -- please set $%s" % (var, var)
+            return subs[var]
+
+        return "XXX"
+    #
+    # Actually do the work
+    #
+    for line in ifd:
+        # Attempt substitutions
+        line = re.sub(r"@([^@]+)@", subVar, line)
+        line = re.sub(r"/tags/svn", "/trunk -r ", line);
+
+        print >> ofd, line,

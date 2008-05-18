@@ -5,6 +5,7 @@
 import os, re, sys
 import tempfile
 import neups as eups
+import eupsDistrib
 import eupsGetopt
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -21,7 +22,9 @@ options = {
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
     }
-aliases = {}
+aliases = {
+    "-Z" : ["--with-eups"],
+    }
 
 helpStr = """	eups [--help|--version] command [options]
 Supported commands are:
@@ -72,6 +75,26 @@ elif cmd == "declare":
     options["-M"] = (True,  None,
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
+elif cmd == "distrib":
+    helpStr = "eups_distrib [options] [product [version]]"
+    narg = (0, 2)
+
+    options["-b"] = (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")
+    options["-B"] = (True,  "--build", "Search for build files on this :-separated path\n(@ -> product's installed ups directory)")
+    options["-C"] = (False, "--current", "Create a list of current versions which -i can use")
+    options["-c"] = (False, "--create", "Create a package for distribution")
+    options["-g"] = (True,  "--groupAccess", "Give specified group r/w access to all built packages")
+    options["-i"] = (False, "--install", "Extract and install the specified package")
+    options["-j"] = (False, "--nodepend", "Just install product, but not its dependencies")
+    options["-l"] = (False, "--list", "List available products")
+    options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
+    options["-p"] = (True,  "--pacman", "Use this pacman cache to install packages")
+    options["-r"] = (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
+    options["-t"] = (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")
+    options["-T"] = (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")
+    options["-\001"] = (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")
+    
+    aliases["-i"] = ["--extract"]
 elif cmd == "list":
     helpStr += "\nPrint information about products"
     narg = (0,2)
@@ -167,12 +190,90 @@ def main(cmd, opts):
 
         Eups.declare(productName, productVersion, productDir=productDir, tablefile=tablefile,
                      declare_current=declare_current)
-    elif cmd in ["distrib", "expandbuild", "expandtable", "pkg-config", "remove", "uses"]:
-        cmd = "$EUPS_DIR/bin/eups_%s %s" % (cmd, " ".join(sys.argv[1:]))
+    elif cmd in ["expandbuild", "expandtable", "pkg-config", "remove", "uses"]:
+        cmd = "$EUPS_DIR/bin/cmd_%s %s" % (cmd, " ".join(sys.argv[1:]))
         try:
             system(cmd, Eups.noaction)
         except OSError, e:
             print >> sys.stderr, e
+    elif cmd == "distrib":
+        buildFilePath = opts.options.get('-B', None)
+        preferFlavor = opts.options.get('-b', False)
+        current = opts.options.get('-C', False)
+        create = opts.options.get('-c', False)
+        group = opts.options.get('-g', None)
+        no_dependencies = opts.options.get('-j', False)
+        install = opts.options.get('-i', False)
+        list = opts.options.get('-l', False)
+        manifest = opts.options.get('-m', None)
+        noeups = opts.options.get('-N', False)
+        pacman = False                          # use pacman to install packages?
+        if opts.has_option('-p'):
+            pacman = True
+            pacman_cache = opts.options['-p']
+
+        transport = eupsDistrib.LOCAL
+        if opts.has_option('-r'):
+            packageBase = opts.options['-r']
+        elif os.environ.has_key("EUPS_PKGROOT"):
+            packageBase = os.environ["EUPS_PKGROOT"];
+        else:
+            packageBase = None
+
+        tag = opts.options.get('-t', None)
+        installFlavor = opts.options.get('-\001', flavor)
+        tmp_dir = opts.options.get('-T', None)
+
+        if packageBase is not None:
+            if (install or list) and re.search(r"^http://", packageBase):
+                transport = eupsDistrib.URL
+            elif (install or list) and re.search(r"^scp:", packageBase):
+                transport = eupsDistrib.SCP
+                packageBase = re.sub(r"^scp:", "", packageBase)
+        try:
+            productName = opts.argv[0]
+        except IndexError:
+            if current:
+                productName = ""
+            elif list:
+                productName = None
+            elif manifest == None:
+                print >> sys.stderr, "Please specify a product\n"
+                opts.usage()
+                sys.exit(1)
+
+        try:
+            versionName = opts.argv[1]
+        except IndexError:
+            versionName = ""
+
+        if create + install + list != 1:
+            print >> sys.stderr, "Please specify exactly one of --create, --install, and --list"
+            sys.exit(1)
+
+        if create:
+            desire = "create"
+        elif install:
+            desire = "install"
+        elif list:
+            desire = "list"
+        else:
+            raise AssertionError, "You can't get here"
+        #
+        # Check that eups is installed in that db
+        #
+        eupsPathDir = Eups.path[0]
+        ups_db = Eups.getUpsDB(eupsPathDir)
+
+        if not os.path.isdir(ups_db):
+            raise RuntimeError, ("Products database %s doesn't exist; please install eups" % ups_db)
+
+        if not packageBase:
+            packageBase = os.path.join(eupsPathDir, "packages", installFlavor)
+
+        distrib(Eups, desire, productName, versionName, packageBase, transport, manifest=manifest,
+                current=current, preferFlavor=preferFlavor, installFlavor=installFlavor, noeups=noeups,
+                no_dependencies=no_dependencies)
     elif cmd == "flags":
         try:
             print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
@@ -255,7 +356,37 @@ def eupsAdmin(Eups, subcmd):
         print >> sys.stderr, "Unexpected sub-command: %s" % subcmd
         print >> sys.stderr, helpStr
         sys.exit(1)
-        
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def distrib(Eups, desire, productName, versionName, packageBase, transport,
+            manifest=None, preferFlavor=None, installFlavor=None, current=False,
+            no_dependencies=False, noeups=False):
+    #
+    # Pack options into a class
+    #
+    Distrib = eupsDistrib.Distrib(Eups, packageBase, transport, installFlavor=installFlavor,
+                                  preferFlavor=preferFlavor, no_dependencies=no_dependencies, noeups=noeups)
+    #
+    # To work
+    #
+    if desire == "create":
+        if noeups and not versionName:
+            raise RuntimeError, "You must specify a version if you use --noeups"
+
+        eupsDistrib.create(Eups, productName, versionName, dbz, flavor, installFlavor,
+                           force, manifest, noaction, transport, verbose)
+        if current:
+            eupsDistrib.createCurrent(Eups, productName, versionName, dbz, installFlavor,
+                                       noaction, verbose)
+    elif desire == "install":
+        eupsDistrib.install(Distrib, productName, versionName, manifest)
+    elif desire == "list":
+        for p, v in eupsDistrib.listProducts(Distrib, productName, versionName, current, manifest):
+            print "%-20s %s" % (p, v)
+    else:
+        raise AssertionError, ("You can't get here (desire == %s); complain to RHL" % desire)
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def listProducts(Eups, productName=None, productVersion=None,
