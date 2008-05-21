@@ -6,12 +6,21 @@ import os, re, sys
 import tempfile
 import neups as eups
 import eupsDistrib
+import eupsDistribBuilder
+import eupsDistribPacman
+import eupsDistribTarball
 import eupsGetopt
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Deal with arguments
 #
+# Flags that don't really have short forms are specified with non-printable options
+#
+raiseFlag = "-\001"
+installFlavorFlag = "-\002"
+tarballFlag = "-\003"
+
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
@@ -21,6 +30,7 @@ options = {
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    raiseFlag : (False,  "--raise", "Allow eups to raise exceptions --- debugging only"),
     }
 aliases = {
     "-Z" : ["--with-eups"],
@@ -89,10 +99,12 @@ elif cmd == "distrib":
     options["-l"] = (False, "--list", "List available products")
     options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
     options["-p"] = (True,  "--pacman", "Use this pacman cache to install packages")
-    options["-r"] = (True,  "--root", "Location of manifests and tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
+    options["-r"] = (True,  "--root", "Location of manifests/buildfiles/tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
     options["-t"] = (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")
     options["-T"] = (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")
-    options["-\001"] = (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")
+    options[installFlavorFlag] = \
+                               (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")
+    options[tarballFlag] = (False, "--tarball", "Create a distribution with tarballs")
     
     aliases["-i"] = ["--extract"]
 elif cmd == "list":
@@ -128,6 +140,7 @@ if opts.options.get('-V'):
     print >> sys.stderr, "Version: %s" % eups.version()
     sys.exit(0)    
 
+allowRaise = opts.options.get(raiseFlag, False)
 dbz = opts.options.get('-z')
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
@@ -207,21 +220,16 @@ def main(cmd, opts):
         list = opts.options.get('-l', False)
         manifest = opts.options.get('-m', None)
         noeups = opts.options.get('-N', False)
-        pacman = False                          # use pacman to install packages?
-        if opts.has_option('-p'):
-            pacman = True
-            pacman_cache = opts.options['-p']
+        pacmanCache = opts.options.get('-p', None) # use this pacman cache to install packages?
+        tarball = opts.options.get(tarballFlag, False) # use tarballs to install packages?
 
         transport = eupsDistrib.LOCAL
-        if opts.has_option('-r'):
-            packageBase = opts.options['-r']
-        elif os.environ.has_key("EUPS_PKGROOT"):
+        packageBase = opts.options.get('-r', None)
+        if not packageBase and os.environ.has_key("EUPS_PKGROOT"):
             packageBase = os.environ["EUPS_PKGROOT"];
-        else:
-            packageBase = None
 
         tag = opts.options.get('-t', None)
-        installFlavor = opts.options.get('-\001', flavor)
+        installFlavor = opts.options.get(installFlavorFlag, flavor)
         tmp_dir = opts.options.get('-T', None)
 
         if packageBase is not None:
@@ -271,10 +279,31 @@ def main(cmd, opts):
         if not packageBase:
             packageBase = os.path.join(eupsPathDir, "packages", installFlavor)
 
-        distrib(Eups, desire, productName, versionName, packageBase, transport, buildFilePath=buildFilePath,
-                tmp_dir=tmp_dir, obeyGroups=obeyGroups, tag=tag,
-                manifest=manifest, current=current, preferFlavor=preferFlavor, installFlavor=installFlavor,
-                noeups=noeups, no_dependencies=no_dependencies, pacman=pacman)
+        #
+        # Pack options into a class
+        #
+        if pacmanCache:
+            Distrib = eupsDistribPacman.Distrib
+        elif tarball:
+            Distrib = eupsDistribTarball.Distrib
+        else:
+            Distrib = eupsDistribBuilder.Distrib
+
+        Distrib = Distrib(Eups, packageBase, transport, buildFilePath=buildFilePath,
+                          current=current, obeyGroups=obeyGroups,
+                          tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
+                          noeups=noeups)
+        #
+        # Some sorts of Distribs need extra capabilities
+        #
+        if pacmanCache:
+            Distrib.pacmanCache = pacmanCache
+        elif tarball:
+            pass
+        else:
+            Distrib.buildDir=tmp_dir
+
+        distrib(Distrib, desire, productName, versionName, manifest=manifest, current=current)
     elif cmd == "flags":
         try:
             print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
@@ -360,27 +389,17 @@ def eupsAdmin(Eups, subcmd):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def distrib(Eups, desire, productName, versionName, packageBase, transport, buildFilePath=None,
-            tmp_dir=None, manifest=None, preferFlavor=None, installFlavor=None, current=False,
-            tag=None, no_dependencies=False, obeyGroups=False, noeups=False, pacman=False):
-    #
-    # Pack options into a class
-    #
-    Distrib = eupsDistrib.Distrib(Eups, packageBase, transport, buildFilePath=buildFilePath,
-                                  installFlavor=installFlavor, current=current, buildDir=tmp_dir,
-                                  tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
-                                  noeups=noeups, pacman=pacman)
+def distrib(Distrib, desire, productName, versionName, manifest=None, current=False):
     #
     # To work
     #
     if desire == "create":
-        if noeups and not versionName:
+        if Distrib.noeups and not versionName:
             raise RuntimeError, "You must specify a version if you use --noeups"
 
         eupsDistrib.create(Distrib, productName, versionName, manifest)
         if current:
-            eupsDistrib.createCurrent(Eups, productName, versionName, dbz, installFlavor,
-                                       noaction, verbose)
+            eupsDistrib.createCurrent(Distrib, productName, versionName)
     elif desire == "install":
         eupsDistrib.install(Distrib, productName, versionName, manifest)
     elif desire == "list":
@@ -440,13 +459,17 @@ def listProducts(Eups, productName=None, productVersion=None,
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-try:
-    main(cmd, opts)
-except RuntimeError, e:
-    print >> sys.stderr, e
-    sys.exit(1)
-except OSError, e:
-    print >> sys.stderr, e
-    sys.exit(1)
+if allowRaise:
+    main(cmd, opts)                     # n.b. no try block
+else:
+
+    try:
+        main(cmd, opts)
+    except RuntimeError, e:
+        print >> sys.stderr, e
+        sys.exit(1)
+    except OSError, e:
+        print >> sys.stderr, e
+        sys.exit(1)
 
 sys.exit(0)

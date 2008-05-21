@@ -1244,14 +1244,17 @@ class Eups(object):
         """Get the name of the persistent database given a toplevel directory"""
         return os.path.join(self.getUpsDB(p), ".pickleDB")
 
-    def getLockfile(self, p):
+    def getLockfile(self, p, upsDB=True):
         """Get the name of the lockfile given a toplevel directory"""
-        return os.path.join(self.getUpsDB(p), ".lock")
+        if upsDB:
+            p = self.getUpsDB(p)
+        
+        return os.path.join(p, ".lock")
 
-    def lockDB(self, p, unlock=False, force=False):
-        """Lock a DB in path p"""
+    def lockDB(self, p, unlock=False, force=False, upsDB=True):
+        """Lock a DB in path p; if upsDB is false, the directory p itself will be locked"""
 
-        lockfile = self.getLockfile(p)
+        lockfile = self.getLockfile(p, upsDB)
         
         if unlock:
             if os.path.exists(lockfile):
@@ -1426,7 +1429,10 @@ class Eups(object):
             if productName == "EUPS":       # "eups" itself is a special case
                 productName = productName.lower()
 
-            product = self.Product(productName, noInit=True).initFromSetupVersion()
+            try:
+                product = self.Product(productName, noInit=True).initFromSetupVersion()
+            except RuntimeError, e:
+                print >> sys.stderr, e
 
             productList += [product]
 
@@ -1624,6 +1630,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         vinfo = None
         ups_db = self.getUpsDB(eupsPathDir)
         vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
+
         if os.path.exists(vfile):
             vers = VersionFile(vfile)
             if vers.info.has_key(flavor):
@@ -2197,7 +2204,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             differences += ["%s != %s" % (tablefile, os.path.basename(_tablefile))]
 
         redeclare = True
-        if not differences:
+        if _productDir and _tablefile and not differences:
             redeclare = False
         else:
             if declare_current:
@@ -2209,6 +2216,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         info = " (%s)" % " ".join(differences)
                     raise RuntimeError, ("Redeclaring %s %s%s; specify force to proceed" %
                                          (productName, versionName, info))
+        #
+        # Is the product really declared?
+        #
+        if not redeclare:
+            try:
+                self.getProduct(productName, versionName, productDir)
+            except RuntimeError, e:
+                redeclare = True
         #
         # Arguments are checked; we're ready to go
         #
