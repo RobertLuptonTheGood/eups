@@ -201,7 +201,7 @@ def main(cmd, opts):
         preferFlavor = opts.options.get('-b', False)
         current = opts.options.get('-C', False)
         create = opts.options.get('-c', False)
-        group = opts.options.get('-g', None)
+        obeyGroups = opts.options.get('-g', None)
         no_dependencies = opts.options.get('-j', False)
         install = opts.options.get('-i', False)
         list = opts.options.get('-l', False)
@@ -271,9 +271,10 @@ def main(cmd, opts):
         if not packageBase:
             packageBase = os.path.join(eupsPathDir, "packages", installFlavor)
 
-        distrib(Eups, desire, productName, versionName, packageBase, transport, manifest=manifest,
-                current=current, preferFlavor=preferFlavor, installFlavor=installFlavor, noeups=noeups,
-                no_dependencies=no_dependencies)
+        distrib(Eups, desire, productName, versionName, packageBase, transport, buildFilePath=buildFilePath,
+                tmp_dir=tmp_dir, obeyGroups=obeyGroups, tag=tag,
+                manifest=manifest, current=current, preferFlavor=preferFlavor, installFlavor=installFlavor,
+                noeups=noeups, no_dependencies=no_dependencies, pacman=pacman)
     elif cmd == "flags":
         try:
             print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
@@ -359,14 +360,16 @@ def eupsAdmin(Eups, subcmd):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def distrib(Eups, desire, productName, versionName, packageBase, transport,
-            manifest=None, preferFlavor=None, installFlavor=None, current=False,
-            no_dependencies=False, noeups=False):
+def distrib(Eups, desire, productName, versionName, packageBase, transport, buildFilePath=None,
+            tmp_dir=None, manifest=None, preferFlavor=None, installFlavor=None, current=False,
+            tag=None, no_dependencies=False, obeyGroups=False, noeups=False, pacman=False):
     #
     # Pack options into a class
     #
-    Distrib = eupsDistrib.Distrib(Eups, packageBase, transport, installFlavor=installFlavor,
-                                  preferFlavor=preferFlavor, no_dependencies=no_dependencies, noeups=noeups)
+    Distrib = eupsDistrib.Distrib(Eups, packageBase, transport, buildFilePath=buildFilePath,
+                                  installFlavor=installFlavor, current=current, buildDir=tmp_dir,
+                                  tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
+                                  noeups=noeups, pacman=pacman)
     #
     # To work
     #
@@ -374,8 +377,7 @@ def distrib(Eups, desire, productName, versionName, packageBase, transport,
         if noeups and not versionName:
             raise RuntimeError, "You must specify a version if you use --noeups"
 
-        eupsDistrib.create(Eups, productName, versionName, dbz, flavor, installFlavor,
-                           force, manifest, noaction, transport, verbose)
+        eupsDistrib.create(Distrib, productName, versionName, manifest)
         if current:
             eupsDistrib.createCurrent(Eups, productName, versionName, dbz, installFlavor,
                                        noaction, verbose)
@@ -441,6 +443,9 @@ def listProducts(Eups, productName=None, productVersion=None,
 try:
     main(cmd, opts)
 except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
+except OSError, e:
     print >> sys.stderr, e
     sys.exit(1)
 

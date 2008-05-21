@@ -780,6 +780,7 @@ class VersionFile(object):
             assert not productName and not versionName and not productDir
 
             self._read(filename)
+
             return
         #
         # We have to do the work ourselves
@@ -1254,13 +1255,13 @@ class Eups(object):
         
         if unlock:
             if os.path.exists(lockfile):
-                if self.verbose > 2:
+                if self.verbose > 3:
                     print >> sys.stderr, "unlock(%s)" % lockfile
 
                 if not self.noaction:
                     eupsLock.unlock(lockfile, force=force)
         else:
-            if self.verbose > 2:
+            if self.verbose > 3:
                 print >> sys.stderr, "lock(%s)" % lockfile
                 
             if not self.noaction:
@@ -1489,7 +1490,8 @@ class Eups(object):
                     raise RuntimeError, ("Product %s has no current version for flavor %s" % (productName, self.flavor))
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, ("Unable to locate a current version of %s for flavor %s" % (productName, self.flavor))
+            raise RuntimeError, \
+                  ("Unable to locate a current version of %s for flavor %s" % (productName, self.flavor))
 
     def findSetupVersion(self, productName):
         """Find setup version of a product, returning the version, flavor, and eupsPathDir"""
@@ -1636,7 +1638,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
     def _finishFinding(self, vinfo, productName, versionName, eupsPathDir):
         productDir = vinfo["productDir"]
 
-        if productDir == "none":
+        if productDir == "none" or productDir == "/dev/null":
             productDir = None
         else:
             if not re.search(r"^/", productDir):
@@ -1667,7 +1669,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if tablefile == "none":
             tablefile = None
         else:
-            tablefile = os.path.join(ups_dir, vinfo["table_file"])
+            if not re.search(r"^/", tablefile):
+                tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
             if not os.path.exists(tablefile):
                 raise RuntimeError, ("Product %s %s has non-existent tablefile %s" %
@@ -1996,7 +1999,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         #
         if isinstance(productName, Product): # it's already a full Product
             assert recursionDepth <= 0
-            product = productName
+            product = productName; productName = product.name
         else:
             if self.root and recursionDepth == 0:
                 product = self.Product(productName, noInit=True)
@@ -2078,11 +2081,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 if True or not self.isSetup(keptProduct):
                     self.setup(keptProduct, recursionDepth=-9999)
 
-                if self.verbose:
+                if (keptProduct.version != versionName and self.verbose) or self.verbose > 1:
                     print >> sys.stderr, "            %s %s is already setup; keeping" % \
-                          (len(indent)*" " + product.name, product.version)
+                          (len(indent)*" " + keptProduct.name, keptProduct.version)
 
-                return True, versionName
+                return True, keptProduct.version
 
             self.unsetupSetupProduct(product)
 
@@ -2128,7 +2131,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 except RuntimeError:
                     pass
 
-        if not productDir:
+        if not productDir or productDir == "/dev/null":
             #
             # Look for productDir on self.path
             #
@@ -2187,53 +2190,72 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         except RuntimeError:
             _productDir, _tablefile = productDir, tablefile
 
-        if (_productDir and productDir != _productDir) or \
-               (_tablefile and tablefile != os.path.basename(_tablefile)):
-            if not self.force:
-                raise RuntimeError, ("Redeclaring %s %s; specify force to proceed" % (productName, versionName))
+        differences = []
+        if _productDir and productDir != _productDir:
+            differences += ["%s != %s" % (productDir, _productDir)]
+        if _tablefile and tablefile != os.path.basename(_tablefile):
+            differences += ["%s != %s" % (tablefile, os.path.basename(_tablefile))]
+
+        redeclare = True
+        if not differences:
+            redeclare = False
+        else:
+            if declare_current:
+                redeclare = False
+            else:
+                if not self.force:
+                    info = ""
+                    if self.verbose:
+                        info = " (%s)" % " ".join(differences)
+                    raise RuntimeError, ("Redeclaring %s %s%s; specify force to proceed" %
+                                         (productName, versionName, info))
         #
         # Arguments are checked; we're ready to go
         #
-        if self.noaction or self.verbose:
-            info = "Declaring"
-            if self.noaction or self.verbose > 1:
-                info += " %s as" % productDir
-            info += " %s %s" % (productName, versionName)
-            if declare_current:
-                info += " current"
-            info += " in %s" % (eupsPathDir)
+        if redeclare:
+            if self.noaction or self.verbose:
+                info = "Declaring"
+                if self.noaction or self.verbose > 1:
+                    if productDir == "/dev/null":
+                        info += " \"none\" as"
+                    else:
+                        info += " %s as" % productDir
+                info += " %s %s" % (productName, versionName)
+                if declare_current:
+                    info += " current"
+                info += " in %s" % (eupsPathDir)
 
-            print >> sys.stderr, info
-        #
-        # Create a Version
-        #
-        version = VersionFile(self, productName, versionName, productDir, tablefile, ups_dir)
-        #
-        # Merge in the old version of that Version, if it exists, and write the new file
-        #
-        try:
-            self.lockDB(eupsPathDir)
-
+                print >> sys.stderr, info
+            #
+            # Create a Version
+            #
+            version = VersionFile(self, productName, versionName, productDir, tablefile, ups_dir)
+            #
+            # Merge in the old version of that Version, if it exists, and write the new file
+            #
             try:
-                product = self.getProduct(productName, versionName, productDir)
-                version.merge(VersionFile(product.versionFileName()), self.who)
-            except RuntimeError: 
-                product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
+                self.lockDB(eupsPathDir)
 
-            vfile = ""
-            try:
-                vfile = product.versionFileName()
+                try:
+                    product = self.getProduct(productName, versionName, productDir)
+                    version.merge(VersionFile(product.versionFileName()), self.who)
+                except RuntimeError: 
+                    product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
 
-                if not self.noaction:
-                    fd = open(vfile + ".new~", "w")
-                    version.write(fd)
-                    del fd
+                vfile = ""
+                try:
+                    vfile = product.versionFileName()
 
-                    shutil.move(vfile + ".new~", vfile) # actually update the file
-            except Exception, e:
-                print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
-        finally:
-            self.lockDB(eupsPathDir, unlock=True)
+                    if not self.noaction:
+                        fd = open(vfile + ".new~", "w")
+                        version.write(fd)
+                        del fd
+
+                        shutil.move(vfile + ".new~", vfile) # actually update the file
+                except Exception, e:
+                    print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
+            finally:
+                self.lockDB(eupsPathDir, unlock=True)
         #
         # Declare it current if needs be
         #
@@ -2244,7 +2266,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 self.lockDB(eupsPathDir)
 
                 product = self.getProduct(productName, versionName, productDir)
-                current.merge(CurrentChain(product.currentFileName()), self.who)
+                try:
+                    current.merge(CurrentChain(product.currentFileName()), self.who)
+                except IOError:
+                    pass
 
                 cfile = ""
                 try:
@@ -2263,10 +2288,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         #
         # Update the cache
         #
-        product = self.getProduct(productName, versionName, productDir)
-        self.intern(product, updateDB=False, delete=True)
-        
-        self.getProduct(productName, versionName, productDir) # update the cache
+        if not self.noaction:
+            product = self.getProduct(productName, versionName, productDir)
+            self.intern(product, updateDB=False, delete=True)
+            
+            self.getProduct(productName, versionName, productDir) # update the cache
 
     def declareCurrent(self, productName, versionName, eupsPathDir=None):
         """Declare a product current"""
@@ -2346,7 +2372,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             #
             # Remove the VersionFile that we just created from productName from the live version list
             #
-            updatedVersion = VersionFile(product.versionFileName()).remove(version)
+            try:
+                updatedVersion = VersionFile(product.versionFileName()).remove(version)
+            except IOError:
+                updatedVersion = None   # OK, so it didn't exist
 
             vfile = ""
             try:
@@ -2357,7 +2386,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                           (productName, versionName, eupsPathDir)
 
                 if not self.noaction:
-                    if len(updatedVersion.info.keys()) == 0: # not declared for any flavor
+                    if not updatedVersion or len(updatedVersion.info.keys()) == 0: # not declared for any flavor
                         os.unlink(vfile)
                     else:
                         fd = open(vfile + ".new~", "w")
@@ -2365,6 +2394,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         del fd
 
                         shutil.move(vfile + ".new~", vfile) # actually update the file
+            except OSError, e:
+                pass
             except Exception, e:
                 print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
         finally:
