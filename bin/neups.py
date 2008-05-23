@@ -311,28 +311,31 @@ class Action(object):
 
     def __init__(self, cmd, args, extra):
         self.cmd = cmd
-        if args and args[0] == "-f":    # trim out uninteresting flavour specifications
-            args = args[2:]
+        try:
+            i = args.index("-f")
+            del args[i:i+2]
+        except ValueError:
+            pass
         self.args = args
         self.extra = extra
 
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
 
-    def execute(self, eups, recursionDepth, fwd=True):
+    def execute(self, Eups, recursionDepth, fwd=True):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
-            if recursionDepth == eups.max_depth + 1:
+            if recursionDepth == Eups.max_depth + 1:
                 return
 
-            self.execute_setupRequired(eups, recursionDepth, fwd)
+            self.execute_setupRequired(Eups, recursionDepth, fwd)
         elif self.cmd == Action.envPrepend:
-            self.execute_envPrepend(eups, fwd)
+            self.execute_envPrepend(Eups, fwd)
         elif self.cmd == Action.envSet:
-            self.execute_envSet(eups, fwd)
+            self.execute_envSet(Eups, fwd)
         elif self.cmd == Action.addAlias:
-            self.execute_addAlias(eups, fwd)
+            self.execute_addAlias(Eups, fwd)
         elif self.cmd == Action.prodDir or self.cmd == Action.setupEnv:
             pass
         else:
@@ -340,7 +343,7 @@ class Action(object):
     #
     # Here are the real execute routines
     #
-    def execute_setupRequired(self, eups, recursionDepth, fwd=True):
+    def execute_setupRequired(self, Eups, recursionDepth, fwd=True):
         """Execute setupRequired"""
 
         optional = self.extra
@@ -360,11 +363,11 @@ class Action(object):
         else:
             vers = Current
 
-        productOK, vers = eups.setup(productName, vers, fwd, recursionDepth)
+        productOK, vers = Eups.setup(productName, vers, fwd, recursionDepth)
         if not productOK and not optional:
             raise RuntimeError, ("Failed to setup required product %s %s" % (productName, vers))
 
-    def execute_envPrepend(self, eups, fwd=True):
+    def execute_envPrepend(self, Eups, fwd=True):
         """Execute envPrepend"""
 
         args = self.args
@@ -390,7 +393,7 @@ class Action(object):
                 if os.environ.has_key(key):
                     value = os.environ[key]
                 else:
-                  if eups.verbose > 0:
+                  if Eups.verbose > 0:
                       print >> sys.stderr, "$%s is not defined; not setting %s" % (key, value)
                       return
             except AttributeError:
@@ -416,12 +419,12 @@ class Action(object):
         if append_delim and not re.search(r"%s$" % delim, npath):
             npath += delim
 
-        if eups.force and eups.oldEnviron[envVar]:
-            del eups.oldEnviron[envVar]
+        if Eups.force and Eups.oldEnviron[envVar]:
+            del Eups.oldEnviron[envVar]
 
-        eups.setEnv(envVar, npath, interpolateEnv=True)
+        Eups.setEnv(envVar, npath, interpolateEnv=True)
 
-    def execute_addAlias(self, eups, fwd=True):
+    def execute_addAlias(self, Eups, fwd=True):
         """Execute addAlias"""
 
         args = self.args
@@ -429,15 +432,15 @@ class Action(object):
         key = args[0]
         if fwd:
             value = " ".join(args[1:])
-        if eups.force and eups.oldAliases[key]:
-            del eups.oldAliases[key]    # Does this actually work? 
+        if Eups.force and Eups.oldAliases[key]:
+            del Eups.oldAliases[key]    # Does this actually work? 
 
         if fwd:
-            eups.setAlias(key, value)
+            Eups.setAlias(key, value)
         else:
-            eups.unsetAlias(key)
+            Eups.unsetAlias(key)
 
-    def execute_envSet(self, eups, fwd=True):
+    def execute_envSet(self, Eups, fwd=True):
         """Execute envSet"""
 
         args = self.args
@@ -446,7 +449,7 @@ class Action(object):
         if fwd:
             value = args[1]
 
-        if eups.force and eups.oldEnviron[key]:
+        if Eups.force and Eups.oldEnviron[key]:
             del oldEnviron[key]
 
         if fwd:
@@ -455,15 +458,15 @@ class Action(object):
                 if os.environ.has_key(vkey):
                     value = os.environ[vkey]
                 else:
-                  if eups.verbose > 0:
+                  if Eups.verbose > 0:
                       print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
                       return
             except AttributeError:
                 pass
 
-            eups.setEnv(key, value, interpolateEnv=True)
+            Eups.setEnv(key, value, interpolateEnv=True)
         else:
-            eups.unsetEnv(key)
+            Eups.unsetEnv(key)
 
     def pathUnique(self, path):
         """Remove repeated copies of an element in a delim-delimited path; e.g. aa:bb:aa:cc -> aa:bb:cc"""
@@ -615,7 +618,7 @@ but no other interpretation is applied
                     value = re.sub(r"\${PRODUCTS}", product.db, value)
                     if product.dir:
                         value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
-                    value = re.sub(r"\${PRODUCT_FLAVOR}", product.eups.flavor, value)
+                    value = re.sub(r"\${PRODUCT_FLAVOR}", product.Eups.flavor, value)
                     value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
                     value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
@@ -754,7 +757,7 @@ but no other interpretation is applied
         return s
 
     def dependencies(self, Eups, eupsPathDirs=None):
-        """Return self's dependencies as a list of (Product, optional) tuples
+        """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
 
         N.b. the dependencies are not calculated recursively"""
 
@@ -765,13 +768,15 @@ but no other interpretation is applied
                     args = a.args[:]
                     if len(args) == 1:
                         args = (args[0], Current)
-                    deps += [(Eups.getProduct(args[0], args[1], eupsPathDirs), a.extra)]
+                        currentRequested = True
+                    else:
+                        args = (args[0], " ".join(args[1:]))
+                        currentRequested = False
+                    deps += [(Eups.getProduct(args[0], args[1], eupsPathDirs), a.extra, currentRequested)]
                 except RuntimeError, e:
-                    debug("dependencies", e, args)
                     if a.extra:         # product is optional
                         continue
 
-                    print >> sys.stderr, "Failed to find %s %s: %s" % (args[0], args[1], e)
                     raise
 
         return deps
@@ -1012,10 +1017,10 @@ Group:
 class Product(object):
     """Represent a version of a product"""
 
-    def __init__(self, eups, productName=None, version=None, noInit=False, eupsPathDirs=None):
+    def __init__(self, Eups, productName=None, version=None, noInit=False, eupsPathDirs=None):
         """Initialize a Product with the specified product and (maybe) version,
         using the eups parameters"""
-        self.eups = eups
+        self.Eups = Eups
 
         self.name = productName         # product's name
         self.version = version          # product's version
@@ -1037,7 +1042,7 @@ class Product(object):
                 self.initFromDirectory(productDir)
             else:
                 self.version, self.db, self.dir, tablefile = \
-                              self.eups.findVersion(productName, version, eupsPathDirs=eupsPathDirs)
+                              self.Eups.findVersion(productName, version, eupsPathDirs=eupsPathDirs)
                 self.table = Table(tablefile).expandEupsVariables(self)
 
     def init(self, versionName, flavor, eupsPathDir):
@@ -1049,7 +1054,7 @@ class Product(object):
             self.initFromDirectory(productDir)
         else:
             self.version, self.db, self.dir, tablefile = \
-                          self.eups.findFullySpecifiedVersion(self.name, versionName, flavor, eupsPathDir)
+                          self.Eups.findFullySpecifiedVersion(self.name, versionName, flavor, eupsPathDir)
             self.table = Table(tablefile).expandEupsVariables(self)
 
     def initFromSetupVersion(self):
@@ -1077,12 +1082,12 @@ class Product(object):
     def currentFileName(self):
         """Return a fully qualified versionfile name"""
 
-        return os.path.join(self.eups.getUpsDB(self.db), self.name, "current.chain")
+        return os.path.join(self.Eups.getUpsDB(self.db), self.name, "current.chain")
 
     def versionFileName(self):
         """Return a fully qualified versionfile name"""
 
-        return os.path.join(self.eups.getUpsDB(self.db), self.name, "%s.version" % self.version)
+        return os.path.join(self.Eups.getUpsDB(self.db), self.name, "%s.version" % self.version)
         
     def initFromDirectory(self, productDir):
         """Initialize product given only its directory.  This is needed for
@@ -1090,14 +1095,14 @@ class Product(object):
         than via a setup command; in the former case it needn't even be declared to eups"""
 
         self.version = "LOCAL:" + productDir
-        self.eups.localVersions[self.name] = productDir
+        self.Eups.localVersions[self.name] = productDir
         self.db = "(none)"
         self.dir = productDir
         self.table = Table(self.tableFileName()).expandEupsVariables(self)
         
     def __str__(self):
         s = ""
-        s += "%s %s -f %s -Z %s" % (self.name, self.version, self.eups.flavor, self.db)
+        s += "%s %s -f %s -Z %s" % (self.name, self.version, self.Eups.flavor, self.db)
 
         return s
 
@@ -1117,7 +1122,7 @@ class Product(object):
     def getSetupVersion(self):
         """Return the version, flavor and eupsPathDir for an already-setup product"""
 
-        return self.eups.findSetupVersion(self.name)
+        return self.Eups.findSetupVersion(self.name)
 
     def checkCurrent(self, isCurrent=None):
         """check if product is current.  This shouldn't be needed if update the db when declaring products"""
@@ -1126,7 +1131,7 @@ class Product(object):
             self._current = isCurrent
         else:
             try:
-                cdb, cversion, cvinfo = self.eups.findCurrentVersion(self.name)
+                cdb, cversion, cvinfo = self.Eups.findCurrentVersion(self.name)
                 self._current = (cdb == self.db and cversion == self.version)
             except RuntimeError:
                 self._current = False
@@ -1137,11 +1142,10 @@ class Product(object):
         """Is the Product current?"""
         return self._current
 
-
     def dependencies(self, eupsPathDirs=None):
-        """Return self's dependencies as a list of (Product, optional) tuples"""
+        """Return self's dependencies as a list of (Product, optional, currentRequested) tuples"""
 
-        return [(self, False)] + self.table.dependencies(self.eups, eupsPathDirs)
+        return [(self, False, False)] + self.table.dependencies(self.Eups, eupsPathDirs)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1605,8 +1609,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         vinfo = _vinfo
 
                         if cvinfo and versionName != cversionName and self.verbose > 0 + self.quiet:
-                            print >> sys.stderr, "Using version %s to satisfy \"%s\" (%s is current)" % \
-                                  (versionName, expr, cversionName)
+                            print >> sys.stderr, "Using %s version %s to satisfy \"%s\" (%s is current)" % \
+                                  (productName, versionName, expr, cversionName)
 
                         extra = ""
                         if self.verbose >= 3 + self.quiet:
@@ -1728,7 +1732,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 if self.verbose > 2:
                     print >> sys.stderr, "Found %s %s in cache" % (productName, versionName)
 
-                product.eups = self     # don't use the cached Eups
+                product.Eups = self     # don't use the cached Eups
 
                 if foundCurrent:
                     product.checkCurrent(True)
@@ -1984,9 +1988,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         d = self.versions
 
-        if not d.has_key(product.eups.flavor):
-            d[product.eups.flavor] = {}
-        d = d[product.eups.flavor]            
+        if not d.has_key(product.Eups.flavor):
+            d[product.Eups.flavor] = {}
+        d = d[product.Eups.flavor]            
 
         if not d.has_key(product.db):
             d[product.db] = {}
@@ -2113,7 +2117,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             self.setEnv(product.envarDirName(), product.dir)
             self.setEnv(product.envarSetupName(),
-                        "%s %s -f %s -Z %s" % (product.name, product.version, product.eups.flavor, product.db))
+                        "%s %s -f %s -Z %s" % (product.name, product.version, product.Eups.flavor, product.db))
         else:
             if product.dir in self.localVersions.keys():
                 del self.localVersions[product.dir]
@@ -2389,7 +2393,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 self.lockDB(eupsPathDir, unlock=True)
 
         if undeclare_current:           # we're done
-            return
+            return True
         #
         # Create a Version
         #
@@ -2431,6 +2435,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         finally:
             self.lockDB(eupsPathDir, unlock=True)
 
+        return True
+
     def listProducts(self, productName=None, productVersion=None, current=False, setup=False):
         """Return a list of (name, version, db, product.dir, isCurrent, isSetup)"""
 
@@ -2454,7 +2460,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         continue
 
                     product = self.versions[self.flavor][db][name][version]
-                    product.eups = self     # don't use the cached Eups
+                    product.Eups = self     # don't use the cached Eups
 
                     isCurrent = product.checkCurrent()
                     isSetup = self.isSetup(product, version, db)
@@ -2501,13 +2507,282 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
-        for (product, optional) in Table(tablefile).dependencies(self, eupsPathDirs):
-            dependencies += [(product.name, optional)]
+        for (product, optional, currentRequested) in Table(tablefile).dependencies(self, eupsPathDirs):
+            dependencies += [(product.name, optional, currentRequested)]
 
-        return dependencies        
+        return dependencies
+
+    def remove(self, productName, versionName, recursive, checkRecursive=False, interactive=False, userInfo=None):
+        """Undeclare and remove a product.  If recursive is true also remove everything that
+        this product depends on; if checkRecursive is True, you won't be able to remove any
+        product that's in use elsewhere unless force is also True.
+
+        N.b. The checkRecursive option is quite slow (it has to parse
+        every table file on the system).  If you're calling remove
+        repeatedly, you can pass in a userInfo object (returned by
+        self.uses(None)) to save remove() having to processing those
+        table files on every call."""
+        #
+        # Gather the required information
+        #
+        if checkRecursive and not userInfo:
+            if self.verbose:
+                print >> sys.stderr, "Calculating product dependencies recursively..."
+            userInfo = uses(self)
+        else:
+            userInfo = None
+
+        topProduct = productName
+        topVersion = versionName
+        #
+        # Figure out what to remove
+        #
+        productsToRemove = self._remove(productName, versionName, recursive, checkRecursive,
+                                        topProduct, topVersion, userInfo)
+
+        productsToRemove = list(set(productsToRemove)) # remove duplicates
+        #
+        # Actually wreak destruction. Don't do this in _remove as we're relying on the static userInfo
+        #
+        default_yn = "y"                    # default reply to interactive question
+        for product in productsToRemove:
+            dir = product.dir
+            if not dir:
+                raise RuntimeError, \
+                      ("Product %s with version %s doesn't seem to exist" % (product.name, product.version))
+
+            if interactive:
+                yn = default_yn
+                while yn != "!":
+                    yn = raw_input("Remove %s %s: (ynq!) [%s] " % (product.name, product.version, default_yn))
+
+                    if yn == "":
+                        yn = default_yn
+                    if yn == "y" or yn == "n" or yn == "!":
+                        default_yn = yn
+                        break
+                    elif yn == "q":
+                        return
+                    else:
+                        print >> sys.stderr, "Please answer y, n, q, or !, not %s" % yn
+
+                if yn == "n":
+                    continue
+
+            if not self.undeclare(product.name, product.version, undeclare_current=False):
+                raise RuntimeError, ("Not removing %s %s" % (product.name, product.version))
+
+            if dir and dir != "none":
+                if self.noaction:
+                    print "rm -rf %s" % dir
+                else:
+                    try:
+                        shutil.rmtree(dir)
+                    except OSError, e:
+                        raise RuntimeError, e
+
+    def _remove(self, productName, versionName, recursive, checkRecursive, topProduct, topVersion, userInfo):
+        """The workhorse for remove"""
+
+        try:
+            product = Product(self, productName, versionName)
+        except RuntimeError, e:
+            raise RuntimeError, ("product %s %s doesn't seem to exist" % (productName, versionName))
+
+        deps = [(product, False)]
+        if recursive:
+            deps += product.dependencies()
+
+        productsToRemove = []
+        for product, o in deps:
+            if checkRecursive:
+                usedBy = filter(lambda el: el[0] != topProduct or el[1] != topVersion,
+                                userInfo.users(product.name, product.version))
+
+                if usedBy:
+                    tmp = []
+                    for user in usedBy:
+                        tmp += ["%s %s" % (user[0], user[1])]
+
+                    if len(tmp) == 1:
+                        plural = ""
+                        tmp = str(tmp[0])
+                    else:
+                        plural = "s"
+                        tmp = "(%s)" % "), (".join(tmp)
+
+                    msg = "%s %s is required by product%s %s" % (product.name, product.version, plural, tmp)
+
+                    if self.force:
+                        print >> sys.stderr, "%s; removing anyway" % (msg)
+                    else:
+                        print >> sys.stderr, "%s; specify force to remove" % (msg)
+                        continue
+
+            if recursive:
+                productsToRemove += self._remove(product.name, product.version, (product.name != productName),
+                                                 checkRecursive, topProduct=topProduct, topVersion=topVersion,
+                                                 userInfo=userInfo)
+
+            productsToRemove += [product]
+                
+        return productsToRemove
+
+    def uses(self, productName=None, versionName=None, depth=9999):
+        """Return a list of all products which depend on the specified product in the form of a list of tuples
+        (productName, productVersion, (versionNeeded, optional))
+
+        depth tells you how indirect the setup is (depth==1 => product is setup in table file,
+        2 => we set up another product with product in its table file, etc.)
+
+        versionName may be None in which case all versions are returned.  If product is also None,
+        a Uses object is returned which may be used to perform further uses searches efficiently
+    """
+        useInfo = Uses()
+
+        if not productName and versionName:
+            raise RuntimeError, ("You may not specify a version \"%s\"but not a product" % versionName)
+
+        if True:
+            productList = self.listProducts(None)
+        else:                               # debug code only!
+            prods = ("test", "test2", "test3", "boo", "goo", "hoo")
+            #prods = (["test"])
+            #prods = (["astrotools"])
+            #prods = (["afw"])
+
+            productList = []
+            for p in prods:
+                for pl in self.list(p):
+                    productList += [pl]
+
+        if not productList:
+            return []
+
+        for (p, v, db, dir, isCurrent, isSetup) in productList: # for every known product
+            try:
+                deps = Product(self, p, v).dependencies() # lookup top-level dependencies
+            except RuntimeError, e:
+                print >> sys.stderr, ("Setting up %s %s: %s" % (p, v, e))
+                continue
+
+            for pd, od, currentRequested in deps:
+                if p == pd.name and v == pd.version:
+                    continue
+
+                useInfo._remember(p, v, (pd.name, pd.version, od, currentRequested))
+
+        useInfo._invert(depth)
+        #
+        # OK, we have the information stored away
+        #
+        if not productName:
+            return useInfo
+
+        consumerList = useInfo.users(productName, versionName)
+
+        return consumerList
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Cache for the Uses tree
+#
+class Uses(object):
+    def __init__(self):
+        self._depends_on = {} # info about products that depend on key
+        self._setup_by = {}       # info about products that setup key, directly or indirectly
+
+    def _getKey(self, p, v):
+        return "%s:%s" % (p, v)
+
+    def _remember(self, p, v, info):
+        key = self._getKey(p, v)
+
+        if not self._depends_on.has_key(key):
+            self._depends_on[key] = []
+
+        self._depends_on[key] += [info]
+
+    def _do_invert(self, productName, versionName, k, depth, optional=False):
+        """Workhorse for _invert"""
+        if depth <= 0 or not self._depends_on.has_key(k):
+            return
+        
+        for p, v, o, c in self._depends_on[k]:
+            o = o or optional
+
+            key = self._getKey(p, v)
+            if not self._setup_by.has_key(key):
+                self._setup_by[key] = []
+
+            self._setup_by[key] += [(productName, versionName, (v, o))]
+
+            self._do_invert(productName, versionName, self._getKey(p, v), depth - 1, o)
+
+    def _invert(self, depth):
+        """ Invert the dependencies to tell us who uses what, not who depends on what"""
+        pattern = re.compile(r"^(?P<product>[\w]+):(?P<version>[\w.+\-]+)")
+
+        self._setup_by = {}
+        for k in self._depends_on.keys():
+            mat = pattern.match(k)
+            assert mat
+
+            productName = mat.group("product")
+            versionName = mat.group("version")
+
+            self._do_invert(productName, versionName, k, depth)
+
+        if False:
+            for k in self._depends_on.keys():
+                print "%-30s" % k, self._depends_on[k]
+        if False:
+            print; print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; print
+        if False:
+            for k in self._setup_by.keys():
+                print "XX %-20s" % k, self._setup_by[k]
+        #
+        # Make values in _setup_by unique
+        #
+        for k in self._setup_by.keys():
+            self._setup_by[k] = list(set(self._setup_by[k]))
+
+    def users(self, productName, versionName=None):
+        """Return a list of the users of productName/productVersion; each element of the list is:
+        (user, userVersion, (productVersion, optional)"""
+        if versionName:
+            versionName = re.escape(versionName)
+        else:
+            versionName = r"[\w.+\-]+"
+            
+        versionName = r"(?P<version>%s)" % versionName
+
+        pattern = re.compile(r"^%s$" % self._getKey(productName, versionName))
+        consumerList = []
+        for k in self._setup_by.keys():
+            mat = pattern.match(k)
+            if mat:
+                consumerList += (self._setup_by[k])
+        #
+        # Be nice; sort list
+        #
+        def pvsort(a,b):
+            """Sort by product then version then information"""
+
+            if a[0] == b[0]:
+                if a[1] == b[1]:
+                    return cmp(a[2], b[2])
+                else:
+                    return cmp(a[1], b[1])
+            else:
+                return cmp(a[0], b[0])
+
+        consumerList.sort(pvsort)
+        
+        return consumerList
+        
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def flavor():

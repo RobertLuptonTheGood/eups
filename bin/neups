@@ -18,8 +18,6 @@ import eupsGetopt
 # Flags that don't really have short forms are specified with non-printable options
 #
 debugFlag = "-\001"
-installFlavorFlag = "-\002"
-tarballFlag = "-\003"
 
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
@@ -89,6 +87,8 @@ elif cmd == "distrib":
     helpStr = "eups_distrib [options] [product [version]]"
     narg = (0, 2)
 
+    installFlavorFlag = "-\002"
+    tarballFlag = "-\003"
     options["-b"] = (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")
     options["-B"] = (True,  "--build", "Search for build files on this :-separated path\n(@ -> product's installed ups directory)")
     options["-C"] = (False, "--current", "Create a list of current versions which -i can use")
@@ -114,10 +114,25 @@ elif cmd == "list":
     options["-d"] = (False,  "--directory", "Print product directory (useful with -s)")
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
+elif cmd == "remove":
+    helpStr += " product version\nRemove a product"
+    narg = 2
+
+    noInteractiveFlag = "-\002"
+    options["-i"] = (False, "--interactive", "Prompt user before actually removing products (default if -R)")
+    options[noInteractiveFlag] = (False, "--noInteractive", "Don't prompt user before actually removing products")
+    options["-N"] = (False, "--noCheck", "Don't check whether recursively removed products are needed")
+    options["-R"] = (False, "--recursive", "Recursively also remove everything that this product depends on")
 elif cmd == "undeclare":
     helpStr += " product version\nUndeclare a product"
     narg = 2
     options["-c"] = (False,  "--current", "Stop version from being current")
+elif cmd == "uses":
+    helpStr += "product [version]"
+    narg = (1,2)
+    options["-c"] = (False,  "--current", "Look for users of current version")
+    options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
+    options["-o"] = (False, "--optional", "Show optional setups")
 
 if isinstance(narg, int):
     narg = (narg, narg)
@@ -187,7 +202,7 @@ def main(cmd, opts):
         tablefile = opts.options.get('-m', None)
         externalTablefile = opts.options.get('-M', None)
 
-        productName, productVersion = opts.argv[0:2]
+        productName, versionName = opts.argv[0:2]
 
         if tablefile and externalTablefile:
             print >> sys.stderr, "You may not specify both -m and -M"
@@ -203,12 +218,12 @@ def main(cmd, opts):
                     print >> sys.stderr, ("Error opening %s: %s" % (externalTablefile, e))
                     sys.exit(1)
 
-        Eups.declare(productName, productVersion, productDir=productDir, tablefile=tablefile,
+        Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
                      declare_current=declare_current)
-    elif cmd in ["expandbuild", "expandtable", "pkg-config", "remove", "uses"]:
+    elif cmd in ["expandbuild", "expandtable", "pkg-config"]:
         cmd = "$EUPS_DIR/bin/cmd_%s %s" % (cmd, " ".join(sys.argv[1:]))
         try:
-            system(cmd, Eups.noaction)
+            eups.system(cmd, Eups.noaction)
         except OSError, e:
             print >> sys.stderr, e
     elif cmd == "distrib":
@@ -319,13 +334,13 @@ def main(cmd, opts):
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
 
-        productName, productVersion = None, None
+        productName, versionName = None, None
         if opts.argv:
             productName = opts.argv.pop(0)
         if opts.argv:
-            productVersion = opts.argv.pop(0)
+            versionName = opts.argv.pop(0)
 
-        listProducts(Eups, productName, productVersion,
+        listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory)
     elif cmd == "path":
         _path = Eups.path
@@ -346,30 +361,42 @@ def main(cmd, opts):
         
         for p in _path:
             print p
+    elif cmd == "remove":
+        recursive = opts.options.get('-R', False)
+        interactive = (recursive or opts.options.get('-i', False)) and not opts.options.get(noInteractiveFlag)
+        noCheck = opts.options.get('-N', False)
+
+        productName = opts.argv.pop(0)
+        if opts.argv:
+            versionName = opts.argv.pop(0)
+        else:
+            versionName = None
+
+        Eups.remove(productName, versionName, recursive, checkRecursive=not noCheck, interactive=interactive)
     elif cmd == "setup" or cmd == "unsetup":
         print "Please use the command \"%s\" which modifies your environment" % " ".join([cmd] + opts + argv)
     elif cmd == "undeclare":
         undeclare_current = opts.options.get('-c', False)
 
-        productName, productVersion = opts.argv[0:2]
+        productName, versionName = opts.argv[0:2]
 
-        Eups.undeclare(productName, productVersion, undeclare_current=undeclare_current)
+        Eups.undeclare(productName, versionName, undeclare_current=undeclare_current)
+    elif cmd == "uses":
+        current = opts.options.get('-c', False)
+        depth = int(opts.options.get('-d', "9999"))
+        showOptional = opts.options.get('-o', False)
+
+        productName = opts.argv.pop(0)
+        if opts.argv:
+            if current:
+                raise RuntimeError, "You may not specify a version and --current"
+            versionName = opts.argv.pop(0)
+        else:
+            versionName = None
+
+        eupsUses(Eups, productName, versionName, depth, showOptional, current)
     else:
         print "Unknown eups command \"%s\"" % cmd
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-def system(cmd, noaction=False):
-    """Run a command, throwing an exception if a non-zero exit code is returned
-    Obeys noaction"""
-
-    if noaction:
-        print cmd
-    else:
-        errno = os.system(cmd)
-        if errno != 0:
-            raise OSError, ("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno >> 8)))
-
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -412,10 +439,10 @@ def distrib(Distrib, desire, productName, versionName, manifest=None, current=Fa
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def listProducts(Eups, productName=None, productVersion=None,
+def listProducts(Eups, productName=None, versionName=None,
                  current=False, setup=False, tablefile=False, directory=False):
 
-    productList = Eups.listProducts(productName, productVersion, current, setup)
+    productList = Eups.listProducts(productName, versionName, current, setup)
     
     for name, version, db, productDir, isCurrent, isSetup in productList:
         info = ""
@@ -458,6 +485,41 @@ def listProducts(Eups, productName=None, productVersion=None,
                 info += "\t" + " ".join(extra)
 
         print info
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def eupsUses(Eups, productName, versionName, depth, showOptional, current):
+    #
+    # To work
+    #
+    userList = Eups.uses(productName, versionName, depth)
+
+    fmt = "%-20s %-15s"
+    if versionName:                             # we know the product version, so don't print it again
+        print fmt % ("product", "version")
+    else:
+        fmt += " %-15s"
+        print fmt % ("product", "version", "%s version" % productName)
+
+    for (p, pv, requestedInfo) in userList:
+        requestedVersion, optional, currentRequested = requestedInfo
+
+        if optional and not showOptional:
+            continue
+
+        if current and not currentRequested:
+            continue
+
+        if versionName:
+            str = fmt % (p, pv)
+        else:
+            str = fmt % (p, pv, requestedVersion)
+
+        if showOptional:
+            if optional:
+                str += "Optional"
+
+        print str
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

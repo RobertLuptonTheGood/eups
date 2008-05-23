@@ -466,7 +466,7 @@ def create(Distrib, top_productName, top_version, manifest):
     else:
         top_product = Distrib.Eups.Product(top_productName, top_version)
         productList = []
-        for (product, optionalInTable) in top_product.dependencies():
+        for (product, optionalInTable, currentRequested) in top_product.dependencies():
             productList += [(product.name, product.version, optionalInTable)]
 
     products = []
