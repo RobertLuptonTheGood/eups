@@ -17,7 +17,7 @@ import eupsGetopt
 #
 # Flags that don't really have short forms are specified with non-printable options
 #
-raiseFlag = "-\001"
+debugFlag = "-\001"
 installFlavorFlag = "-\002"
 tarballFlag = "-\003"
 
@@ -30,7 +30,7 @@ options = {
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
-    raiseFlag : (False,  "--raise", "Allow eups to raise exceptions --- debugging only"),
+    debugFlag : (True,  "--debug", "Permitted Values: raise"),
     }
 aliases = {
     "-Z" : ["--with-eups"],
@@ -140,7 +140,9 @@ if opts.options.get('-V'):
     print >> sys.stderr, "Version: %s" % eups.version()
     sys.exit(0)    
 
-allowRaise = opts.options.get(raiseFlag, False)
+debugOptions = opts.options.get(debugFlag, "").split(":")
+if debugOptions:
+    allowRaise = "raise" in debugOptions
 dbz = opts.options.get('-z')
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
@@ -413,7 +415,7 @@ def distrib(Distrib, desire, productName, versionName, manifest=None, current=Fa
 def listProducts(Eups, productName=None, productVersion=None,
                  current=False, setup=False, tablefile=False, directory=False):
 
-    productList = Eups.listProducts(productName, productVersion, current, setup, tablefile, directory)
+    productList = Eups.listProducts(productName, productVersion, current, setup)
     
     for name, version, db, productDir, isCurrent, isSetup in productList:
         info = ""

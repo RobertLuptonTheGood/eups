@@ -7,6 +7,8 @@ import eupsGetopt
 #
 # Deal with arguments
 #
+debugFlag = "-\001"
+
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
@@ -26,6 +28,7 @@ options = {
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    debugFlag : (True,  "--debug", "Permitted Values: raise"),
     }
 aliases = {}
 
@@ -47,6 +50,9 @@ if opts.options.get('-V'):
     print >> sys.stderr, "Version: %s" % eups.version()
     sys.exit(0)    
 
+debugOptions = opts.options.get(debugFlag, "").split(":")
+if debugOptions:
+    allowRaise = "raise" in debugOptions
 dbz = opts.options.get('-z')
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
@@ -98,6 +104,8 @@ try:
     tmpfile = eups.setup(Eups, productName, version, fwd=not unsetup)
 except RuntimeError, e:
     print >> sys.stderr, e
+    if allowRaise:
+        raise
     sys.exit(1)
 
 if tmpfile:

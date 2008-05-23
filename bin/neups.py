@@ -311,6 +311,8 @@ class Action(object):
 
     def __init__(self, cmd, args, extra):
         self.cmd = cmd
+        if args and args[0] == "-f":    # trim out uninteresting flavour specifications
+            args = args[2:]
         self.args = args
         self.extra = extra
 
@@ -751,6 +753,29 @@ but no other interpretation is applied
 
         return s
 
+    def dependencies(self, Eups, eupsPathDirs=None):
+        """Return self's dependencies as a list of (Product, optional) tuples
+
+        N.b. the dependencies are not calculated recursively"""
+
+        deps = []
+        for a in self.actions(Eups.flavor):
+            if a.cmd == Action.setupRequired:
+                try:
+                    args = a.args[:]
+                    if len(args) == 1:
+                        args = (args[0], Current)
+                    deps += [(Eups.getProduct(args[0], args[1], eupsPathDirs), a.extra)]
+                except RuntimeError, e:
+                    debug("dependencies", e, args)
+                    if a.extra:         # product is optional
+                        continue
+
+                    print >> sys.stderr, "Failed to find %s %s: %s" % (args[0], args[1], e)
+                    raise
+
+        return deps
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class VersionFile(object):
@@ -1116,24 +1141,7 @@ class Product(object):
     def dependencies(self, eupsPathDirs=None):
         """Return self's dependencies as a list of (Product, optional) tuples"""
 
-        deps = [(self, False)]
-        #
-        # Process table file
-        #
-        table = self.table
-            
-        for a in table.actions(self.eups.flavor):
-            if a.cmd == Action.setupRequired:
-                try:
-                    deps += [(self.eups.getProduct(a.args[0], a.args[1], eupsPathDirs), a.extra)]
-                except RuntimeError, e:
-                    debug(e)
-                    if a.extra:         # product is optional
-                        continue
-
-                    print >> sys.stderr, "Failed to find %s %s: %s" % (a.args[0], a.args[1], e)
-
-        return deps
+        return [(self, False)] + self.table.dependencies(self.eups, eupsPathDirs)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1493,7 +1501,7 @@ class Eups(object):
                     raise RuntimeError, ("Unable to find current version %s of %s for flavor %s" %
                                          (versionName, productName, self.flavor))
                 except KeyError:
-                    raise RuntimeError, ("Product %s has no current version for flavor %s" % (productName, self.flavor))
+                    pass                # not current in this eupsPathDir
 
         if not vinfo:                       # no version is available
             raise RuntimeError, \
@@ -1787,7 +1795,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not os.environ.has_key(product.envarSetupName()):
             return False
         
-        sversion, sflavor, seupsPathDir = product.getSetupVersion()
+        try:
+            sversion, sflavor, seupsPathDir = product.getSetupVersion()
+        except RuntimeError:
+            return False
 
         if not sversion:
             return False
@@ -2061,7 +2072,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             #
             # Are we already setup?
             #
-            sversionName, sflavor, seupsPathDir = product.getSetupVersion()
+            try:
+                sversionName, sflavor, seupsPathDir = product.getSetupVersion()
+            except RuntimeError, e:
+                sversionName = None
+                
             if versionName and sversionName:
                 if versionName == sversionName: # already setup
                     if recursionDepth <= 0: # top level should be resetup if that's what they asked for
@@ -2416,8 +2431,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         finally:
             self.lockDB(eupsPathDir, unlock=True)
 
-    def listProducts(self, productName=None, productVersion=None,
-                     current=False, setup=False, tablefile=False, directory=False):
+    def listProducts(self, productName=None, productVersion=None, current=False, setup=False):
+        """Return a list of (name, version, db, product.dir, isCurrent, isSetup)"""
+
         productList = []
 
         if not self.versions.has_key(self.flavor):
@@ -2479,6 +2495,16 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         productList.sort(sort_versions)
 
         return productList
+
+    def dependencies_from_table(self, tablefile, eupsPathDirs=None):
+        """Return self's dependencies as a list of (Product, optional) tuples
+
+        N.b. the dependencies are not calculated recursively"""
+        dependencies = []
+        for (product, optional) in Table(tablefile).dependencies(self, eupsPathDirs):
+            dependencies += [(product.name, optional)]
+
+        return dependencies        
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 

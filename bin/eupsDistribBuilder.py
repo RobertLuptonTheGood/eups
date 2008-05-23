@@ -15,14 +15,17 @@ import eupsDistrib
 class Distrib(eupsDistrib.Distrib):
     """Handle distribution via curl/cvs/svn and explicit build files"""
 
-    def getDistID(self, productName, versionName, basedir, productDir):
-        """Given a buildfile (which contains information about its' CVS/SVN root,
-        write a small file to the manifest directory allowing us to bootstrap the
-        build.  The build file is looked for in buildFilePath, a : separated set of
-        directories ("" -> the installed product's ups directory)"""
+    def createPackage(self, productName, versionName, baseDir, productDir):
+        """Create a package (which basically means locating a
+        buildfile which contains information about its CVS/SVN root,
+        Then write a small file to the manifest directory allowing us to
+        bootstrap the build.  The build file is looked for in
+        buildFilePath, a : separated set of directories ("" -> the installed
+        product's ups directory).  Then return a distribution ID
+        """
 
         builder = "%s-%s.build" % (productName, versionName)
-        buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(basedir, productDir, "ups"))
+        buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:
             print >> sys.stderr, \
@@ -80,10 +83,13 @@ class Distrib(eupsDistrib.Distrib):
 
         return "build:" + builder
 
-    def doInstall(self, distId, products_root, setups):
+    def installPackage(self, distID, products_root, setups):
         """Setups is a list of setup commands needed to build this product"""
 
-        builder = re.search(r"build:(.*)", distId).group(1)
+        try:
+            builder = re.search(r"build:(.*)", distID).group(1)
+        except AttributeError:
+            raise RuntimeError, ("Expected distribution ID of form build:*; saw \"%s\"" % distID)
 
         tfile = self.find_file(builder)
 

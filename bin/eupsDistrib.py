@@ -11,11 +11,7 @@ import pdb
 import tempfile
 import shutil
 import urllib, urllib2
-if True:
-    import eups
-    import neups
-else:
-    import neups as eups
+import neups as eups
 
 author = "Robert Lupton (rhl@astro.princeton.edu)"
 eups_distrib_version = "1.0"
@@ -51,16 +47,16 @@ class Distrib(object):
     #
     # This is really an abstract base class, but provide dummies to help the user
     #
-    def getDistID(self, productName, versionName, basedir=None, productDir=None):
-        """Return a distribution ID """
+    def createPackage(self, productName, versionName, baseDir=None, productDir=None):
+        """Create a package and return the distribution ID """
 
-        neups.debug("getDistID", productName, versionName)
+        eups.debug("createPackage", productName, versionName)
 
+    def installPackage(self, distID, productsRoot, setups):
+        """Install the package identified by distID into productsRoot;
+        Setups is a list of setup commands needed to build this product"""
 
-    def doInstall(self, cacheId, products_root, setups):
-        """Setups is a list of setup commands needed to build this product"""
-
-        neups.debug("doInstall", cacheId, products_root)
+        eups.debug("installPackage", cacheId, productsRoot)
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -203,12 +199,12 @@ class Distrib(object):
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     def read_manifest(self, top_product, top_version, manifest):
-        """Read a manifest and return the product and version, and products_root, top_version, and a list of products"""
+        """Read a manifest and return the product and version, and productsRoot, top_version, and a list of products"""
 
-        products_root = self.Eups.path[0]
-        flavor_dir = "%s/%s" % (products_root, self.Eups.flavor)    # where to install
-        if True or os.path.isdir(flavor_dir): # Always use the flavor_dir as products_root
-            products_root = flavor_dir
+        productsRoot = self.Eups.path[0]
+        flavor_dir = "%s/%s" % (productsRoot, self.Eups.flavor)    # where to install
+        if True or os.path.isdir(flavor_dir): # Always use the flavor_dir as productsRoot
+            productsRoot = flavor_dir
 
         if manifest:
             raw_manifest = manifest
@@ -275,7 +271,7 @@ class Distrib(object):
             except:
                 raise RuntimeError, ("Failed to parse line:", line)
 
-        return manifest_product, manifest_product_version, products_root, top_version, products
+        return manifest_product, manifest_product_version, productsRoot, top_version, products
 
     def find_file_on_path(self, file, auxDir = None):
         """Look for a file on the :-separated buildFilePath, looking in auxDir if
@@ -442,7 +438,7 @@ def create(Distrib, top_productName, top_version, manifest):
         try:
             os.makedirs(Distrib.packageBase)
         except:
-            raise RuntimeError, ("Failed to create", Distrib.packageBase)
+            raise RuntimeError, ("Failed to create %s" % Distrib.packageBase)
 
     if not top_version:
         top_version = Distrib.lookup_current_version(top_productName, True)
@@ -455,61 +451,51 @@ def create(Distrib, top_productName, top_version, manifest):
             if Distrib.Eups.verbose > 0:
                 print >> sys.stderr, "Unable to find a table file for %s" % productName
             if os.path.exists(os.path.join("ups", "%s.table" % productName)):
-                print >> sys.stderr, "N.b. found %s.table in ./ups; consider adding ./ups to --build path" % (productName)
+                print >> sys.stderr, \
+                      "N.b. found %s.table in ./ups; consider adding ./ups to --build path" % (productName)
                 
             ptablefile = "none"
 
-        productList = [(productName, top_version, None, False)]
-        dependencies = eups.dependencies_from_table(ptablefile, Distrib.Eups.verbose)
+        productList = [(productName, top_version, False)]
+        dependencies = Distrib.Eups.dependencies_from_table(ptablefile)
         if dependencies:
             for (productName, version, optional) in dependencies:
                 if not version:
-                    version = eups.current(productName)
-                productList += [(productName, version, Distrib.installFlavor, optional)]
+                    version = Distrib.Eups.findCurrentVersion(productName)[1]
+                productList += [(productName, version, optional)]
     else:
         top_product = Distrib.Eups.Product(top_productName, top_version)
-        productList0 = top_product.dependencies()
-        #
-        # Now look to see if they're optional
-        #
-        try:
-            table_dependencies = eups.dependencies_from_table(eups.table(top_productName, top_version, dbz, flavor),
-                                                              Distrib.Eups.verbose)
-
-            productList = []
-            for (productName, version, productFlavor, optionalInTable) in productList0:
-                optional = optionalInTable or filter(lambda p: p[0] == productName and p[2], table_dependencies) != []
-                productList += [(productName, version, productFlavor, optional)]
-        except RuntimeError, msg:
-            productList = productList0
+        productList = []
+        for (product, optionalInTable) in top_product.dependencies():
+            productList += [(product.name, product.version, optionalInTable)]
 
     products = []
-    for (productName, version, productFlavor, optional) in productList:
+    for (productName, version, optional) in productList:
         if Distrib.Eups.verbose > 1:
             print "Product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
 
         if productName == top_productName and Distrib.noeups:
-            basedir, pdb, pdir = None, None, None
-            product_dir = "/dev/null"
+            baseDir, pdb, pdir = None, None, None
+            productDir = "/dev/null"
         else:
             try:
-                (pversion, pdb, pdir, pcurrent, psetup) = eups.list(productName, version, dbz, flavor)
+                (pname, pversion, pdb, pdir, pcurrent, psetup) = Distrib.Eups.listProducts(productName, version)[0]
             except KeyboardInterrupt:
                 sys.exit(1)
-            except:
+            except Exception, e:
                 print >> sys.stderr, "WARNING: Failed to lookup directory for", \
                       "product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
                 continue
 
             try:
-                ptablefile = eups.table(productName, version, dbz, flavor)
+                ptablefile = Distrib.Eups.Product(productName, version).table.file
                 if ptablefile == "":
                     ptablefile = " "
             except KeyboardInterrupt:
                 sys.exit(1)                    
-            except:
+            except Exception, e:
                 print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
-                      "product:", productName, "  Flavor:", flavor, "  Version:", version
+                      "product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
                 continue
 
             if pversion != version:
@@ -518,10 +504,10 @@ def create(Distrib, top_productName, top_version, manifest):
             # We have the product's directory, and which DB it's registered in
             #
             if pdir == "none":
-                basedir = ""; product_dir = pdir
+                baseDir = ""; productDir = pdir
             else:
                 try:
-                    (basedir, product_dir) = re.search(r"^(\S+)/(%s/\S*)$" % (productName), pdir).groups()
+                    (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (productName), pdir).groups()
                 except:
                     if Distrib.Eups.verbose > 1:
                         print >> sys.stderr, "Split of \"%s\" at \"%s\" failed; proceeding" \
@@ -531,19 +517,19 @@ def create(Distrib, top_productName, top_version, manifest):
                         continue
                     else:
                         try:
-                            (basedir, product_dir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pdir).groups()
+                            (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pdir).groups()
                             if Distrib.Eups.verbose > 1:
                                 print >> sys.stderr, "Guessing \"%s\" has productdir \"%s\"" \
-                              % (pdir, product_dir)
+                              % (pdir, productDir)
                         except:
                             if Distrib.Eups.verbose:
-                                print >> sys.stderr, "Again failed to split \"%s\" into basedir and productdir" \
+                                print >> sys.stderr, "Again failed to split \"%s\" into baseDir and productdir" \
                                       % (pdir)
 
-                            basedir = ""; product_dir = pdir
+                            baseDir = ""; productDir = pdir
 
-        distID = Distrib.getDistID(productName=productName, versionName=version,
-                                   basedir=basedir, productDir=product_dir)
+        distID = Distrib.createPackage(productName=productName, versionName=version,
+                                       baseDir=baseDir, productDir=productDir)
 
         if optional and not distID:
             if Distrib.Eups.verbose > -1:
@@ -555,8 +541,8 @@ def create(Distrib, top_productName, top_version, manifest):
             ptablefile = os.path.basename(ptablefile)
             tabledir = Distrib.get_tabledir()
 
-            if productName == top_productName and Distrib.noeups: # the file's called productName.table as if it were in a product's
-                     # repository, but it still needs to be installed
+            if productName == top_productName and Distrib.noeups: # the file's called productName.table as if it were
+                # in a product's repository, but it still needs to be installed
                 tablefile_for_distrib = os.path.join(tabledir,
                                                      "%s-%s.table" % (top_productName, top_version))
                 ptablefile = "%s.table" % top_version
@@ -572,7 +558,7 @@ def create(Distrib, top_productName, top_version, manifest):
                     print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
                 copyfile(fulltablename, tablefile_for_distrib)
 
-        products += [[productName, Distrib.installFlavor, version, pdb, pdir, ptablefile, product_dir, distID]]
+        products += [[productName, Distrib.installFlavor, version, pdb, pdir, ptablefile, productDir, distID]]
 
         if Distrib.no_dependencies:
             if Distrib.Eups.force:
@@ -607,12 +593,12 @@ def create(Distrib, top_productName, top_version, manifest):
         
     rproducts = products[:]; rproducts.reverse() # reverse the products list
     for p in rproducts:
-        (productName, Distrib.installFlavor, version, pdb, pdir, ptablefile, product_dir, distID) = p
+        (productName, Distrib.installFlavor, version, pdb, pdir, ptablefile, productDir, distID) = p
         if not Distrib.installFlavor:
             installFlavor = eups.flavor()
         if not Distrib.Eups.noaction:
             print >> ofd, "%-15s %-12s %-10s %-25s %-25s %s" % \
-                  (productName, Distrib.installFlavor, version, ptablefile, product_dir, distID)
+                  (productName, Distrib.installFlavor, version, ptablefile, productDir, distID)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -718,14 +704,14 @@ def createCurrent(Distrib, top_product, top_version):
 def install(Distrib, top_product, top_version, manifest):
     """Install a set of packages"""
 
-    manifest_product, manifest_product_version, products_root, top_version, products = \
+    manifest_product, manifest_product_version, productsRoot, top_version, products = \
                       Distrib.read_manifest(top_product, top_version, manifest)
-    if os.path.isdir(products_root):
+    if os.path.isdir(productsRoot):
         if Distrib.Eups.verbose > 0:
-            print >> sys.stderr, "Installing products into", products_root
+            print >> sys.stderr, "Installing products into", productsRoot
 
     setups = []                         # setups that we've acquired while processing products
-    for (productName, mflavor, versionName, tablefile, product_dir, distID) in products:
+    for (productName, mflavor, versionName, tablefile, productDir, distID) in products:
         if (Distrib.no_dependencies and 
             (productName != top_product or versionName != top_version)):
             continue
@@ -762,7 +748,7 @@ def install(Distrib, top_product, top_version, manifest):
                 print >> sys.stderr, "I don't know how to install %s" % (productName)
             dodeclare = False
         else:
-            Distrib.doInstall(distID, products_root, setups)
+            Distrib.installPackage(distID, productsRoot, setups)
 
         setups += ["setup %s %s &&" % (productName, versionName)]
         #
@@ -793,19 +779,22 @@ def install(Distrib, top_product, top_version, manifest):
 
                     tablefile = open(tablefile)
             #
-            # Look for products_root on eups path
+            # Look for productsRoot on eups path
             #
             eupsPathDir = None
             for pdir in Distrib.Eups.path:
-                if pdir == os.path.commonprefix([products_root, pdir]):
+                if pdir == os.path.commonprefix([productsRoot, pdir]):
                     eupsPathDir = pdir
                     break                
 
-            Distrib.Eups.declare(productName, versionName, product_dir, tablefile=tablefile,
+            if not re.search(r"^/", productDir):
+                productDir = os.path.join(productsRoot, productDir)
+
+            Distrib.Eups.declare(productName, versionName, productDir, tablefile=tablefile,
                                  eupsPathDir=eupsPathDir, declare_current=Distrib.current)
         else:                           # we may still need to declare it current
             if current:
-                Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=products_root)
+                Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=productsRoot)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

@@ -13,8 +13,8 @@ import eupsDistrib
 class Distrib(eupsDistrib.Distrib):
     """Handle distribution via tarballs"""
 
-    def getDistID(self, productName, versionName, basedir, productDir):
-        """Create a tarball and return its name"""
+    def createPackage(self, productName, versionName, baseDir, productDir):
+        """Create a tarball and return a distribution ID which happens to be its name"""
 
         tarball = "%s-%s.tar.gz" % (productName, versionName)
 
@@ -27,31 +27,38 @@ class Distrib(eupsDistrib.Distrib):
             print >> sys.stderr, "Writing", tarball
 
         try:
-            eups.system("cd %s && tar -cf - %s | gzip > %s/%s" % (basedir, productDir, self.packageBase, tarball),
-                         Distrib.Eups.noaction)
-        except Exception, param:
-            os.unlink("%s/%s" % (self.packageBase, tarball))
+            eupsDistrib.system("cd %s && tar -cf - %s | gzip > %s/%s" % \
+                               (baseDir, productDir, self.packageBase, tarball),
+                               self.Eups.noaction)
+        except Exception, e:
+            try:
+                os.unlink("%s/%s" % (self.packageBase, tarball))
+            except:
+                pass
             raise OSError, "Failed to write %s/%s" % (self.packageBase, tarball)
 
         return tarball
 
-    def doInstall(self, distID, products_root, *args):
+    def installPackage(self, distID, productsRoot, *args):
         """Retrieve and unpack a tarball"""
+
+        if not re.search(r"tar\.gz$", distID):
+            raise RuntimeError, ("Expected a tarball name; saw \"%s\"" % distID)
 
         tarball = distID
 
         tfile = "%s/%s" % (self.packageBase, tarball)
 
-        if transport != LOCAL and not noaction:
-            (tfile, msg) = file_retrieve(tfile, transport)
+        if self.transport != eupsDistrib.LOCAL and not self.Eups.noaction:
+            (tfile, msg) = file_retrieve(tfile, self.transport)
 
-        if not noaction and not os.access(tfile, os.R_OK):
-            raise IOError, ("Unable to read %s" % (tfile))
+        if not self.Eups.noaction and not os.access(tfile, os.R_OK):
+            raise RuntimeError, ("Unable to read %s" % (tfile))
 
         if self.Eups.verbose > 0:
-            print >> sys.stderr, "installing %s into %s" % (tarball, products_root)
+            print >> sys.stderr, "installing %s into %s" % (tarball, productsRoot)
 
         try:
-            eups.system("cd %s && cat %s | gunzip -c | tar -xf -" % (products_root, tfile), Distrib.Eups.noaction)
-        except:
-            raise IOError, ("Failed to read %s" % (tfile))
+            eupsDistrib.system("cd %s && tar -zxf %s" % (productsRoot, tfile), self.Eups.noaction)
+        except Exception, e:
+            raise RuntimeError, ("Failed to read %s: %s" % (tfile, e))
