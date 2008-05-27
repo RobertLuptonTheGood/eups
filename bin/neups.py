@@ -1614,7 +1614,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
                         extra = ""
                         if self.verbose >= 3 + self.quiet:
-                            extra = "in %s " % root
+                            extra = "in %s " % eupsPathDir
 
                         if self.verbose >= 2 + self.quiet:
                             print >> sys.stderr, "Version %s %ssatisfies condition \"%s\" for product %s" % \
@@ -1749,8 +1749,23 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             product.checkCurrent(True)
         else:
             product.checkCurrent()      # check if it's current
+        #
+        # if version was an expression we may not have known that it was cached, so check now we know exact version
+        #
+        cached = False
+        for db in dbs:
+            try:
+                self.versions[self.flavor][db][product.name][product.version]
+                cached = True
+                break
+            except KeyError:
+                pass
 
-        self.intern(product)            # save it in the cache
+        if not cached:
+            if self.verbose > 2:
+                print >> sys.stderr, "Writing %s %s to cache" % (product.name, product.version)
+                
+            self.intern(product)    # save it in the cache
 
         return product
 
@@ -2638,10 +2653,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         versionName may be None in which case all versions are returned.  If product is also None,
         a Uses object is returned which may be used to perform further uses searches efficiently
     """
-        useInfo = Uses()
-
         if not productName and versionName:
-            raise RuntimeError, ("You may not specify a version \"%s\"but not a product" % versionName)
+            raise RuntimeError, ("You may not specify a version \"%s\" but not a product" % versionName)
 
         if True:
             productList = self.listProducts(None)
@@ -2659,11 +2672,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not productList:
             return []
 
+        useInfo = Uses()
+
         for (p, v, db, dir, isCurrent, isSetup) in productList: # for every known product
             try:
                 deps = Product(self, p, v).dependencies() # lookup top-level dependencies
             except RuntimeError, e:
-                print >> sys.stderr, ("Setting up %s %s: %s" % (p, v, e))
+                print >> sys.stderr, ("%s %s: %s" % (p, v, e))
                 continue
 
             for pd, od, currentRequested in deps:
@@ -2679,9 +2694,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not productName:
             return useInfo
 
-        consumerList = useInfo.users(productName, versionName)
-
-        return consumerList
+        return useInfo.users(productName, versionName)
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 
@@ -2717,12 +2730,13 @@ class Uses(object):
             if not self._setup_by.has_key(key):
                 self._setup_by[key] = []
 
-            self._setup_by[key] += [(productName, versionName, (v, o))]
+            self._setup_by[key] += [(productName, versionName, (v, o, c))]
 
             self._do_invert(productName, versionName, self._getKey(p, v), depth - 1, o)
 
     def _invert(self, depth):
         """ Invert the dependencies to tell us who uses what, not who depends on what"""
+
         pattern = re.compile(r"^(?P<product>[\w]+):(?P<version>[\w.+\-]+)")
 
         self._setup_by = {}

@@ -69,7 +69,12 @@ except IndexError:
 #
 # Choose arguments based on cmd
 #
-helpStr = """eups [commonOpts] %s [opts]""" % (cmd)
+helpStr = "eups [commonOpts]"
+if cmd:
+    helpStr += " %s" % (cmd)
+else:
+    helpStr += " cmd"
+helpStr += " [opts]"
 narg = 0                      # permitted number of arguments (a tuple (min, max) is permitted)
 
 if cmd == "admin":
@@ -128,9 +133,10 @@ elif cmd == "undeclare":
     narg = 2
     options["-c"] = (False,  "--current", "Stop version from being current")
 elif cmd == "uses":
-    helpStr += "product [version]"
+    helpStr += " product [version]"
     narg = (1,2)
-    options["-c"] = (False,  "--current", "Look for users of current version")
+
+    options["-c"] = (False, "--current", "Look for products that setup current version")
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-o"] = (False, "--optional", "Show optional setups")
 
