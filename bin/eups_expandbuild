@@ -6,8 +6,9 @@
 # @CVSROOT@ => current value of CVSROOT from ./CVS/Root or $CVSROOT
 # @VERSION@ => installed version name
 #
-import eups
 import os, re, sys
+import eups
+import eupsDistribBuild
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -138,7 +139,7 @@ else:
 # Actually do the work
 #
 try:
-    eups.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
+    eupsDistribBuild.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
 except Exception, e:
     if backup and os.path.exists(backup):
         os.rename(backup, buildFile)
