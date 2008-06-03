@@ -8,6 +8,7 @@ import eupsGetopt
 # Deal with arguments
 #
 debugFlag = "-\001"
+allowedDebugOptions = ["raise"]
 
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
@@ -28,7 +29,7 @@ options = {
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
-    debugFlag : (True,  "--debug", "Permitted Values: raise"),
+    debugFlag : (True,  "--debug", "Permitted Values: %s" % " ".join(allowedDebugOptions)),
     }
 aliases = {}
 
@@ -51,8 +52,10 @@ if opts.options.get('-V'):
     sys.exit(0)    
 
 debugOptions = opts.options.get(debugFlag, "").split(":")
-if debugOptions:
-    allowRaise = "raise" in debugOptions
+for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
+    print >> sys.stderr, "%s in not a valid option to --debug" % bad
+
+allowRaise = "raise" in debugOptions
 dbz = opts.options.get('-z')
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
@@ -80,7 +83,10 @@ if root:
 if opts.argv:
     version = opts.argv.pop(0)
 else:
-    version = eups.Current
+    if unsetup:
+        version = None
+    else:
+        version = eups.Current
 
 if opts.argv:
     pass

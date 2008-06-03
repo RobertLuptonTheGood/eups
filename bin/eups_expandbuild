@@ -139,7 +139,7 @@ else:
 # Actually do the work
 #
 try:
-    eupsDistribBuild.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
+    eupsDistribBuilder.expandBuildFile(ofd, ifd, product, version, verbose, svnroot=svnroot, cvsroot=cvsroot)
 except Exception, e:
     if backup and os.path.exists(backup):
         os.rename(backup, buildFile)

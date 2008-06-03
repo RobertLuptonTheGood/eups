@@ -364,7 +364,7 @@ class Action(object):
             vers = Current
 
         productOK, vers = Eups.setup(productName, vers, fwd, recursionDepth)
-        if not productOK and not optional:
+        if not productOK and fwd and not optional:
             raise RuntimeError, ("Failed to setup required product %s %s" % (productName, vers))
 
     def execute_envPrepend(self, Eups, fwd=True):
@@ -1149,6 +1149,16 @@ class Product(object):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+class Quiet(object):
+    """A class whose members, while they exist, make Eups quieter"""
+
+    def __init__(self, Eups):
+        self.Eups = Eups
+        self.Eups.quiet += 1
+
+    def __del__(self):
+        self.Eups.quiet -= 1
+
 class Eups(object):
     """Control eups"""
 
@@ -1429,8 +1439,8 @@ class Eups(object):
         
         return os.path.join(eupsPathDir, "ups_db")
     
-    def getSetupProducts(self):
-        """Return a list of all Products that are currently setup"""
+    def getSetupProducts(self, requestedProductName=None):
+        """Return a list of all Products that are currently setup (or just the specified product)"""
 
         re_setup = re.compile(r"^SETUP_(\w+)$")
 
@@ -1441,10 +1451,14 @@ class Eups(object):
             if productName == "EUPS":       # "eups" itself is a special case
                 productName = productName.lower()
 
+            if requestedProductName and productName != requestedProductName:
+                continue
+
             try:
                 product = self.Product(productName, noInit=True).initFromSetupVersion()
             except RuntimeError, e:
-                print >> sys.stderr, e
+                if not self.quiet:
+                    print >> sys.stderr, e
 
             productList += [product]
 
@@ -1527,7 +1541,7 @@ class Eups(object):
             if self.verbose > 1:
                 print >> sys.stderr, \
                       "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
-        
+
         if not args: # you can get here if you initialised eups by sourcing setups.c?sh
             pass
         else:
@@ -1543,6 +1557,7 @@ class Eups(object):
             assert not args
 
         if versionName == Current:
+            q = Quiet(self)
             versionName = self.findCurrentVersion(productName, eupsPathDir)[1]
             
         return versionName, flavor, eupsPathDir
@@ -1809,7 +1824,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if isinstance(product, str):
             product = self.Product(product, noInit=True)
         else:
+            assert not versionName
             versionName = product.version
+            eupsPathDir = product.db
 
         if not os.environ.has_key(product.envarSetupName()):
             return False
@@ -2037,6 +2054,24 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if isinstance(productName, Product): # it's already a full Product
             assert recursionDepth <= 0
             product = productName; productName = product.name
+        elif not fwd:
+            productList = self.getSetupProducts(productName)
+            if productList:
+                product = productList[0]
+            else:
+                msg = "I can't unsetup %s as it isn't setup" % productName
+                if False:
+                    raise RuntimeError, msg
+                else:
+                    if self.verbose > 1 and not self.quiet:
+                        print >> sys.stderr, msg
+                    return False, versionName
+
+            if versionName and versionName != Current and versionName != Setup:
+                if product.version != versionName:
+                    print >> sys.stderr, \
+                          "You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
+                          (product.name, versionName, product.version, product.version)
         else:
             if self.root and recursionDepth == 0:
                 product = self.Product(productName, noInit=True)
@@ -2095,9 +2130,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 sversionName, sflavor, seupsPathDir = product.getSetupVersion()
             except RuntimeError, e:
                 sversionName = None
-                
-            if versionName and sversionName:
-                if versionName == sversionName: # already setup
+
+            if product.version and sversionName:
+                if product.version == sversionName: # already setup
                     if recursionDepth <= 0: # top level should be resetup if that's what they asked for
                         pass
                     else:
@@ -2105,12 +2140,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                             print >> sys.stderr, "            %s %s is already setup; skipping" % \
                                   (len(indent)*" " + product.name, product.version)
                             
-                        return True, versionName
+                        return True, product.version
                 else:
                     if recursionDepth > 0: # top level shouldn't whine
-                        pversionName = versionName
+                        pversionName = product.version
                         try:
-                            pversionName = versionName() # might be Current
+                            pversionName = pversionName() # might be Current
                         except TypeError:
                             pass
                             
@@ -2122,13 +2157,15 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 if True or not self.isSetup(keptProduct):
                     self.setup(keptProduct, recursionDepth=-9999)
 
-                if (keptProduct.version != versionName and self.verbose) or self.verbose > 1:
+                if (keptProduct.version != product.version and self.verbose) or self.verbose > 1:
                     print >> sys.stderr, "            %s %s is already setup; keeping" % \
                           (len(indent)*" " + keptProduct.name, keptProduct.version)
 
                 return True, keptProduct.version
 
+            q = Quiet(self)
             self.unsetupSetupProduct(product)
+            del q
 
             self.setEnv(product.envarDirName(), product.dir)
             self.setEnv(product.envarSetupName(),
@@ -2450,6 +2487,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         finally:
             self.lockDB(eupsPathDir, unlock=True)
 
+        self.intern(product, delete=True)
+
         return True
 
     def listProducts(self, productName=None, productVersion=None, current=False, setup=False):
@@ -2459,6 +2498,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         if not self.versions.has_key(self.flavor):
             return productList
+        #
+        # Maybe they wanted Current or Setup?
+        #
+        if productVersion == Current:
+            current = True; productVersion = None
+
+        if productVersion == Setup:
+            setup = True; productVersion = None
         #
         # Find all products on path (cached in self.versions, of course)
         #
@@ -2478,7 +2525,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     product.Eups = self     # don't use the cached Eups
 
                     isCurrent = product.checkCurrent()
-                    isSetup = self.isSetup(product, version, db)
+                    isSetup = self.isSetup(product)
 
                     if current and not isCurrent:
                         continue
@@ -2543,7 +2590,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if checkRecursive and not userInfo:
             if self.verbose:
                 print >> sys.stderr, "Calculating product dependencies recursively..."
-            userInfo = uses(self)
+            userInfo = self.uses(None)
         else:
             userInfo = None
 
@@ -2562,7 +2609,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         default_yn = "y"                    # default reply to interactive question
         for product in productsToRemove:
             dir = product.dir
-            if not dir:
+            if False and not dir:
                 raise RuntimeError, \
                       ("Product %s with version %s doesn't seem to exist" % (product.name, product.version))
 
@@ -2930,14 +2977,21 @@ def setup(Eups, productName, version=Current, fwd=True):
             tfd.write("/bin/rm -f %s\n" % tmpfile)
 
         return tmpfile
+    elif fwd and version == Current:
+        print >> sys.stderr, "No version of %s is declared current" % productName
     else:
         if fwd:
-            verb = "setup"
+            versionName = version
+            try:
+                versionName = versionName() # might be Current
+            except TypeError:
+                pass
+        
+            print >> sys.stderr, "Failed to setup %s %s" % (productName, versionName)
         else:
-            verb = "unsetup"
+            print >> sys.stderr, "Failed to unsetup %s" % (productName)
 
-        print >> sys.stderr, "Failed to %s %s %s" % (verb, productName, version)
-        return ""
+    return ""
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -2945,6 +2999,26 @@ def unsetup(Eups, productName, version=None):
     """ """
 
     return setup(Eups, productName, version, fwd=False)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+def productDir(productName, versionName=Setup, Eups=None):
+    """Return the PRODUCT_DIR for the specified product and version (default: Setup)
+    If you specify a version other than Setup, you'll also need to provide an instance
+    of Eups
+    """
+
+    if not Eups:                        # only setup version is available
+        if versionName != Setup:
+            raise RuntimeError, \
+                  ("I can only lookup a non-setup version of %s if you provide an instance of class Eups" % productName)
+        Eups = _ClassEups()
+
+    try:
+        return Eups.listProducts(productName, versionName)[0][3]
+    except IndexError:
+        None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         

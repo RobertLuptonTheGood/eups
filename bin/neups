@@ -18,6 +18,7 @@ import eupsGetopt
 # Flags that don't really have short forms are specified with non-printable options
 #
 debugFlag = "-\001"
+allowedDebugOptions = ["raise"]
 
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
@@ -28,10 +29,10 @@ options = {
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
     "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
     "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
-    debugFlag : (True,  "--debug", "Permitted Values: raise"),
+    debugFlag : (True,  "--debug", "Permitted Values: %s" % " ".join(allowedDebugOptions)),
     }
 aliases = {
-    "-Z" : ["--with-eups"],
+    "-Z" : "--with-eups",
     }
 
 helpStr = """	eups [--help|--version] command [options]
@@ -75,22 +76,22 @@ if cmd:
 else:
     helpStr += " cmd"
 helpStr += " [opts]"
-narg = 0                      # permitted number of arguments (a tuple (min, max) is permitted)
 
 if cmd == "admin":
-    helpStr += " [buildCache | clearCache | clearLocks]"
-    narg = 1
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | clearLocks")
 elif cmd == "declare":
-    helpStr += " product version\nDeclare a product"
-    narg = 2
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
+    helpStr += "\n\nDeclare a product"
+
     options["-c"] = (False,  "--current", "Declare product current")
     options["-m"] = (True,  "--table", "Use table file (may be \"none\") Default: product.table")
     options["-M"] = (True,  None,
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
+elif cmd in ["expandtable", "pkg-config"]:
+    helpStr, narg = eupsGetopt.declareArgs(helpStr)
 elif cmd == "distrib":
-    helpStr = "eups_distrib [options] [product [version]]"
-    narg = (0, 2)
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
 
     installFlavorFlag = "-\002"
     tarballFlag = "-\003"
@@ -111,17 +112,43 @@ elif cmd == "distrib":
                                (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")
     options[tarballFlag] = (False, "--tarball", "Create a distribution with tarballs")
     
-    aliases["-i"] = ["--extract"]
+    aliases["-i"] = "--extract"
+elif cmd == "expandbuild":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildFile", "outDir")
+
+    helpStr += """\n
+    Expand a .build file as part of installing it.
+
+    If outDir is provided, the expanded file will be written there;
+    otherwise it'll be written to stdout unless you specify --inplace."""
+
+    options["-c"] = (True, '--cvs', "Use this CVSROOT")
+    options["-i"] = (False, "--inplace", "Modify file in situ")
+    options["-p"] = (True, '--product', "The name of the product")
+    options["-s"] = (True, '--svn', "Use this SVNROOT")
+    options["-V"] = (True, "--version", "Specify version that you're installing")
+
+    aliases["-c"] = "--cvsroot"
+    aliases["-s"] = "--svnroot"
+elif cmd == "flags":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr)
+    helpStr += "\n\nPrint the value of EUPS_FLAGS"
+elif cmd == "flavor":
+    helpStr += "\n\nPrint your eups flavor"
 elif cmd == "list":
-    helpStr += "\nPrint information about products"
-    narg = (0,2)
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
+    helpStr += "\n\nPrint information about products"
+
     options["-c"] = (False,  "--current", "Only show current products")
     options["-d"] = (False,  "--directory", "Print product directory (useful with -s)")
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
+elif cmd == "path":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
+    helpStr += "\n\nPrint the eups path; with index print just one element (-ve: from end)"
 elif cmd == "remove":
-    helpStr += " product version\nRemove a product"
-    narg = 2
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
+    helpStr += "\n\nRemove a product"
 
     noInteractiveFlag = "-\002"
     options["-i"] = (False, "--interactive", "Prompt user before actually removing products (default if -R)")
@@ -129,22 +156,21 @@ elif cmd == "remove":
     options["-N"] = (False, "--noCheck", "Don't check whether recursively removed products are needed")
     options["-R"] = (False, "--recursive", "Recursively also remove everything that this product depends on")
 elif cmd == "undeclare":
-    helpStr += " product version\nUndeclare a product"
-    narg = 2
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
+    helpStr += "\n\nUndeclare a product"
+
     options["-c"] = (False,  "--current", "Stop version from being current")
 elif cmd == "uses":
-    helpStr += " product [version]"
-    narg = (1,2)
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
+    helpStr += "\n\nShow which products setup the specified product (and maybe version of that product)"
 
     options["-c"] = (False, "--current", "Look for products that setup current version")
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-o"] = (False, "--optional", "Show optional setups")
-
-if isinstance(narg, int):
-    narg = (narg, narg)
 #
 # Parse arguments
 #
+helpStr += "\n"
 try:
     opts = eupsGetopt.Getopt(options, sys.argv, aliases, helpStr, extras=os.environ.get("EUPS_FLAGS"))
 except RuntimeError, param:
@@ -158,12 +184,17 @@ if opts.options.get('-h') or not cmd:
     opts.usage()
     sys.exit(0)
 if opts.options.get('-V'):
-    print >> sys.stderr, "Version: %s" % eups.version()
-    sys.exit(0)    
+    if cmd == "expandbuild":
+        pass                            # Uh-oh.  --version is used to specify versions to expandbuild
+    else:
+        print >> sys.stderr, "Version: %s" % eups.version()
+        sys.exit(0)    
 
 debugOptions = opts.options.get(debugFlag, "").split(":")
-if debugOptions:
-    allowRaise = "raise" in debugOptions
+for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
+    print >> sys.stderr, "%s in not a valid option to --debug" % bad
+allowRaise = "raise" in debugOptions
+
 dbz = opts.options.get('-z')
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
@@ -188,9 +219,10 @@ if not cmd:
 # Do the work
 #
 def main(cmd, opts):
-    readCache = True
-    if cmd == "admin":
+    if cmd in ["admin", "flavor", "flags", "path"]:
         readCache = False
+    else:
+        readCache = True
         
     Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, readCache=readCache, force=force,
                      verbose=verbose, noaction=noaction)
@@ -226,10 +258,10 @@ def main(cmd, opts):
 
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
                      declare_current=declare_current)
-    elif cmd in ["expandbuild", "expandtable", "pkg-config"]:
+    elif cmd in ["expandtable", "pkg-config"]:
         cmd = "$EUPS_DIR/bin/cmd_%s %s" % (cmd, " ".join(sys.argv[1:]))
         try:
-            eups.system(cmd, Eups.noaction)
+            eupsDistrib.system(cmd, Eups.noaction)
         except OSError, e:
             print >> sys.stderr, e
     elif cmd == "distrib":
@@ -327,6 +359,29 @@ def main(cmd, opts):
             Distrib.buildDir=tmp_dir
 
         distrib(Distrib, desire, productName, versionName, manifest=manifest, current=current)
+    elif cmd == "expandbuild":
+        cvsroot = opts.options.get('-c', None)
+        in_situ = opts.options.get('-i', False)
+        productName = opts.options.get('-p', None)
+        svnroot = opts.options.get('-s', None)
+        version = opts.options.get('-V')
+        if not version:
+            print >> sys.stderr, "Please specify a version with --version or -V"
+            sys.exit(1)
+
+        buildFile = opts.argv.pop(0)
+
+        if len(opts.argv) == 0:
+            outdir = None
+        else:
+            if in_situ:
+                print >> sys.stderr, "You may not specify both --inplace and a target directory"
+                sys.exit(1);
+
+            outdir = opts.argv.pop(0)
+
+        eups_expandbuild(Eups, buildFile, version, productName, outdir=outdir, in_situ=in_situ,
+                         svnroot=svnroot, cvsroot=cvsroot)
     elif cmd == "flags":
         try:
             print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
@@ -458,7 +513,10 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "%-10s" % (version)
 
             if directory:
-                info += productDir
+                if productDir:
+                    info += productDir
+                else:
+                    info += ""
             if tablefile:
                 if info:
                     info += "\t"
@@ -526,6 +584,71 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
                 str += "Optional"
 
         print str
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def eups_expandbuild(Eups, buildFile, version,
+                     productName=None, outdir=None, in_situ=False, svnroot=None, cvsroot=None):
+    #
+    # Guess the value of PRODUCT
+    #
+    if productName:
+        pass
+    else:
+        mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
+        if mat:
+            productName = mat.group(1)
+    #
+    # Actually open the file and do the work
+    #
+    backup = None
+    try:
+        if in_situ:
+            backup = buildFile + ".bak"
+            os.rename(buildFile, backup)
+            ifd = open(backup, "r")
+        else:
+            ifd = open(buildFile)
+    except IOError, e:
+        if backup and os.path.exists(backup):
+            os.rename(backup, buildFile)
+            os.unlink(backup)
+
+        print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
+        sys.exit(1)
+
+    if outdir:
+        outfile = os.path.join(outdir, os.path.basename(buildFile))
+        if Eups.verbose:
+            print "Writing to %s" % outfile
+
+        try:
+            ofd = open(outfile, "w")
+        except IOError, e:
+            print >> sys.stderr, "Failed to open file \"%s\" for write" % outfile
+            sys.exit(1)
+    elif in_situ:
+        try:
+            ofd = open(buildFile, "w")
+        except Exception:
+            if backup and os.path.exists(backup):
+                os.rename(backup, buildFile)
+                os.unlink(backup)
+    else:
+        ofd = sys.stdout
+    #
+    # Actually do the work
+    #
+    try:
+        eupsDistribBuilder.expandBuildFile(ofd, ifd, productName, version,
+                                           Eups.verbose, svnroot=svnroot, cvsroot=cvsroot)
+    except Exception:
+        if backup and os.path.exists(backup):
+            os.rename(backup, buildFile)
+        raise
+
+    if backup and os.path.exists(backup):
+        os.unlink(backup)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

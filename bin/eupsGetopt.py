@@ -17,6 +17,12 @@ first element is a boolean specifying if the option takes a value; the
 second (if not None) is a long alias for the option, and the third is
 a help string.  E.g.
     ["-i", (False, "--install", "Extract and install the specified package")],
+Values may be provided as a separate argument (-o XXX) or with = (-o=XXX).
+
+If you specify the same option more than once, the values will be concatenated
+(separated by :) if the option takes a value, and incremented if it doesn't; i.e.
+   -a -b XXX -a -a -b=YYY
+sets options["-a"] to 3, and options["-b"] to "XXX:YYY"
 
 aliases is another dictionary, with values that specify additional long versions
 of options; e.g.
@@ -53,7 +59,11 @@ are not recognised they are silently ignored
                 longopts[options[opt][1]] = opt
 
         for opt in aliases.keys():
-            longopts[aliases[opt][0]] = opt
+            if isinstance(aliases[opt], str):
+                aliases[opt] = [aliases[opt]]
+
+            for a in aliases[opt]:
+                longopts[a] = opt
         #
         # Handle extras, if present
         #
@@ -94,13 +104,18 @@ are not recognised they are silently ignored
 
             if options.has_key(a):
                 if options[a][0]:
-                    if val:
-                        opts[a] = val
+                    if opts.has_key(a):
+                        opts[a] += ":"
                     else:
+                        opts[a] = ""
+
+                    if not val:
                         try:
-                            opts[a] = argv[i + 1]; i += 1
+                            val = argv[i + 1]; i += 1
                         except IndexError:
                             raise RuntimeError, ("Option %s expects a value" % a)
+
+                    opts[a] += val
                 else:
                     if opts.has_key(a):
                         opts[a] += 1
@@ -179,3 +194,27 @@ Options:""" % self.msg
             if self.cmd_aliases.has_key(opt):
                 print >> sys.stderr, "                           Alias%s:" % \
                       (len(self.cmd_aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(self.cmd_aliases[opt])
+
+def declareArgs(helpStr, required=None, optional=None):
+    """Return an augmented helpStr and (nmin, nmax) given lists of required and optional arguments;
+    if only a single argument is specified, a string may be passed instead of a list
+    """
+
+    if not required:
+        required = []
+    if not optional:
+        optional = []
+
+    if isinstance(required, str):
+        required = [required]
+    if isinstance(optional, str):
+        optional = [optional]
+
+    if required:
+        helpStr += " " + " ".join(required)
+    if optional:
+        helpStr += " [" + "] [".join(optional) + "]"
+
+    narg = (len(required), len(required) + len(optional))
+
+    return helpStr, narg
