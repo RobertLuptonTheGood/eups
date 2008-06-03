@@ -28,12 +28,17 @@ use File::Spec::Functions;
 $syntax = "Usage: mksetup <EUPS_DIR> <EUPS_PATH>\n";
 
 $eupsdir = $ARGV[0];
-$prefix = $ARGV[1];
-$db = $prefix . "/ups_db";
+$eups_path = $ARGV[1];
+$setup_aliases = $ARGV[2];	# may not be set
 
 die "$syntax" if ($eupsdir eq "");
-die "$syntax" if ($prefix eq "");
-die "$syntax" if ($db eq "");
+die "$syntax" if ($eups_path eq "");
+
+
+my(@aliases) = ();
+if ($setup_aliases) {
+   @aliases = split(":", $setup_aliases);
+}
 
 $bindir = catfile('$EUPS_DIR',"bin");
 $binname = catfile('$EUPS_DIR',"bin","eups_setup");
@@ -61,7 +66,7 @@ if ("\$?EUPS_PATH" == "0" ) then
     setenv EUPS_PATH ""
 endif
 
-setenv EUPS_PATH \`perl -e '$unique_path' $prefix:\$EUPS_PATH\`
+setenv EUPS_PATH \`perl -e '$unique_path' $eups_path:\$EUPS_PATH\`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 setenv SETUP_EUPS "eups"
 # Deprecated variables
@@ -78,6 +83,14 @@ endif
 alias setup 'source `$binname setup \\!*`'
 alias unsetup 'source `$binname unsetup \\!*`'
 EOT
+
+if ($aliases[0]) {
+   print FILE "alias $aliases[0] setup\n";
+}
+if ($aliases[1]) {
+   print FILE "alias $aliases[1] unsetup\n";
+}
+
 close FILE;
 
 print "Writing a sh startup script\n";
@@ -89,7 +102,7 @@ if [ "\$EUPS_DIR" != "" ]; then
 fi
 
 export EUPS_DIR=$eupsdir
-export EUPS_PATH=\`perl -e '$unique_path' $prefix:\$EUPS_PATH\`
+export EUPS_PATH=\`perl -e '$unique_path' $eups_path:\$EUPS_PATH\`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 export SETUP_EUPS="eups"
 # Deprecated variables
@@ -107,6 +120,13 @@ function setup   { source `$binname setup \$@`; };   export -f setup
 function unsetup { source `$binname unsetup \$@`; }; export -f unsetup
 EOT
     
+if ($aliases[0]) {
+   print FILE "alias $aliases[0]=setup\n";
+}
+if ($aliases[1]) {
+   print FILE "alias $aliases[1]=unsetup\n";
+}
+
 close FILE;
 
 exit 0;

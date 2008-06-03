@@ -8,7 +8,7 @@ SHELL = /bin/sh
 all :;
 
 install :
-	@ ./mksetup $(EUPS_DIR) $(EUPS_PATH)
+	@ ./mksetup $(EUPS_DIR) $(EUPS_PATH) $(SETUP_ALIASES)
 	cp Makefile mksetup eups *.py {evil,eups_,setups}*[a-z] $(EUPS_DIR)/bin
 
 clean :

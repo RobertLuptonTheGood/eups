@@ -10,9 +10,10 @@ SHELL = /bin/sh
 prefix = @prefix@
 EUPS_PATH = @EUPS_PATH@
 EUPS_DIR = @EUPS_DIR@
+SETUP_ALIASES = @SETUP_ALIASES@
 EUPS_DB = $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d/ups_db\n"}')
 #
-export prefix EUPS_PATH EUPS_DIR
+export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES
 #
 SUBDIRS = bin doc etc ups
 

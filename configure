@@ -273,7 +273,7 @@ PACKAGE_VERSION='"X.Y"'
 PACKAGE_STRING='eups "X.Y"'
 PACKAGE_BUGREPORT='rhl@astro.princeton.edu'
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS EUPS_PATH EUPS_DIR LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS EUPS_PATH EUPS_DIR SETUP_ALIASES LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -791,6 +791,8 @@ Optional Packages:
   --with-eups=DIR         Use DIR as root for installed products (EUPS_PATH)
   --with-eups-db=name     Select directory containing NAME from $EUPS_PATH
   --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
+  --with-setup-aliases=name1:name2
+and name2 for unsetupallow name1 as an alias for setup
 
 Report bugs to <rhl@astro.princeton.edu>.
 _ACEOF
@@ -1310,6 +1312,13 @@ echo "$as_me: error: I can't find DB \"$eups_db\" in $EUPS_PATH" >&2;}
 echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&2;}
        fi
     fi
+fi;
+
+
+# Check whether --with-setup-aliases or --without-setup-aliases was given.
+if test "${with_setup_aliases+set}" = set; then
+  withval="$with_setup_aliases"
+  SETUP_ALIASES=$withval
 fi;
 
           ac_config_files="$ac_config_files Makefile"
@@ -1953,6 +1962,7 @@ s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
 s,@EUPS_PATH@,$EUPS_PATH,;t t
 s,@EUPS_DIR@,$EUPS_DIR,;t t
+s,@SETUP_ALIASES@,$SETUP_ALIASES,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
