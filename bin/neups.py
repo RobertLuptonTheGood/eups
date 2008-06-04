@@ -1,5 +1,6 @@
 # -*- python -*-
 import glob, re, os, pwd, shutil, sys, time
+import fnmatch
 import cPickle
 import tempfile
 import pdb
@@ -2492,7 +2493,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         return True
 
     def listProducts(self, productName=None, productVersion=None, current=False, setup=False):
-        """Return a list of (name, version, db, product.dir, isCurrent, isSetup)"""
+        """Return a list of (name, version, db, product.dir, isCurrent, isSetup)
+        If provided, restrict list to those matching productName and/or productVersion;
+        matching is a la shell globbing (i.e. using fnmatch)
+        """
 
         productList = []
 
@@ -2514,11 +2518,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 continue
             
             for name in self.versions[self.flavor][db].keys():
-                if productName and name != productName:
+                if productName and not fnmatch.fnmatchcase(name, productName):
                     continue
                 
                 for version in self.versions[self.flavor][db][name].keys():
-                    if productVersion and version != productVersion:
+                    if productVersion and not fnmatch.fnmatchcase(version, productVersion):
                         continue
 
                     product = self.versions[self.flavor][db][name][version]
@@ -2544,7 +2548,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             product = self.Product(productName, noInit=True)
             product.initFromDirectory(self.localVersions[productName])
 
-            if productName and name != productName:
+            if productName and not fnmatch.fnmatchcase(name, productName):
                 continue
 
             values = []

@@ -503,6 +503,8 @@ def distrib(Distrib, desire, productName, versionName, manifest=None, current=Fa
 def listProducts(Eups, productName=None, versionName=None,
                  current=False, setup=False, tablefile=False, directory=False):
 
+    productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
+
     productList = Eups.listProducts(productName, versionName, current, setup)
     
     for name, version, db, productDir, isCurrent, isSetup in productList:
@@ -532,7 +534,7 @@ def listProducts(Eups, productName=None, versionName=None,
                     print >> sys.stderr, e
                     info += "???"
         else:
-            if productName:
+            if productName and not productNameIsGlob:
                 info += "   "
             else:
                 info += "%-21s " % (name)
