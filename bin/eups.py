@@ -56,7 +56,7 @@ def _svnRevision(file=None, lastChanged=False):
 def version():
     """Set a version ID from an svn ID string (dollar HeadURL dollar)"""
 
-    versionString = r"$HeadURL: svn+ssh://svn.lsstcorp.org/eups/trunk/neups.py $"
+    versionString = r"$HeadURL: svn+ssh://svn.lsstcorp.org/eups/trunk/eups.py $"
 
     version = "unknown"
 

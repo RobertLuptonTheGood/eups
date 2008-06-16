@@ -67,7 +67,7 @@ show :
 	@echo "You will be installing ups in \$$EUPS_DIR  = $(EUPS_DIR)"
 	@echo "Ups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 	@echo "Your EUPS database[s] will be              $(EUPS_DB)"
-	@vers="$$(bin/eups_distrib --version 2>&1 | awk '{print $$2}')"; \
+	@vers="$$(bin/eups --version 2>&1 | awk '{print $$2}')"; \
 	 echo "Your EUPS version is $$vers"
 #
 # Rebuild configure; almost no-one should need to do this

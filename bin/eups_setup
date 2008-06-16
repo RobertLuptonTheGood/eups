@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os, re, sys
-import neups as eups
+import eups
 import eupsGetopt
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -76,6 +76,7 @@ if opts.argv:
     productName = opts.argv.pop(0)
 
 if root:
+    eups.debug("root", productName)
     try:
         productName = eups.guessProduct(os.path.join(root, "ups"), productName)
     except RuntimeError, e:

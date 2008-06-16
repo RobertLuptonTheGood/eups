@@ -7,7 +7,7 @@
 import os
 import re, sys
 import pdb
-import neups as eups
+import eups
 import eupsDistrib
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

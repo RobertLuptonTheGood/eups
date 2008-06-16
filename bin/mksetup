@@ -14,7 +14,7 @@ except IndexError:
 ups_db = os.path.join(prefix, "ups_db")
 
 bindir = os.path.join("$EUPS_DIR","bin")
-setup = os.path.join('$EUPS_DIR',"bin","neups_setup");
+setup = os.path.join('$EUPS_DIR',"bin","eups_setup");
 
 # Keep only one copy of each directory in sys.argv[1]
 unique_path="""
@@ -61,8 +61,8 @@ else
    setenv PYTHONPATH %(bindir)s
 endif
 
-alias nsetup 'eval `%(setup)s \\!*`'
-alias nunsetup 'eval `%(setup)s --unsetup \\!*`'
+alias setup 'eval `%(setup)s \\!*`'
+alias unsetup 'eval `%(setup)s --unsetup \\!*`'
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}
@@ -99,8 +99,8 @@ else
     export PYTHONPATH="%(bindir)s"
 fi
 
-function nsetup   { eval `%(setup)s $@`; };   export -f nsetup
-function nunsetup { eval `%(setup)s --unsetup $@`; }; export -f nunsetup
+function setup   { eval `%(setup)s $@`; };   export -f setup
+function unsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}

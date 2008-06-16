@@ -10,7 +10,8 @@ all :;
 install :
 	@ echo "              Fix up the n\* in bin/Makefile"
 	@ ./nmksetup $(EUPS_DIR) $(EUPS_PATH) $(SETUP_ALIASES)
-	cp Makefile mksetup neups eups neups_setup *.py {evil,eups_,setups}*[a-z] $(EUPS_DIR)/bin
+	cp Makefile mksetup setups.{csh,sh} eups eups_setup *.py $(EUPS_DIR)/bin
+	@ echo Tell RHL to build .pyc files
 
 clean :
 	- /bin/rm -f *~ core

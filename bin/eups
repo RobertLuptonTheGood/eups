@@ -4,7 +4,7 @@
 #
 import os, re, sys
 import tempfile
-import neups as eups
+import eups
 import eupsDistrib
 import eupsDistribBuilder
 import eupsDistribPacman

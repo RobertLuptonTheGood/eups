@@ -11,7 +11,7 @@ import pdb
 import tempfile
 import shutil
 import urllib, urllib2
-import neups as eups
+import eups
 
 author = "Robert Lupton (rhl@astro.princeton.edu)"
 eups_distrib_version = "1.0"
