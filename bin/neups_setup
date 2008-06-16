@@ -12,6 +12,7 @@ allowedDebugOptions = ["raise"]
 
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
+    "-e" : (False,  "--exact", "Use the as-installed version, not the conditional in the table file"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
     "-h" : (False, "--help", "Print this help message"),
     "-i" : (False, "--ignore-versions", "Ignore any explicit versions in table files"),
@@ -57,6 +58,7 @@ for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
 
 allowRaise = "raise" in debugOptions
 dbz = opts.options.get('-z')
+exact_version = opts.options.get("-e", False)
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
 ignore_versions = opts.options.get("-i", False)
@@ -105,7 +107,7 @@ if max_depth > 0 and just:
 try:
     Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
                      verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
-                     max_depth=max_depth)
+                     max_depth=max_depth, exact_version=exact_version)
                           
     tmpfile = eups.setup(Eups, productName, version, fwd=not unsetup)
 except RuntimeError, e:

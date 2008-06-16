@@ -364,6 +364,15 @@ class Action(object):
         else:
             vers = Current
 
+        if isinstance(vers, str):       # see if we have a version of the form "logical [exact]"
+            mat = re.search(r"(.*)\s+\[([^\]]+)\]\s*", vers)
+            if mat:
+                exactVersion, logicalVersion = mat.groups()
+                if Eups.exact_version:
+                    vers = exactVersion
+                else:
+                    vers = logicalVersion
+
         productOK, vers = Eups.setup(productName, vers, fwd, recursionDepth)
         if not productOK and fwd and not optional:
             raise RuntimeError, ("Failed to setup required product %s %s" % (productName, vers))
@@ -1049,6 +1058,10 @@ class Product(object):
     def init(self, versionName, flavor, eupsPathDir):
         """Initialize a Product given full information about a product"""
 
+        if self.name == "eups" and not eupsPathDir: # eups was setup by sourcing setups.[c]sh
+            self.version = versionName
+            return
+        
         mat = isinstance(versionName, str) and re.search(r"^LOCAL:(.*)", versionName)
         if mat:
             productDir = mat.group(1)
@@ -1062,6 +1075,9 @@ class Product(object):
         """Initialize a Product that's already setup"""
 
         versionName, flavor, eupsPathDir = self.getSetupVersion()
+        if not versionName:
+            raise RuntimeError, ("%s is not setup" % self.name)
+
         self.init(versionName, flavor, eupsPathDir)
 
         return self
@@ -1081,7 +1097,7 @@ class Product(object):
             return None
 
     def currentFileName(self):
-        """Return a fully qualified versionfile name"""
+        """Return a current.chain's fully qualified name"""
 
         return os.path.join(self.Eups.getUpsDB(self.db), self.name, "current.chain")
 
@@ -1164,7 +1180,7 @@ class Eups(object):
     """Control eups"""
 
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
-                 shell=None, verbose=False, noaction=False, force=False, ignore_versions=False,
+                 shell=None, verbose=False, noaction=False, force=False, ignore_versions=False, exact_version=False,
                  keep=False, max_depth=-1):
                  
         self.verbose = verbose
@@ -1237,6 +1253,7 @@ class Eups(object):
         self.noaction = noaction
         self.force = force
         self.ignore_versions = ignore_versions
+        self.exact_version = exact_version
         self.max_depth = max_depth      # == 0 => only setup toplevel package
 
         self._msgs = {}                 # used to suppress messages
@@ -1449,7 +1466,7 @@ class Eups(object):
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
             productName = re.search(re_setup, key).group(1)
 
-            if productName == "EUPS":       # "eups" itself is a special case
+            if productName == "EUPS":       # "eups" itself is a special case; SETUP_EUPS is set by (old) setups.[c]sh
                 productName = productName.lower()
 
             if requestedProductName and productName != requestedProductName:
@@ -1543,19 +1560,19 @@ class Eups(object):
                 print >> sys.stderr, \
                       "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
 
-        if not args: # you can get here if you initialised eups by sourcing setups.c?sh
-            pass
-        else:
-            if len(args) > 1 and args[0] != "-f":
-                versionName = args.pop(0)
+        if productName == "eups" and not args: # you can get here if you initialised eups by sourcing setups.c?sh
+            args = ["LOCAL:%s" % os.environ["EUPS_DIR"], "-Z", "(none)"]
 
-            if len(args) > 1 and args[0] == "-f":
-                args.pop(0);  flavor = args.pop(0)
+        if len(args) > 0 and args[0] != "-f":
+            versionName = args.pop(0)
 
-            if len(args) > 1 and args[0] == "-Z":
-                args.pop(0);  eupsPathDir = args.pop(0)
+        if len(args) > 1 and args[0] == "-f":
+            args.pop(0);  flavor = args.pop(0)
 
-            assert not args
+        if len(args) > 1 and args[0] == "-Z":
+            args.pop(0);  eupsPathDir = args.pop(0)
+
+        assert not args
 
         if versionName == Current:
             q = Quiet(self)
@@ -1842,24 +1859,20 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         if versionName and versionName != sversion:
             return False
-        elif eupsPathDir and eupsPathDir != seupsPathDir:
+        elif eupsPathDir and seupsPathDir and eupsPathDir != seupsPathDir:
             return False
         else:
             return True
 
     def unsetupSetupProduct(self, product):
         """ """
-
-        if not self.isSetup(product):
-            return
-    
         version, flavor, eupsPathDir = product.getSetupVersion()
 
+        if not version or not (eupsPathDir or re.search(r"^LOCAL:", version)):
+            return 
+
         oldProduct = self.Product(product.name, noInit=True)
-        if product.name == "eups" and not version: # you can get here if you setup eups by sourcing setups.c?sh
-            oldProduct.initFromDirectory(os.environ[product.envarDirName()])
-        else:
-            oldProduct.init(version, flavor, eupsPathDir)
+        oldProduct.init(version, flavor, eupsPathDir)
 
         self.setup(oldProduct, fwd=False)  # do the actual unsetup
 
@@ -1955,6 +1968,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             n = n2
 
         for i in range(n):
+            try:                        # try to compare as integers
+                _c1i = int(c1[i])
+                _c2i = int(c2[i])
+                c1[i] = _c1i
+                c2[i] = _c2i
+            except ValueError:
+                pass
+                
             different = cmp(c1[i], c2[i])
             if different:
                 return different
@@ -2049,6 +2070,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
     def setup(self, productName, versionName=Current, fwd=True, recursionDepth=0):
         """The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
         eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
+
         #
         # Look for product directory
         #
@@ -2069,10 +2091,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     return False, versionName
 
             if versionName and versionName != Current and versionName != Setup:
-                if product.version != versionName:
-                    print >> sys.stderr, \
-                          "You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
-                          (product.name, versionName, product.version, product.version)
+                if not self.version_match(product.version, versionName):
+                    if not self.quiet:
+                        print >> sys.stderr, \
+                              "You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
+                              (product.name, versionName, product.version, product.version)
         else:
             if self.root and recursionDepth == 0:
                 product = self.Product(productName, noInit=True)
@@ -2097,7 +2120,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     self.alreadySetupProducts[p.name] = p
 
         table = product.table
-            
+
         try:
             actions = table.actions(self.flavor)
         except RuntimeError, e:
@@ -3034,14 +3057,14 @@ def guessProduct(dir, productName=None):
 
     if not productNames:
         raise RuntimeError, ("I can't find any table files in %s/ups" % root)
+
+    if productName:
+        if productName in productNames:
+            return productName
+        else:
+            raise RuntimeError, ("You chose product %s, but I can't find its table file in %s" % (productName, dir))
     elif len(productNames) == 1:
         return productNames[0]
     else:
-        if productName:
-            if productName in productNames:
-                return productName
-            else:
-                raise RuntimeError, ("You chose product %s, but I can't find its table file in %s" % (productName, dir))
-        else:
-            raise RuntimeError, \
-                  ("I can't guess which product you want; directory %s contains: %s" % (dir, " ".join(productNames)))
+        raise RuntimeError, \
+              ("I can't guess which product you want; directory %s contains: %s" % (dir, " ".join(productNames)))

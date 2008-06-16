@@ -21,7 +21,7 @@ unique_path="""
 import sys
 pp = []
 for d in sys.argv[1].split(":"):
-    if d not in pp:
+    if d and d not in pp:
         pp += [d]
 print ":".join(pp)"""
 
@@ -45,6 +45,8 @@ if ("$?EUPS_PATH" == "0" ) then
     setenv EUPS_PATH ""
 endif
 
+# Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
+# one copy of each directory)
 setenv EUPS_PATH `python -c '%(unique_path)s' %(prefix)s:$EUPS_PATH`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 setenv SETUP_EUPS "eups"
@@ -81,6 +83,8 @@ if [ "$EUPS_DIR" != "" ]; then
 fi
 
 export EUPS_DIR=%(eupsdir)s
+# Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
+# one copy of each directory)
 export EUPS_PATH=`python -c '%(unique_path)s' %(prefix)s:$EUPS_PATH`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 export SETUP_EUPS="eups"
@@ -95,8 +99,8 @@ else
     export PYTHONPATH="%(bindir)s"
 fi
 
-function nsetup   { eval `%(setup)s $@`; };   export -f setup
-function nunsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup
+function nsetup   { eval `%(setup)s $@`; };   export -f nsetup
+function nunsetup { eval `%(setup)s --unsetup $@`; }; export -f nunsetup
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}

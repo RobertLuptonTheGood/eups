@@ -121,7 +121,7 @@ are not recognised they are silently ignored
                         opts[a] += 1
                     else:
                         opts[a] = 1
-            elif re.search(r"-\d+$", a): # a negative integer
+            elif re.search(r"-\d*$", a): # a negative integer or "-"
                 nargv += [a]
             elif processingExtras:
                 continue

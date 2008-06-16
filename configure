@@ -2232,3 +2232,10 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
+
+if [ X$SETUP_ALIASES != X ]; then
+   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/:.*$//'`, setup)" >> ups/eups.table
+   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup)" >> ups/eups.table
+fi
+
+

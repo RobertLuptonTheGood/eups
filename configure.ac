@@ -73,3 +73,8 @@ dnl separately, which permits us to unsetup eups
 dnl
 AC_CONFIG_FILES([ups/eups.table], [[perl -ni -e 'if(($b,undef,$ep,$e) = /^(\s*env(Prepend|Append)\(\s*EUPS_PATH\s*,)\s*([^)]+)(.*)$/) { foreach $p (split(":",$ep)) { print "$b ${p}$e\n"} } else { print }' ups/eups.table]])
 AC_OUTPUT
+
+if [[ X$SETUP_ALIASES != X ]]; then
+   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/:.*$//'`, setup)" >> ups/eups.table
+   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup)" >> ups/eups.table
+fi

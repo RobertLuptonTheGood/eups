@@ -10,6 +10,7 @@ import eupsDistribBuilder
 import eupsDistribPacman
 import eupsDistribTarball
 import eupsGetopt
+import eupsTable
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -88,8 +89,6 @@ elif cmd == "declare":
     options["-M"] = (True,  None,
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
-elif cmd in ["expandtable", "pkg-config"]:
-    helpStr, narg = eupsGetopt.declareArgs(helpStr)
 elif cmd == "distrib":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
 
@@ -130,6 +129,35 @@ elif cmd == "expandbuild":
 
     aliases["-c"] = "--cvsroot"
     aliases["-s"] = "--svnroot"
+elif cmd == "expandtable":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, "tableFile", "outDir")
+
+    helpStr += """\n
+Modify a ups table file, replacing setupRequired and setupOptional
+lines which refer to the current version by the actual version number 
+of the currently setup product; e.g.
+      setupRequired(astroda)
+becomes
+      setupRequired(astroda v13_1)
+
+You can override the version with e.g. -p astroda=rhl; more
+than one -p command is permitted.
+
+If a directory is specified, the modified table file will be written
+there, with the same name as the original; otherwise it is written to
+standard out unless you specify --inplace, in which case the
+substitution will be done in situ.  You may omit file.table, or
+specify it as "-", to read standard input; this implies --inplace.
+    
+For example, the make target in a ups directory might contain the line:
+      eups expandtable -w iop.table $(IOP_DIR)/ups
+    
+    """
+
+    options["-i"] = (False, "--inplace", "Modify file in situ")
+    options["-p"] = (True, '--product', "The version of the product")
+    options["-w"] = (False, "--warn", "Warn about versions with non-canonical names")
+    options["-W"] = (True, "--warnRegexp", "Canonical versions should match this regexp (implies --warn)")
 elif cmd == "flags":
     helpStr, narg = eupsGetopt.declareArgs(helpStr)
     helpStr += "\n\nPrint the value of EUPS_FLAGS"
@@ -146,6 +174,8 @@ elif cmd == "list":
 elif cmd == "path":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
     helpStr += "\n\nPrint the eups path; with index print just one element (-ve: from end)"
+elif cmd == "pkg-config":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr)
 elif cmd == "remove":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
     helpStr += "\n\nRemove a product"
@@ -180,15 +210,16 @@ except RuntimeError, param:
 if opts.argv:                           # we already found cmd
     opts.argv.pop(0)
 
-if opts.options.get('-h') or not cmd:
-    opts.usage()
-    sys.exit(0)
 if opts.options.get('-V'):
     if cmd == "expandbuild":
         pass                            # Uh-oh.  --version is used to specify versions to expandbuild
     else:
         print >> sys.stderr, "Version: %s" % eups.version()
         sys.exit(0)    
+
+if opts.options.get('-h') or not cmd:
+    opts.usage()
+    sys.exit(0)
 
 debugOptions = opts.options.get(debugFlag, "").split(":")
 for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
@@ -258,12 +289,6 @@ def main(cmd, opts):
 
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
                      declare_current=declare_current)
-    elif cmd in ["expandtable", "pkg-config"]:
-        cmd = "$EUPS_DIR/bin/cmd_%s %s" % (cmd, " ".join(sys.argv[1:]))
-        try:
-            eupsDistrib.system(cmd, Eups.noaction)
-        except OSError, e:
-            print >> sys.stderr, e
     elif cmd == "distrib":
         buildFilePath = opts.options.get('-B', None)
         preferFlavor = opts.options.get('-b', False)
@@ -359,17 +384,39 @@ def main(cmd, opts):
             Distrib.buildDir=tmp_dir
 
         distrib(Distrib, desire, productName, versionName, manifest=manifest, current=current)
-    elif cmd == "expandbuild":
-        cvsroot = opts.options.get('-c', None)
-        in_situ = opts.options.get('-i', False)
-        productName = opts.options.get('-p', None)
-        svnroot = opts.options.get('-s', None)
-        version = opts.options.get('-V')
-        if not version:
-            print >> sys.stderr, "Please specify a version with --version or -V"
-            sys.exit(1)
+    elif cmd in ("expandbuild", "expandtable"):
+        productList = {}
+        if cmd == "expandbuild":
+            fileType = "build"
 
-        buildFile = opts.argv.pop(0)
+            cvsroot = opts.options.get('-c', None)
+            productName = opts.options.get('-p', "")
+            svnroot = opts.options.get('-s', None)
+            versionName = opts.options.get('-V')
+            if not versionName:
+                print >> sys.stderr, "Please specify a version with --version or -V"
+                sys.exit(1)
+
+            productList[productName] = versionName
+        elif cmd == "expandtable":
+            fileType = "table"
+
+            productVersionPair = opts.options.get('-p', None)
+            if productVersionPair:
+                for pv in productVersionPair.split(":"):
+                    p, v = pv.split("=")
+                    productList[p] = v
+            
+            warn = opts.options.get('-w', False)
+            warnRegexp = opts.options.get('-W', None)
+
+            if warn and not warnRegexp:
+                warnRegexp = "^[vV]"
+        else:
+            raise AssertionError, "Impossible expansion command: %s" % cmd
+        
+        in_situ = opts.options.get('-i', False)
+        inFile = opts.argv.pop(0)
 
         if len(opts.argv) == 0:
             outdir = None
@@ -380,8 +427,14 @@ def main(cmd, opts):
 
             outdir = opts.argv.pop(0)
 
-        eups_expandbuild(Eups, buildFile, version, productName, outdir=outdir, in_situ=in_situ,
-                         svnroot=svnroot, cvsroot=cvsroot)
+        if fileType == "build":
+            eups_expandFile(Eups, inFile, productList, fileType, outdir=outdir, in_situ=in_situ,
+                            svnroot=svnroot, cvsroot=cvsroot)
+        elif fileType == "table":
+            eups_expandFile(Eups, inFile, productList, fileType, outdir=outdir, in_situ=in_situ,
+                            versionRegexp=warnRegexp)
+        else:
+            raise AssertionError, "Impossible expansion command: %s" % cmd
     elif cmd == "flags":
         try:
             print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
@@ -422,6 +475,12 @@ def main(cmd, opts):
         
         for p in _path:
             print p
+    elif cmd == "pkg-config":
+        cmd = "$EUPS_DIR/bin/cmd_%s %s" % (cmd, " ".join(sys.argv[1:]))
+        try:
+            eupsDistrib.system(cmd, Eups.noaction)
+        except OSError, e:
+            print >> sys.stderr, e
     elif cmd == "remove":
         recursive = opts.options.get('-R', False)
         interactive = (recursive or opts.options.get('-i', False)) and not opts.options.get(noInteractiveFlag)
@@ -526,7 +585,7 @@ def listProducts(Eups, productName=None, versionName=None,
                 try:
                     table = Eups.Product(name, version, eupsPathDirs=db).table
 
-                    if table:
+                    if table.file:
                         info += table.file
                     else:
                         info += "none"
@@ -589,38 +648,55 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def eups_expandbuild(Eups, buildFile, version,
-                     productName=None, outdir=None, in_situ=False, svnroot=None, cvsroot=None):
-    #
-    # Guess the value of PRODUCT
-    #
-    if productName:
-        pass
+def eups_expandFile(Eups, inFile, productList, fileType=None, outdir=None, in_situ=False, **kwargs):
+
+    assert fileType
+    
+    if fileType == "build":
+        assert len(productList.keys()) == 1
+        
+        productName = productList.keys()[0]
+        versionName = productList[productName]
+
+        cvsroot = kwargs.get("cvsroot")
+        svnroot = kwargs.get("svnroot")
+        #
+        # Guess the value of PRODUCT
+        #
+        if productName:
+            pass
+        else:
+            mat = re.search(r"^([^.]+)\.build$", os.path.basename(inFile))
+            if mat:
+                productName = mat.group(1)
+    elif fileType == "table":
+        versionRegexp = kwargs.get("versionRegexp")
     else:
-        mat = re.search(r"^([^.]+)\.build$", os.path.basename(buildFile))
-        if mat:
-            productName = mat.group(1)
+        raise RuntimeError, ("Unknown file type: %s" % fileType)
     #
     # Actually open the file and do the work
     #
     backup = None
-    try:
-        if in_situ:
-            backup = buildFile + ".bak"
-            os.rename(buildFile, backup)
-            ifd = open(backup, "r")
-        else:
-            ifd = open(buildFile)
-    except IOError, e:
-        if backup and os.path.exists(backup):
-            os.rename(backup, buildFile)
-            os.unlink(backup)
+    if inFile == "-":
+        ifd = sys.stdin
+    else:
+        try:
+            if in_situ:
+                backup = inFile + ".bak"
+                os.rename(inFile, backup)
+                ifd = open(backup, "r")
+            else:
+                ifd = open(inFile)
+        except IOError, e:
+            if backup and os.path.exists(backup):
+                os.rename(backup, inFile)
+                os.unlink(backup)
 
-        print >> sys.stderr, "Failed to open file \"%s\" for read" % buildFile
-        sys.exit(1)
+            print >> sys.stderr, "Failed to open file \"%s\" for read" % inFile
+            sys.exit(1)
 
     if outdir:
-        outfile = os.path.join(outdir, os.path.basename(buildFile))
+        outfile = os.path.join(outdir, os.path.basename(inFile))
         if Eups.verbose:
             print "Writing to %s" % outfile
 
@@ -631,10 +707,10 @@ def eups_expandbuild(Eups, buildFile, version,
             sys.exit(1)
     elif in_situ:
         try:
-            ofd = open(buildFile, "w")
+            ofd = open(inFile, "w")
         except Exception:
             if backup and os.path.exists(backup):
-                os.rename(backup, buildFile)
+                os.rename(backup, inFile)
                 os.unlink(backup)
     else:
         ofd = sys.stdout
@@ -642,11 +718,16 @@ def eups_expandbuild(Eups, buildFile, version,
     # Actually do the work
     #
     try:
-        eupsDistribBuilder.expandBuildFile(ofd, ifd, productName, version,
-                                           Eups.verbose, svnroot=svnroot, cvsroot=cvsroot)
+        if fileType == "build":
+            eupsDistribBuilder.expandBuildFile(ofd, ifd, productName, versionName,
+                                               Eups.verbose, svnroot=svnroot, cvsroot=cvsroot)
+        elif fileType == "table":
+            eupsTable.expandTableFile(Eups, ofd, ifd, productList, versionRegexp)
+        else:
+            raise AssertionError, ("Impossible fileType: %s" % fileType)
     except Exception:
         if backup and os.path.exists(backup):
-            os.rename(backup, buildFile)
+            os.rename(backup, inFile)
         raise
 
     if backup and os.path.exists(backup):
