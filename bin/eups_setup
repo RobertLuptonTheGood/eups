@@ -76,7 +76,6 @@ if opts.argv:
     productName = opts.argv.pop(0)
 
 if root:
-    eups.debug("root", productName)
     try:
         productName = eups.guessProduct(os.path.join(root, "ups"), productName)
     except RuntimeError, e:

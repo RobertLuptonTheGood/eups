@@ -75,6 +75,8 @@ AC_CONFIG_FILES([ups/eups.table], [[perl -ni -e 'if(($b,undef,$ep,$e) = /^(\s*en
 AC_OUTPUT
 
 if [[ X$SETUP_ALIASES != X ]]; then
-   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/:.*$//'`, setup)" >> ups/eups.table
-   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup)" >> ups/eups.table
+   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/:.*$//'`, setup \$@)" >> ups/eups.table
+   echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup \$@)" >> ups/eups.table
 fi
+
+(cd bin; ./mksetup $PWD $EUPS_PATH $SETUP_ALIASES)

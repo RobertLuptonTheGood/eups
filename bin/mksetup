@@ -4,12 +4,18 @@ import os, sys
 
 sys.argv.pop(0)                         # remove script name
 try:
-    eupsdir = sys.argv[0]
-    prefix = sys.argv[1]
+    eupsdir = sys.argv.pop(0)
+    prefix = sys.argv.pop(0)
 except IndexError:
-    print >> sys.stderr, "Usage: mksetup EUPS_DIR EUPS_PATH"
+    print >> sys.stderr, "Usage: mksetup EUPS_DIR EUPS_PATH [SETUP_ALIASES]"
 
     sys.exit(1)
+
+try:
+    vals = sys.argv.pop(0).split(":")
+    setup_aliases = {"setup" : vals[0], "unsetup" : vals[1]}
+except IndexError:
+    setup_aliases = {}
 
 ups_db = os.path.join(prefix, "ups_db")
 
@@ -67,6 +73,10 @@ alias unsetup 'eval `%(setup)s --unsetup \\!*`'
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}
 
+for s in ["setup", "unsetup"]:
+    if setup_aliases[s]:
+        print >> fd, "alias %s %s" % (setup_aliases[s], s)
+
 del fd
 
 print "Writing a sh startup script";
@@ -99,11 +109,14 @@ else
     export PYTHONPATH="%(bindir)s"
 fi
 
-function setup   { eval `%(setup)s $@`; };   export -f setup
-function unsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup
-
-""" % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
+function setup   { eval `%(setup)s           $@`; }; export -f setup
+function unsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup""" \
+    % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}
+
+for s in setup_aliases.keys():
+    if setup_aliases[s]:
+        print >> fd, "alias %s=%s" % (setup_aliases[s], s)
 
 del fd
 
