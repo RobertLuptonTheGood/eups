@@ -79,4 +79,4 @@ if [[ X$SETUP_ALIASES != X ]]; then
    echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup \$@)" >> ups/eups.table
 fi
 
-(cd bin; ./mksetup $PWD $EUPS_PATH $SETUP_ALIASES)
+(export EUPS_DIR=$PWD; cd bin; ./mksetup $EUPS_DIR $EUPS_PATH $SETUP_ALIASES)
