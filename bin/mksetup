@@ -73,9 +73,8 @@ alias unsetup 'eval `%(setup)s --unsetup \\!*`'
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}
 
-for s in ["setup", "unsetup"]:
-    if setup_aliases[s]:
-        print >> fd, "alias %s %s" % (setup_aliases[s], s)
+for s in setup_aliases.keys():
+    print >> fd, "alias %s %s" % (setup_aliases[s], s)
 
 del fd
 
@@ -115,8 +114,7 @@ function unsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup""" \
        "setup" : setup,  "unique_path" : unique_path}
 
 for s in setup_aliases.keys():
-    if setup_aliases[s]:
-        print >> fd, "alias %s=%s" % (setup_aliases[s], s)
+    print >> fd, "alias %s=%s" % (setup_aliases[s], s)
 
 del fd
 
