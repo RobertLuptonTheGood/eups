@@ -69,7 +69,7 @@ class Distrib(eupsDistrib.Distrib):
                         raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
 
                     try:
-                        eups.expandBuildFile(ofd, ifd, productName, versionName, self.Eups.verbose)
+                        expandBuildFile(ofd, ifd, productName, versionName, self.Eups.verbose)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
@@ -108,19 +108,19 @@ class Distrib(eupsDistrib.Distrib):
                     print >> sys.stderr, "Failed to create %s: %s" % (self.buildDir, e)
 
         if self.Eups.verbose > 0:
-            print >> sys.stderr, "Building %s in %s" % (builder, self.buildDir)
+            print >> sys.stderr, "Executing %s in %s" % (builder, self.buildDir)
         #
         # Does this build file look OK?  In particular, does it contain a valid
         # CVS/SVN location or curl/wget command?
         #
         (cvsroot, svnroot, url, other) = get_root_from_buildfile(tfile)
         if not (cvsroot or svnroot or url or other):
-            if force:
+            if self.Eups.force:
                 action = "continuing"
             else:
                 action = "aborting"
-            msg = "Warning: unable to find a {cvs,svn}root or wget/curl command in %s; %s" % (tfile, action)
-            if force:
+            msg = "Unable to find a {cvs,svn}root or wget/curl command in %s; %s" % (tfile, action)
+            if self.Eups.force:
                 print >> sys.stderr, msg
             else:
                 raise RuntimeError, msg
@@ -149,8 +149,9 @@ class Distrib(eupsDistrib.Distrib):
             if re.search("^#!/bin/(ba|k)?sh", line):      # a #!/bin/sh line; not needed
                 continue
 
-            line =  re.sub(r"^(\s*)#(.*)",
-                           r"\1:\2", line) # make comments executable statements that can be chained with &&
+            if re.search(r"#", line): # make comments executable statements that can be chained with &&
+                line =  re.sub(r"^(\s*)#(.*)", r"\1:\2", line)
+                line = re.sub(r"([^\\])(['\"])", r"\1\\\2", line) # We need to quote quotes in : comment
 
             line = re.sub(r"^\s*setup\s", "setup -j ", line)
             cmd += [line]
@@ -201,7 +202,7 @@ def get_root_from_buildfile(buildFile):
     fd = open(buildFile)
 
     for line in fd:
-        if re.search(r"^\s*[:#].*\bBuild\s+File\b", line, re.IGNORECASE):
+        if re.search(r"^\s*[:#].*\bBuild\s*File\b", line, re.IGNORECASE):
             other = True
 
         mat = re.search(r"^\s*export\s+(CVS|SVN)ROOT\s*=\s*(\S*)", line)

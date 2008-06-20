@@ -91,3 +91,23 @@ def unlock(lockfile, force=False):
                 print >> sys.stderr, "Clearing lockfile %s: %s" % (lockfile, e)
     else:
         lock(lockfile, "", unlock=True)
+
+#
+# Now an OO interface to locking
+#
+class Lock(object):
+    """An OO interface to locking;  the lock will be held until the objects deleted"""
+    
+    def __init__(self, lockfile, myIdentity, max_wait=10, unlock=False, force=False):
+        """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
+        self.lockfile = lockfile
+
+        lock(lockfile, myIdentity, max_wait, unlock, force)
+
+    def unlock(self, force=False):
+        unlock(self.lockfile, force)
+        self.lockfile = None        
+
+    def __del__(self):
+        if self.lockfile:
+            unlock(self.lockfile)

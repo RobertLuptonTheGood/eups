@@ -227,7 +227,7 @@ class Distrib(object):
                 if mat:
                     pb = mat.groups()[0]
                     if self.packageBase and self.packageBase != os.path.commonprefix([self.packageBase, pb]):
-                        print >> sys.stderr, "Warning: manifest file %s has different base from -r %s" % \
+                        print >> sys.stderr, "Manifest file %s has different base from -r %s" % \
                               (manifest, self.packageBase)
                         self.packageBase = pb
         #
@@ -422,7 +422,7 @@ def listdir(Distrib, url):
 
         if not p.is_apache:
             print >> sys.stderr, \
-                  "Warning: I'm assuming that the manifest directory listing comes from an Apache server"
+                  "I'm assuming that the manifest directory listing comes from an Apache server"
 
         return p.files
     else:
@@ -450,7 +450,7 @@ def create(Distrib, top_productName, top_version, manifest):
         ptablefile = Distrib.find_file_on_path("%s.table" % productName)
         if not ptablefile:
             if Distrib.Eups.verbose > 0:
-                print >> sys.stderr, "Unable to find a table file for %s" % productName
+                print >> sys.stderr, "Unable to find a table file for %s; assuming no dependencies" % productName
             if os.path.exists(os.path.join("ups", "%s.table" % productName)):
                 print >> sys.stderr, \
                       "N.b. found %s.table in ./ups; consider adding ./ups to --build path" % (productName)
@@ -745,9 +745,19 @@ def install(Distrib, top_product, top_version, manifest):
         dodeclare = True
 
         if distID == "None":              # we don't know how to install this product
-            if verbose > 0:
-                print >> sys.stderr, "I don't know how to install %s" % (productName)
-            dodeclare = False
+            if Distrib.Eups.verbose:
+                print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s" % \
+                      (top_product, productName, productName)
+            try:
+                install(Distrib, productName, versionName, None)
+                continue
+            except RuntimeError, e:
+                if not Distrib.Eups.force or Distrib.Eups.verbose > 0:
+                    print >> sys.stderr, "I don't know how to install %s: %s" % (productName, e)
+                if not Distrib.Eups.force:
+                    print >> sys.stderr, "Specify force to proceed"
+                    sys.exit(1)
+                dodeclare = False
         else:
             Distrib.installPackage(distID, productsRoot, setups)
 
@@ -794,7 +804,7 @@ def install(Distrib, top_product, top_version, manifest):
             Distrib.Eups.declare(productName, versionName, productDir, tablefile=tablefile,
                                  eupsPathDir=eupsPathDir, declare_current=Distrib.current)
         else:                           # we may still need to declare it current
-            if current:
+            if Distrib.current:
                 Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=productsRoot)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

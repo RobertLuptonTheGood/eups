@@ -122,8 +122,5 @@ if tmpfile:
     else:
         print "source %s" % tmpfile
 else:
-    if Eups.shell == "sh":
-        print ":"
-    else:
-        print "#"
+    print "false"
         

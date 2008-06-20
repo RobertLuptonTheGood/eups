@@ -375,6 +375,10 @@ class Action(object):
 
         productOK, vers = Eups.setup(productName, vers, fwd, recursionDepth)
         if not productOK and fwd and not optional:
+            try:
+                vers = vers()           # may be Current or Setup
+            except:
+                pass
             raise RuntimeError, ("Failed to setup required product %s %s" % (productName, vers))
 
     def execute_envPrepend(self, Eups, fwd=True):
@@ -1474,11 +1478,10 @@ class Eups(object):
 
             try:
                 product = self.Product(productName, noInit=True).initFromSetupVersion()
+                productList += [product]
             except RuntimeError, e:
                 if not self.quiet:
                     print >> sys.stderr, e
-
-            productList += [product]
 
         return productList
         
@@ -2307,7 +2310,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             else:
                 if not self.force:
                     info = ""
-                    if self.verbose:
+                    if differences and self.verbose:
                         info = " (%s)" % " ".join(differences)
                     raise RuntimeError, ("Redeclaring %s %s%s; specify force to proceed" %
                                          (productName, versionName, info))
@@ -2596,8 +2599,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
-        for (product, optional, currentRequested) in Table(tablefile).dependencies(self, eupsPathDirs):
-            dependencies += [(product.name, optional, currentRequested)]
+        if tablefile != "none":
+            for (product, optional, currentRequested) in Table(tablefile).dependencies(self, eupsPathDirs):
+                dependencies += [(product.name, optional, currentRequested)]
 
         return dependencies
 

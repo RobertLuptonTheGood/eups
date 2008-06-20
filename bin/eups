@@ -162,6 +162,7 @@ elif cmd == "flags":
     helpStr, narg = eupsGetopt.declareArgs(helpStr)
     helpStr += "\n\nPrint the value of EUPS_FLAGS"
 elif cmd == "flavor":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr)
     helpStr += "\n\nPrint your eups flavor"
 elif cmd == "list":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
