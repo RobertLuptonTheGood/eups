@@ -1135,7 +1135,9 @@ class Product(object):
         """Return the name of the product's how-I-was-setup environment variable"""
         name = "SETUP_" + self.name
 
-        if not os.environ.has_key(name) and os.environ.has_key(name.upper()):
+        if os.environ.has_key(name):
+            pass
+        elif os.environ.has_key(name.upper()):
             name = name.upper()
 
         return name
@@ -1478,10 +1480,15 @@ class Eups(object):
 
             try:
                 product = self.Product(productName, noInit=True).initFromSetupVersion()
-                productList += [product]
             except RuntimeError, e:
-                if not self.quiet:
-                    print >> sys.stderr, e
+                try:                    # try the all-lower-case version
+                    product = self.Product(productName.lower(), noInit=True).initFromSetupVersion()
+                except RuntimeError, e:
+                    if not self.quiet:
+                        print >> sys.stderr, e
+                    continue
+
+            productList += [product]
 
         return productList
         
