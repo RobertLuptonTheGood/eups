@@ -113,7 +113,8 @@ class Distrib(object):
                         break
                     except RuntimeError:
                         pass
-
+                if tfile:
+                    break
             if tfile:
                 filename = tfile
             else:
