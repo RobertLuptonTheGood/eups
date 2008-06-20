@@ -493,6 +493,8 @@ def find_file(filename, packagePath=None):
                     break
                 except RuntimeError:
                     pass
+                tfile = None
+            if tfile is not None:  break
 
         if tfile:
             filename = tfile
