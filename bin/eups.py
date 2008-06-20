@@ -433,7 +433,7 @@ class Action(object):
         if append_delim and not re.search(r"%s$" % delim, npath):
             npath += delim
 
-        if Eups.force and Eups.oldEnviron[envVar]:
+        if Eups.force and Eups.oldEnviron.has_key(envVar):
             del Eups.oldEnviron[envVar]
 
         Eups.setEnv(envVar, npath, interpolateEnv=True)
@@ -2161,6 +2161,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             if product.version and sversionName:
                 if product.version == sversionName: # already setup
                     if recursionDepth <= 0: # top level should be resetup if that's what they asked for
+                        pass
+                    elif self.force:    # force means do it!; so do it.
                         pass
                     else:
                         if self.verbose > 1:
