@@ -462,13 +462,16 @@ def find_file(filename, packagePath=None):
 
     global package_base
 
+    if packagePath is None and re.search('\.manifest$', filename):
+        packagePath = 'manifests'
+
     locs = createLocationList(filename, packagePath)
 
     subDirs = [""]
     if re.search('\.build$', filename):
         subDirs += ['builds']
-    elif re.search('\.manifest$', filename):
-        subDirs += ['manifests']
+#    elif re.search('\.manifest$', filename):
+#        subDirs += ['manifests']
     elif re.search('\.table$', filename):
         subDirs += ['tables']
 
