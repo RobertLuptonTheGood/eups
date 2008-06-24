@@ -562,7 +562,11 @@ but no other interpretation is applied
             mat = re.search(r"^Qualifiers\s*=\s*\"([^\"]*)\"", line, re.IGNORECASE)
             if mat:
                 if mat.group(1):
-                    raise RuntimeError, ("Unsupported qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo))
+                    if False:
+                        raise RuntimeError, \
+                              ("Unsupported qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo))
+                    else:
+                        print >> sys.stderr, "Ignoring qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo)
                 continue
             #
             # Parse Group...Common...End, replacing by a proper If statement
