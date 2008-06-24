@@ -186,6 +186,10 @@ elif cmd == "remove":
     options[noInteractiveFlag] = (False, "--noInteractive", "Don't prompt user before actually removing products")
     options["-N"] = (False, "--noCheck", "Don't check whether recursively removed products are needed")
     options["-R"] = (False, "--recursive", "Recursively also remove everything that this product depends on")
+elif cmd == "setup" or cmd == "unsetup":
+    print >> sys.stderr, "Please use the command %s (not \"eups %s\") as you need to modify your environment" % \
+          (cmd, cmd)
+    sys.exit(1)
 elif cmd == "undeclare":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
     helpStr += "\n\nUndeclare a product"
@@ -198,6 +202,9 @@ elif cmd == "uses":
     options["-c"] = (False, "--current", "Look for products that setup current version")
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-o"] = (False, "--optional", "Show optional setups")
+else:
+    print >> sys.stderr, "Unknown command %s (use --help to list your options)" % cmd
+    sys.exit(1)
 #
 # Parse arguments
 #
