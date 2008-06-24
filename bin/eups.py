@@ -302,13 +302,14 @@ class Action(object):
     addAlias = "addAlias"
     envAppend = "envAppend"             # not used
     envPrepend = "envPrepend"           # extra: bool append
-    envRemove = "envRemove" 
+    envRemove = "envRemove"             # not supported
     envSet = "envSet"
-    envUnset = "envUnset" 
+    envUnset = "envUnset"               # not supported
     prodDir = "prodDir"
     setupEnv = "setupEnv"
     setupOptional = "setupOptional"     # not used
     setupRequired = "setupRequired"     # extra: bool optional
+    sourceRequired = "sourceRequired"   # not supported
 
     def __init__(self, cmd, args, extra):
         self.cmd = cmd
@@ -373,13 +374,13 @@ class Action(object):
                 else:
                     vers = logicalVersion
 
-        productOK, vers = Eups.setup(productName, vers, fwd, recursionDepth)
+        productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth)
         if not productOK and fwd and not optional:
             try:
                 vers = vers()           # may be Current or Setup
             except:
                 pass
-            raise RuntimeError, ("Failed to setup required product %s %s" % (productName, vers))
+            raise RuntimeError, ("Failed to setup required product %s %s: %s" % (productName, vers, reason))
 
     def execute_envPrepend(self, Eups, fwd=True):
         """Execute envPrepend"""
@@ -634,7 +635,8 @@ but no other interpretation is applied
                         value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
                     value = re.sub(r"\${PRODUCT_FLAVOR}", product.Eups.flavor, value)
                     value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
-                    value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
+                    if product.version:
+                        value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
 
                     a.args[i] = value
@@ -683,26 +685,37 @@ but no other interpretation is applied
             if mat:
                 cmd = mat.group(1).lower()
                 args = re.sub(r'^"(.*)"$', r'\1', mat.group(2))
+                #
+                # Special case cmd(..., " ") by protecting " " as "\001"
+                #
+                args = re.sub(r',\s*"(\s)"', r'\1"%c"' % 1, args)
+
                 args = filter(lambda s: s, re.split("[, ]", args))
                 args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args) # remove quotes
+                args = map(lambda s: re.sub(r'%c' % 1, r' ', s), args) # reinstate \001 as a space
 
-                cmd = {
-                    "addalias" : Action.addAlias,
-                    "envappend" : Action.envAppend,
-                    "envprepend" : Action.envPrepend,
-                    "envset" : Action.envSet,
-                    "envremove" : Action.envRemove,
-                    "envunset" : Action.envUnset,
-                    "pathappend" : Action.envAppend,
-                    "pathprepend" : Action.envPrepend,
-                    "pathset" : Action.envSet,
-                    "proddir" : Action.prodDir,
-                    "setupenv" : Action.setupEnv,
-                    "setenv" : Action.envSet,
-                    "setuprequired" : Action.setupRequired,
-                    "setupoptional" : Action.setupOptional,
-                    }[cmd]
-
+                try:
+                    cmd = {
+                        "addalias" : Action.addAlias,
+                        "envappend" : Action.envAppend,
+                        "envprepend" : Action.envPrepend,
+                        "envremove" : Action.envRemove,
+                        "envset" : Action.envSet,
+                        "envunset" : Action.envUnset,
+                        "pathappend" : Action.envAppend,
+                        "pathprepend" : Action.envPrepend,
+                        "pathremove" : Action.envRemove,
+                        "pathset" : Action.envSet,
+                        "proddir" : Action.prodDir,
+                        "setupenv" : Action.setupEnv,
+                        "setenv" : Action.envSet,
+                        "setuprequired" : Action.setupRequired,
+                        "setupoptional" : Action.setupOptional,
+                        "sourcerequired" : Action.sourceRequired,
+                        }[cmd]
+                except KeyError:
+                    print >> sys.stderr, "Unexpected line in %s:%d: %s" % (tableFile, lineNo, line)
+                    continue
             else:
                 cmd = line; args = []
 
@@ -725,13 +738,13 @@ but no other interpretation is applied
                     extra = False       # append?
 
                 if len(args) < 2 or len(args) > 3:
-                    raise RuntimeError, ("%s expected 2 (or 3) arguments, saw %s" % (cmd, " ".join(args)))
+                    raise RuntimeError, ("%s expected 2 (or 3) arguments, saw %s at %s:%d" % (cmd, " ".join(args), self.file, lineNo))
             elif cmd == Action.envSet:
                 if len(args) < 2:
-                    raise RuntimeError, ("%s expected 2 arguments, saw %s" % (cmd, " ".join(args)))
+                    raise RuntimeError, ("%s expected 2 arguments, saw %s at %s:%d" % (cmd, " ".join(args), self.file, lineNo))
                 else:
                     args = [args[0], " ".join(args[1:])]
-            elif cmd == Action.envRemove or cmd == Action.envUnset:
+            elif cmd == Action.envRemove or cmd == Action.envUnset or cmd == Action.sourceRequired:
                 print >> sys.stderr, "Ignoring unsupported entry %s at %s:%d" % (line, self.file, lineNo)
                 continue
             else:
@@ -1071,6 +1084,13 @@ class Product(object):
             productDir = mat.group(1)
             self.initFromDirectory(productDir)
         else:
+            try:
+                product = self.Eups.getProduct(self.name, versionName, [eupsPathDir])
+                self.version, self.db, self.dir, self.table = product.version, product.db, product.dir, product.table
+                return
+            except RuntimeError, e:
+                pass
+
             self.version, self.db, self.dir, tablefile = \
                           self.Eups.findFullySpecifiedVersion(self.name, versionName, flavor, eupsPathDir)
             self.table = Table(tablefile).expandEupsVariables(self)
@@ -1265,14 +1285,6 @@ class Eups(object):
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
         #
-        # Find locally-setup products in the environment
-        #
-        self.localVersions = {}
-
-        for product in self.getSetupProducts():
-            if product.version and re.search(r"^LOCAL:", product.version):
-                self.localVersions[product.name] = os.environ[product.envarDirName()]
-        #
         # Read the cached version information
         #
         self.versions = {}
@@ -1281,6 +1293,14 @@ class Eups(object):
         if readCache:
             for p in self.path:
                 self.readDB(p)
+        #
+        # Find locally-setup products in the environment
+        #
+        self.localVersions = {}
+
+        for product in self.getSetupProducts():
+            if product.version and re.search(r"^LOCAL:", product.version):
+                self.localVersions[product.name] = os.environ[product.envarDirName()]
 
     def Product(self, *args, **kwargs):
         """Create a Product"""
@@ -1470,10 +1490,10 @@ class Eups(object):
 
         productList = []
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
-            productName = re.search(re_setup, key).group(1)
-
-            if productName == "EUPS":       # "eups" itself is a special case; SETUP_EUPS is set by (old) setups.[c]sh
-                productName = productName.lower()
+            try:
+                productName = os.environ[key].split()[0]
+            except IndexError:          # Oh dear;  $SETUP_productName must be malformed
+                continue
 
             if requestedProductName and productName != requestedProductName:
                 continue
@@ -1481,12 +1501,9 @@ class Eups(object):
             try:
                 product = self.Product(productName, noInit=True).initFromSetupVersion()
             except RuntimeError, e:
-                try:                    # try the all-lower-case version
-                    product = self.Product(productName.lower(), noInit=True).initFromSetupVersion()
-                except RuntimeError, e:
-                    if not self.quiet:
-                        print >> sys.stderr, e
-                    continue
+                if not self.quiet:
+                    print >> sys.stderr, e
+                continue
 
             productList += [product]
 
@@ -1558,13 +1575,17 @@ class Eups(object):
 
         product = self.Product(productName, noInit=True)
 
-        versionName, flavor, eupsPathDir = Current, None, None
+        versionName, flavor, eupsPathDir = Setup, None, None
         try:
             args = os.environ[product.envarSetupName()].split()
         except KeyError:
             return None, flavor, eupsPathDir
 
-        sproductName = args.pop(0)
+        try:
+            sproductName = args.pop(0)
+        except IndexError:          # Oh dear;  $SETUP_productName must be malformed
+            return None, flavor, eupsPathDir
+            
         if sproductName != productName:
             if self.verbose > 1:
                 print >> sys.stderr, \
@@ -1675,7 +1696,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         break
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate %s %s for flavor %s" % (productName, versionName, self.flavor)
+            raise RuntimeError, "Unable to locate product %s %s for flavor %s" % (productName, versionName, self.flavor)
 
         return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
@@ -1691,9 +1712,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             if vers.info.has_key(flavor):
                 vinfo = vers.info[flavor]
 
-        if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate %s %s for flavor %s in %s" % \
-                  (productName, versionName, flavor, eupsPathDir)
+        if not vinfo:                   # no version is available
+            if versionName == Setup:    # just get the version that's setup
+                product = self.Product(productName, noInit=True)
+                product.dir = os.environ[product.envarDirName()]
+                return None, eupsPathDir, product.dir, product.tableFileName()
+            else:
+                raise RuntimeError, "Unable to locate %s %s for flavor %s in %s" % \
+                      (productName, versionName, flavor, eupsPathDir)
 
         return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
@@ -1707,7 +1733,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 productDir = os.path.join(eupsPathDir, productDir)
 
             if not os.path.isdir(productDir):
-                raise RuntimeError, ("Product %s %s has non-existent productDir %s" % (productName, versionName, productDir))
+                print >> sys.stderr, \
+                      "Product %s %s has non-existent productDir %s" % (productName, versionName, productDir)
         #
         # Look for the directory with the tablefile
         #
@@ -1735,8 +1762,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
             if not os.path.exists(tablefile):
-                raise RuntimeError, ("Product %s %s has non-existent tablefile %s" %
-                                     (productName, versionName, tablefile))
+                print >> sys.stderr, \
+                      "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
+                tablefile = None
 
         return versionName, eupsPathDir, productDir, tablefile
 
@@ -2093,12 +2121,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 product = productList[0]
             else:
                 msg = "I can't unsetup %s as it isn't setup" % productName
-                if False:
-                    raise RuntimeError, msg
-                else:
-                    if self.verbose > 1 and not self.quiet:
-                        print >> sys.stderr, msg
-                    return False, versionName
+                if self.verbose > 1 and not self.quiet:
+                    print >> sys.stderr, msg
+                return False, versionName, msg
 
             if versionName and versionName != Current and versionName != Setup:
                 if not self.version_match(product.version, versionName):
@@ -2117,7 +2142,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     if self.verbose:
                         print >> sys.stderr, e
 
-                    return False, versionName
+                    return False, versionName, e
         #
         # We have all that we need to know about the product to proceed
         #
@@ -2135,7 +2160,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             actions = table.actions(self.flavor)
         except RuntimeError, e:
             print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
-            return False, product.version
+            return False, product.version, e
         #
         # Ready to go
         #
@@ -2176,7 +2201,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                             print >> sys.stderr, "            %s %s is already setup; skipping" % \
                                   (len(indent)*" " + product.name, product.version)
                             
-                        return True, product.version
+                        return True, product.version, None
                 else:
                     if recursionDepth > 0: # top level shouldn't whine
                         pversionName = product.version
@@ -2197,7 +2222,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     print >> sys.stderr, "            %s %s is already setup; keeping" % \
                           (len(indent)*" " + keptProduct.name, keptProduct.version)
 
-                return True, keptProduct.version
+                return True, keptProduct.version, None
 
             q = Quiet(self)
             self.unsetupSetupProduct(product)
@@ -2223,7 +2248,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 del self.alreadySetupProducts
                 del self._msgs["setup"]
 
-        return True, product.version
+        return True, product.version, None
 
     def unsetup(self, productName, versionName=None):
         """Unsetup a product"""
@@ -2581,7 +2606,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         #
         for productName in self.localVersions.keys():
             product = self.Product(productName, noInit=True)
-            product.initFromDirectory(self.localVersions[productName])
+            try:
+                product.initFromDirectory(self.localVersions[productName])
+            except RuntimeError, e:
+                if not self.quiet:
+                    print >> sys.stderr, ("Problem with product %s found in environment: %s" % (productName, e))
+                continue
 
             if productName and not fnmatch.fnmatchcase(name, productName):
                 continue
@@ -2917,7 +2947,7 @@ getFlavor = flavor                      # useful in this file if you have a vari
 def setup(Eups, productName, version=Current, fwd=True):
     """Return a filename which, when sourced, will setup a product (if fwd is false, unset it up)"""
 
-    ok, version = Eups.setup(productName, version, fwd)
+    ok, version, reason = Eups.setup(productName, version, fwd)
     if ok:
         tfd, tmpfile = tempfile.mkstemp("", "eups")
         tfd = os.fdopen(tfd, "w")
@@ -3027,9 +3057,9 @@ def setup(Eups, productName, version=Current, fwd=True):
             except TypeError:
                 pass
         
-            print >> sys.stderr, "Failed to setup %s %s" % (productName, versionName)
+            print >> sys.stderr, "Failed to setup %s %s: %s" % (productName, versionName, reason)
         else:
-            print >> sys.stderr, "Failed to unsetup %s" % (productName)
+            print >> sys.stderr, "Failed to unsetup %s: %s" % (productName, reason)
 
     return ""
 
