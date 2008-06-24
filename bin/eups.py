@@ -2404,6 +2404,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             finally:
                 self.lockDB(eupsPathDir, unlock=True)
         #
+        # If this is the only instance of this product, declare it current
+        # This you to install product A which depends on product B by first installing and declaring B,
+        # and then blithely setup A (e.g. setup -r .) without a version specified for B.
+        #
+        if not declare_current and len(self.listProducts(productName)) == 1:
+            declare_current = True
+        #
         # Declare it current if needs be
         #
         if declare_current:
