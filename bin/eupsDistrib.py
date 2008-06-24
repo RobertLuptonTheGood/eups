@@ -728,17 +728,13 @@ def install(Distrib, top_product, top_version, manifest):
             if productName != top_product:
                 setups += ["setup %s %s &&" % (productName, versionName)]
             
-            if Distrib.current and not Distrib.Eups.force:
-                Distrib.Eups.declareCurrent(productName, versionName, info[3])
-                continue
+            print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
+                  (productName, versionName, Distrib.Eups.flavor)
+            if Distrib.Eups.force:
+                print >> sys.stderr, "Reinstalling %s anyway" % (productName)
+                Distrib.Eups.undeclare(productName, versionName, undeclare_current=Distrib.current)
             else:
-                print >> sys.stderr, "Product %s (version %s, flavor %s) is already declared" % \
-                      (productName, versionName, Distrib.Eups.flavor)
-                if Distrib.Eups.force:
-                    print >> sys.stderr, "Reinstalling %s anyway" % (productName)
-                    Distrib.Eups.undeclare(productName, versionName, undeclare_current=Distrib.current)
-                else:
-                    continue
+                continue
         #
         # We need to install and declare this product
         #
