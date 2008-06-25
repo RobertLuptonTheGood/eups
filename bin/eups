@@ -23,7 +23,7 @@ allowedDebugOptions = ["raise"]
 
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
-    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
+    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups flavor`"),
     "-h" : (False, "--help", "Print this help message"),
     "-n" : (False, "--noaction", "Don\'t actually do anything"),
     "-V" : (False, "--version", "Print eups version number and exit"),
@@ -176,9 +176,13 @@ elif cmd == "path":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
     helpStr += "\n\nPrint the eups path; with index print just one element (-ve: from end)"
 elif cmd == "pkg-config":
-    helpStr, narg = eupsGetopt.declareArgs(helpStr)
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
+    helpStr += "\n\nPrint information about products"
+
+    options["-c"] = (False, "--cflags", "Output all pre-processor and compiler flags")
+    options["-l"] = (False,  "--libs", "Output all linker flags")
 elif cmd == "remove":
-    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
     helpStr += "\n\nRemove a product"
 
     noInteractiveFlag = "-\002"
@@ -436,10 +440,10 @@ def main(cmd, opts):
             outdir = opts.argv.pop(0)
 
         if fileType == "build":
-            eups_expandFile(Eups, inFile, productList, fileType, outdir=outdir, in_situ=in_situ,
+            expandFile(Eups, inFile, productList, fileType, outdir=outdir, in_situ=in_situ,
                             svnroot=svnroot, cvsroot=cvsroot)
         elif fileType == "table":
-            eups_expandFile(Eups, inFile, productList, fileType, outdir=outdir, in_situ=in_situ,
+            expandFile(Eups, inFile, productList, fileType, outdir=outdir, in_situ=in_situ,
                             versionRegexp=warnRegexp)
         else:
             raise AssertionError, "Impossible expansion command: %s" % cmd
@@ -484,11 +488,110 @@ def main(cmd, opts):
         for p in _path:
             print p
     elif cmd == "pkg-config":
-        cmd = "$EUPS_DIR/bin/cmd_%s %s" % (cmd, " ".join(sys.argv[1:]))
-        try:
-            eupsDistrib.system(cmd, Eups.noaction)
-        except OSError, e:
-            print >> sys.stderr, e
+        cflags = opts.options.get("-c", False)
+        libs = opts.options.get("-l", False)
+
+        if cflags + libs != 1:
+            print >> sys.stderr, "Please specify exactly one desired item of information"
+
+        if cflags:
+            desired = "Cflags"
+        elif libs:
+            desired = "Libs"
+        else:
+            print >> sys.stderr, "RHL made a mistake; complain"
+            sys.exit(1)
+
+        productName = opts.argv.pop(0)
+        if opts.argv:
+            versionName = opts.argv.pop(0)
+        else:
+            versionName = None
+        #
+        # Time to do some real work
+        #
+        PKG_CONFIG_PATH = os.environ.get("PKG_CONFIG_PATH", "").split(":")
+        productList = Eups.listProducts(productName, versionName)
+        #
+        # Look for the best match
+        productDir = None
+        if versionName:
+            try:
+                name, version, db, productDir, isCurrent, isSetup = productList[0]
+            except IndexError:
+                pass
+
+        if not productDir:              # try setup version
+            for name, version, db, dir, isCurrent, isSetup in productList:
+                if isSetup:
+                    productDir = dir
+                    break
+
+        if not productDir:              # try current version
+            for name, version, db, dir, isCurrent, isSetup in productList:
+                if isCurrent:
+                    productDir = dir
+                    break
+
+        if productDir:
+            PKG_CONFIG_PATH += [os.path.join(productDir, "etc")]
+        
+        if not PKG_CONFIG_PATH:
+            if versionName:
+                print >> sys.stderr, "Unable to find %s %s" % (productName, versionName)
+            else:
+                print >> sys.stderr, "No version of %s is either setup or current" % (productName)
+            sys.exit(1)
+
+        pcfile = None
+        for dir in PKG_CONFIG_PATH:
+            _pcfile = os.path.join(dir, "%s.pc" % productName)
+
+            if os.path.exists(_pcfile):
+                pcfile = _pcfile
+                break
+
+        if pcfile:
+            if Eups.verbose:
+                print >> sys.stderr, "Reading %s" % pcfile
+            # Time to actually read and process the file.
+            symbols = {}
+            contents = open(pcfile).readlines()
+            #
+            # Look for variable definitions
+            #
+            for line in contents:
+                mat = re.search(r"^\s*([^=\s]+)\s*=\s*([^\s]+)", line)
+                if mat:
+                    symbols[mat.group(1)] = mat.group(2)
+            #
+            # Expand references to variables in other variable's values
+            #
+            for k in symbols.keys():
+                mat = re.search(r"(?:^|[^$])\${([^\}]+)}", symbols[k])
+                if mat:
+                    var = mat.group(1)
+                    symbols[k] = re.sub(r"(^|[^$])\${([^\}]+)}", r"\1%s" % symbols[var], symbols[k])
+            #
+            # Look for configuration values
+            #
+            for line in contents:
+                mat = re.search(r"^\s*%s\s*:\s*(.*)" % desired, line, re.IGNORECASE)
+                if mat:
+                    value = mat.group(1)
+                    
+                    mat = re.search(r"(?:^|[^$])\${([^\}]+)}", value)
+                    if mat:
+                        var = mat.group(1)
+                        value = re.sub(r"(^|[^$])\${([^\}]+)}", r"\1%s" % symbols[var], value)
+
+
+                    value = re.sub(r"\$\$", r"$", value)
+
+                    print value
+                    break
+        else:
+            print >> sys.stderr, "I am unable to find a .pc file for %s" % productName
     elif cmd == "remove":
         recursive = opts.options.get('-R', False)
         interactive = (recursive or opts.options.get('-i', False)) and not opts.options.get(noInteractiveFlag)
@@ -656,7 +759,8 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def eups_expandFile(Eups, inFile, productList, fileType=None, outdir=None, in_situ=False, **kwargs):
+def expandFile(Eups, inFile, productList, fileType=None, outdir=None, in_situ=False, **kwargs):
+    """Expand a build or table file"""
 
     assert fileType
     
