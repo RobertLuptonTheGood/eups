@@ -27,12 +27,13 @@ URL, SCP, LOCAL = "URL", "SCP", "LOCAL"
 class Distrib(object):
     """A class to encapsulate product distribution"""
 
-    def __init__(self, Eups, packageBase, transport, buildFilePath=None, installFlavor=None, preferFlavor=False,
+    def __init__(self, Eups, packageBasePath, transport, buildFilePath=None, installFlavor=None, preferFlavor=False,
                  current=False, tag=None, no_dependencies=False, obeyGroups=False,
                  noeups=False):
         self.Eups = Eups
         
-        self.packageBase = packageBase
+        self.packageBasePath = packageBasePath # list of possible packageBases
+        self.packageBase = None
         self.transport = transport
         self.buildFilePath = buildFilePath
         if not installFlavor:
@@ -85,6 +86,17 @@ class Distrib(object):
 
         N.B. Modifies the self.packageBase if needs be"""
 
+        if not self.packageBase:        # we haven't yet chosen an element of packageBasePath
+            for d in self.packageBasePath:
+                self.packageBase = d
+                try:
+                    return self.find_file(filename, packagePath)
+                except RuntimeError:
+                    self.packageBase = None
+
+            raise RuntimeError, \
+                  ("Unable to find %s anywhere in %s" % (filename, " ".join(self.packageBasePath)))
+
         locs = self.createLocationList(filename, packagePath)
 
         subDirs = [""]
@@ -106,7 +118,8 @@ class Distrib(object):
                 for sd in subDirs:
                     try:
                         extendedPackageBase = os.path.join(self.packageBase, loc)
-                        (tfile, msg) = file_retrieve(os.path.join(extendedPackageBase, sd, filename), self.transport)
+                        (tfile, msg) = file_retrieve(os.path.join(extendedPackageBase, sd, filename),
+                                                     self.transport, self.Eups.noaction)
                         self.packageBase = extendedPackageBase
                         if self.Eups.verbose > 0:
                             print >> sys.stderr, "Found %s in %s" % (filename, self.packageBase)
@@ -233,7 +246,7 @@ class Distrib(object):
         #
         # OK, we've found the manifest (phew)
         #
-        if self.Eups.verbose > 0:
+        if self.Eups.verbose > 1:
             if manifest == raw_manifest:
                 print >> sys.stderr, "Manifest is", manifest
             else:
@@ -298,7 +311,7 @@ class Distrib(object):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def system(cmd, noaction=False):
-    """Run a command, throwing an exception if a non-zero exit code is returned
+    """Run a command, throwing an OSError exception if a non-zero exit code is returned
     Obeys noaction"""
 
     if noaction:
@@ -333,35 +346,51 @@ def copyfile(file1, file2):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def file_retrieve(file, transport):
+def file_retrieve(file, transport, noaction):
     """Retrieve a file given a specified transport method"""
 
     if transport == LOCAL:
         return (file, None)
     elif transport == SCP:
-        (tfile, msg) = scpretrieve(file)
+        (tfile, msg) = scpretrieve(file, noaction)
     elif transport == URL:
-        (tfile, msg) = urlretrieve(file)
+        (tfile, msg) = urlretrieve(file, noaction)
     else:
         raise RuntimeError, "Unknown transport method: %s" % transport
 
-    atexit.register(os.unlink, tfile)   # clean up
+    if os.path.isdir(tfile):
+        atexit.register(lambda dir: shutil.rmtree(dir, ignore_errors=True), tfile)       # clean up
+    else:
+        atexit.register(os.unlink, tfile)   # clean up
 
     return (tfile, msg)
 
-def scpretrieve(file):
+def scpretrieve(file, noaction=False):
     """Retrieve a file using scp"""
 
-    tfile = os.tmpnam()
+    # Maybe it's a simple file
+    fd, tfile = tempfile.mkstemp(prefix="eupsDistrib")
+    os.close(fd)
 
     try:
-        system("scp %s %s 2>/dev/null" % (file, tfile), Distrib.Eups.noaction)
-    except:
+        system("scp %s %s 2>/dev/null" % (file, tfile), noaction)
+        return tfile, None
+    except OSError:
+        pass
+    #
+    # Maybe it's a directory
+    #
+    tfile = tempfile.mkdtemp(prefix="eupsDistrib")
+    atexit.register(lambda dir: shutil.rmtree(dir, ignore_errors=True), tfile)       # clean up
+
+    try:
+        system("scp -r %s %s 2>/dev/null" % (file, tfile), noaction)
+    except OSError:
         raise RuntimeError, ("Failed to retrieve %s" % file)
 
-    return tfile, None
+    return os.path.join(tfile, os.path.basename(file)), None
 
-def urlretrieve(file):
+def urlretrieve(file, noaction=False):
     """Like urllib's urlretrieve, except use urllib2 to detect 404 errors"""
 
     try:
@@ -378,6 +407,8 @@ def listdir(Distrib, url):
     """Return a list of the files specified by a directory URL"""
 
     if Distrib.transport == LOCAL:
+        return os.listdir(url)
+    elif Distrib.transport == SCP:
         return os.listdir(url)
     elif Distrib.transport == URL:
         """Read a URL, looking for the hrefs that apache uses in directory listings"""
@@ -675,32 +706,29 @@ def createCurrent(Distrib, top_product, top_version):
     #
     # Now lookup list of current versions
     #
-    Distrib.Eups.lockDB(Distrib.packageBase, upsDB=False)
+    lock = Distrib.Eups.lockDB(Distrib.packageBase, upsDB=False)
 
-    try:
-        current = Current(Distrib)
+    current = Current(Distrib)
 
-        if top_product == "":               # update entire current list
+    if top_product == "":               # update entire current list
+        products = []
+    else:
+        try:
+            products = current.read()
+        except:
             products = []
-        else:
-            try:
-                products = current.read()
-            except:
-                products = []
 
-            nproducts = []
-            for p in products:
-                if p[0] != top_product:
-                    nproducts += [p]
-            products = nproducts
+        nproducts = []
+        for p in products:
+            if p[0] != top_product:
+                nproducts += [p]
+        products = nproducts
 
-        products += dp 
-        #
-        # Now write the file containing current version info.
-        #
-        current.write(products)
-    finally:
-        Distrib.Eups.lockDB(Distrib.packageBase, unlock=True, upsDB=False)
+    products += dp 
+    #
+    # Now write the file containing current version info.
+    #
+    current.write(products)
 
 def install(Distrib, top_product, top_version, manifest):
     """Install a set of packages"""

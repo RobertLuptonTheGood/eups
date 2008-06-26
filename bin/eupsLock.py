@@ -1,15 +1,22 @@
 import errno, os, stat, sys, time
 import re
 
-def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False):
+def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0, noaction=False):
     """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
 
+    if verbose > 3:
+        print >> sys.stderr, "lock(%s)" % lockfile
+        
+    if noaction:
+        return
+
     myPid = os.getpid()
-    count = 0                           # count of number of times the lock is held
     while True:
+        count = 0                           # count of number of times the lock is held
         try:
             fd = os.open(lockfile, os.O_EXCL | os.O_RDWR | os.O_CREAT)
             f = os.fdopen(fd, "w")
+            del fd
             
             # we created the lockfile, so we're the owner
             break
@@ -43,7 +50,7 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False):
             pid = int(f.readline())
             fileOwner = re.sub(r"\n$", "", f.readline())
             count = int(f.readline())
-            f.close()
+            del f
         except:
             pass
 
@@ -57,7 +64,6 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False):
                                  (lockfile, max_wait, fileOwner, pid))
 
         # it's not been locked too long, wait a while and retry
-        #fd.close()
         print >> sys.stderr, "Waiting for %s (User %s, PID %s)" % (lockfile, fileOwner, pid)
         time.sleep(2)
 
@@ -82,7 +88,16 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False):
     f.write("%d\n" % count)
     f.close()
 
-def unlock(lockfile, force=False):
+def unlock(lockfile, myIdentity, force=False, verbose=0, noaction=False):
+    if not lockfile or not os.path.exists(lockfile):
+        return
+
+    if verbose > 3:
+        print >> sys.stderr, "unlock(%s)" % lockfile
+
+    if noaction:
+        return
+
     if force:
         try:
             os.unlink(lockfile)
@@ -90,24 +105,35 @@ def unlock(lockfile, force=False):
             if e.errno != errno.ENOENT:
                 print >> sys.stderr, "Clearing lockfile %s: %s" % (lockfile, e)
     else:
-        lock(lockfile, "", unlock=True)
+        lock(lockfile, myIdentity, unlock=True, verbose=verbose, noaction=noaction)
 
 #
 # Now an OO interface to locking
 #
 class Lock(object):
-    """An OO interface to locking;  the lock will be held until the objects deleted"""
+    """An OO interface to locking;  the lock will be held until the object's deleted"""
     
-    def __init__(self, lockfile, myIdentity, max_wait=10, unlock=False, force=False):
+    def __init__(self, lockfile, myIdentity, max_wait=10, force=False, verbose=0, noaction=False):
         """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
         self.lockfile = lockfile
+        self.myIdentity = myIdentity
+        self.verbose = verbose
+        self.noaction = noaction
 
-        lock(lockfile, myIdentity, max_wait, unlock, force)
+        try:
+            lock(lockfile, myIdentity, max_wait, False, force, self.verbose, self.noaction)
+        except:
+            self.lockfile = None
+            raise
 
     def unlock(self, force=False):
-        unlock(self.lockfile, force)
+        try:
+            unlock(self.lockfile, self.myIdentity, force, self.verbose, self.noaction)
+        except Exception, e:
+            print >> sys.stderr, "Clearing lock:", e
+            pass
+
         self.lockfile = None        
 
     def __del__(self):
-        if self.lockfile:
-            unlock(self.lockfile)
+        self.unlock()

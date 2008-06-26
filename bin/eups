@@ -315,6 +315,10 @@ def main(cmd, opts):
         pacmanCache = opts.options.get('-p', None) # use this pacman cache to install packages?
         tarball = opts.options.get(tarballFlag, False) # use tarballs to install packages?
 
+        if list and Eups.noaction:
+            print >> sys.stderr, "You may not specify --list along with --noaction"
+            sys.exit(1)
+
         transport = eupsDistrib.LOCAL
         packageBase = opts.options.get('-r', None)
         if not packageBase and os.environ.has_key("EUPS_PKGROOT"):
@@ -362,15 +366,17 @@ def main(cmd, opts):
         #
         # Check that eups is installed in that db
         #
-        eupsPathDir = Eups.path[0]
-        ups_db = Eups.getUpsDB(eupsPathDir)
+        packageBasePath = []
+        if packageBase:
+            packageBasePath += [packageBase]
+        else:
+            for eupsPathDir in Eups.path:
+                ups_db = Eups.getUpsDB(eupsPathDir)
 
-        if not os.path.isdir(ups_db):
-            raise RuntimeError, ("Products database %s doesn't exist; please install eups" % ups_db)
+                if not os.path.isdir(ups_db):
+                    raise RuntimeError, ("Products database %s doesn't exist; please install eups" % ups_db)
 
-        if not packageBase:
-            packageBase = os.path.join(eupsPathDir, "packages", installFlavor)
-
+                packageBasePath += [os.path.join(eupsPathDir, "packages", installFlavor)]
         #
         # Pack options into a class
         #
@@ -381,7 +387,7 @@ def main(cmd, opts):
         else:
             Distrib = eupsDistribBuilder.Distrib
 
-        Distrib = Distrib(Eups, packageBase, transport, buildFilePath=buildFilePath,
+        Distrib = Distrib(Eups, packageBasePath, transport, buildFilePath=buildFilePath,
                           current=current, obeyGroups=obeyGroups,
                           tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
                           noeups=noeups)

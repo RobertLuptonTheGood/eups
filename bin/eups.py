@@ -1268,7 +1268,7 @@ class Eups(object):
         self.oldAliases = {}            # initial value of aliases.  This is a bit of a fake, as we
                                         # don't know how to set it but (un)?setAlias knows how to handle this
 
-        self.who = pwd.getpwuid(os.getuid())[4]
+        self.who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 
         if root:
             root = re.sub(r"^~", os.environ["HOME"], root)
@@ -1321,24 +1321,11 @@ class Eups(object):
         
         return os.path.join(p, ".lock")
 
-    def lockDB(self, p, unlock=False, force=False, upsDB=True):
-        """Lock a DB in path p; if upsDB is false, the directory p itself will be locked"""
+    def lockDB(self, p, force=False, upsDB=True):
+        """Return a lock for a DB in path p; if upsDB is false, the directory p itself will be locked"""
 
-        lockfile = self.getLockfile(p, upsDB)
-        
-        if unlock:
-            if os.path.exists(lockfile):
-                if self.verbose > 3:
-                    print >> sys.stderr, "unlock(%s)" % lockfile
-
-                if not self.noaction:
-                    eupsLock.unlock(lockfile, force=force)
-        else:
-            if self.verbose > 3:
-                print >> sys.stderr, "lock(%s)" % lockfile
-                
-            if not self.noaction:
-                eupsLock.lock(lockfile, self.who, max_wait=10, force=force)
+        return eupsLock.Lock(self.getLockfile(p, upsDB), self.who, max_wait=10, force=force,
+                             verbose=self.verbose, noaction=self.noaction)
 
     def unlinkDB(self, eupsPathDir):
         """Delete a persistentDB"""
@@ -1348,15 +1335,12 @@ class Eups(object):
         if not os.path.exists(persistentDB):
             return
 
-        self.lockDB(eupsPathDir)
+        lock = self.lockDB(eupsPathDir)
 
-        try:
-            if self.noaction:
-                print >> sys.stderr, "rm %s" % persistentDB
-            else:
-                os.unlink(persistentDB)
-        finally:
-            self.lockDB(eupsPathDir, unlock=True)
+        if self.noaction:
+            print >> sys.stderr, "rm %s" % persistentDB
+        else:
+            os.unlink(persistentDB)
 
     def getCacheInfo(self, eupsPathDir):
         """Return information about a cached DB"""
@@ -1404,17 +1388,14 @@ class Eups(object):
             self.buildCache(eupsPathDir)
             return
 
-        self.lockDB(eupsPathDir)
+        lock = self.lockDB(eupsPathDir)
 
         try:
-            try:
-                fd = open(persistentDB)
-                unpickled = cPickle.Unpickler(fd)
-            except Exception, e:
-                print >> sys.stderr, e
-                raise
-        finally:                    # try ... except ... finally doesn't appear until python 2.5
-            self.lockDB(eupsPathDir, unlock=True)
+            fd = open(persistentDB)
+            unpickled = cPickle.Unpickler(fd)
+        except Exception, e:
+            print >> sys.stderr, e
+            raise
 
         try:
             type(self.versions)
@@ -1454,17 +1435,13 @@ class Eups(object):
 
             persistentDB = self.getPersistentDB(eupsPathDir)
             
-            self.lockDB(eupsPathDir)
-            
+            lock = self.lockDB(eupsPathDir)
             try:
-                try:
-                    fd = open(persistentDB, "w")
-                    cPickle.dump(self.versions, fd, protocol=2)
-                except Exception, e:
-                    print >> sys.stderr, e
-                    raise
-            finally:                    # try ... except ... finally doesn't appear until python 2.5
-                self.lockDB(eupsPathDir, unlock=True)
+                fd = open(persistentDB, "w")
+                cPickle.dump(self.versions, fd, protocol=2)
+            except Exception, e:
+                print >> sys.stderr, e
+                raise
         else:
             for p in eupsPathDir:
                 self.writeDB(p, force)
@@ -1480,7 +1457,12 @@ class Eups(object):
         """Clear all lock files"""
 
         for p in self.path:
-            self.lockDB(p, unlock=True, force=True)
+            lockfile = self.getLockfile(p)
+            if os.path.exists(lockfile):
+                try:
+                    os.remove(lockfile)
+                except Exception, e:
+                    print >> sys.stderr, ("Error deleting %s: %s" % (lockfile, e))
 
     def getUpsDB(self, eupsPathDir):
         """Return the ups database directory given a directory from self.path"""
@@ -2384,29 +2366,26 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             #
             # Merge in the old version of that Version, if it exists, and write the new file
             #
+            lock = self.lockDB(eupsPathDir)
+
             try:
-                self.lockDB(eupsPathDir)
+                product = self.getProduct(productName, versionName, productDir)
+                version.merge(VersionFile(product.versionFileName()), self.who)
+            except RuntimeError: 
+                product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
 
-                try:
-                    product = self.getProduct(productName, versionName, productDir)
-                    version.merge(VersionFile(product.versionFileName()), self.who)
-                except RuntimeError: 
-                    product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
+            vfile = ""
+            try:
+                vfile = product.versionFileName()
 
-                vfile = ""
-                try:
-                    vfile = product.versionFileName()
+                if not self.noaction:
+                    fd = open(vfile + ".new~", "w")
+                    version.write(fd)
+                    del fd
 
-                    if not self.noaction:
-                        fd = open(vfile + ".new~", "w")
-                        version.write(fd)
-                        del fd
-
-                        shutil.move(vfile + ".new~", vfile) # actually update the file
-                except Exception, e:
-                    print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
-            finally:
-                self.lockDB(eupsPathDir, unlock=True)
+                    shutil.move(vfile + ".new~", vfile) # actually update the file
+            except Exception, e:
+                print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
         #
         # If this is the only instance of this product, declare it current
         # This you to install product A which depends on product B by first installing and declaring B,
@@ -2420,29 +2399,26 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if declare_current:
             current = CurrentChain(self, productName, versionName, productDir)
 
+            lock = self.lockDB(eupsPathDir)
+
+            product = self.getProduct(productName, versionName, productDir)
             try:
-                self.lockDB(eupsPathDir)
+                current.merge(CurrentChain(product.currentFileName()), self.who)
+            except IOError:
+                pass
 
-                product = self.getProduct(productName, versionName, productDir)
-                try:
-                    current.merge(CurrentChain(product.currentFileName()), self.who)
-                except IOError:
-                    pass
+            cfile = ""
+            try:
+                cfile = product.currentFileName()
 
-                cfile = ""
-                try:
-                    cfile = product.currentFileName()
+                if not self.noaction:
+                    fd = open(cfile + ".new~", "w")
+                    current.write(fd)
+                    del fd
 
-                    if not self.noaction:
-                        fd = open(cfile + ".new~", "w")
-                        current.write(fd)
-                        del fd
-
-                        shutil.move(cfile + ".new~", cfile) # actually update the file
-                except Exception, e:
-                    print >> sys.stderr, "Unable to update %s: %s" % (cfile, e)
-            finally:
-                self.lockDB(eupsPathDir, unlock=True)
+                    shutil.move(cfile + ".new~", cfile) # actually update the file
+            except Exception, e:
+                print >> sys.stderr, "Unable to update %s: %s" % (cfile, e)
         #
         # Update the cache
         #
@@ -2487,34 +2463,31 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         else:
             current = CurrentChain(self, productName, versionName, eupsPathDir)
 
+            lock = self.lockDB(eupsPathDir)
+            #
+            # Remove the CurrentChain that we just created from productName from the live current chain
+            #
+            updatedChain = CurrentChain(product.currentFileName()).remove(current)
+
+            cfile = ""
             try:
-                self.lockDB(eupsPathDir)
-                #
-                # Remove the CurrentChain that we just created from productName from the live current chain
-                #
-                updatedChain = CurrentChain(product.currentFileName()).remove(current)
+                cfile = product.currentFileName()
 
-                cfile = ""
-                try:
-                    cfile = product.currentFileName()
+                if self.verbose or self.noaction:
+                    print >> sys.stderr, "Removing %s %s from current chain for %s" % \
+                          (productName, versionName, eupsPathDir)
 
-                    if self.verbose or self.noaction:
-                        print >> sys.stderr, "Removing %s %s from current chain for %s" % \
-                              (productName, versionName, eupsPathDir)
+                if not self.noaction:
+                    if len(updatedChain.info.keys()) == 0: # not declared for any flavor
+                        os.unlink(cfile)
+                    else:
+                        fd = open(cfile + ".new~", "w")
+                        updatedChain.write(fd)
+                        del fd
 
-                    if not self.noaction:
-                        if len(updatedChain.info.keys()) == 0: # not declared for any flavor
-                            os.unlink(cfile)
-                        else:
-                            fd = open(cfile + ".new~", "w")
-                            updatedChain.write(fd)
-                            del fd
-                            
-                            shutil.move(cfile + ".new~", cfile) # actually update the file
-                except Exception, e:
-                    print >> sys.stderr, "Unable to update %s: %s" % (cfile, e)
-            finally:
-                self.lockDB(eupsPathDir, unlock=True)
+                        shutil.move(cfile + ".new~", cfile) # actually update the file
+            except Exception, e:
+                print >> sys.stderr, "Unable to update %s: %s" % (cfile, e)
 
         if undeclare_current:           # we're done
             return True
@@ -2525,39 +2498,36 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         #
         # Remove in the old version of that Version, if it exists, and write the new file
         #
+        lock = self.lockDB(eupsPathDir)
+        #
+        # Remove the VersionFile that we just created from productName from the live version list
+        #
         try:
-            self.lockDB(eupsPathDir)
-            #
-            # Remove the VersionFile that we just created from productName from the live version list
-            #
-            try:
-                updatedVersion = VersionFile(product.versionFileName()).remove(version)
-            except IOError:
-                updatedVersion = None   # OK, so it didn't exist
+            updatedVersion = VersionFile(product.versionFileName()).remove(version)
+        except IOError:
+            updatedVersion = None   # OK, so it didn't exist
 
-            vfile = ""
-            try:
-                vfile = product.versionFileName()
+        vfile = ""
+        try:
+            vfile = product.versionFileName()
 
-                if self.verbose or self.noaction:
-                    print >> sys.stderr, "Removing %s %s from version list for %s" % \
-                          (productName, versionName, eupsPathDir)
+            if self.verbose or self.noaction:
+                print >> sys.stderr, "Removing %s %s from version list for %s" % \
+                      (productName, versionName, eupsPathDir)
 
-                if not self.noaction:
-                    if not updatedVersion or len(updatedVersion.info.keys()) == 0: # not declared for any flavor
-                        os.unlink(vfile)
-                    else:
-                        fd = open(vfile + ".new~", "w")
-                        updatedVersion.write(fd)
-                        del fd
+            if not self.noaction:
+                if not updatedVersion or len(updatedVersion.info.keys()) == 0: # not declared for any flavor
+                    os.unlink(vfile)
+                else:
+                    fd = open(vfile + ".new~", "w")
+                    updatedVersion.write(fd)
+                    del fd
 
-                        shutil.move(vfile + ".new~", vfile) # actually update the file
-            except OSError, e:
-                pass
-            except Exception, e:
-                print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
-        finally:
-            self.lockDB(eupsPathDir, unlock=True)
+                    shutil.move(vfile + ".new~", vfile) # actually update the file
+        except OSError, e:
+            pass
+        except Exception, e:
+            print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
 
         self.intern(product, delete=True)
 
