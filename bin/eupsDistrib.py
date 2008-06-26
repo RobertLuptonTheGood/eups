@@ -464,6 +464,9 @@ def listdir(Distrib, url):
 def create(Distrib, top_productName, top_version, manifest):
     """Create a distribution"""
 
+    if not Distrib.packageBase:         # use first element of path
+        Distrib.packageBase = Distrib.packageBasePath[0]
+
     if not os.path.isdir(Distrib.packageBase):
         if Distrib.Eups.verbose > 0:
             print >> sys.stderr, "Creating", Distrib.packageBase
