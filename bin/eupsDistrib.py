@@ -376,7 +376,7 @@ def scpretrieve(file, noaction=False):
         system("scp %s %s 2>/dev/null" % (file, tfile), noaction)
         return tfile, None
     except OSError:
-        pass
+        os.unlink(tfile)
     #
     # Maybe it's a directory
     #
@@ -867,5 +867,17 @@ def listProducts(Distrib, top_product, top_version, current, manifest):
             continue
 
         productList += [(manifest_product, manifest_product_version)]
+    #
+    # Be nice and sort the products
+    #
+    def pvsort(a,b):
+        """Sort by product then version"""
+
+        if a[0] == b[0]:
+            return cmp(a[1], b[1])
+        else:
+            return cmp(a[0], b[0])
+
+    productList.sort(pvsort)
 
     return productList
