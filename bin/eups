@@ -79,7 +79,7 @@ else:
 helpStr += " [opts]"
 
 if cmd == "admin":
-    helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | clearLocks")
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | listCache | clearLocks")
 elif cmd == "declare":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
     helpStr += "\n\nDeclare a product"
@@ -272,7 +272,7 @@ def main(cmd, opts):
 
     if cmd == "admin":
         if opts.argv:
-            subcmd = opts.argv.pop(0)
+            subcmd = opts.argv.pop(0)            
         else:
             subcmd = None
 
@@ -646,6 +646,8 @@ def eupsAdmin(Eups, subcmd):
         Eups.buildCache()
     elif subcmd == "clearCache":
         Eups.clearCache()
+    elif subcmd == "listCache":
+        Eups.listCache()
     elif subcmd == "clearLocks":
         Eups.clearLocks()
     else:

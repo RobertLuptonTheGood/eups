@@ -1067,7 +1067,11 @@ class Product(object):
             self.db = eupsPathDirs[0]
 
         if self.name and not noInit:
-            mat = re.search(r"^LOCAL:(.*)", version)
+            try:
+                mat = re.search(r"^LOCAL:(.*)", version)
+            except TypeError:
+                mat = None
+                
             if mat:                     # a local setup
                 productDir = mat.group(1)
                 self.initFromDirectory(productDir)
@@ -1102,7 +1106,7 @@ class Product(object):
     def initFromSetupVersion(self):
         """Initialize a Product that's already setup"""
 
-        versionName, flavor, eupsPathDir = self.getSetupVersion()
+        versionName, flavor, eupsPathDir = self.getSetupVersion()[0:3]
         if not versionName:
             raise RuntimeError, ("%s is not setup" % self.name)
 
@@ -1167,7 +1171,7 @@ class Product(object):
         return name
 
     def getSetupVersion(self):
-        """Return the version, flavor and eupsPathDir for an already-setup product"""
+        """Return the version, flavor, eupsPathDir, and None (for tablefile) for an already-setup product"""
 
         return self.Eups.findSetupVersion(self.name)
 
@@ -1303,8 +1307,11 @@ class Eups(object):
         self.localVersions = {}
 
         for product in self.getSetupProducts():
-            if product.version and re.search(r"^LOCAL:", product.version):
-                self.localVersions[product.name] = os.environ[product.envarDirName()]
+            try:
+                if re.search(r"^LOCAL:", product.version):
+                    self.localVersions[product.name] = os.environ[product.envarDirName()]
+            except TypeError:
+                pass
 
     def Product(self, *args, **kwargs):
         """Create a Product"""
@@ -1390,6 +1397,9 @@ class Eups(object):
 
         lock = self.lockDB(eupsPathDir)
 
+        if self.verbose > 3:
+            print >> sys.stderr, "Reading %s" % persistentDB
+
         try:
             fd = open(persistentDB)
             unpickled = cPickle.Unpickler(fd)
@@ -1412,12 +1422,12 @@ class Eups(object):
                 if not self.versions[flavor].has_key(db):
                     self.versions[flavor][db] = {}
 
-                    for p in versions[flavor][db].keys():
-                        if not self.versions[flavor][db].has_key(p):
-                            self.versions[flavor][db][p] = {}
+                for p in versions[flavor][db].keys():
+                    if not self.versions[flavor][db].has_key(p):
+                        self.versions[flavor][db][p] = {}
 
-                            for v in versions[flavor][db][p]:
-                                self.versions[flavor][db][p][v] = versions[flavor][db][p][v]
+                        for v in versions[flavor][db][p]:
+                            self.versions[flavor][db][p][v] = versions[flavor][db][p][v]
     
     def writeDB(self, eupsPathDir, force=False):
         """Write eupsPathDir's version DB to a persistent DB"""
@@ -1452,6 +1462,31 @@ class Eups(object):
             self.unlinkDB(p)
 
         self.versions = {}
+            
+    def listCache(self):
+        """List all the products in the cache"""
+
+        if not self.readCache:
+            self.readCache = True
+            for db in self.path:
+                self.readDB(db)
+
+        if not self.versions:
+            return
+
+        for db in self.path:
+            print db
+            try:
+                productNames = self.versions[self.flavor][db].keys()
+                productNames.sort()
+
+                for productName in productNames:
+                    versionNames = self.versions[self.flavor][db][productName].keys()
+                    versionNames.sort(self.version_cmp)
+
+                    print "  %-20s %s" % (productName, " ".join(versionNames))
+            except IndexError, e:
+                pass
             
     def clearLocks(self):
         """Clear all lock files"""
@@ -1557,20 +1592,20 @@ class Eups(object):
                   ("Unable to locate a current version of %s for flavor %s" % (productName, self.flavor))
 
     def findSetupVersion(self, productName):
-        """Find setup version of a product, returning the version, flavor, and eupsPathDir"""
+        """Find setup version of a product, returning the version, flavor, eupsPathDir, and None (for tablefile)"""
 
         product = self.Product(productName, noInit=True)
 
-        versionName, flavor, eupsPathDir = Setup, None, None
+        versionName, flavor, eupsPathDir, tablefile = Setup, None, None, None
         try:
             args = os.environ[product.envarSetupName()].split()
         except KeyError:
-            return None, flavor, eupsPathDir
+            return None, flavor, eupsPathDir, tablefile
 
         try:
             sproductName = args.pop(0)
         except IndexError:          # Oh dear;  $SETUP_productName must be malformed
-            return None, flavor, eupsPathDir
+            return None, flavor, eupsPathDir, tablefile
             
         if sproductName != productName:
             if self.verbose > 1:
@@ -1595,7 +1630,7 @@ class Eups(object):
             q = Quiet(self)
             versionName = self.findCurrentVersion(productName, eupsPathDir)[1]
             
-        return versionName, flavor, eupsPathDir
+        return versionName, flavor, eupsPathDir, tablefile
 
     def findVersion(self, productName, versionName=Current, eupsPathDirs=None):
         """Find a version of a product (if no version is specified, return current version)
@@ -1605,6 +1640,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         
         if self.ignore_versions:
            versionName = ""
+
+        if versionName == Setup:
+            return self.findSetupVersion(productName)
 
         if isinstance(eupsPathDirs, str):
             eupsPathDirs = [eupsPathDirs]
@@ -1772,7 +1810,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             foundCurrent = True
             eupsPathDir, versionName, vinfo = self.findCurrentVersion(productName)
         elif versionName == Setup:
-            versionName, flavor, eupsPathDir = self.findSetupVersion(productName)
+            versionName, flavor, eupsPathDir = self.findSetupVersion(productName)[0:3]
             if not versionName:
                 if self.verbose:
                     print >> sys.stderr, "Product %s is not setup" % productName
@@ -1820,7 +1858,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         if not cached:
             if self.verbose > 2:
-                print >> sys.stderr, "Writing %s %s to cache" % (product.name, product.version)
+                print >> sys.stderr, "Writing %s %s to %s's cache" % (product.name, product.version, db)
                 
             self.intern(product)    # save it in the cache
 
@@ -1874,7 +1912,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             return False
         
         try:
-            sversion, sflavor, seupsPathDir = product.getSetupVersion()
+            sversion, sflavor, seupsPathDir = product.getSetupVersion()[0:3]
         except RuntimeError:
             return False
 
@@ -1890,7 +1928,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
     def unsetupSetupProduct(self, product):
         """ """
-        version, flavor, eupsPathDir = product.getSetupVersion()
+        version, flavor, eupsPathDir = product.getSetupVersion()[0:3]
 
         if not version or not (eupsPathDir or re.search(r"^LOCAL:", version)):
             return 
@@ -1967,20 +2005,23 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # Check that leading non-numerical parts agree
         #
         if not suffix:
-            prefix = ""
+            prefix1, prefix2 = "", ""
             mat = re.search(r"^([^0-9]+)", c1[0])
             if mat:
-                prefix = mat.group(1)
+                prefix1 = mat.group(1)
 
-                if not re.search(r"^%s" % prefix, c2[0]):
-                    return -1
+            mat = re.search(r"^([^0-9]+)", c2[0])
+            if mat:
+                prefix2 = mat.group(1)
+
+            if len(prefix1) > len(prefix2): # take shorter prefix
+                prefix = prefix2
+                if not re.search(r"^%s" % prefix, c1[0]):
+                    return +1
             else:
-                mat = re.search(r"^([^0-9]+)", c2[0])
-                if mat:
-                    prefix = mat.group(1)
-
-                    if not re.search(r"^%s" % prefix, c2[0]):
-                        return -1
+                prefix = prefix1
+                if not re.search(r"^%s" % prefix1, c2[0]):
+                    return -1
 
             c1[0] = re.sub(r"^%s" % prefix, "", c1[0])
             c2[0] = re.sub(r"^%s" % prefix, "", c2[0])
@@ -2172,7 +2213,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             # Are we already setup?
             #
             try:
-                sversionName, sflavor, seupsPathDir = product.getSetupVersion()
+                sversionName, sflavor, seupsPathDir = product.getSetupVersion()[0:3]
             except RuntimeError, e:
                 sversionName = None
 

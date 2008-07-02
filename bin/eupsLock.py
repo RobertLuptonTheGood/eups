@@ -4,9 +4,6 @@ import re
 def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0, noaction=False):
     """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
 
-    if verbose > 3:
-        print >> sys.stderr, "lock(%s)" % lockfile
-        
     if noaction:
         return
 
@@ -88,15 +85,18 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0
     f.write("%d\n" % count)
     f.close()
 
+    if verbose > 3:
+        print >> sys.stderr, "lock(%s)" % lockfile
+        
 def unlock(lockfile, myIdentity, force=False, verbose=0, noaction=False):
     if not lockfile or not os.path.exists(lockfile):
         return
 
-    if verbose > 3:
-        print >> sys.stderr, "unlock(%s)" % lockfile
-
     if noaction:
         return
+
+    if verbose > 3:
+        print >> sys.stderr, "unlock(%s)" % lockfile
 
     if force:
         try:
