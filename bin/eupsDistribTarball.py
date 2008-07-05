@@ -13,6 +13,8 @@ import eupsDistrib
 class Distrib(eupsDistrib.Distrib):
     """Handle distribution via tarballs"""
 
+    implementation = "tarball"     # which implementation is provided?
+
     def createPackage(self, productName, versionName, baseDir, productDir):
         """Create a tarball and return a distribution ID which happens to be its name"""
 
@@ -39,13 +41,21 @@ class Distrib(eupsDistrib.Distrib):
 
         return tarball
 
+    @classmethod
+    def parseDistID(self, distID):
+        """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
+
+        if re.search(r"\.tar\.gz$", distID):
+            return distID
+
+        return None    
+
     def installPackage(self, distID, productsRoot, *args):
         """Retrieve and unpack a tarball"""
 
-        if not re.search(r"tar\.gz$", distID):
+        tarball = Distrib.parseDistID(distID)
+        if not tarball:
             raise RuntimeError, ("Expected a tarball name; saw \"%s\"" % distID)
-
-        tarball = distID
 
         tfile = "%s/%s" % (self.packageBase, tarball)
 

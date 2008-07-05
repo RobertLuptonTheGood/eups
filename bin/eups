@@ -6,6 +6,7 @@ import os, re, sys
 import tempfile
 import eups
 import eupsDistrib
+import eupsDistribFactory
 import eupsDistribBuilder
 import eupsDistribPacman
 import eupsDistribTarball
@@ -54,7 +55,7 @@ Supported commands are:
         uses            List everything which depends on the specified product and version
 Use
 	eups --help cmd
-for help with command "cmd"
+for help with command "cmd"\
 """
 #
 # Start by looking for our command
@@ -71,12 +72,8 @@ except IndexError:
 #
 # Choose arguments based on cmd
 #
-helpStr = "eups [commonOpts]"
 if cmd:
-    helpStr += " %s" % (cmd)
-else:
-    helpStr += " cmd"
-helpStr += " [opts]"
+    helpStr = "eups [commonOptions] %s [options]" % cmd
 
 if cmd == "admin":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | listCache | clearLocks")
@@ -207,8 +204,7 @@ elif cmd == "uses":
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-o"] = (False, "--optional", "Show optional setups")
 else:
-    print >> sys.stderr, "Unknown command %s (use --help to list your options)" % cmd
-    sys.exit(1)
+    narg = (0, 0)
 #
 # Parse arguments
 #
@@ -399,26 +395,28 @@ def main(cmd, opts):
         # Pack options into a class
         #
         if pacmanCache:
-            Distrib = eupsDistribPacman.Distrib
+            distribImpl = eupsDistribPacman.Distrib.implementation
         elif tarball:
-            Distrib = eupsDistribTarball.Distrib
-        else:
-            Distrib = eupsDistribBuilder.Distrib
+            distribImpl = eupsDistribTarball.Distrib.implementation
+        elif buildFilePath:
+            distribImpl = eupsDistribBuilder.Distrib.implementation
 
-        Distrib = Distrib(Eups, packageBasePath, transport, buildFilePath=buildFilePath,
-                          current=current, obeyGroups=obeyGroups,
-                          tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
-                          noeups=noeups)
-        #
-        # Some sorts of Distribs need extra capabilities
-        #
-        if pacmanCache:
-            Distrib.pacmanCache = pacmanCache
-        elif tarball:
-            pass
+            if noeups and not buildFilePath:
+                print >> sys.stderr, \
+                      "You must specify a path with --build if you are using build files and specify --noeups"
+                sys.exit(1)
         else:
-            Distrib.buildDir=tmp_dir
-
+            distribImpl = eupsDistrib.Distrib.implementation
+        #
+        # Make our Distrib object using a factory function
+        #
+        Distrib = eupsDistribFactory.Distrib(distribImpl, Eups, packageBasePath, transport,
+                                             current=current, obeyGroups=obeyGroups,
+                                             tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
+                                             noeups=noeups,
+                                             pacmanCache=pacmanCache,
+                                             buildDir=tmp_dir, buildFilePath=buildFilePath,
+                                             )
         distrib(Distrib, desire, productName, versionName, manifest=manifest, current=current)
     elif cmd in ("expandbuild", "expandtable"):
         productList = {}

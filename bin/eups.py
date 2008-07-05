@@ -900,7 +900,8 @@ class VersionFile(object):
 
                     tablefile = self.info[flavor]["table_file"]
                     if not self.info[flavor].has_key("ups_dir") and tablefile != "none":
-                        print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
+                        if tablefile != ("%s.table" % self.productName):
+                            print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
                         self.info[flavor]["ups_dir"] = "ups"
 
                 continue
@@ -1102,7 +1103,7 @@ class Product(object):
             self.initFromDirectory(productDir)
         else:
             try:
-                product = self.Eups.getProduct(self.name, versionName, [eupsPathDir])
+                product = self.Eups.getProduct(self.name, versionName, eupsPathDir)
                 self.version, self.db, self.dir, self.table = product.version, product.db, product.dir, product.table
                 return
             except RuntimeError, e:
@@ -1305,6 +1306,9 @@ class Eups(object):
         # Read the cached version information
         #
         self.versions = {}
+        for p in self.path:
+            self.versions[p] = {}
+
         self.readCache = readCache
 
         if readCache:
@@ -1423,26 +1427,26 @@ class Eups(object):
             self.versions = {}
 
         try:
-            versions = unpickled.load()
+            versions = {eupsPathDir : unpickled.load()}
         except Exception, e:
             msg = "Corrupted cache in %s: %s" % (eupsPathDir, e)
             print >> sys.stderr, msg
             raise RuntimeError(e)
         
-        for flavor in versions.keys():
-            if not self.versions.has_key(flavor):
-                self.versions[flavor] = {}
+        for db in versions.keys():      # i.e. eupsPathDir
+            if not self.versions.has_key(db):
+                self.versions[db] = {}
 
-            for db in versions[flavor].keys():
-                if not self.versions[flavor].has_key(db):
-                    self.versions[flavor][db] = {}
+            for flavor in versions[db].keys():
+                if not self.versions[db].has_key(flavor):
+                    self.versions[db][flavor] = {}
 
-                for p in versions[flavor][db].keys():
-                    if not self.versions[flavor][db].has_key(p):
-                        self.versions[flavor][db][p] = {}
+                for p in versions[db][flavor].keys():
+                    if not self.versions[db][flavor].has_key(p):
+                        self.versions[db][flavor][p] = {}
 
-                        for v in versions[flavor][db][p]:
-                            self.versions[flavor][db][p][v] = versions[flavor][db][p][v]
+                        for v in versions[db][flavor][p]:
+                            self.versions[db][flavor][p][v] = versions[db][flavor][p][v]
     
     def writeDB(self, eupsPathDir, force=False):
         """Write eupsPathDir's version DB to a persistent DB"""
@@ -1454,7 +1458,7 @@ class Eups(object):
 
         if isinstance(eupsPathDir, str):
             try:
-                versions = self.versions[self.flavor][eupsPathDir]
+                versions = self.versions[eupsPathDir][self.flavor]
             except KeyError:
                 return
 
@@ -1463,7 +1467,7 @@ class Eups(object):
             lock = self.lockDB(eupsPathDir)
             try:
                 fd = open(persistentDB, "w")
-                cPickle.dump(self.versions, fd, protocol=2)
+                cPickle.dump(self.versions[eupsPathDir], fd, protocol=2)
             except Exception, e:
                 print >> sys.stderr, e
                 raise
@@ -1491,7 +1495,7 @@ class Eups(object):
 
         for db in self.path:
             try:
-                productNames = self.versions[self.flavor][db].keys()
+                productNames = self.versions[db][self.flavor].keys()
                 productNames.sort()
 
                 if self.verbose:
@@ -1505,7 +1509,7 @@ class Eups(object):
                     continue
 
                 for productName in productNames:
-                    versionNames = self.versions[self.flavor][db][productName].keys()
+                    versionNames = self.versions[db][self.flavor][productName].keys()
                     versionNames.sort(self.version_cmp)
 
                     print "  %-20s %s" % (productName, " ".join(versionNames))
@@ -1836,11 +1840,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             eupsPathDirs = [eupsPathDirs]
 
         if eupsPathDirs:
+            if isinstance(eupsPathDirs, str):
+                eupsPathDirs = [eupsPathDirs]
+                
             dbs = eupsPathDirs
-        elif self.versions.has_key(self.flavor):
-            dbs = self.versions[self.flavor].keys() # known eups databases
         else:
-            dbs = []
+            dbs = self.versions.keys()  # known eups databases
             
         foundCurrent, eupsPathDir = False, None
         if versionName == Current:
@@ -1855,6 +1860,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         if eupsPathDir:
             dbs = [eupsPathDir] + filter(lambda d: d != eupsPathDir, dbs) # put chosen version first in eupsPath
+
+        if dbs[0] == "/u/lsst/products/DarwinX86/external/pcre/7.4":
+            debug("DBS", dbs)
+            pdb.set_trace()
         #
         # Try to look it up in the db/product/version dictionary
         #
@@ -1865,7 +1874,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 continue
 
             try:
-                product = self.versions[self.flavor][db][productName][versionName]
+                product = self.versions[db][self.flavor][productName][versionName]
                 if self.verbose > 2:
                     print >> sys.stderr, "Found %s %s in cache" % (productName, versionName)
 
@@ -1892,7 +1901,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         cached = False
         for db in dbs:
             try:
-                self.versions[self.flavor][db][product.name][product.version]
+                self.versions[db][self.flavor][product.name][product.version]
                 cached = True
                 break
             except KeyError:
@@ -1921,11 +1930,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # We want an entry even if nothing's declared, otherwise we'll
         # check everytime
         #
-        if not self.versions.has_key(self.flavor):
-            self.versions[self.flavor] = {}
+        if not self.versions.has_key(eupsPathDir):
+            self.versions[eupsPathDir] = {}
 
-        if not self.versions[self.flavor].has_key(eupsPathDir):
-            self.versions[self.flavor][eupsPathDir] = {}
+        if not self.versions[eupsPathDir].has_key(self.flavor):
+            self.versions[eupsPathDir][self.flavor] = {}
 
         re_version = re.compile(r"^(.*).version$")
         for dirpath, dirnames, filenames in os.walk(self.getUpsDB(eupsPathDir)):
@@ -1940,7 +1949,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     version = mat.group(1)
 
                     try:
-                        self.getProduct(productName, version, [eupsPathDir])
+                        self.getProduct(productName, version, eupsPathDir)
                     except RuntimeError, e:
                         # We only checked for the existance of the file, but when we tried to get the product
                         # we checked for a valid flavor. Don't want to tell the user about those failures
@@ -2165,13 +2174,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         d = self.versions
 
-        if not d.has_key(product.Eups.flavor):
-            d[product.Eups.flavor] = {}
-        d = d[product.Eups.flavor]            
-
         if not d.has_key(product.db):
             d[product.db] = {}
         d = d[product.db]
+
+        if not d.has_key(product.Eups.flavor):
+            d[product.Eups.flavor] = {}
+        d = d[product.Eups.flavor]            
             
         if not d.has_key(product.name):
             d[product.name] = {}
@@ -2180,8 +2189,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if delete:
             try:
                 del d[product.version]
-                if len(self.versions[product.Eups.flavor][product.db][product.name]) == 0:
-                    del self.versions[product.Eups.flavor][product.db][product.name]
+                if len(self.versions[product.db][product.Eups.flavor][product.name]) == 0:
+                    del self.versions[product.db][product.Eups.flavor][product.name]
             except KeyError:
                 pass
         else:
@@ -2341,7 +2350,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         """Unsetup a product"""
         self.setup(productName, versionName, fwd=False)
 
-    def declare(self, productName, versionName, productDir, eupsPathDir=None, tablefile=None, declare_current = False):
+    def declare(self, productName, versionName, productDir, eupsPathDir=None, tablefile=None, declare_current=False):
         """Declare a product.  productDir may be None if declare_current.  N.b. tablefile=None means that the
         default "productName.table" table should be used;  set tablefile="none" if you want no table"""
 
@@ -2360,6 +2369,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         info = self.findVersion(productName, versionName)
 
                     productDir = info[2]    # we'll check the other fields later
+
+                    if not productDir:
+                        productDir = "none"
+
                 except RuntimeError:
                     pass
 
@@ -2394,6 +2407,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         ups_dir, tablefileIsFd = None, False
         if tablefile:
             if isinstance(tablefile, file):
+                tablefileIsFd = True
                 tfd = tablefile
 
                 tablefile = "%s.table" % versionName
@@ -2412,9 +2426,27 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         else:
             ups_dir = "ups"
         #
-        # See if we're redeclaring a product and complain if the new declaration conflicts with the old
+        # Check that tablefile exists
         #
         assert tablefile
+        if not tablefileIsFd and tablefile != "none":
+            if not productDir or productDir == "none":
+                if ups_dir:
+                    try:
+                        full_tablefile = os.path.join(ups_dir, tablefile)
+                    except Exception, e:
+                        raise RuntimeError, ("Unable to generate full tablefilename: %s" % e)
+                else:
+                    full_tablefile = tablefile
+            else:
+                full_tablefile = os.path.join(productDir, ups_dir, tablefile)
+
+            if not os.path.isfile(full_tablefile):
+                raise RuntimeError, ("I'm unable to declare %s as tablefile %s does not exist" %
+                                     (productName, full_tablefile))
+        #
+        # See if we're redeclaring a product and complain if the new declaration conflicts with the old
+        #
         try:
             _version, _eupsPathDir, _productDir, _tablefile = \
                       self.findFullySpecifiedVersion(productName, versionName, self.flavor, eupsPathDir)
@@ -2479,7 +2511,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             lock = self.lockDB(eupsPathDir)
 
             try:
-                product = self.getProduct(productName, versionName, productDir)
+                product = self.getProduct(productName, versionName, eupsPathDir)
                 version.merge(VersionFile(product.versionFileName()), self.who)
             except RuntimeError: 
                 product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
@@ -2505,7 +2537,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # This you to install product A which depends on product B by first installing and declaring B,
         # and then blithely setup A (e.g. setup -r .) without a version specified for B.
         #
-        if not declare_current and len(self.listProducts(productName)) == 1:
+        if not declare_current and len(self.listProducts(productName)) == 0: # 0: the count when we created our Eups
             declare_current = True
         #
         # Declare it current if needs be
@@ -2537,10 +2569,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # Update the cache
         #
         if not self.noaction:
-            product = self.getProduct(productName, versionName, productDir)
+            product = self.getProduct(productName, versionName, eupsPathDir)
             self.intern(product, updateDB=False, delete=True)
             
-            self.getProduct(productName, versionName, productDir) # update the cache
+            self.getProduct(productName, versionName, eupsPathDir) # update the cache
 
     def declareCurrent(self, productName, versionName, eupsPathDir=None):
         """Declare a product current"""
@@ -2561,7 +2593,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             
         if self.isSetup(product):
             if self.force:
-                print >> sys.stderr, "Product %s %s is already setup; proceeding" % (productName, versionName)
+                print >> sys.stderr, "Product %s %s is currently setup; proceeding" % (productName, versionName)
             else:
                 raise RuntimeError, \
                       ("Product %s %s is already setup; specify force to proceed" % (productName, versionName))
@@ -2654,9 +2686,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         """
 
         productList = []
-
-        if not self.versions.has_key(self.flavor):
-            return productList
         #
         # Maybe they wanted Current or Setup?
         #
@@ -2669,18 +2698,18 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # Find all products on path (cached in self.versions, of course)
         #
         for db in self.path:
-            if not self.versions[self.flavor].has_key(db):
+            if not self.versions.has_key(db) or not self.versions[db].has_key(self.flavor):
                 continue
             
-            for name in self.versions[self.flavor][db].keys():
+            for name in self.versions[db][self.flavor].keys():
                 if productName and not fnmatch.fnmatchcase(name, productName):
                     continue
                 
-                for version in self.versions[self.flavor][db][name].keys():
+                for version in self.versions[db][self.flavor][name].keys():
                     if productVersion and not fnmatch.fnmatchcase(version, productVersion):
                         continue
 
-                    product = self.versions[self.flavor][db][name][version]
+                    product = self.versions[db][self.flavor][name][version]
                     product.Eups = self     # don't use the cached Eups
 
                     isCurrent = product.checkCurrent()
@@ -2729,13 +2758,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         return productList
 
     def dependencies_from_table(self, tablefile, eupsPathDirs=None):
-        """Return self's dependencies as a list of (Product, optional) tuples
+        """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
         if tablefile != "none":
             for (product, optional, currentRequested) in Table(tablefile).dependencies(self, eupsPathDirs):
-                dependencies += [(product.name, optional, currentRequested)]
+                dependencies += [(product, optional, currentRequested)]
 
         return dependencies
 

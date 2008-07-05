@@ -15,6 +15,23 @@ import eupsDistrib
 class Distrib(eupsDistrib.Distrib):
     """Handle distribution via curl/cvs/svn and explicit build files"""
 
+    implementation = "builder"     # which implementation is provided?
+
+    def checkInit(self):
+        """Check that self is properly initialised; this matters for subclasses with special needs"""
+
+        try:
+            type(self.buildDir)
+        except AttributeError, e:
+            self.buildDir = None
+            print >> sys.stderr, "Incorrectly initialised eupsDistribBuilder: %s" % e
+
+        try:
+            type(self.buildFilePath)
+        except AttributeError, e:
+            self.buildFilePath = None
+            print >> sys.stderr, "Incorrectly initialised eupsDistribBuilder: %s" % e
+
     def createPackage(self, productName, versionName, baseDir, productDir):
         """Create a package (which basically means locating a
         buildfile which contains information about its CVS/SVN root,
@@ -83,12 +100,23 @@ class Distrib(eupsDistrib.Distrib):
 
         return "build:" + builder
 
+
+    @classmethod
+    def parseDistID(self, distID):
+        """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
+
+        try:
+            return re.search(r"^build:(.*)", distID).group(1)
+        except AttributeError:
+            pass
+
+        return None    
+
     def installPackage(self, distID, products_root, setups):
         """Setups is a list of setup commands needed to build this product"""
 
-        try:
-            builder = re.search(r"build:(.*)", distID).group(1)
-        except AttributeError:
+        builder = Distrib.parseDistID(distID)
+        if not builder:
             raise RuntimeError, ("Expected distribution ID of form build:*; saw \"%s\"" % distID)
 
         tfile = self.find_file(builder)
@@ -188,6 +216,30 @@ class Distrib(eupsDistrib.Distrib):
             print "\t", str.join("\n\t", cmd)
 
         eupsDistrib.system(str.join("\n", cmd), self.Eups.noaction)
+
+    def find_file_on_path(self, file, auxDir = None):
+        """Look for a file on the :-separated buildFilePath, looking in auxDir if
+        an element of path is empty"""
+
+        if not self.buildFilePath:
+            return None
+
+        for bd in self.buildFilePath.split(":"):
+            bd = os.path.expanduser(bd)
+            
+            if bd == "":
+                if auxDir:
+                    bd = auxDir
+                else:
+                    continue
+            full_file = os.path.join(bd, file)
+
+            if os.path.exists(full_file):
+                if self.Eups.verbose:
+                    print "Found %s (%s)" % (file, full_file)
+                return full_file
+
+        return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -304,11 +356,49 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
     subs["VERSION"] = versionName
 
     def subVar(name):
-        var = name.group(1).upper()
+        var = name.group(1)
+        # variable may be of form @NAME.op@ (e.g. @VERSION.replace(".", "_")@)
+        # which means expand name = @NAME@ and evaluate name.op
+        
+        mat = re.search(r"^([^\.]+)(?:\.(.*))", var)
+        if mat:
+            var, op = mat.groups()
+        else:
+            op = None
+
+        var = var.upper()
+
         if subs.has_key(var):
             if not subs[var]:
                 raise RuntimeError, "I can't guess a %s for you -- please set $%s" % (var, var)
-            return subs[var]
+
+            value = subs[var]
+
+            if op:                      # a python operation to be applied to value.
+                # We could just eval the expression, but that allows a malicious user to execute random python,
+                # so we'll interpret the commands ourselves
+
+                # regexp for replace commands
+                replace_re = r"^replace\s*\(\s*r?[\"']([^\"']+)[\"']\s*,\s*r?[\"']([^\"']+)[\"']\s*\)"
+                # regexp for regexp-based replace commands (@NAME.sub(s1, s2)@ --> re.sub(s1, s2, name))
+                sub_re = r"^sub\s*\(\s*r?[\"']([^\"']+)[\"']\s*,\s*r?[\"']([^\"']+)[\"']\s*\)"
+
+                if re.search(replace_re, op):
+                    mat = re.search(replace_re, op)
+                    value = value.replace(mat.group(1), mat.group(2))
+                elif re.search(sub_re, op):
+                    mat = re.search(sub_re, op)
+                    value = re.sub(mat.group(1), mat.group(2), value)
+                elif op == "lower()":
+                    value = value.lower()
+                elif op == "title()":
+                    value = value.title()
+                elif op == "upper()":
+                    value = value.upper()
+                else:
+                    print >> sys.stderr, "Unexpected modifier \"%s\"; ignoring" % op
+            
+            return value
 
         return "XXX"
     #

@@ -5,6 +5,7 @@
 # product from a package
 #
 import atexit
+import fnmatch
 import os, stat
 import re, sys
 import pdb
@@ -27,7 +28,7 @@ URL, SCP, LOCAL = "URL", "SCP", "LOCAL"
 class Distrib(object):
     """A class to encapsulate product distribution"""
 
-    def __init__(self, Eups, packageBasePath, transport, buildFilePath=None, installFlavor=None, preferFlavor=False,
+    def __init__(self, Eups, packageBasePath, transport, installFlavor=None, preferFlavor=False,
                  current=False, tag=None, no_dependencies=False, obeyGroups=False,
                  noeups=False):
         self.Eups = Eups
@@ -35,7 +36,6 @@ class Distrib(object):
         self.packageBasePath = packageBasePath # list of possible packageBases
         self.packageBase = None
         self.transport = transport
-        self.buildFilePath = buildFilePath
         if not installFlavor:
             installFlavor = Eups.flavor
         self.installFlavor = installFlavor
@@ -46,19 +46,47 @@ class Distrib(object):
         self.obeyGroups = obeyGroups
         self.noeups = noeups
     #
+    # Here are the hooks to allow the distribFactory to create the correct sort of Distrib
+    #
+    @classmethod
+    def handles(self, impl):
+        """Return True iff we understand this sort of implementation"""
+
+        return self.implementation == impl
+
+    @classmethod
+    def parseDistID(self, distID):
+        """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
+
+        return None
+    #
     # This is really an abstract base class, but provide dummies to help the user
     #
+    implementation = None           # which implementation is provided?
+
+    def checkInit(self):
+        """Check that self is properly initialised; this matters for subclasses with special needs"""
+        pass
+
     def createPackage(self, productName, versionName, baseDir=None, productDir=None):
         """Create a package and return the distribution ID """
 
-        eups.debug("createPackage", productName, versionName)
+        raise RuntimeError, ("Not implemented: createPackage %s %s" % (productName, versionName))
 
     def installPackage(self, distID, productsRoot, setups):
         """Install the package identified by distID into productsRoot;
-        Setups is a list of setup commands needed to build this product"""
+        Setups is a list of setup commands for this product's dependencies"""
 
-        eups.debug("installPackage", cacheId, productsRoot)
+        raise RuntimeError, ("Not implemented: installPackage %s %s" % (distID, productsRoot))
 
+    def find_file_on_path(self, file, auxDir = None):
+        """Return the name of a file somewhere on a :-separated path, looking in auxDir if
+        an element of path is empty"""
+
+        eups.debug("find_file_on_path", file, auxDir)
+
+        return None
+    
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     def currentFile(self):
@@ -100,12 +128,13 @@ class Distrib(object):
         locs = self.createLocationList(filename, packagePath)
 
         subDirs = [""]
-        if re.search('\.build$', filename):
-            subDirs += ['builds']
-        elif re.search('\.manifest$', filename):
-            subDirs += ['manifests']
-        elif re.search('\.table$', filename):
-            subDirs += ['tables']
+        for sd in ["", self.Eups.flavor]:
+            if re.search('\.build$', filename):
+                subDirs += [os.path.join('builds', sd)]
+            elif re.search('\.manifest$', filename):
+                subDirs += [os.path.join('manifests', sd)]
+            elif re.search('\.table$', filename):
+                subDirs += [os.path.join('tables', sd)]
 
         if self.Eups.verbose > 1:
             print >> sys.stderr, "Looking for %s in subdirectories [%s] of:" % \
@@ -287,27 +316,6 @@ class Distrib(object):
 
         return manifest_product, manifest_product_version, productsRoot, top_version, products
 
-    def find_file_on_path(self, file, auxDir = None):
-        """Look for a file on the :-separated buildFilePath, looking in auxDir if
-        an element of path is empty"""
-
-        for bd in self.buildFilePath.split(":"):
-            bd = os.path.expanduser(bd)
-            
-            if bd == "":
-                if auxDir:
-                    bd = auxDir
-                else:
-                    continue
-            full_file = os.path.join(bd, file)
-
-            if os.path.exists(full_file):
-                if self.Eups.verbose:
-                    print "Found %s (%s)" % (file, full_file)
-                return full_file
-
-        return None
-
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def system(cmd, noaction=False):
@@ -407,9 +415,9 @@ def listdir(Distrib, url):
     """Return a list of the files specified by a directory URL"""
 
     if Distrib.transport == LOCAL:
-        return os.listdir(url)
+        files = os.listdir(url)
     elif Distrib.transport == SCP:
-        return os.listdir(url)
+        files = os.listdir(url)
     elif Distrib.transport == URL:
         """Read a URL, looking for the hrefs that apache uses in directory listings"""
         import HTMLParser, urlparse
@@ -455,9 +463,11 @@ def listdir(Distrib, url):
             print >> sys.stderr, \
                   "I'm assuming that the manifest directory listing comes from an Apache server"
 
-        return p.files
+        files = p.files
     else:
         raise AssertionError, ("I don't know how to handle transport == %s" % Distrib.transport)
+
+    return filter(lambda f: not re.search(r"~$", f), files)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -485,19 +495,18 @@ def create(Distrib, top_productName, top_version, manifest):
         if not ptablefile:
             if Distrib.Eups.verbose > 0:
                 print >> sys.stderr, "Unable to find a table file for %s; assuming no dependencies" % productName
-            if os.path.exists(os.path.join("ups", "%s.table" % productName)):
-                print >> sys.stderr, \
-                      "N.b. found %s.table in ./ups; consider adding ./ups to --build path" % (productName)
                 
             ptablefile = "none"
 
         productList = [(productName, top_version, False)]
         dependencies = Distrib.Eups.dependencies_from_table(ptablefile)
         if dependencies:
-            for (productName, version, optional) in dependencies:
+            for (product, optionalInTable, currentRequested) in dependencies:
+                productName = product.name
+                version = product.version
                 if not version:
                     version = Distrib.Eups.findCurrentVersion(productName)[1]
-                productList += [(productName, version, optional)]
+                productList += [(productName, version, optionalInTable)]
     else:
         top_product = Distrib.Eups.Product(top_productName, top_version)
         productList = []
@@ -510,11 +519,13 @@ def create(Distrib, top_productName, top_version, manifest):
             print "Product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
 
         if productName == top_productName and Distrib.noeups:
-            baseDir, pdb, pdir = None, None, None
+            baseDir, pDB, pdir = None, None, None
             productDir = "/dev/null"
         else:
             try:
-                (pname, pversion, pdb, pdir, pcurrent, psetup) = Distrib.Eups.listProducts(productName, version)[0]
+                (pname, pversion, pDB, pdir, pcurrent, psetup) = Distrib.Eups.listProducts(productName, version)[0]
+                if not pdir:
+                    pdir = "none"
             except KeyboardInterrupt:
                 sys.exit(1)
             except Exception, e:
@@ -594,7 +605,7 @@ def create(Distrib, top_productName, top_version, manifest):
                     print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
                 copyfile(fulltablename, tablefile_for_distrib)
 
-        products += [[productName, Distrib.installFlavor, version, pdb, pdir, ptablefile, productDir, distID]]
+        products += [[productName, Distrib.installFlavor, version, pDB, pdir, ptablefile, productDir, distID]]
 
         if Distrib.no_dependencies:
             if Distrib.Eups.force:
@@ -624,12 +635,17 @@ def create(Distrib, top_productName, top_version, manifest):
         raise RuntimeError, ("Failed to open %s: %s" % manifest, e)
 
     if not Distrib.Eups.noaction:
-        print >> ofd, "EUPS distribution manifest for %s (%s). Version %s" % \
+        print >> ofd, """\
+EUPS distribution manifest for %s (%s). Version %s
+#
+# pkg       flavor    version  tablefile         installation_directory        installID
+#---------- --------- -------- ----------------- ---------------------------------------
+""" % \
               (top_productName, top_version, eups_distrib_version)
         
     rproducts = products[:]; rproducts.reverse() # reverse the products list
     for p in rproducts:
-        (productName, Distrib.installFlavor, version, pdb, pdir, ptablefile, productDir, distID) = p
+        (productName, Distrib.installFlavor, version, pDB, pdir, ptablefile, productDir, distID) = p
         if not Distrib.installFlavor:
             installFlavor = eups.flavor()
         if not Distrib.Eups.noaction:
@@ -749,6 +765,9 @@ def install(Distrib, top_product, top_version, manifest):
             (productName != top_product or versionName != top_version)):
             continue
         
+        if not re.search(r"^/", productDir):
+            productDir = os.path.join(productsRoot, productDir)
+
         info = []
         if not Distrib.noeups:
             try:
@@ -787,7 +806,19 @@ def install(Distrib, top_product, top_version, manifest):
                     sys.exit(1)
                 dodeclare = False
         else:
-            Distrib.installPackage(distID, productsRoot, setups)
+            if False:                   # this was added for pacman, but didn't help
+                if not os.path.isdir(productDir): # this is arguably installPackage's job, but we'll be nice
+                    os.makedirs(productDir)
+            #
+            # Choose the correct sort of eupsDistrib
+            #
+            # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
+            # so don't try to move this import up to the top of the file
+            #
+            import eupsDistribFactory
+            
+            impl = eupsDistribFactory.getImplementation(distID)
+            eupsDistribFactory.Distrib(impl, Distrib).installPackage(distID, productsRoot, setups)
 
         setups += ["setup %s %s &&" % (productName, versionName)]
         #
@@ -805,7 +836,16 @@ def install(Distrib, top_product, top_version, manifest):
         except Exception, e:
             pass
         #
-        # Deal with table files if not in product root (i.e. -M files)
+        # If no versions of this product are declared current, we need to make this one
+        # current to allow products to set it up without an explicit version
+        #
+        declare_current = Distrib.current
+
+        if not declare_current and len(Distrib.Eups.listProducts(productName, current=True)) == 0:
+            declare_current = True
+        #
+        # Declare our product.  We need to deal with table files which are
+        # not in product root (i.e. -M files)
         #
         # If the table in the manifest file is not "<productName>.table" in the manifest file
         # the table file should be installed by eups_distrib and declared via eups declare -M
@@ -826,19 +866,17 @@ def install(Distrib, top_product, top_version, manifest):
                     eupsPathDir = pdir
                     break                
 
-            if not re.search(r"^/", productDir):
-                productDir = os.path.join(productsRoot, productDir)
-
             Distrib.Eups.declare(productName, versionName, productDir, tablefile=tablefile,
-                                 eupsPathDir=eupsPathDir, declare_current=Distrib.current)
+                                 eupsPathDir=eupsPathDir, declare_current=declare_current)
         else:                           # we may still need to declare it current
-            if Distrib.current:
+            if declare_current:
                 Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=productsRoot)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def listProducts(Distrib, top_product, top_version, current, manifest):
-    """List available packages"""
+    """List available packages; if current is true list versions declared current to eupsDistrib.
+    Matching for product and version is a la shell globbing (i.e. using fnmatch)"""    
 
     available = []                      # available products
     if current:
@@ -865,9 +903,9 @@ def listProducts(Distrib, top_product, top_version, current, manifest):
 
         if manifest_flavor and manifest_flavor != Distrib.installFlavor:
             continue
-        if top_product and top_product != manifest_product:
+        if top_product and not fnmatch.fnmatchcase(manifest_product, top_product):
             continue
-        if top_version and top_version != manifest_product_version:
+        if top_version and not fnmatch.fnmatchcase(manifest_product_version, top_version):
             continue
 
         productList += [(manifest_product, manifest_product_version)]
