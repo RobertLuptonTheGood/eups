@@ -26,6 +26,7 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0
             raise
         except OSError, e:
             if e.errno != errno.EEXIST:
+                import pdb; pdb.set_trace()
                 # should not occur
                 raise
 

@@ -81,7 +81,7 @@ helpStr += " [opts]"
 if cmd == "admin":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | listCache | clearLocks")
 elif cmd == "declare":
-    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
     helpStr += "\n\nDeclare a product"
 
     options["-c"] = (False,  "--current", "Declare product current")
@@ -283,7 +283,25 @@ def main(cmd, opts):
         tablefile = opts.options.get('-m', None)
         externalTablefile = opts.options.get('-M', None)
 
-        productName, versionName = opts.argv[0:2]
+        if opts.argv:
+            productName = opts.argv.pop(0)
+
+            if opts.argv:
+                versionName = opts.argv.pop(0)
+            else:
+                versionName = None
+        else:
+            if productDir:
+                rest, versionName = os.path.split(productDir)
+                rest, productName = os.path.split(rest)
+
+                if verbose:
+                    print >> sys.stderr, "Guessed product/version %s/%s from directory name" % \
+                          (productName, versionName)
+
+        if not productName or not versionName:
+            print >> sys.stderr, "Please provide a product and version name"
+            sys.exit(1)
 
         if tablefile and externalTablefile:
             print >> sys.stderr, "You may not specify both -m and -M"

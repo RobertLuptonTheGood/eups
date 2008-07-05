@@ -524,8 +524,9 @@ def create(Distrib, top_productName, top_version, manifest):
 
             try:
                 ptablefile = Distrib.Eups.Product(productName, version).table.file
-                if ptablefile == "":
-                    ptablefile = " "
+                if False:               # when is this needed?
+                    if ptablefile == "":
+                        ptablefile = " "
             except KeyboardInterrupt:
                 sys.exit(1)                    
             except Exception, e:
@@ -780,7 +781,7 @@ def install(Distrib, top_product, top_version, manifest):
                 continue
             except RuntimeError, e:
                 if not Distrib.Eups.force or Distrib.Eups.verbose > 0:
-                    print >> sys.stderr, "I don't know how to install %s: %s" % (productName, e)
+                    print >> sys.stderr, "Detected problem installing %s: %s" % (productName, e)
                 if not Distrib.Eups.force:
                     print >> sys.stderr, "Specify force to proceed"
                     sys.exit(1)

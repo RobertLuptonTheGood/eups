@@ -115,15 +115,8 @@ class Distrib(eupsDistrib.Distrib):
         #
         (cvsroot, svnroot, url, other) = get_root_from_buildfile(tfile)
         if not (cvsroot or svnroot or url or other):
-            if self.Eups.force:
-                action = "continuing"
-            else:
-                action = "aborting"
-            msg = "Unable to find a {cvs,svn}root or wget/curl command in %s; %s" % (tfile, action)
-            if self.Eups.force:
-                print >> sys.stderr, msg
-            else:
-                raise RuntimeError, msg
+            print >> sys.stderr, \
+                  "Unable to find a {cvs,svn}root or wget/curl command in %s; continuing" % (tfile)
         #
         # Prepare to actually do some work
         #
@@ -143,6 +136,7 @@ class Distrib(eupsDistrib.Distrib):
         except IOError, e:
             raise RuntimeError, ("Failed to open %s: %s" % (tfile, e))
 
+        lines = []                      # processed command lines from build file
         for line in fd:
             line = re.sub(r"\n$", "", line) # strip newline
 
@@ -150,13 +144,18 @@ class Distrib(eupsDistrib.Distrib):
                 continue
 
             if re.search(r"#", line): # make comments executable statements that can be chained with &&
-                line =  re.sub(r"^(\s*)#(.*)", r"\1:\2", line)
-                line = re.sub(r"([^\\])(['\"])", r"\1\\\2", line) # We need to quote quotes in : comment
+                line =  re.sub(r"^(\s*)#(.*)", r"\1: \2", line)
+                line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
+                                       #: comments as : is an executable command
 
             line = re.sub(r"^\s*setup\s", "setup -j ", line)
-            cmd += [line]
-
+            if not re.search(r"^\s*$", line): # don't confuse the test for an empty build file ("not lines")
+                lines += [line]
         del fd
+
+        if not lines:
+            lines += [":"]              # we need at least one command as cmd may end &&
+        cmd += lines
         #
         # Did they ask to have group permissions honoured?
         #
