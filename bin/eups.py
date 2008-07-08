@@ -602,9 +602,26 @@ but no other interpretation is applied
                         args = (args[0], Current)
                         currentRequested = True
                     else:
-                        args = (args[0], " ".join(args[1:]))
+                        otherArgs = " ".join(args[1:])
+
+                        mat = re.search(r"(.*)\s+\[([^\]]+)\]\s*", otherArgs)
+                        if mat:
+                            exactVersion, logicalVersion = mat.groups()
+                            if Eups.exact_version:
+                                otherArgs = exactVersion
+                            else:
+                                otherArgs = logicalVersion
+
+                        args = (args[0], otherArgs)
                         currentRequested = False
-                    deps += [(Eups.getProduct(args[0], args[1], eupsPathDirs), a.extra, currentRequested)]
+                    try:
+                        product = Eups.getProduct(args[0], args[1], eupsPathDirs)
+                    except RuntimeError, e:
+                        product = Product(Eups, args[0], args[1], noInit=True)
+                        pass
+
+                    deps += [(product, a.extra, currentRequested)]
+                        
                 except RuntimeError, e:
                     if a.extra:         # product is optional
                         continue
@@ -1721,7 +1738,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 try:
                     ceupsPathDir, cversionName, cvinfo = self.findCurrentVersion(productName, eupsPathDir)
                     if cvinfo:
-                        versionNames += [(cversionName, cvinfo)]
+                        versionNames = [(cversionName, cvinfo)] + versionNames
                 except RuntimeError:
                     cvinfo = None
                     pass
@@ -1795,8 +1812,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 productDir = os.path.join(eupsPathDir, productDir)
 
             if not os.path.isdir(productDir):
-                print >> sys.stderr, \
-                      "Product %s %s has non-existent productDir %s" % (productName, versionName, productDir)
+                if self.verbose >= 1 + self.quiet:
+                    print >> sys.stderr, \
+                          "Product %s %s has non-existent productDir %s" % (productName, versionName, productDir)
         #
         # Look for the directory with the tablefile
         #
@@ -1824,8 +1842,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
             if not os.path.exists(tablefile):
-                print >> sys.stderr, \
-                      "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
+                if self.verbose >= 1 + self.quiet:
+                    print >> sys.stderr, \
+                          "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
                 tablefile = "none"
 
         return versionName, eupsPathDir, productDir, tablefile
@@ -1860,10 +1879,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         if eupsPathDir:
             dbs = [eupsPathDir] + filter(lambda d: d != eupsPathDir, dbs) # put chosen version first in eupsPath
-
-        if dbs[0] == "/u/lsst/products/DarwinX86/external/pcre/7.4":
-            debug("DBS", dbs)
-            pdb.set_trace()
         #
         # Try to look it up in the db/product/version dictionary
         #
@@ -2287,7 +2302,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 sversionName = None
 
             if product.version and sversionName:
-                if product.version == sversionName: # already setup
+                if product.version == sversionName or productDir == sproductDir: # already setup
                     if recursionDepth <= 0: # top level should be resetup if that's what they asked for
                         pass
                     elif self.force:    # force means do it!; so do it.
@@ -2404,8 +2419,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             raise RuntimeError, \
                   ("No EUPS_PATH is defined; I can't guess where to declare %s %s" % (productName, versionName))
 
-        ups_dir, tablefileIsFd = None, False
-        if tablefile:
+        ups_dir, tablefileIsFd = "ups", False
+        if tablefile == "none":
+            ups_dir = None
+        elif tablefile:
             if isinstance(tablefile, file):
                 tablefileIsFd = True
                 tfd = tablefile
@@ -2421,10 +2438,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 for line in tfd:
                     print >> ofd, line,
                 del ofd
-        elif tablefile == "none":
-            pass
-        else:
-            ups_dir = "ups"
         #
         # Check that tablefile exists
         #
@@ -2917,7 +2930,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         for (p, v, db, dir, isCurrent, isSetup) in productList: # for every known product
             try:
+                q = Quiet(self)
                 deps = Product(self, p, v).dependencies() # lookup top-level dependencies
+                del q
             except RuntimeError, e:
                 print >> sys.stderr, ("%s %s: %s" % (p, v, e))
                 continue

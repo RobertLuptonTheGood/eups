@@ -202,6 +202,7 @@ elif cmd == "uses":
 
     options["-c"] = (False, "--current", "Look for products that setup current version")
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
+    options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-o"] = (False, "--optional", "Show optional setups")
 else:
     narg = (0, 0)
@@ -333,21 +334,16 @@ def main(cmd, opts):
             print >> sys.stderr, "You may not specify --list along with --noaction"
             sys.exit(1)
 
-        transport = eupsDistrib.LOCAL
         packageBase = opts.options.get('-r', None)
-        if not packageBase and os.environ.has_key("EUPS_PKGROOT"):
-            packageBase = os.environ["EUPS_PKGROOT"];
+
+        pkgroot = os.environ.get("EUPS_PKGROOT", None)
+        if not packageBase:
+            packageBase = pkgroot
 
         tag = opts.options.get('-t', None)
         installFlavor = opts.options.get(installFlavorFlag, flavor)
         tmp_dir = opts.options.get('-T', None)
 
-        if packageBase is not None:
-            if (install or list) and re.search(r"^http://", packageBase):
-                transport = eupsDistrib.URL
-            elif (install or list) and re.search(r"^scp:", packageBase):
-                transport = eupsDistrib.SCP
-                packageBase = re.sub(r"^scp:", "", packageBase)
         try:
             productName = opts.argv[0]
         except IndexError:
@@ -383,6 +379,9 @@ def main(cmd, opts):
         packageBasePath = []
         if packageBase:
             packageBasePath += [packageBase]
+
+            if pkgroot and packageBase != pkgroot:
+                packageBasePath += [pkgroot]            
         else:
             for eupsPathDir in Eups.path:
                 ups_db = Eups.getUpsDB(eupsPathDir)
@@ -410,8 +409,7 @@ def main(cmd, opts):
         #
         # Make our Distrib object using a factory function
         #
-        Distrib = eupsDistribFactory.Distrib(distribImpl, Eups, packageBasePath, transport,
-                                             current=current, obeyGroups=obeyGroups,
+        Distrib = eupsDistribFactory.Distrib(distribImpl, Eups, packageBasePath, current=current, obeyGroups=obeyGroups,
                                              tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
                                              noeups=noeups,
                                              pacmanCache=pacmanCache,
@@ -637,6 +635,7 @@ def main(cmd, opts):
     elif cmd == "uses":
         current = opts.options.get('-c', False)
         depth = int(opts.options.get('-d', "9999"))
+        Eups.exact_version = opts.options.get("-e", False)
         showOptional = opts.options.get('-o', False)
 
         productName = opts.argv.pop(0)

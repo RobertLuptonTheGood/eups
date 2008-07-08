@@ -19,7 +19,7 @@ def _chooseCtor(implementation):
 
     return eupsDistrib.Distrib
 
-def Distrib(implementation, Eups, packageBasePath=None, transport=None, installFlavor=None, preferFlavor=False,
+def Distrib(implementation, Eups, packageBasePath=None, installFlavor=None, preferFlavor=False,
             current=False, tag=None, no_dependencies=False, obeyGroups=False, noeups=False, **kwargs):
     """A factory function to return a Distrib that provides the desired implementation
 
@@ -33,14 +33,12 @@ def Distrib(implementation, Eups, packageBasePath=None, transport=None, installF
     # We're not being asked for a copy
     #
     assert packageBasePath
-    assert transport
     #
     # Make our Distrib object
     #
     Distrib = _chooseCtor(implementation)
 
-    distrib = Distrib(Eups, packageBasePath, transport,
-                      current=current, obeyGroups=obeyGroups,
+    distrib = Distrib(Eups, packageBasePath, current=current, obeyGroups=obeyGroups,
                       tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
                       noeups=noeups)
     #
@@ -60,8 +58,7 @@ def copyDistrib(implementation, oldDistrib):
     Distrib = _chooseCtor(implementation)
 
     od = oldDistrib                     # just for brevity
-    distrib = Distrib(od.Eups, od.packageBasePath, od.transport,
-                      current=od.current, obeyGroups=od.obeyGroups,
+    distrib = Distrib(od.Eups, od.packageBasePath, current=od.current, obeyGroups=od.obeyGroups,
                       tag=od.tag, preferFlavor=od.preferFlavor, no_dependencies=od.no_dependencies,
                       noeups=od.noeups)
     #

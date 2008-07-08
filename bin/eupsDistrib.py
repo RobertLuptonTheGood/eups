@@ -28,14 +28,15 @@ URL, SCP, LOCAL = "URL", "SCP", "LOCAL"
 class Distrib(object):
     """A class to encapsulate product distribution"""
 
-    def __init__(self, Eups, packageBasePath, transport, installFlavor=None, preferFlavor=False,
+    def __init__(self, Eups, packageBasePath, installFlavor=None, preferFlavor=False,
                  current=False, tag=None, no_dependencies=False, obeyGroups=False,
                  noeups=False):
         self.Eups = Eups
         
         self.packageBasePath = packageBasePath # list of possible packageBases
         self.packageBase = None
-        self.transport = transport
+        self.transport = None
+
         if not installFlavor:
             installFlavor = Eups.flavor
         self.installFlavor = installFlavor
@@ -109,18 +110,33 @@ class Distrib(object):
 
         return tabledir
 
+    def get_transport(self, packageBaseURL):
+        """Return (transport, packageBase) given a URL"""
+
+        transport = LOCAL
+        packageBase = packageBaseURL
+
+        if packageBaseURL is not None:
+            if re.search(r"^http://", packageBaseURL):
+                transport = URL
+            elif re.search(r"^scp:", packageBaseURL):
+                transport = SCP
+                packageBase = re.sub(r"^scp:", "", packageBaseURL)
+
+        return (transport, packageBase)
+
     def find_file(self, filename, packagePath=None):
         """Lookup a filename given a (possibly incomplete) packageBase and filename
 
         N.B. Modifies the self.packageBase if needs be"""
 
         if not self.packageBase:        # we haven't yet chosen an element of packageBasePath
-            for d in self.packageBasePath:
-                self.packageBase = d
+            for url in self.packageBasePath:
+                self.transport, self.packageBase = self.get_transport(url)
                 try:
                     return self.find_file(filename, packagePath)
                 except RuntimeError:
-                    self.packageBase = None
+                    self.transport, self.packageBase = None, None
 
             raise RuntimeError, \
                   ("Unable to find %s anywhere in %s" % (filename, " ".join(self.packageBasePath)))
@@ -306,7 +322,7 @@ class Distrib(object):
         products = []
         for line in fd:
             line = line.split("\n")[0]
-            if re.search(r"^\s*#", line):
+            if re.search(r"^\s*(#.*)?$", line):
                 continue
 
             try:
@@ -467,7 +483,7 @@ def listdir(Distrib, url):
     else:
         raise AssertionError, ("I don't know how to handle transport == %s" % Distrib.transport)
 
-    return filter(lambda f: not re.search(r"~$", f), files)
+    return filter(lambda f: not re.search(r"~$", f) and not re.search(r"^#.*#$", f), files)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -793,10 +809,18 @@ def install(Distrib, top_product, top_version, manifest):
 
         if distID == "None":              # we don't know how to install this product
             if Distrib.Eups.verbose:
-                print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s" % \
-                      (top_product, productName, productName)
+                print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s %s" % \
+                      (top_product, productName, productName, versionName)
             try:
-                install(Distrib, productName, versionName, None)
+                import eupsDistribFactory
+                subDistrib = eupsDistribFactory.copyDistrib(None, Distrib)
+                # remove the path we've already tried
+                subDistrib.packageBasePath = filter(lambda d: d != Distrib.packageBase, subDistrib.packageBasePath)
+
+                if not subDistrib.packageBasePath:
+                    raise RuntimeError, ("I have nowhere else to look for %s %s" % (productName, versionName))
+
+                install(subDistrib, productName, versionName, None)
                 continue
             except RuntimeError, e:
                 if not Distrib.Eups.force or Distrib.Eups.verbose > 0:

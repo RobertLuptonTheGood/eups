@@ -50,8 +50,6 @@ class Distrib(eupsDistrib.Distrib):
                 raise RuntimeError, ("Expected distribution ID of form pacman:*:*; saw \"%s\"" % distID)
         except:
             raise
-        eups.debug(cacheID, cacheName, cacheDir)
-
         
         pacmanDir = productsRoot
         if not os.path.isdir(pacmanDir):
@@ -60,11 +58,19 @@ class Distrib(eupsDistrib.Distrib):
             except:
                 raise RuntimeError, ("Pacman failed to create %s" % (pacmanDir))
         #
-        # Are we specifying the flavor twice?  If so, strip it from the pacmanDir as otherwise
-        # the installation fails
+        # Pacman installs tend to assume the existence of a flavor subdirectory, so make it now
         #
-        if os.path.split(pacmanDir)[1] == self.Eups.flavor:
-            os.makedirs(os.path.join(pacmanDir, self.Eups.flavor))
+        # We won't actually't make it, as pacman needs to be initialised in this directory
+        # to recognise cache names; e.g.
+        #   pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit
+        # As this is cache specific, I won't hard code it here.  In general, this
+        # could be handled as a further subclass of eupsDistribPacman
+        #
+        if False:
+            if os.path.split(pacmanDir)[1] == self.Eups.flavor:
+                extra_dir = os.path.join(pacmanDir, self.Eups.flavor)
+                if not os.path.isdir(extra_dir):
+                    os.makedirs(extra_dir)
 
         if self.Eups.verbose > 0:
             print >> sys.stderr, "installing pacman cache %s into %s" % (cacheID, pacmanDir)
