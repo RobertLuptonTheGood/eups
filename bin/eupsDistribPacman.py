@@ -30,7 +30,6 @@ class Distrib(eupsDistrib.Distrib):
 
         return "pacman:%s:%s|version('%s')" % (pacman_cache, productName, versionName)
 
-    @classmethod
     def parseDistID(self, distID):
         """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
 
@@ -40,6 +39,8 @@ class Distrib(eupsDistrib.Distrib):
             pass
 
         return None
+
+    parseDistID = classmethod(parseDistID)
 
     def installPackage(self, distID, productsRoot, *args):
         """Install a package using pacman"""

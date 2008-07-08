@@ -99,6 +99,7 @@ elif cmd == "distrib":
     options["-i"] = (False, "--install", "Extract and install the specified package")
     options["-j"] = (False, "--nodepend", "Just install product, but not its dependencies")
     options["-l"] = (False, "--list", "List available products")
+    options["-m"] = (True,  "--manifest", "Use this manifest file")
     options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
     options["-p"] = (True,  "--pacman", "Use this pacman cache to install packages")
     options["-r"] = (True,  "--root", "Location of manifests/buildfiles/tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
@@ -410,7 +411,8 @@ def main(cmd, opts):
         # Make our Distrib object using a factory function
         #
         Distrib = eupsDistribFactory.Distrib(distribImpl, Eups, packageBasePath, current=current, obeyGroups=obeyGroups,
-                                             tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
+                                             tag=tag, preferFlavor=preferFlavor, installFlavor=installFlavor,
+                                             no_dependencies=no_dependencies,
                                              noeups=noeups,
                                              pacmanCache=pacmanCache,
                                              buildDir=tmp_dir, buildFilePath=buildFilePath,

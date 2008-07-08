@@ -661,11 +661,11 @@ class Action(object):
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
 
-    def execute(self, Eups, recursionDepth, fwd=True):
+    def execute(self, Eups, recursionDepth, fwd=True, noRecursion=False):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
-            if recursionDepth == Eups.max_depth + 1:
+            if noRecursion or recursionDepth == Eups.max_depth + 1:
                 return
 
             self.execute_setupRequired(Eups, recursionDepth, fwd)
@@ -2216,7 +2216,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
     #
     # Here is the externally visible API
     #
-    def setup(self, productName, versionName=Current, fwd=True, recursionDepth=0):
+    def setup(self, productName, versionName=Current, fwd=True, recursionDepth=0,
+              setupToplevel=True, noRecursion=False):
         """The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
         eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
 
@@ -2224,7 +2225,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # Look for product directory
         #
         if isinstance(productName, Product): # it's already a full Product
-            assert recursionDepth <= 0
             product = productName; productName = product.name
         elif not fwd:
             productList = self.getSetupProducts(productName)
@@ -2292,7 +2292,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                       (indent + product.name, self.flavor, product.version)
                 setup_msgs[key] = 1
 
-        if fwd:
+        if fwd and setupToplevel:
             #
             # Are we already setup?
             #
@@ -2303,9 +2303,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             if product.version and sversionName:
                 if product.version == sversionName or productDir == sproductDir: # already setup
-                    if recursionDepth <= 0: # top level should be resetup if that's what they asked for
+                    if recursionDepth == 0: # top level should be resetup if that's what they asked for
                         pass
-                    elif self.force:    # force means do it!; so do it.
+                    elif self.force:   # force means do it!; so do it.
                         pass
                     else:
                         if self.verbose > 1:
@@ -2326,8 +2326,20 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
                 keptProduct = self.alreadySetupProducts[product.name]
-                if True or not self.isSetup(keptProduct):
-                    self.setup(keptProduct, recursionDepth=-9999)
+
+                if keptProduct.name == "base":
+                    #pdb.set_trace()
+                    pass
+                
+                if not self.isSetup(keptProduct):
+                    #
+                    # We need to resetup the product, but be careful. We can't just call
+                    # setup recursively as that'll just blow the call stack; but we do
+                    # want keep the be active for dependent products.  Hence the two
+                    # calls to setup
+                    #
+                    self.setup(keptProduct, recursionDepth=-9999, noRecursion=True)
+                    self.setup(keptProduct, recursionDepth=recursionDepth, setupToplevel=False)
 
                 if (keptProduct.version != product.version and self.verbose) or self.verbose > 1:
                     print >> sys.stderr, "            %s %s is already setup; keeping" % \
@@ -2342,6 +2354,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             self.setEnv(product.envarDirName(), product.dir)
             self.setEnv(product.envarSetupName(),
                         "%s %s -f %s -Z %s" % (product.name, product.version, product.Eups.flavor, product.db))
+        elif fwd:
+            assert not setupToplevel
         else:
             if product.dir in self.localVersions.keys():
                 del self.localVersions[product.dir]
@@ -2352,7 +2366,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # Process table file
         #
         for a in actions:
-            a.execute(self, recursionDepth + 1, fwd)
+            a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion)
 
         if recursionDepth == 0:            # we can cleanup
             if fwd:

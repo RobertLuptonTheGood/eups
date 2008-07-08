@@ -98,9 +98,12 @@ if not productName:
     opts.usage()
     sys.exit(1)
 
-if max_depth > 0 and just:
-    print >> sys.stderr, "You may not specify both --just and --max_depth"    
-    sys.exit(1)
+if just:
+    if max_depth > 0:
+        print >> sys.stderr, "You may not specify both --just and --max_depth"    
+        sys.exit(1)
+
+    max_depth = 0
 #
 # Do the work
 #

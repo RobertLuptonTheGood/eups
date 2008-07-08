@@ -38,7 +38,7 @@ def Distrib(implementation, Eups, packageBasePath=None, installFlavor=None, pref
     #
     Distrib = _chooseCtor(implementation)
 
-    distrib = Distrib(Eups, packageBasePath, current=current, obeyGroups=obeyGroups,
+    distrib = Distrib(Eups, packageBasePath, current=current, obeyGroups=obeyGroups, installFlavor=installFlavor,
                       tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
                       noeups=noeups)
     #
@@ -61,6 +61,8 @@ def copyDistrib(implementation, oldDistrib):
     distrib = Distrib(od.Eups, od.packageBasePath, current=od.current, obeyGroups=od.obeyGroups,
                       tag=od.tag, preferFlavor=od.preferFlavor, no_dependencies=od.no_dependencies,
                       noeups=od.noeups)
+
+    distrib._msgs = od._msgs
     #
     # Set other parameters that are specific to distribution mechanisms
     #

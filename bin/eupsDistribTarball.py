@@ -41,7 +41,6 @@ class Distrib(eupsDistrib.Distrib):
 
         return tarball
 
-    @classmethod
     def parseDistID(self, distID):
         """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
 
@@ -49,6 +48,8 @@ class Distrib(eupsDistrib.Distrib):
             return distID
 
         return None    
+
+    parseDistID = classmethod(parseDistID)
 
     def installPackage(self, distID, productsRoot, *args):
         """Retrieve and unpack a tarball"""

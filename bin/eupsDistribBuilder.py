@@ -45,11 +45,13 @@ class Distrib(eupsDistrib.Distrib):
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:
-            print >> sys.stderr, \
-                  "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
+            msg = "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
             if os.path.exists(os.path.join("ups", "%s.build" % productName)):
-                print >> sys.stderr, \
-                      "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (productName)
+                msg += "\n" + "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (productName)
+
+            if self.Eups.verbose > 2 or not self._msgs.has_key(msg):
+                self._msgs[msg] = 1
+                print >> sys.stderr, msg
             if self.Eups.force:
                 return None
 
@@ -101,7 +103,6 @@ class Distrib(eupsDistrib.Distrib):
         return "build:" + builder
 
 
-    @classmethod
     def parseDistID(self, distID):
         """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
 
@@ -111,6 +112,8 @@ class Distrib(eupsDistrib.Distrib):
             pass
 
         return None    
+
+    parseDistID = classmethod(parseDistID)
 
     def installPackage(self, distID, products_root, setups):
         """Setups is a list of setup commands needed to build this product"""
@@ -235,7 +238,7 @@ class Distrib(eupsDistrib.Distrib):
             full_file = os.path.join(bd, file)
 
             if os.path.exists(full_file):
-                if self.Eups.verbose:
+                if self.Eups.verbose > 1:
                     print "Found %s (%s)" % (file, full_file)
                 return full_file
 

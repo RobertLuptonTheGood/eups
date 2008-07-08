@@ -46,20 +46,24 @@ class Distrib(object):
         self.no_dependencies = no_dependencies
         self.obeyGroups = obeyGroups
         self.noeups = noeups
+
+        self._msgs = {}
     #
     # Here are the hooks to allow the distribFactory to create the correct sort of Distrib
     #
-    @classmethod
     def handles(self, impl):
         """Return True iff we understand this sort of implementation"""
 
         return self.implementation == impl
 
-    @classmethod
+    handles = classmethod(handles)
+
     def parseDistID(self, distID):
         """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
 
         return None
+
+    parseDistID = classmethod(parseDistID)
     #
     # This is really an abstract base class, but provide dummies to help the user
     #
@@ -332,6 +336,50 @@ class Distrib(object):
 
         return manifest_product, manifest_product_version, productsRoot, top_version, products
 
+    def write_manifest(self, manifest, top_productName, top_version, products):
+        """Write a manifest file"""
+        
+        manifestDir = os.path.join(self.packageBase, "manifests")
+        if not os.path.isdir(manifestDir):
+            try:
+                os.mkdir(manifestDir)
+            except:
+                raise OSError, "I failed to create %s" % (manifestDir)
+
+        if not manifest:
+            manifest = os.path.join(manifestDir, self.manifestFile(top_productName, top_version))
+
+        if self.Eups.verbose > 0:
+            print >> sys.stderr, "Writing", manifest
+
+        try:
+            if not self.Eups.noaction:
+                ofd = open(manifest, "w")
+        except OSError, e:
+            raise RuntimeError, ("Failed to open %s: %s" % manifest, e)
+
+        if not self.Eups.noaction:
+            print >> ofd, """\
+EUPS distribution manifest for %s (%s). Version %s
+#
+# pkg           flavor       version    tablefile                 installation_directory    installID
+#----------------------------------------------------------------------------------------------------""" % \
+                  (top_productName, top_version, eups_distrib_version)
+
+        rproducts = products[:]; rproducts.reverse() # reverse the products list
+        for p in rproducts:
+            (productName, flavor, version, pDB, pdir, ptablefile, productDir, distID) = p
+
+            if not flavor:
+                if self.installFlavor:
+                    flavor = self.installFlavor
+                else:
+                    flavor = eups.flavor()
+                
+            if not self.Eups.noaction:
+                print >> ofd, "%-15s %-12s %-10s %-25s %-25s %s" % \
+                      (productName, flavor, version, ptablefile, productDir, distID)
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def system(cmd, noaction=False):
@@ -487,15 +535,20 @@ def listdir(Distrib, url):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def create(Distrib, top_productName, top_version, manifest):
+def create(Distrib, top_productName, top_version, manifest=None):
     """Create a distribution"""
 
     if not Distrib.packageBase:         # use first element of path
-        Distrib.packageBase = Distrib.packageBasePath[0]
+        pb0 = Distrib.packageBasePath[0]
+        Distrib.transport, Distrib.packageBase = Distrib.get_transport(pb0)
+
+        if Distrib.transport != LOCAL:
+            raise RuntimeError, ("I can only create packages locally, so %s is invalid" % pb0)
 
     if not os.path.isdir(Distrib.packageBase):
         if Distrib.Eups.verbose > 0:
             print >> sys.stderr, "Creating", Distrib.packageBase
+
         try:
             os.makedirs(Distrib.packageBase)
         except:
@@ -631,42 +684,15 @@ def create(Distrib, top_productName, top_version, manifest):
     #
     # Time to write enough information to declare the products
     #
-    manifestDir = os.path.join(Distrib.packageBase, "manifests")
-    if not os.path.isdir(manifestDir):
-        try:
-            os.mkdir(manifestDir)
-        except:
-            raise OSError, "I failed to create %s" % (manifestDir)
-    
-    if not manifest:
-        manifest = os.path.join(manifestDir, Distrib.manifestFile(top_productName, top_version))
+    Distrib.write_manifest(manifest, top_productName, top_version, products)
+    #
+    # We need to do this recursively
+    #
+    for (productName, flavor, version, pDB, pdir, ptablefile, productDir, distID) in products:
+        if productName == top_productName:
+            continue
         
-    if Distrib.Eups.verbose > 0:
-        print >> sys.stderr, "Writing", manifest
-
-    try:
-        if not Distrib.Eups.noaction:
-            ofd = open(manifest, "w")
-    except OSError, e:
-        raise RuntimeError, ("Failed to open %s: %s" % manifest, e)
-
-    if not Distrib.Eups.noaction:
-        print >> ofd, """\
-EUPS distribution manifest for %s (%s). Version %s
-#
-# pkg       flavor    version  tablefile         installation_directory        installID
-#---------- --------- -------- ----------------- ---------------------------------------
-""" % \
-              (top_productName, top_version, eups_distrib_version)
-        
-    rproducts = products[:]; rproducts.reverse() # reverse the products list
-    for p in rproducts:
-        (productName, Distrib.installFlavor, version, pDB, pdir, ptablefile, productDir, distID) = p
-        if not Distrib.installFlavor:
-            installFlavor = eups.flavor()
-        if not Distrib.Eups.noaction:
-            print >> ofd, "%-15s %-12s %-10s %-25s %-25s %s" % \
-                  (productName, Distrib.installFlavor, version, ptablefile, productDir, distID)
+        create(Distrib, productName, version)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -812,7 +838,12 @@ def install(Distrib, top_product, top_version, manifest):
                 print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s %s" % \
                       (top_product, productName, productName, versionName)
             try:
+                #
+                # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
+                # so don't try to move this import up to the top of the file
+                #
                 import eupsDistribFactory
+
                 subDistrib = eupsDistribFactory.copyDistrib(None, Distrib)
                 # remove the path we've already tried
                 subDistrib.packageBasePath = filter(lambda d: d != Distrib.packageBase, subDistrib.packageBasePath)
@@ -836,11 +867,6 @@ def install(Distrib, top_product, top_version, manifest):
             #
             # Choose the correct sort of eupsDistrib
             #
-            # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
-            # so don't try to move this import up to the top of the file
-            #
-            import eupsDistribFactory
-            
             impl = eupsDistribFactory.getImplementation(distID)
             eupsDistribFactory.Distrib(impl, Distrib).installPackage(distID, productsRoot, setups)
 
