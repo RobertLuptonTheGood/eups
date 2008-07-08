@@ -865,6 +865,11 @@ def install(Distrib, top_product, top_version, manifest):
                 if not os.path.isdir(productDir): # this is arguably installPackage's job, but we'll be nice
                     os.makedirs(productDir)
             #
+            # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
+            # so don't try to move this import up to the top of the file
+            #
+            import eupsDistribFactory
+            #
             # Choose the correct sort of eupsDistrib
             #
             impl = eupsDistribFactory.getImplementation(distID)
