@@ -5,22 +5,40 @@
 import sys
 import eupsDistrib
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 _distribClasses = []                          # list of possible builders
-import eupsDistribBuilder; _distribClasses += [eupsDistribBuilder]
-import eupsDistribPacman;  _distribClasses += [eupsDistribPacman]
-import eupsDistribTarball; _distribClasses += [eupsDistribTarball]
+
+def registerFactory(obj):
+    """Register object (a module or class) as a type of eupsDistrib
+
+    E.g.  import eupsDistribBuilder;  registerFactory(eupsDistribBuilder)"""
+
+    global _distribClasses
+
+    if isinstance(obj, type(sys)):      # isinstance(obj, module) doesn't work; why?
+        obj = obj.Distrib
+
+    _distribClasses += [obj]
+
+import eupsDistribBuilder; registerFactory(eupsDistribBuilder)
+import eupsDistribPacman;  registerFactory(eupsDistribPacman)
+import eupsDistribTarball; registerFactory(eupsDistribTarball)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def _chooseCtor(implementation):
     """Return the proper constructor for the implementation"""
     
     for dc in _distribClasses:          # find which version provides the desired implementation
-        if dc.Distrib.handles(implementation):
-            return dc.Distrib
+        if dc.handles(implementation):
+            return dc
 
     return eupsDistrib.Distrib
 
 def Distrib(implementation, Eups, packageBasePath=None, installFlavor=None, preferFlavor=False,
-            current=False, tag=None, no_dependencies=False, obeyGroups=False, noeups=False, **kwargs):
+            tag=None, no_dependencies=False, obeyGroups=False, allowIncomplete=False,
+            noeups=False, **kwargs):
     """A factory function to return a Distrib that provides the desired implementation
 
     If Eups is an eupsDistrib object, then all other arguments are ignored and we'll return a copy
@@ -38,9 +56,9 @@ def Distrib(implementation, Eups, packageBasePath=None, installFlavor=None, pref
     #
     Distrib = _chooseCtor(implementation)
 
-    distrib = Distrib(Eups, packageBasePath, current=current, obeyGroups=obeyGroups, installFlavor=installFlavor,
+    distrib = Distrib(Eups, packageBasePath, obeyGroups=obeyGroups, installFlavor=installFlavor,
                       tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
-                      noeups=noeups)
+                      allowIncomplete=allowIncomplete, noeups=noeups)
     #
     # Set optional arguments;  not all may be needed by this particular eupsDistrib
     #
@@ -58,7 +76,7 @@ def copyDistrib(implementation, oldDistrib):
     Distrib = _chooseCtor(implementation)
 
     od = oldDistrib                     # just for brevity
-    distrib = Distrib(od.Eups, od.packageBasePath, current=od.current, obeyGroups=od.obeyGroups,
+    distrib = Distrib(od.Eups, od.packageBasePath, obeyGroups=od.obeyGroups,
                       tag=od.tag, preferFlavor=od.preferFlavor, no_dependencies=od.no_dependencies,
                       noeups=od.noeups)
 
@@ -79,7 +97,7 @@ def getImplementation(distID):
     """Return the proper implementation given a distID"""
     
     for dc in _distribClasses:
-        if dc.Distrib.parseDistID(distID):
-            return dc.Distrib.implementation
+        if dc.parseDistID(distID):
+            return dc.implementation
 
     return eupsDistrib.Distrib.implementation

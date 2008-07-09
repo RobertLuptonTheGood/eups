@@ -29,7 +29,7 @@ class Distrib(object):
     """A class to encapsulate product distribution"""
 
     def __init__(self, Eups, packageBasePath, installFlavor=None, preferFlavor=False,
-                 current=False, tag=None, no_dependencies=False, obeyGroups=False,
+                 tag=None, no_dependencies=False, allowIncomplete=False, obeyGroups=False,
                  noeups=False):
         self.Eups = Eups
         
@@ -41,9 +41,10 @@ class Distrib(object):
             installFlavor = Eups.flavor
         self.installFlavor = installFlavor
         self.preferFlavor = preferFlavor
-        self.current = current
         self.tag = tag
+        self.preferredTag = None        # old Ray usage; to be removed??
         self.no_dependencies = no_dependencies
+        self.allowIncomplete = allowIncomplete
         self.obeyGroups = obeyGroups
         self.noeups = noeups
 
@@ -233,29 +234,29 @@ class Distrib(object):
 
         locs = []
         if self.preferFlavor:
-            locs.extend(['%s' % self.installFlavor, ''])
+            locs.extend([self.installFlavor, ''])
         else:
-            locs.extend(['', '%s' % self.installFlavor])
+            locs.extend(['', self.installFlavor])
 
         if packagePath is not None:
             if self.preferFlavor:
-                if self.tag is not None:
-                    locs.extend(['%s/%s/%s' % (packagePath, self.installFlavor, self.tag),
-                                 '%s/%s' % (packagePath, self.installFlavor),
-                                 '%s/%s' % (packagePath, self.tag),
-                                 '%s' % (packagePath)])
+                if self.preferredTag is not None:
+                    locs.extend([os.path.join(packagePath, self.installFlavor, self.preferredTag),
+                                 os.path.join(packagePath, self.installFlavor),
+                                 os.path.join(packagePath, self.preferredTag),
+                                 os.path.join(packagePath)])
                 else:
-                    locs.extend(['%s/%s' % (packagePath, self.installFlavor),
-                                 '%s' % (packagePath)])
+                    locs.extend([os.path.join(packagePath, self.installFlavor),
+                                 os.path.join(packagePath)])
             else:
-                if self.tag is not None:
-                    locs.extend(['%s/%s' % (packagePath, self.tag),
-                                 '%s/%s/%s' % (packagePath, self.installFlavor, self.tag),
-                                 '%s' % (packagePath),
-                                 '%s/%s' % (packagePath, self.installFlavor)])
+                if self.preferredTag is not None:
+                    locs.extend([os.path.join(packagePath, self.preferredTag),
+                                 os.path.join(packagePath, self.installFlavor, self.preferredTag),
+                                 os.path.join(packagePath),
+                                 os.path.join(packagePath, self.installFlavor)])
                 else:
-                    locs.extend(['%s' % (packagePath),
-                                 '%s/%s' % (packagePath, self.installFlavor)])
+                    locs.extend([os.path.join(packagePath),
+                                 os.path.join(packagePath, self.installFlavor)])
 
         return locs
 
@@ -349,8 +350,10 @@ class Distrib(object):
         if not manifest:
             manifest = os.path.join(manifestDir, self.manifestFile(top_productName, top_version))
 
-        if self.Eups.verbose > 0:
-            print >> sys.stderr, "Writing", manifest
+        if os.access(manifest, os.R_OK) and not self.Eups.force:
+            if self.Eups.verbose > 1:
+                print >> sys.stderr, "Not recreating", manifest
+            return
 
         try:
             if not self.Eups.noaction:
@@ -670,9 +673,13 @@ def create(Distrib, top_productName, top_version, manifest=None):
                 tablefile_for_distrib = os.path.join(tabledir, "%s-%s" % (productName, ptablefile))
 
             if tablefile_for_distrib:
-                if Distrib.Eups.verbose > 1:
-                    print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
-                copyfile(fulltablename, tablefile_for_distrib)
+                if os.access(tablefile_for_distrib, os.R_OK) and not Distrib.Eups.force:
+                    if Distrib.Eups.verbose > 1:
+                        print >> sys.stderr, "Not recreating", tablefile_for_distrib
+                else:
+                    if Distrib.Eups.verbose > 1:
+                        print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
+                    copyfile(fulltablename, tablefile_for_distrib)
 
         products += [[productName, Distrib.installFlavor, version, pDB, pdir, ptablefile, productDir, distID]]
 
@@ -929,9 +936,11 @@ def install(Distrib, top_product, top_version, manifest):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def listProducts(Distrib, top_product, top_version, current, manifest):
-    """List available packages; if current is true list versions declared current to eupsDistrib.
+def listProducts(Distrib, top_product, top_version, tag, manifest):
+    """List available packages; if tag=="current" list versions declared current to eupsDistrib.
     Matching for product and version is a la shell globbing (i.e. using fnmatch)"""    
+
+    current = (tag == "current")
 
     available = []                      # available products
     if current:

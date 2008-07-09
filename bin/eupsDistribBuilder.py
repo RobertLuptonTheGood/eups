@@ -46,16 +46,19 @@ class Distrib(eupsDistrib.Distrib):
 
         if not buildFile:
             msg = "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
+            if self.allowIncomplete:
+                msg += "; writing manifest anyway"
+
             if os.path.exists(os.path.join("ups", "%s.build" % productName)):
                 msg += "\n" + "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (productName)
 
             if self.Eups.verbose > 2 or not self._msgs.has_key(msg):
                 self._msgs[msg] = 1
                 print >> sys.stderr, msg
-            if self.Eups.force:
+            if self.allowIncomplete:
                 return None
 
-            raise RuntimeError, "I'm giving up. Use --force if you want to proceed with a partial distribution"
+            raise RuntimeError, "I'm giving up. Use --incomplete if you want to proceed with a partial distribution"
 
         builderDir = os.path.join(self.packageBase, "builds")
         if not os.path.isdir(builderDir):
@@ -66,7 +69,7 @@ class Distrib(eupsDistrib.Distrib):
 
         full_builder = os.path.join(builderDir, builder)
         if os.access(full_builder, os.R_OK) and not self.Eups.force:
-            if self.Eups.verbose > 0:
+            if self.Eups.verbose > 1:
                 print >> sys.stderr, "Not recreating", full_builder
             return "build:" + builder
 

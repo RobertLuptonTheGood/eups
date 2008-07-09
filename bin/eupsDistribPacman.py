@@ -28,7 +28,7 @@ class Distrib(eupsDistrib.Distrib):
     def createPackage(self, productName, versionName, baseDir=None, productDir=None):
         """Create a package distribution and return a distribution ID (a pacman cache ID)"""
 
-        return "pacman:%s:%s|version('%s')" % (pacman_cache, productName, versionName)
+        return "pacman:%s:%s|version('%s')" % (self.pacmanCache, productName, versionName)
 
     def parseDistID(self, distID):
         """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
@@ -42,6 +42,14 @@ class Distrib(eupsDistrib.Distrib):
 
     parseDistID = classmethod(parseDistID)
 
+    def createPacmanDir(self, pacmanDir):
+        """Create a directory to be used by pacman.
+
+        N.b. May be subclassed to initialise pacman; e.g. LSST requires
+           pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit
+        """
+        os.mkdir(pacmanDir)
+        
     def installPackage(self, distID, productsRoot, *args):
         """Install a package using pacman"""
 
@@ -55,20 +63,21 @@ class Distrib(eupsDistrib.Distrib):
         pacmanDir = productsRoot
         if not os.path.isdir(pacmanDir):
             try:
-                os.mkdir(pacmanDir)
+                self.createPacmanDir(pacmanDir)
             except:
                 raise RuntimeError, ("Pacman failed to create %s" % (pacmanDir))
+            
         #
         # Pacman installs tend to assume the existence of a flavor subdirectory, so make it now
         #
-        # We won't actually't make it, as pacman needs to be initialised in this directory
+        # We won't actually make it, as pacman needs to be initialised in this directory
         # to recognise cache names; e.g.
         #   pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit
         # As this is cache specific, I won't hard code it here.  In general, this
         # could be handled as a further subclass of eupsDistribPacman
         #
         if False:
-            if os.path.split(pacmanDir)[1] == self.Eups.flavor:
+            if os.path.split(pacmanDir)[1] != self.Eups.flavor:
                 extra_dir = os.path.join(pacmanDir, self.Eups.flavor)
                 if not os.path.isdir(extra_dir):
                     os.makedirs(extra_dir)
