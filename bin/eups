@@ -13,6 +13,20 @@ import eupsDistribTarball
 import eupsGetopt
 import eupsTable
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def eupsCmdHook(cmd, argv):
+    """Called by eups to allow users to customize behaviour by defining it in EUPS_STARTUP
+
+    The arguments are the command (e.g. "admin" if you type "eups admin")
+    and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+
+    E.g.
+    if cmd == "fetch":
+        argv[1:2] = ["distrib", "install"]
+    """
+    pass
+
 try:
     startupFile = os.environ["EUPS_STARTUP"]
     execfile(startupFile)
@@ -68,6 +82,13 @@ for help with command "cmd"\
 #
 # Start by looking for our command
 #
+if len(sys.argv) > 1:
+    cmd = sys.argv[1]
+else:
+    cmd = None
+
+eupsCmdHook(cmd, sys.argv)
+
 try:
     opts = eupsGetopt.Getopt(options, sys.argv[:], aliases, helpStr, checkArgs=False)
 except RuntimeError, param:
@@ -453,7 +474,7 @@ def main(cmd, opts):
                                              pacmanCache=pacmanCache,
                                              buildDir=tmpDir, buildFilePath=buildFilePath,
                                              )
-        distrib(Distrib, desire, productName, versionName, manifest=manifest, tag=tag)
+        distrib(Distrib, desire, productName, versionName, manifest=manifest)
     elif cmd in ("expandbuild", "expandtable"):
         productList = {}
         if cmd == "expandbuild":
@@ -710,7 +731,7 @@ def eupsAdmin(Eups, subcmd):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def distrib(Distrib, desire, productName, versionName, manifest=None, tag=None):
+def distrib(Distrib, desire, productName, versionName, manifest=None):
     #
     # To work
     #
@@ -719,12 +740,10 @@ def distrib(Distrib, desire, productName, versionName, manifest=None, tag=None):
             raise RuntimeError, "You must specify a version if you use --noeups"
 
         eupsDistrib.create(Distrib, productName, versionName, manifest)
-        if tag == "current":
-            eupsDistrib.createCurrent(Distrib, productName, versionName)
     elif desire == "install":
         eupsDistrib.install(Distrib, productName, versionName, manifest)
     elif desire == "list":
-        for p, v in eupsDistrib.listProducts(Distrib, productName, versionName, tag, manifest):
+        for p, v in eupsDistrib.listProducts(Distrib, productName, versionName, manifest):
             print "%-20s %s" % (p, v)
     else:
         raise AssertionError, ("You can't get here (desire == %s); complain to RHL" % desire)

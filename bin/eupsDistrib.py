@@ -23,6 +23,17 @@ if False:
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def defineValidTags(*tags):
+    global validTags
+
+    if not tags:
+        validTags = []
+    else:
+        validTags += tags
+
+defineValidTags()                       # reset list
+defineValidTags("current", "stable")    # valid types of tag
+
 URL, SCP, LOCAL = "URL", "SCP", "LOCAL"
 
 class Distrib(object):
@@ -41,6 +52,8 @@ class Distrib(object):
             installFlavor = Eups.flavor
         self.installFlavor = installFlavor
         self.preferFlavor = preferFlavor
+        if tag and not tag in validTags:
+            raise RuntimeError, ("Unknown tag;  expected one of \"%s\"" % "\" \"".join(validTags))
         self.tag = tag
         self.preferredTag = None        # old Ray usage; to be removed??
         self.no_dependencies = no_dependencies
@@ -95,10 +108,13 @@ class Distrib(object):
     
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    def currentFile(self):
+    def taggedVersionFile(self):
         """Return the name of a current-versions file"""
 
-        return "current.list"
+        if self.tag:
+            return "%s.list" % self.tag
+        else:
+            raise RuntimeError, "I'm unable to generate a tag filename as tag is None"
 
     def manifestFile(self, productName, versionName):
         """Return the name of a manifest file"""
@@ -130,7 +146,7 @@ class Distrib(object):
 
         return (transport, packageBase)
 
-    def find_file(self, filename, packagePath=None):
+    def find_file(self, filename, packagePath=None, create=False):
         """Lookup a filename given a (possibly incomplete) packageBase and filename
 
         N.B. Modifies the self.packageBase if needs be"""
@@ -174,8 +190,9 @@ class Distrib(object):
                         if self.Eups.verbose > 0:
                             print >> sys.stderr, "Found %s in %s" % (filename, self.packageBase)
                         break
-                    except RuntimeError:
-                        pass
+                    except RuntimeError, e:
+                        if self.Eups.verbose > 0:
+                            print >> sys.stderr, e
                 if tfile:
                     break
             if tfile:
@@ -197,6 +214,9 @@ class Distrib(object):
                     break
 
             if tfile is None:
+                if create:
+                    return os.path.join(self.packageBase, locs[0], subDirs[0], filename)
+
                 raise RuntimeError, ("File %s doesn't exist in %s" % (filename, self.packageBase))
 
             filename = tfile
@@ -208,22 +228,16 @@ class Distrib(object):
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    def lookup_current_version(self, productName, from_eups=True):
-        """Attempt to lookup a package's current version, as declared using eups distrib"""
+    def lookup_tagged_version(self, productName):
+        """Attempt to lookup a package's version with the specified tag, as declared using eups distrib"""
 
-        if from_eups:
-            try:
-                return self.Eups.findCurrentVersion(productName)[1]
-            except RuntimeError:
-                return ""
-        else:
-            try:
-                for p in Current().read():
-                    (name, version) = p
-                    if name == productName:
-                        return version
-            except:
-                pass
+        try:
+            for p in TaggedVersion(self).read():
+                (name, flavor, version) = p
+                if name == productName and flavor == self.Eups.flavor:
+                    return version
+        except:
+            pass
 
         return ""
 
@@ -274,11 +288,12 @@ class Distrib(object):
             raw_manifest = manifest
         else:
             if not top_version:
-                top_version = self.lookup_current_version(top_product, from_eups = False)
+                top_version = self.lookup_tagged_version(top_product)
 
                 if top_version == "":
-                    raise RuntimeError, (("No version of %s is declared current to eups distrib\n" + \
-                                          "Please specify a version or a manifest file with -m") % (top_product))
+                    raise RuntimeError, (("No version of %s is declared %s to eups distrib\n" + \
+                                          "Please specify a version or a manifest file with -m") % \
+                                         (top_product, self.tag))
 
                 print >> sys.stderr, "Installing %s of %s" % (top_version, top_product)
 
@@ -472,9 +487,12 @@ def urlretrieve(file, noaction=False):
         fd = urllib2.urlopen(file); del fd
     except urllib2.HTTPError:
         raise RuntimeError, ("Failed to open URL %s" % file)
+    except urllib2.URLError:
+        raise RuntimeError, ("Failed to contact URL %s" % file)
     return urllib.urlretrieve(file)
 
 HTTPError = urllib2.HTTPError
+URLError = urllib2.URLError
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -558,7 +576,7 @@ def create(Distrib, top_productName, top_version, manifest=None):
             raise RuntimeError, ("Failed to create %s" % Distrib.packageBase)
 
     if not top_version:
-        top_version = Distrib.lookup_current_version(top_productName, True)
+        top_version = Distrib.Eups.findCurrentVersion(top_productName)[1]
 
     if Distrib.noeups:
         productName = top_productName
@@ -700,13 +718,19 @@ def create(Distrib, top_productName, top_version, manifest=None):
             continue
         
         create(Distrib, productName, version)
+    #
+    # Maybe declare this version as satisfying Distrib.tag (if set)
+    #
+    createTaggedVersion(Distrib, top_productName, top_version)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Current(object):
+class TaggedVersion(object):
     def __init__(self, Distrib):
         self.Distrib = Distrib
-        self.file = self.Distrib.find_file(Distrib.currentFile())
+        self.tag = Distrib.tag
+
+        self.file = self.Distrib.find_file(Distrib.taggedVersionFile(), create=True)
 
     def read(self):
         """Read a list of current products from current file"""
@@ -714,7 +738,7 @@ class Current(object):
         fd = open(self.file, "r")
 
         line = fd.readline()
-        mat = re.search(r"^EUPS distribution current version list. Version (\S+)\s*$", line)
+        mat = re.search(r"^EUPS distribution %s version list. Version (\S+)\s*$" % self.tag, line)
         if not mat:
             raise RuntimeError, ("First line of file %s is corrupted:\n\t%s" % (self.file, line),)
         version = mat.groups()[0]
@@ -732,7 +756,7 @@ class Current(object):
             except:
                 raise RuntimeError, ("Failed to parse line:", line)
 
-            products += [(product, version)]
+            products += [(product, flavor, version)]
 
         return products
 
@@ -743,61 +767,78 @@ class Current(object):
             ofd = open(self.file, "w")
 
         if self.Distrib.Eups.verbose > 1:
-            print >> sys.stderr, "Writing current product list to", self.file
+            print >> sys.stderr, "Writing %s product list to %s" % (self.tag, self.file)
 
         if not self.Distrib.Eups.noaction:
-            print >> ofd, "EUPS distribution current version list. Version %s" % (eups_distrib_version)
+            print >> ofd, """\
+EUPS distribution %s version list. Version %s
+#product             flavor     version
+#--------------------------------------\
+""" % (self.tag, eups_distrib_version)
+
+        #
+        # Be nice and sort the products
+        #
+        def pfsort(a,b):
+            """Sort by product, then flavor"""
+
+            if a[0] == b[0]:
+                return cmp(a[1], b[1])
+            else:
+                return cmp(a[0], b[0])
+
+        products = products[:]
+        products.sort(pfsort)
 
         for p in products:
-            (productName, versionName) = p[0:2]
             if not self.Distrib.Eups.noaction:
-                print >> ofd, str.join("\t", [productName, self.Distrib.installFlavor, versionName])
+                print >> ofd, "%-20s %-10s %s" % p
 
-def createCurrent(Distrib, top_product, top_version):
-    """Create a list of packages that are declared current to eups distrib"""
+def createTaggedVersion(Distrib, top_productName, top_version):
+    """Create a list of packages that are declared as having property Distrib.tag (e.g. current)"""
 
+    if not Distrib.tag:
+        return
     #
     # Extract the up-to-date information about current versions,
     # and add it to the previously existing list [if any]
     #
-    if top_version:
-        dp = [(top_product, top_version)]
-        if not  Distrib.Eups.listProducts(top_product, top_version):
-            print >> sys.stderr, "WARNING: failed to find a version \"%s\" of product %s" % \
-                  (top_version, top_product)
-    else:
-        dp = [(top_product, Distrib.Eups.findCurrentVersion(top_product)[1])]
+    assert top_version
+    dp = [(top_productName, Distrib.installFlavor, top_version)]
+    if not  Distrib.Eups.listProducts(top_productName, top_version):
+        print >> sys.stderr, "WARNING: failed to find a version \"%s\" of product %s" % \
+              (top_version, top_productName)
 
-    if top_product and Distrib.Eups.verbose:
-        (productName, versionName) = dp[0]
-        assert (productName == top_product)
-        print >> sys.stderr, "Declaring version %s of %s current to eups distrib" % (versionName, productName)
+    if Distrib.Eups.verbose:
+        print >> sys.stderr, "Declaring version %s %s to eups distrib as \"%s\"" % \
+              (top_productName, top_version, Distrib.tag)
     #
     # Now lookup list of current versions
     #
     lock = Distrib.Eups.lockDB(Distrib.packageBase, upsDB=False)
 
-    current = Current(Distrib)
+    taggedVersion = TaggedVersion(Distrib)
 
-    if top_product == "":               # update entire current list
+    try:
+        products = taggedVersion.read()
+    except Exception, e:
+        eups.debug(e)
         products = []
-    else:
-        try:
-            products = current.read()
-        except:
-            products = []
 
-        nproducts = []
-        for p in products:
-            if p[0] != top_product:
-                nproducts += [p]
-        products = nproducts
+    nproducts = []
+    for p, f, v in products:
+        if p == top_productName and f == Distrib.Eups.flavor:
+            continue
 
-    products += dp 
+        nproducts += [(p, f, v)]
+
+    products = nproducts
+
+    products += dp
     #
-    # Now write the file containing current version info.
+    # Now write the file containing taggedVersion version info.
     #
-    current.write(products)
+    taggedVersion.write(products)
 
 def install(Distrib, top_product, top_version, manifest):
     """Install a set of packages"""
@@ -936,20 +977,26 @@ def install(Distrib, top_product, top_version, manifest):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def listProducts(Distrib, top_product, top_version, tag, manifest):
-    """List available packages; if tag=="current" list versions declared current to eupsDistrib.
+def listProducts(Distrib, top_product, top_version, manifest):
+    """List available packages; if Distrib.tag=="current" list versions declared current to eupsDistrib.
     Matching for product and version is a la shell globbing (i.e. using fnmatch)"""    
 
-    current = (tag == "current")
 
     available = []                      # available products
-    if current:
-        fd = open(Distrib.find_file(Distrib.currentFile()), "r")
-        fd.readline()                   # skip header
+    if Distrib.tag:
+        if False:
+            fd = open(Distrib.find_file(Distrib.taggedVersionFile()), "r")
+            fd.readline()                   # skip header
 
-        for line in fd.readlines():
-            line = line[:-1]            # remove newline
-            available += [line.split("\t")]
+            for line in fd.readlines():
+                if re.search(r"^\s*(#.*)?$", line):
+                    continue
+
+                line = line[:-1]            # remove newline
+                available += [line.split(r"\s*")]
+        else:
+            taggedVersion = TaggedVersion(Distrib)
+            available = taggedVersion.read()            
     else:
         #
         # That would have been easy. We need to read the list of manifests
