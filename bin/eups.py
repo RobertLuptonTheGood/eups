@@ -588,10 +588,10 @@ but no other interpretation is applied
 
         return s
 
-    def dependencies(self, Eups, eupsPathDirs=None):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=False, recursionDepth=0):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
 
-        N.b. the dependencies are not calculated recursively"""
+        N.b. the dependencies are not calculated recursively unless recursive is True"""
 
         deps = []
         for a in self.actions(Eups.flavor):
@@ -620,7 +620,13 @@ but no other interpretation is applied
                         product = Product(Eups, args[0], args[1], noInit=True)
                         pass
 
-                    deps += [(product, a.extra, currentRequested)]
+                    val = [product, a.extra, currentRequested]
+                    if recursive:
+                        val += [recursionDepth]
+                    deps += [val]
+
+                    if recursive:
+                        deps += product.dependencies(eupsPathDirs, True, recursionDepth+1)
                         
                 except RuntimeError, e:
                     if a.extra:         # product is optional
@@ -1220,10 +1226,16 @@ class Product(object):
         """Is the Product current?"""
         return self._current
 
-    def dependencies(self, eupsPathDirs=None):
+    def dependencies(self, eupsPathDirs=None, recursive=False, recursionDepth=0):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples"""
 
-        return [(self, False, False)] + self.table.dependencies(self.Eups, eupsPathDirs)
+        val = []
+        if not recursive:
+            [(self, False, False)]
+        if self.table:
+            val += self.table.dependencies(self.Eups, eupsPathDirs, recursive=recursive, recursionDepth=recursionDepth)
+
+        return val
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

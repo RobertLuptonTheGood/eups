@@ -199,7 +199,8 @@ elif cmd == "list":
     helpStr += "\n\nPrint information about products"
 
     options["-c"] = (False,  "--current", "Only show current products")
-    options["-d"] = (False,  "--directory", "Print product directory (useful with -s)")
+    options["-d"] = (False,  "--directory", "Print product directory")
+    options["-D"] = (False,  "--dependencies", "Print product's dependencies")
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
 elif cmd == "path":
@@ -536,6 +537,7 @@ def main(cmd, opts):
     elif cmd == "list":
         current = opts.options.get('-c', False)
         directory = opts.options.get('-d', False)
+        dependencies = opts.options.get('-D', False)
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
 
@@ -546,7 +548,7 @@ def main(cmd, opts):
             versionName = opts.argv.pop(0)
 
         listProducts(Eups, productName, versionName,
-                     current=current, setup=setup, tablefile=tablefile, directory=directory)
+                     current=current, setup=setup, tablefile=tablefile, directory=directory, dependencies=dependencies)
     elif cmd == "path":
         _path = Eups.path
         try:
@@ -751,16 +753,42 @@ def distrib(Distrib, desire, productName, versionName, manifest=None):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def listProducts(Eups, productName=None, versionName=None,
-                 current=False, setup=False, tablefile=False, directory=False):
+                 current=False, setup=False, tablefile=False, directory=False, dependencies=False):
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
     productList = Eups.listProducts(productName, versionName, current, setup)
     
+    if dependencies:
+        Eups._msgs["dependencies"] = {}               # maintain list of printed dependencies
+        recursionDepth, indent = 0, ""
+        
     for name, version, db, productDir, isCurrent, isSetup in productList:
         info = ""
 
-        if directory or tablefile:
+        if dependencies:
+            if not info:
+                if Eups.verbose or not Eups._msgs["dependencies"].has_key(name):
+                    Eups._msgs["dependencies"][name] = version
+                    info += "%-40s %s" % (name, version)
+
+            for product, optional, currentRequested, recursionDepth in \
+                    Eups.Product(name, version, eupsPathDirs=db).dependencies(recursive=True, recursionDepth=1):
+                if Eups.verbose or not Eups._msgs["dependencies"].has_key(product.name):
+                    Eups._msgs["dependencies"][product.name] = product.version
+
+                    if info:
+                        info += "\n"
+
+                    indent = "| " * (recursionDepth/2)
+                    if recursionDepth%2 == 1:
+                        indent += "|"
+
+                    versionName = product.version
+                    try: versionName = versionName()
+                    except: pass
+                    info += "%-40s %s" % (("%s%s" % (indent, product.name)), versionName)
+        elif directory or tablefile:
             if Eups.verbose:
                 info += "%-10s" % (version)
 
