@@ -2755,16 +2755,16 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         #
         # Add in LOCAL: setups
         #
-        for productName in self.localVersions.keys():
-            product = self.Product(productName, noInit=True)
+        for lproductName in self.localVersions.keys():
+            product = self.Product(lproductName, noInit=True)
             try:
-                product.initFromDirectory(self.localVersions[productName])
+                product.initFromDirectory(self.localVersions[product.name])
             except RuntimeError, e:
                 if not self.quiet:
-                    print >> sys.stderr, ("Problem with product %s found in environment: %s" % (productName, e))
+                    print >> sys.stderr, ("Problem with product %s found in environment: %s" % (lproductName, e))
                 continue
 
-            if productName and not fnmatch.fnmatchcase(name, productName):
+            if productName and not fnmatch.fnmatchcase(product.name, productName):
                 continue
 
             values = []

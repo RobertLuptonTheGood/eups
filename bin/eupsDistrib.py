@@ -131,6 +131,26 @@ class Distrib(object):
 
         return tabledir
 
+    def remove_packageBase(self, transport, packageBase):
+        """Remove packageBase from packageBasePath, taking into
+        account transport mechanisms and flavor directories"""
+
+        pb = packageBase           # A convenient abbreviation
+
+        if not pb:
+            return
+
+        pb0, pb1 = os.path.split(pb)
+        if pb1 == self.Eups.flavor:
+            pb = pb0
+
+        for pb in (pb, "%s:%s" % (transport.lower(), pb)):
+            newPBP = filter(lambda d: d != pb, self.packageBasePath)
+
+            if self.packageBasePath != newPBP:
+                self.packageBasePath = newPBP
+                return
+
     def get_transport(self, packageBaseURL):
         """Return (transport, packageBase) given a URL"""
 
@@ -191,7 +211,7 @@ class Distrib(object):
                             print >> sys.stderr, "Found %s in %s" % (filename, self.packageBase)
                         break
                     except RuntimeError, e:
-                        if self.Eups.verbose > 0:
+                        if self.Eups.verbose > 1:
                             print >> sys.stderr, e
                 if tfile:
                     break
@@ -463,7 +483,7 @@ def scpretrieve(file, noaction=False):
     os.close(fd)
 
     try:
-        system("scp %s %s 2>/dev/null" % (file, tfile), noaction)
+        system("scp -q %s %s 2>/dev/null" % (file, tfile), noaction)
         return tfile, None
     except OSError:
         os.unlink(tfile)
@@ -474,7 +494,7 @@ def scpretrieve(file, noaction=False):
     atexit.register(lambda dir: shutil.rmtree(dir, ignore_errors=True), tfile)       # clean up
 
     try:
-        system("scp -r %s %s 2>/dev/null" % (file, tfile), noaction)
+        system("scp -q -r %s %s 2>/dev/null" % (file, tfile), noaction)
     except OSError:
         raise RuntimeError, ("Failed to retrieve %s" % file)
 
@@ -873,7 +893,7 @@ def install(Distrib, top_product, top_version, manifest):
                   (productName, versionName, Distrib.Eups.flavor)
             if Distrib.Eups.force:
                 print >> sys.stderr, "Reinstalling %s anyway" % (productName)
-                Distrib.Eups.undeclare(productName, versionName, undeclare_current=Distrib.current)
+                Distrib.Eups.undeclare(productName, versionName, undeclare_current=(Distrib.tag=="current"))
             else:
                 continue
         #
@@ -894,7 +914,9 @@ def install(Distrib, top_product, top_version, manifest):
 
                 subDistrib = eupsDistribFactory.copyDistrib(None, Distrib)
                 # remove the path we've already tried
-                subDistrib.packageBasePath = filter(lambda d: d != Distrib.packageBase, subDistrib.packageBasePath)
+
+                if False:
+                    subDistrib.remove_packageBase(Distrib.transport, Distrib.packageBase)
 
                 if not subDistrib.packageBasePath:
                     raise RuntimeError, ("I have nowhere else to look for %s %s" % (productName, versionName))
@@ -942,7 +964,7 @@ def install(Distrib, top_product, top_version, manifest):
         # If no versions of this product are declared current, we need to make this one
         # current to allow products to set it up without an explicit version
         #
-        declare_current = Distrib.current
+        declare_current = (Distrib.tag == "current")
 
         if not declare_current and len(Distrib.Eups.listProducts(productName, current=True)) == 0:
             declare_current = True
