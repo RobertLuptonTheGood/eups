@@ -386,7 +386,7 @@ class Distrib(object):
             manifest = os.path.join(manifestDir, self.manifestFile(top_productName, top_version))
 
         if os.access(manifest, os.R_OK) and not self.Eups.force:
-            if self.Eups.verbose > 1:
+            if self.Eups.verbose:
                 print >> sys.stderr, "Not recreating", manifest
             return
 
@@ -758,7 +758,7 @@ class TaggedVersion(object):
         self.file = self.Distrib.find_file(Distrib.taggedVersionFile(), create=True)
 
     def read(self):
-        """Read a list of current products from current file"""
+        """Read a list of products from a tagged file (e.g. current.list)"""
 
         fd = open(self.file, "r")
 
@@ -868,6 +868,12 @@ def createTaggedVersion(Distrib, top_productName, top_version):
 def install(Distrib, top_product, top_version, manifest):
     """Install a set of packages"""
 
+    #
+    # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
+    # so don't try to move this import up to the top of the file
+    #
+    import eupsDistribFactory
+
     manifest_product, manifest_product_version, productsRoot, top_version, products = \
                       Distrib.read_manifest(top_product, top_version, manifest)
     if os.path.isdir(productsRoot):
@@ -902,6 +908,14 @@ def install(Distrib, top_product, top_version, manifest):
             else:
                 continue
         #
+        # If we're asking for a tagged distribution, ignore the distID as it specifies an
+        # explicit version.  We don't do this for the toplevel product as we don't enjoy infinite recursion 
+        #
+        if Distrib.tag and productName != top_product:
+            if Distrib.Eups.verbose > 1:
+                print >> sys.stderr, "Ignoring distID %s as you specified tag %s" % (distID, Distrib.tag)
+            distID = "None"
+        #
         # We need to install and declare this product
         #
         dodeclare = True
@@ -911,12 +925,6 @@ def install(Distrib, top_product, top_version, manifest):
                 print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s %s" % \
                       (top_product, productName, productName, versionName)
             try:
-                #
-                # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
-                # so don't try to move this import up to the top of the file
-                #
-                import eupsDistribFactory
-
                 subDistrib = eupsDistribFactory.copyDistrib(None, Distrib)
                 # remove the path we've already tried
 
@@ -926,6 +934,11 @@ def install(Distrib, top_product, top_version, manifest):
                 if not subDistrib.packageBasePath:
                     raise RuntimeError, ("I have nowhere else to look for %s %s" % (productName, versionName))
 
+                if Distrib.tag:            # use tagged version, ignoring the version name
+                    if Distrib.Eups.verbose:
+                        print >> sys.stderr, "Using tag %s not %s for %s" % (Distrib.tag, versionName, productName)
+                    versionName = None
+                    
                 install(subDistrib, productName, versionName, None)
                 continue
             except RuntimeError, e:
@@ -936,14 +949,6 @@ def install(Distrib, top_product, top_version, manifest):
                     sys.exit(1)
                 dodeclare = False
         else:
-            if False:                   # this was added for pacman, but didn't help
-                if not os.path.isdir(productDir): # this is arguably installPackage's job, but we'll be nice
-                    os.makedirs(productDir)
-            #
-            # N.b. this is a circular dependency (as eupsDistribFactory imports this file),
-            # so don't try to move this import up to the top of the file
-            #
-            import eupsDistribFactory
             #
             # Choose the correct sort of eupsDistrib
             #
