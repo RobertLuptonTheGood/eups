@@ -53,7 +53,7 @@ class Distrib(object):
         self.installFlavor = installFlavor
         self.preferFlavor = preferFlavor
         if tag and not tag in validTags:
-            raise RuntimeError, ("Unknown tag;  expected one of \"%s\"" % "\" \"".join(validTags))
+            raise RuntimeError, ("Unknown tag %s; expected one of \"%s\"" % (tag, "\" \"".join(validTags)))
         self.tag = tag
         self.preferredTag = None        # old Ray usage; to be removed??
         self.no_dependencies = no_dependencies
@@ -400,9 +400,13 @@ class Distrib(object):
             print >> ofd, """\
 EUPS distribution manifest for %s (%s). Version %s
 #
+# Creator:      %s
+# Time:         %s
+# Eups version: %s
+#
 # pkg           flavor       version    tablefile                 installation_directory    installID
 #----------------------------------------------------------------------------------------------------""" % \
-                  (top_productName, top_version, eups_distrib_version)
+                  (top_productName, top_version, eups_distrib_version, self.Eups.who, eups.ctimeTZ(), eups.version())
 
         rproducts = products[:]; rproducts.reverse() # reverse the products list
         for p in rproducts:
@@ -479,7 +483,8 @@ def scpretrieve(file, noaction=False):
     """Retrieve a file using scp"""
 
     # Maybe it's a simple file
-    fd, tfile = tempfile.mkstemp(prefix="eupsDistrib")
+    fd, tfile = tempfile.mkstemp("", productName + "_", dir=eups.eupsTmpdir("distrib"))
+
     os.close(fd)
 
     try:
@@ -490,7 +495,7 @@ def scpretrieve(file, noaction=False):
     #
     # Maybe it's a directory
     #
-    tfile = tempfile.mkdtemp(prefix="eupsDistrib")
+    tfile = tempfile.mkdtemp(dir=eups.eupsTmpdir("distrib"))
     atexit.register(lambda dir: shutil.rmtree(dir, ignore_errors=True), tfile)       # clean up
 
     try:
@@ -620,7 +625,7 @@ def create(Distrib, top_productName, top_version, manifest=None):
     else:
         top_product = Distrib.Eups.Product(top_productName, top_version)
         productList = []
-        for (product, optionalInTable, currentRequested) in top_product.dependencies():
+        for (product, optionalInTable, currentRequested) in top_product.dependencies(setupType="build"):
             productList += [(product.name, product.version, optionalInTable)]
 
     products = []

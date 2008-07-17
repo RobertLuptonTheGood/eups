@@ -26,6 +26,7 @@ class Parser(object):
 names are declared using Parser.declare()
         """
     def __init__(self, exprStr):
+        exprStr = re.sub(r"['\"]([^'\"]+)['\"]", r"\1", exprStr)
         self._tokens = re.split(r"([\w.+]+|\s+|==|!=|<=|>=|[()<>])", exprStr)
         self._tokens = filter(lambda p: p and not re.search(r"^\s*$", p), self._tokens)
         

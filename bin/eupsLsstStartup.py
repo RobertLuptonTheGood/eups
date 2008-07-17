@@ -5,7 +5,7 @@ import os, re, sys
 import pdb
 import eupsDistrib
 import eupsDistribPacman
-
+import eupsDistribFactory
 #
 # Subclass eupsDistribPacman to allow us to initialise caches
 #
@@ -43,6 +43,9 @@ eupsDistribFactory.registerFactory(lsstDistrib)
 # Define a distribution type "preferred"
 #
 eupsDistrib.defineValidTags("preferred")
+
+if False:
+    eups.defineValidSetupTypes("build") # this one's defined already
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #

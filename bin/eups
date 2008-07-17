@@ -15,18 +15,6 @@ import eupsTable
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def eupsCmdHook(cmd, argv):
-    """Called by eups to allow users to customize behaviour by defining it in EUPS_STARTUP
-
-    The arguments are the command (e.g. "admin" if you type "eups admin")
-    and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
-
-    E.g.
-    if cmd == "fetch":
-        argv[1:2] = ["distrib", "install"]
-    """
-    pass
-
 try:
     startupFile = os.environ["EUPS_STARTUP"]
     execfile(startupFile)
@@ -87,7 +75,7 @@ if len(sys.argv) > 1:
 else:
     cmd = None
 
-eupsCmdHook(cmd, sys.argv)
+eups.eupsCmdHook(cmd, sys.argv)
 
 try:
     opts = eupsGetopt.Getopt(options, sys.argv[:], aliases, helpStr, checkArgs=False)
@@ -203,6 +191,7 @@ elif cmd == "list":
     options["-D"] = (False,  "--dependencies", "Print product's dependencies")
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
+    options["-t"] = (True,  "--type", "Specify type of setup (permitted values: build)")
 elif cmd == "path":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
     helpStr += "\n\nPrint the eups path; with index print just one element (-ve: from end)"
@@ -540,6 +529,7 @@ def main(cmd, opts):
         dependencies = opts.options.get('-D', False)
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
+        setupType = opts.options.get('-t')
 
         productName, versionName = None, None
         if opts.argv:
@@ -548,7 +538,8 @@ def main(cmd, opts):
             versionName = opts.argv.pop(0)
 
         listProducts(Eups, productName, versionName,
-                     current=current, setup=setup, tablefile=tablefile, directory=directory, dependencies=dependencies)
+                     current=current, setup=setup, tablefile=tablefile, directory=directory,
+                     dependencies=dependencies, setupType=setupType)
     elif cmd == "path":
         _path = Eups.path
         try:
@@ -753,7 +744,7 @@ def distrib(Distrib, desire, productName, versionName, manifest=None):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def listProducts(Eups, productName=None, versionName=None,
-                 current=False, setup=False, tablefile=False, directory=False, dependencies=False):
+                 current=False, setup=False, tablefile=False, directory=False, dependencies=False, setupType=None):
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
@@ -773,7 +764,8 @@ def listProducts(Eups, productName=None, versionName=None,
                     info += "%-40s %s" % (name, version)
 
             for product, optional, currentRequested, recursionDepth in \
-                    Eups.Product(name, version, eupsPathDirs=db).dependencies(recursive=True, recursionDepth=1):
+                    Eups.Product(name, version, eupsPathDirs=db).dependencies(recursive=True, recursionDepth=1,
+                                                                              setupType=setupType):
                 if Eups.verbose or not Eups._msgs["dependencies"].has_key(product.name):
                     Eups._msgs["dependencies"][product.name] = product.version
 

@@ -3,6 +3,14 @@ import os, re, sys
 import eups
 import eupsGetopt
 
+try:
+    startupFile = os.environ["EUPS_STARTUP"]
+    execfile(startupFile)
+except KeyError:
+    pass
+except Exception, e:
+    print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Deal with arguments
@@ -33,6 +41,8 @@ options = {
     debugFlag : (True,  "--debug", "Permitted Values: %s" % " ".join(allowedDebugOptions)),
     }
 aliases = {}
+
+eups.eupsCmdHook("setup", sys.argv)
 
 try:
     opts = eupsGetopt.Getopt(options, sys.argv, aliases, "setup [options] [product [version]]")
@@ -68,6 +78,7 @@ max_depth = int(opts.options.get("-S", -1))
 noaction = opts.options.get('-n')
 path = opts.options.get('-Z')
 root = opts.options.get('-r')
+setupType = opts.options.get('-t')
 unsetup = opts.options.get('-u', False)
 verbose = opts.options.get('-v', 0)
 
@@ -112,7 +123,7 @@ try:
                      verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
                      max_depth=max_depth, exact_version=exact_version)
                           
-    tmpfile = eups.setup(Eups, productName, version, fwd=not unsetup)
+    tmpfile = eups.setup(Eups, productName, version, fwd=not unsetup, setupType=setupType)
 except RuntimeError, e:
     print >> sys.stderr, e
     if allowRaise:

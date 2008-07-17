@@ -21,6 +21,20 @@ def debug(*args, **kwargs):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def eupsCmdHook(cmd, argv):
+    """Called by eups to allow users to customize behaviour by defining it in EUPS_STARTUP
+
+    The arguments are the command (e.g. "admin" if you type "eups admin")
+    and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+
+    E.g.
+    if cmd == "fetch":
+        argv[1:2] = ["distrib", "install"]
+    """
+    pass
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
     a tuple (oldestRevision, youngestRevision, flags) as reported
@@ -79,6 +93,24 @@ def version():
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def eupsTmpdir(path):
+    """Create and return a directory somewhere in /tmp that ends with path
+
+The path /tmp is not actually hardcoded;  use whatever tempfile uses
+"""
+    
+    tmpdir = os.path.dirname(tempfile.NamedTemporaryFile().name) # directory that tempfile's using
+    path = re.sub(r"^/", "", path)      # os.path.join won't work if path is an absolute path
+
+    path = os.path.join(tmpdir, "eups", path)
+
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+    return path
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def ctimeTZ(t=None):
     """Return a time with time zone"""
 
@@ -86,6 +118,19 @@ def ctimeTZ(t=None):
         t = time.localtime()
 
     return time.strftime("%Y/%m/%d %H:%M:%S %Z", t)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def defineValidSetupTypes(*types):
+    global validSetupTypes
+
+    if not types:
+        validSetupTypes = []
+    else:
+        validSetupTypes += types
+
+defineValidSetupTypes()                      # reset list
+defineValidSetupTypes("build")               # valid values of type
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -563,20 +608,26 @@ but no other interpretation is applied
         if block:
             self._actions += [(logical, block)]
 
-    def actions(self, flavor):
+    def actions(self, flavor, setupType=None):
         """Return a list of actions for the specified flavor"""
 
+        actions = []
         if not self._actions:
-            return []
+            return actions
 
         for logical, block in self._actions:
             parser = eupsParser.Parser(logical)
             parser.define("flavor", flavor)
+            if setupType:
+                parser.define("type", setupType)
 
             if parser.eval():
-                return block
+                actions += block
 
-        raise RuntimeError, ("Table %s has no entry for flavor %s" % (self.file, flavor))
+        if actions:
+            return actions
+        else:
+            raise RuntimeError, ("Table %s has no entry for flavor %s" % (self.file, flavor))
 
     def __str__(self):
         s = ""
@@ -588,13 +639,13 @@ but no other interpretation is applied
 
         return s
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=False, recursionDepth=0):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=False, recursionDepth=0, setupType=None):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
 
         N.b. the dependencies are not calculated recursively unless recursive is True"""
 
         deps = []
-        for a in self.actions(Eups.flavor):
+        for a in self.actions(Eups.flavor, setupType=setupType):
             if a.cmd == Action.setupRequired:
                 try:
                     args = a.args[:]
@@ -1067,7 +1118,7 @@ Group:
                         if k == "productDir":
                             value = "none"
                         elif k == "table_file":
-                            debug("Setting table_file")
+                            #debug("Setting table_file")
                             value = "none"
                         else:
                             continue
@@ -1226,14 +1277,16 @@ class Product(object):
         """Is the Product current?"""
         return self._current
 
-    def dependencies(self, eupsPathDirs=None, recursive=False, recursionDepth=0):
+    def dependencies(self, eupsPathDirs=None, recursive=False, recursionDepth=0, setupType=None):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples"""
 
         val = []
         if not recursive:
-            [(self, False, False)]
+            val += [(self, False, False)]
+            
         if self.table:
-            val += self.table.dependencies(self.Eups, eupsPathDirs, recursive=recursive, recursionDepth=recursionDepth)
+            val += self.table.dependencies(self.Eups, eupsPathDirs, recursive=recursive,
+                                           recursionDepth=recursionDepth, setupType=setupType)
 
         return val
 
@@ -1363,17 +1416,21 @@ class Eups(object):
         """Get the name of the persistent database given a toplevel directory"""
         return os.path.join(self.getUpsDB(p), ".pickleDB")
 
-    def getLockfile(self, p, upsDB=True):
+    def getLockfile(self, path, upsDB=True):
         """Get the name of the lockfile given a toplevel directory"""
         if upsDB:
-            p = self.getUpsDB(p)
-        
-        return os.path.join(p, ".lock")
+            path = self.getUpsDB(path)
+        #
+        # Create lockfile in /tmp (or other chosen temporary directory)
+        # 
+        path = eupsTmpdir(path)
 
-    def lockDB(self, p, force=False, upsDB=True):
-        """Return a lock for a DB in path p; if upsDB is false, the directory p itself will be locked"""
+        return os.path.join(path, ".lock")
 
-        return eupsLock.Lock(self.getLockfile(p, upsDB), self.who, max_wait=10, force=force,
+    def lockDB(self, path, force=False, upsDB=True):
+        """Return a lock for a DB in path; if upsDB is false, the directory p itself will be locked"""
+
+        return eupsLock.Lock(self.getLockfile(path, upsDB), self.who, max_wait=10, force=force,
                              verbose=self.verbose, noaction=self.noaction)
 
     def unlinkDB(self, eupsPathDir):
@@ -1479,6 +1536,20 @@ class Eups(object):
     
     def writeDB(self, eupsPathDir, force=False):
         """Write eupsPathDir's version DB to a persistent DB"""
+
+        try:
+            cPickle.dump(None, None, protocol=2) # does this version of python support protocol?
+                                        # find out before we trash the cache
+        except TypeError:
+            if not self._msgs.has_key("cache"):
+                self._msgs["cache"] = {}
+                
+            if not self._msgs["cache"].has_key("nowrite"):
+                self._msgs["cache"]["nowrite"] = True
+                
+                print >> sys.stderr, "Not writing cache as your version of python's cPickle is too old"
+
+            return
 
         if not force and not self.readCache:
             if self.verbose > 2:
@@ -1721,8 +1792,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             eupsPathDirs = [eupsPathDir]
 
         vinfo = None
-        if not isinstance(versionName, str):
-            debug(versionName)
 
         if re.search(Eups._relop_re, versionName): # we have a relational expression
             expr = re.sub(r"^\s*", "", versionName)
@@ -1834,7 +1903,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         tablefile = vinfo["table_file"]
         if tablefile is None:
-            debug("tablefile is None in _finishFinding")
+            #debug("tablefile is None in _finishFinding")
             tablefile = "none"
 
         if vinfo.has_key("ups_dir"):
@@ -2229,10 +2298,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
     # Here is the externally visible API
     #
     def setup(self, productName, versionName=Current, fwd=True, recursionDepth=0,
-              setupToplevel=True, noRecursion=False):
+              setupToplevel=True, noRecursion=False, setupType=None):
         """The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
         eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
-
         #
         # Look for product directory
         #
@@ -2266,6 +2334,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         print >> sys.stderr, e
 
                     return False, versionName, e
+
+        if setupType and not setupType in validSetupTypes:
+            raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % (setupType, "\" \"".join(validSetupTypes)))
         #
         # We have all that we need to know about the product to proceed
         #
@@ -2280,7 +2351,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         table = product.table
 
         try:
-            actions = table.actions(self.flavor)
+            actions = table.actions(self.flavor, setupType=setupType)
         except RuntimeError, e:
             print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
             return False, product.version, e
@@ -2796,13 +2867,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         return productList
 
-    def dependencies_from_table(self, tablefile, eupsPathDirs=None):
+    def dependencies_from_table(self, tablefile, eupsPathDirs=None, setupType=None):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
         if tablefile != "none":
-            for (product, optional, currentRequested) in Table(tablefile).dependencies(self, eupsPathDirs):
+            for (product, optional, currentRequested) in \
+                    Table(tablefile).dependencies(self, eupsPathDirs, setupType=setupType):
                 dependencies += [(product, optional, currentRequested)]
 
         return dependencies
@@ -3109,12 +3181,12 @@ getFlavor = flavor                      # useful in this file if you have a vari
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def setup(Eups, productName, version=Current, fwd=True):
+def setup(Eups, productName, version=Current, fwd=True, setupType=None):
     """Return a filename which, when sourced, will setup a product (if fwd is false, unset it up)"""
 
-    ok, version, reason = Eups.setup(productName, version, fwd)
+    ok, version, reason = Eups.setup(productName, version, fwd, setupType=setupType)
     if ok:
-        tfd, tmpfile = tempfile.mkstemp("", "eups")
+        tfd, tmpfile = tempfile.mkstemp("", productName + "_", dir=eupsTmpdir("setup"))
         tfd = os.fdopen(tfd, "w")
         #
         # Set new variables
