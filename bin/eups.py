@@ -1042,7 +1042,7 @@ class VersionFile(object):
                 self_info[flavor] = {}
 
             for k in self.info[flavor].keys():
-                if k not in ["declared", "declarer"] and self_info[flavor].has_key(k):
+                if k not in ["declared", "declarer"]:
                     self_info[flavor][k] = self.info[flavor][k]
 
             self_info[flavor]["modifier"] = who
@@ -2410,10 +2410,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
                 keptProduct = self.alreadySetupProducts[product.name]
 
-                if keptProduct.name == "base":
-                    #pdb.set_trace()
-                    pass
-                
                 if not self.isSetup(keptProduct):
                     #
                     # We need to resetup the product, but be careful. We can't just call
@@ -2622,9 +2618,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             try:
                 product = self.getProduct(productName, versionName, eupsPathDir)
-                version.merge(VersionFile(product.versionFileName()), self.who)
             except RuntimeError: 
                 product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
+
+            version.merge(VersionFile(product.versionFileName()), self.who)
 
             vfile = ""
             try:
