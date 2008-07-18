@@ -477,7 +477,7 @@ def scpretrieve(file, noaction=False):
     """Retrieve a file using scp"""
 
     # Maybe it's a simple file
-    fd, tfile = tempfile.mkstemp("", productName + "_", dir=eups.eupsTmpdir("distrib"))
+    fd, tfile = tempfile.mkstemp("", dir=eups.eupsTmpdir("distrib"))
 
     os.close(fd)
 
