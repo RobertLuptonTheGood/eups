@@ -121,13 +121,63 @@ def ctimeTZ(t=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def defineValidTags(*tags):
+    """Define a permissible tag name (e.g. stable)"""
+    global validTags
+
+    if not tags:
+        validTags = []
+    else:
+        validTags += tags
+    #
+    # Make tags unique (and don't use set as it isn't in python 2.3)
+    #
+    tmp = {}
+    for t in validTags:
+        tmp[t] = 1
+
+    validTags = tmp.keys()
+    validTags.sort()
+
+def getValidTags():
+    """Return (a copy of) all valid tags"""
+    return validTags[:]
+
+def isValidTag(tag):
+    """Is tag valid?"""
+    return validTags.count(tag) > 0
+
+defineValidTags()                       # reset list
+defineValidTags("current", "stable")    # valid types of tag
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def defineValidSetupTypes(*types):
+    """Define a permissible type of setup (e.g. build)"""
     global validSetupTypes
 
     if not types:
         validSetupTypes = []
     else:
         validSetupTypes += types
+
+    #
+    # Make tags unique (and don't use set as it isn't in python 2.3)
+    #
+    tmp = {}
+    for t in validSetupTypes:
+        tmp[t] = 1
+
+    validSetupTypes = tmp.keys()
+    validSetupTypes.sort()
+
+def getValidSetupTypes():
+    """Return (a copy of) all valid types of setup (e.g. build)"""
+    return validSetupTypes[:]
+
+def isValidSetupType(stype):
+    """Is type of setup valid?"""
+    return validSetupTypes.count(stype) > 0
 
 defineValidSetupTypes()                      # reset list
 defineValidSetupTypes("build")               # valid values of type
@@ -2335,8 +2385,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
                     return False, versionName, e
 
-        if setupType and not setupType in validSetupTypes:
-            raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % (setupType, "\" \"".join(validSetupTypes)))
+        if setupType and not isValidSetupType(setupType):
+            raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % \
+                                 (setupType, "\" \"".join(getValidSetupTypes())))
         #
         # We have all that we need to know about the product to proceed
         #
@@ -2612,7 +2663,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             #
             version = VersionFile(self, productName, versionName, productDir, tablefile, ups_dir)
             #
-            # Merge in the old version of that Version, if it exists, and write the new file
+            # Merge in the old version of that VersionFile, if it exists, and write the new file;
+            # it may have declarations for other flavors
             #
             lock = self.lockDB(eupsPathDir)
 
@@ -2621,7 +2673,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             except RuntimeError: 
                 product = self.Product(productName, versionName, eupsPathDirs=eupsPathDir, noInit=True)
 
-            version.merge(VersionFile(product.versionFileName()), self.who)
+            try:
+                version.merge(VersionFile(product.versionFileName()), self.who)
+            except IOError:
+                pass                    # no previous declaration exists
 
             vfile = ""
             try:

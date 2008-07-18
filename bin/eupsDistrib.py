@@ -23,17 +23,6 @@ if False:
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def defineValidTags(*tags):
-    global validTags
-
-    if not tags:
-        validTags = []
-    else:
-        validTags += tags
-
-defineValidTags()                       # reset list
-defineValidTags("current", "stable")    # valid types of tag
-
 URL, SCP, LOCAL = "URL", "SCP", "LOCAL"
 
 class Distrib(object):
@@ -52,8 +41,8 @@ class Distrib(object):
             installFlavor = Eups.flavor
         self.installFlavor = installFlavor
         self.preferFlavor = preferFlavor
-        if tag and not tag in validTags:
-            raise RuntimeError, ("Unknown tag %s; expected one of \"%s\"" % (tag, "\" \"".join(validTags)))
+        if tag and not eups.isValidTag(tag):
+            raise RuntimeError, ("Unknown tag %s; expected one of \"%s\"" % (tag, "\" \"".join(eups.getValidTags())))
         self.tag = tag
         self.preferredTag = None        # old Ray usage; to be removed??
         self.no_dependencies = no_dependencies
@@ -311,10 +300,15 @@ class Distrib(object):
                 top_version = self.lookup_tagged_version(top_product)
 
                 if top_version == "":
-                    raise RuntimeError, (("No version of %s is declared %s to eups distrib\n" + \
-                                          "Please specify a version or a manifest file with -m") % \
-                                         (top_product, self.tag))
+                    if self.tag:
+                        msg = ("No version of %s is declared %s to eups distrib\n" +
+                               "Please specify a version or a manifest file") % (top_product, self.tag)
+                    else:
+                        msg = ("I don't know which version of %s you want\n" +
+                               "Please specify a version, a tag, or a manifest file") % (top_product)
 
+                    raise RuntimeError, msg
+                
                 print >> sys.stderr, "Installing %s of %s" % (top_version, top_product)
 
             raw_manifest = self.manifestFile(top_product, top_version)
@@ -698,7 +692,13 @@ def create(Distrib, top_productName, top_version, manifest=None):
                 print >> sys.stderr, "Skipping optional product %s" % (productName)
             continue
 
-        if ptablefile != "none":
+        if productName != top_productName: # don't write explicit distIDs for dependent products --
+                                        # that'd stop eups installing them recursively
+            distID = None
+
+        if not distID:
+            pdir, ptablefile, productDir = "none", "none", "None"
+        elif ptablefile != "none":
             fulltablename = ptablefile
             ptablefile = os.path.basename(ptablefile)
             tabledir = Distrib.get_tabledir()
@@ -886,7 +886,7 @@ def install(Distrib, top_product, top_version, manifest):
             (productName != top_product or versionName != top_version)):
             continue
         
-        if not re.search(r"^/", productDir):
+        if productDir != "none" and not re.search(r"^/", productDir):
             productDir = os.path.join(productsRoot, productDir)
 
         info = []
@@ -920,15 +920,16 @@ def install(Distrib, top_product, top_version, manifest):
         #
         dodeclare = True
 
-        if distID == "None":              # we don't know how to install this product
-            if Distrib.Eups.verbose:
+        if distID == "None": # we weren't told how to install this product; maybe they don't know,
+                                        # or maybe they want us to call distrib recursively
+            if Distrib.Eups.verbose > 2:
                 print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s %s" % \
                       (top_product, productName, productName, versionName)
             try:
                 subDistrib = eupsDistribFactory.copyDistrib(None, Distrib)
-                # remove the path we've already tried
 
                 if False:
+                    # remove the path we've already tried
                     subDistrib.remove_packageBase(Distrib.transport, Distrib.packageBase)
 
                 if not subDistrib.packageBasePath:

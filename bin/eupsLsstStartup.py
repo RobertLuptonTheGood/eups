@@ -42,7 +42,7 @@ eupsDistribFactory.registerFactory(lsstDistrib)
 #
 # Define a distribution type "preferred"
 #
-eupsDistrib.defineValidTags("preferred")
+eups.defineValidTags("preferred")
 
 if False:
     eups.defineValidSetupTypes("build") # this one's defined already
