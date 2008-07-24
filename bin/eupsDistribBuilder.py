@@ -41,6 +41,9 @@ class Distrib(eupsDistrib.Distrib):
         product's ups directory).  Then return a distribution ID
         """
 
+        if re.search(r"^LOCAL:(.*)", versionName):
+            raise RuntimeError, ("I can't create a distribution from a local setup: %s" % versionName)
+
         builder = "%s-%s.build" % (productName, versionName)
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 

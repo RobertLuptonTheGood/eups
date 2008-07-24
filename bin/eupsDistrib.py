@@ -696,7 +696,11 @@ def create(Distrib, top_productName, top_version, manifest=None):
 
         if productName == top_productName:
             if not distID:
-                raise RuntimeError, "I don't know how to install %s %s; giving up" % (productName, version)
+                msg = "I don't know how to install %s %s" % (productName, version)
+                if Distrib.Eups.force:
+                    print >> sys.stderr, msg + "; proceeding"
+                else:
+                    raise RuntimeError, msg + "; giving up"
         else:
             # don't write explicit distIDs for dependent products --
             # that'd stop eups installing them recursively

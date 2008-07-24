@@ -2062,7 +2062,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             except KeyError:
                 pass
 
-        if not cached:
+        if not cached and product.db != "(none)":
             if self.verbose > 2:
                 print >> sys.stderr, "Writing %s %s to %s's cache" % (product.name, product.version, db)
                 
@@ -2280,7 +2280,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             if re.search(Eups._relop_re, expr[i]):
                 op = expr[i]; i += 1
                 v = expr[i]
-            elif re.search(r"^[-+.\w]+$", expr[i]):
+            elif re.search(r"^[-+.:/\w]+$", expr[i]):
                 op = "=="
                 v = expr[i]
             elif expr == "||" or expr == "or":
