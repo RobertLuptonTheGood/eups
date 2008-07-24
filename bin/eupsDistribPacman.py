@@ -65,8 +65,8 @@ class Distrib(eupsDistrib.Distrib):
         pacmanDir = productsRoot
         try:
             self.createPacmanDir(pacmanDir)
-        except:
-            raise RuntimeError, ("Pacman failed to create %s" % (pacmanDir))
+        except Exception, e:
+            raise RuntimeError, ("Pacman failed to initialise %s: %s" % (pacmanDir, e))
 
         if self.Eups.verbose > 0:
             print >> sys.stderr, "installing pacman cache %s into %s" % (cacheID, pacmanDir)
