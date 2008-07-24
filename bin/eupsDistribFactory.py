@@ -9,7 +9,7 @@ import eupsDistrib
 
 _distribClasses = []                          # list of possible builders
 
-def registerFactory(obj):
+def registerFactory(obj, first=False):
     """Register object (a module or class) as a type of eupsDistrib
 
     E.g.  import eupsDistribBuilder;  registerFactory(eupsDistribBuilder)"""
@@ -19,7 +19,10 @@ def registerFactory(obj):
     if isinstance(obj, type(sys)):      # isinstance(obj, module) doesn't work; why?
         obj = obj.Distrib
 
-    _distribClasses += [obj]
+    if first:
+        _distribClasses = [obj] + _distribClasses
+    else:
+        _distribClasses += [obj]
 
 import eupsDistribBuilder; registerFactory(eupsDistribBuilder)
 import eupsDistribPacman;  registerFactory(eupsDistribPacman)

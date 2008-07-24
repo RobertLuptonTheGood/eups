@@ -33,10 +33,10 @@ class lsstDistrib(eupsDistribPacman.Distrib):
             os.mkdir(pacmanDir)
 
         oPacmanDiro = os.path.join(pacmanDir, "o..pacman...o")
-        if not os.path.isdir(opacmanDiro):
+        if not os.path.isdir(oPacmanDiro):
             eupsDistrib.system("cd %s && pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir))
 
-eupsDistribFactory.registerFactory(lsstDistrib)
+eupsDistribFactory.registerFactory(lsstDistrib, first=True)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
