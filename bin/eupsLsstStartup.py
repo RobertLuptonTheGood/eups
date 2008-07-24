@@ -32,7 +32,7 @@ class lsstDistrib(eupsDistribPacman.Distrib):
         if not os.path.isdir(pacmanDir):
             os.mkdir(pacmanDir)
 
-        oPacmanDiro = os.path.join(pacmanDir, "o..pacman...o")
+        oPacmanDiro = os.path.join(pacmanDir, "o..pacman..o")
         if not os.path.isdir(oPacmanDiro):
             eupsDistrib.system("cd %s && pacman -allow urllib2 -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir),
                                self.Eups.noaction)
