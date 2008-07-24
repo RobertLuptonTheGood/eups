@@ -48,8 +48,9 @@ class Distrib(eupsDistrib.Distrib):
         N.b. May be subclassed to initialise pacman; e.g. LSST requires
            pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit
         """
-
-        os.mkdir(pacmanDir)
+ 
+        if not os.path.isdir(pacmanDir):
+            os.mkdir(pacmanDir)
         
     def installPackage(self, distID, productsRoot, *args):
         """Install a package using pacman"""
