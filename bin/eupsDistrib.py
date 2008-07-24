@@ -640,7 +640,8 @@ def create(Distrib, top_productName, top_version, manifest=None):
             except Exception, e:
                 print >> sys.stderr, "WARNING: Failed to lookup directory for", \
                       "product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
-                continue
+                if productName == top_productName:
+                    continue
 
             try:
                 ptablefile = Distrib.Eups.Product(productName, version).table.file
@@ -652,7 +653,8 @@ def create(Distrib, top_productName, top_version, manifest=None):
             except Exception, e:
                 print >> sys.stderr, "WARNING: Failed to lookup tablefile for", \
                       "product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
-                continue
+                if productName == top_productName:
+                    continue
 
             if pversion != version:
                 print >> sys.stderr, "Something's wrong with %s; %s != %s" % (productName, version, pversion)
@@ -692,8 +694,12 @@ def create(Distrib, top_productName, top_version, manifest=None):
                 print >> sys.stderr, "Skipping optional product %s" % (productName)
             continue
 
-        if productName != top_productName: # don't write explicit distIDs for dependent products --
-                                        # that'd stop eups installing them recursively
+        if productName == top_productName:
+            if not distID:
+                raise RuntimeError, "I don't know how to install %s %s; giving up" % (productName, version)
+        else:
+            # don't write explicit distIDs for dependent products --
+            # that'd stop eups installing them recursively
             distID = None
 
         if not distID:
@@ -921,7 +927,11 @@ def install(Distrib, top_product, top_version, manifest):
         dodeclare = True
 
         if distID == "None": # we weren't told how to install this product; maybe they don't know,
-                                        # or maybe they want us to call distrib recursively
+            # or maybe they want us to call distrib recursively
+            if productName == top_product:
+                raise RuntimeError, ("Manifest for %s %s doesn't have install instructions for itself; giving up" % \
+                                     (productName, versionName))
+            
             if Distrib.Eups.verbose > 2:
                 print >> sys.stderr, "Manifest for %s doesn't have install instructions for %s; trying eups distrib --install %s %s" % \
                       (top_product, productName, productName, versionName)

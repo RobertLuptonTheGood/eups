@@ -46,8 +46,9 @@ class Distrib(eupsDistrib.Distrib):
 
         if not buildFile:
             msg = "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
+
             if self.allowIncomplete:
-                msg += "; writing manifest anyway"
+                msg += "; proceeding anyway"
 
             if os.path.exists(os.path.join("ups", "%s.build" % productName)):
                 msg += "\n" + "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (productName)

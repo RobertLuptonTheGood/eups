@@ -103,9 +103,18 @@ The path /tmp is not actually hardcoded;  use whatever tempfile uses
     path = re.sub(r"^/", "", path)      # os.path.join won't work if path is an absolute path
 
     path = os.path.join(tmpdir, "eups", path)
-
+    #
+    # We need to create this path, and set all directory permissions to 777
+    # It'd be better to use a eups group, but this may be hard for some installations
+    #
     if not os.path.isdir(path):
-        os.makedirs(path)
+        dir = "/"
+        for d in filter(lambda el: el, path.split(os.path.sep)):
+            dir = os.path.join(dir, d)
+            
+            if not os.path.isdir(dir):
+                os.mkdir(dir)
+                os.chmod(dir, 0777)
 
     return path
 
@@ -1464,7 +1473,7 @@ class Eups(object):
     
     def getPersistentDB(self, p):
         """Get the name of the persistent database given a toplevel directory"""
-        return os.path.join(self.getUpsDB(p), ".pickleDB")
+        return os.path.join(self.getUpsDB(p), "%s.%s" % (self.flavor, "pickleDB"))
 
     def getLockfile(self, path, upsDB=True):
         """Get the name of the lockfile given a toplevel directory"""
