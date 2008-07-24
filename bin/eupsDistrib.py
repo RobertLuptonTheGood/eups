@@ -954,7 +954,7 @@ def install(Distrib, top_product, top_version, manifest):
                         print >> sys.stderr, "Using tag %s not %s for %s" % (Distrib.tag, versionName, productName)
                     versionName = None
                     
-                install(subDistrib, productName, versionName, None)
+                setups += install(subDistrib, productName, versionName, None)
                 continue
             except RuntimeError, e:
                 if not Distrib.Eups.force or Distrib.Eups.verbose > 0:
@@ -975,7 +975,7 @@ def install(Distrib, top_product, top_version, manifest):
         # We may be done
         #
         if Distrib.noeups:
-            return
+            return setups
         #
         # we need to see if someone (e.g. the build/pacman script) declared the package for us
         #
@@ -1021,6 +1021,8 @@ def install(Distrib, top_product, top_version, manifest):
         else:                           # we may still need to declare it current
             if declare_current:
                 Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=productsRoot)
+
+    return setups
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
