@@ -2910,6 +2910,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             if productName and not fnmatch.fnmatchcase(product.name, productName):
                 continue
+            if productVersion and not fnmatch.fnmatchcase(product.version, productVersion):
+                continue
 
             values = []
             values += [product.name]
