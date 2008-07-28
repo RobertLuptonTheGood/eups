@@ -43,7 +43,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
                     raise RuntimeError, ("Flag %s expected an argument" % a)
 
                 flags += ["%s %s" % (a, args[i])]
-            elif re.search(r"-[cdejknoPsvtV0-3]", a):
+            elif re.search(r"^-[cdejknoPsvtV0-3]", a):
                 flags += [a]
             elif re.search(r"^-[BO]", a):
                 print >> sys.stderr, "I don't know how to process %s" % a
