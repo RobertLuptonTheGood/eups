@@ -978,12 +978,13 @@ def install(Distrib, top_product, top_version, manifest):
             return setups
         #
         # we need to see if someone (e.g. the build/pacman script) declared the package for us
+        # We can't just use listProducts(productName, versionName) as the version list was
+        # read before installPackage was run, so look for the version file directly
         #
-        declared = Distrib.Eups.listProducts(productName, versionName)
         try:
-            if re.search(r"^LOCAL:", declared[0][1]):
-                dodeclare = False
-        except Exception, e:
+            Distrib.Eups.findVersion(productName, versionName)
+            dodeclare = False
+        except RuntimeError, e:
             pass
         #
         # If no versions of this product are declared current, we need to make this one
