@@ -158,11 +158,11 @@ class Distrib(eupsDistrib.Distrib):
         #
         # Prepare to actually do some work
         #
-        cmd = ["cd %s" % (self.buildDir)]
+        cmd = ["cd %s && " % (self.buildDir)]
         cmd += setups
 
         if self.Eups.verbose > 2:
-            cmd += ["set -vx"]
+            cmd += ["set -vx &&"]
         #
         # Rewrite build file to replace any setup commands by "setup -j" as
         # we're not necessarily declaring products current, so we're setting
