@@ -181,7 +181,7 @@ class Distrib(eupsDistrib.Distrib):
             if re.search("^#!/bin/(ba|k)?sh", line):      # a #!/bin/sh line; not needed
                 continue
 
-            if re.search(r"#", line): # make comments executable statements that can be chained with &&
+            if re.search(r"(^|[^\\])#", line): # make comments executable statements that can be chained with &&
                 line =  re.sub(r"^(\s*)#(.*)", r"\1: \2", line)
                 line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
                                        #: comments as : is an executable command
