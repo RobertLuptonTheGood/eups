@@ -1000,13 +1000,7 @@ def install(Distrib, top_product, top_version, manifest):
         # If the table in the manifest file is not "<productName>.table" in the manifest file
         # the table file should be installed by eups_distrib and declared via eups declare -M
         #
-        if dodeclare:
-            if tablefile != "none":
-                if ("%s.table" % (productName)) != tablefile: # tablefile should be saved in upsDB
-                    tablefile = "%s-%s" % (productName, tablefile)
-                    tablefile = Distrib.find_file(tablefile, "%s/%s" % (productName, versionName))
-
-                    tablefile = open(tablefile)
+        if dodeclare or declare_current:
             #
             # Look for productsRoot on eups path
             #
@@ -1016,11 +1010,19 @@ def install(Distrib, top_product, top_version, manifest):
                     eupsPathDir = pdir
                     break                
 
+        if dodeclare:
+            if tablefile != "none":
+                if ("%s.table" % (productName)) != tablefile: # tablefile should be saved in upsDB
+                    tablefile = "%s-%s" % (productName, tablefile)
+                    tablefile = Distrib.find_file(tablefile, "%s/%s" % (productName, versionName))
+
+                    tablefile = open(tablefile)
+
             Distrib.Eups.declare(productName, versionName, productDir, tablefile=tablefile,
                                  eupsPathDir=eupsPathDir, declare_current=declare_current)
         else:                           # we may still need to declare it current
             if declare_current:
-                Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=productsRoot)
+                Distrib.Eups.declareCurrent(productName, versionName, eupsPathDir=eupsPathDir)
 
     return setups
 
