@@ -2558,6 +2558,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             raise RuntimeError, \
                   ("Please specify a productDir for %s %s (maybe \"none\")" % (productName, versionName))
 
+        if productDir != "none" and not os.path.isdir(productDir):
+            raise RuntimeError, \
+                  ("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
+
         if tablefile is None:
             tablefile = "%s.table" % productName
 
