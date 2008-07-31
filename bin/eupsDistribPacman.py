@@ -28,7 +28,7 @@ class Distrib(eupsDistrib.Distrib):
     def createPackage(self, productName, versionName, baseDir=None, productDir=None):
         """Create a package distribution and return a distribution ID (a pacman cache ID)"""
 
-        return "pacman:%s:%s/%s-%s" % (self.pacmanCache, self.installFlavor, productName, versionName)
+        return "pacman:%s:%s-%s" % (self.pacmanCache, productName, versionName)
 
     def parseDistID(self, distID):
         """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
