@@ -128,7 +128,7 @@ except RuntimeError, e:
     print >> sys.stderr, e
     if allowRaise:
         raise
-    sys.exit(1)
+    tmpfile = None
 
 if tmpfile:
     if Eups.shell == "sh":
