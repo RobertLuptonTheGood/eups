@@ -2525,10 +2525,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if productDir and not productName:
             productName = guessProduct(os.path.join(productDir, "ups"))
 
-        if tablefile is None:
-            tablefile = "%s.table" % productName
-
-        if not productDir:
+        if not productDir or not tablefile:
             if declare_current:
                 try:
                     if eupsPathDir:
@@ -2536,7 +2533,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     else:
                         info = self.findVersion(productName, versionName)
 
-                    productDir = info[2]    # we'll check the other fields later
+                    if not productDir:
+                        productDir = info[2]
+                    if not tablefile:
+                        tablefile = info[3] # we'll check the other fields later
 
                     if not productDir:
                         productDir = "none"
@@ -2557,6 +2557,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not productDir:
             raise RuntimeError, \
                   ("Please specify a productDir for %s %s (maybe \"none\")" % (productName, versionName))
+
+        if tablefile is None:
+            tablefile = "%s.table" % productName
 
         if not eupsPathDir:             # look for proper home on self.path
             productDir = os.path.normpath(productDir)
@@ -2813,7 +2816,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         #
         version = VersionFile(self, productName, versionName)
         #
-        # Remove in the old version of that Version, if it exists, and write the new file
+        # Remove the old version of that Version, if it exists, and write the new file
         #
         lock = self.lockDB(eupsPathDir)
         #
