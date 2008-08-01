@@ -393,7 +393,6 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
                 # regexp for regexp-based replace commands (@NAME.sub(s1, s2)@ --> re.sub(s1, s2, name))
                 sub_re = r"^sub\s*\(\s*r?[\"']([^\"']+)[\"']\s*,\s*r?[\"']([^\"']*)[\"']\s*\)"
 
-                pdb.set_trace()
                 if re.search(replace_re, op):
                     mat = re.search(replace_re, op)
                     op = op[len(mat.group(0)):]
