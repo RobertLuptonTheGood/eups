@@ -426,7 +426,7 @@ def main(cmd, opts):
         #
         packageBasePath = []
         if packageBase:
-            packageBasePath += [packageBase]
+            packageBasePath += packageBase.split("|")
 
             if pkgroot and packageBase != pkgroot:
                 packageBasePath += [pkgroot]            
