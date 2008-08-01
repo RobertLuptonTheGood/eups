@@ -744,7 +744,7 @@ def create(Distrib, top_productName, top_version, manifest=None):
         products += [[productName, Distrib.installFlavor, version, pDB, pdir, ptablefile, productDir, distID]]
 
         if Distrib.no_dependencies:
-            if Distrib.Eups.force:
+            if not Distrib.Eups.force:
                 break
             else:
                 print >> sys.stderr, "Not writing manifest as you omitted dependencies; use --force to write it anyway"
