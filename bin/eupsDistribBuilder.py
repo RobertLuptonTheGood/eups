@@ -384,7 +384,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
 
             value = subs[var]
 
-            if op:                      # a python operation to be applied to value.
+            while op:                   # a python operation to be applied to value.
                 # We could just eval the expression, but that allows a malicious user to execute random python,
                 # so we'll interpret the commands ourselves
 
@@ -393,21 +393,30 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
                 # regexp for regexp-based replace commands (@NAME.sub(s1, s2)@ --> re.sub(s1, s2, name))
                 sub_re = r"^sub\s*\(\s*r?[\"']([^\"']+)[\"']\s*,\s*r?[\"']([^\"']*)[\"']\s*\)"
 
+                pdb.set_trace()
                 if re.search(replace_re, op):
                     mat = re.search(replace_re, op)
+                    op = op[len(mat.group(0)):]
                     value = value.replace(mat.group(1), mat.group(2))
                 elif re.search(sub_re, op):
                     mat = re.search(sub_re, op)
+                    op = op[len(mat.group(0)):]
                     value = re.sub(mat.group(1), mat.group(2), value)
                 elif op == "lower()":
+                    op = op[len(op):]
                     value = value.lower()
                 elif op == "title()":
+                    op = op[len(op):]
                     value = value.title()
                 elif op == "upper()":
+                    op = op[len(op):]
                     value = value.upper()
                 else:
                     print >> sys.stderr, "Unexpected modifier \"%s\"; ignoring" % op
-            
+
+                if op and op[0] == ".":
+                    op = op[1:]
+
             return value
 
         return "XXX"
