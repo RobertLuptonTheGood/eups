@@ -540,12 +540,21 @@ but no other interpretation is applied
                     value = a.args[i]
 
                     value = re.sub(r"\${PRODUCTS}", product.db, value)
-                    if product.dir:
-                        value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
+
+                    if re.search(r"\${PRODUCT_DIR}", value):
+                        if product.dir:
+                            value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
+                        else:
+                            print >> sys.stderr, "Unable to expand PRODUCT_DIR in %s" % self.file
+
                     value = re.sub(r"\${PRODUCT_FLAVOR}", product.Eups.flavor, value)
                     value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
-                    if product.version:
-                        value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
+                    if re.search(r"\${PRODUCT_VERSION}", value):
+                        if product.version:
+                            value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
+                        else:
+                            print >> sys.stderr, "Unable to expand PRODUCT_VERSION in %s" % self.file
+
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
 
                     a.args[i] = value
@@ -2574,6 +2583,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             if not eupsPathDir:
                 eupsPathDir = self.path[0]
+        else:
+            productDir = os.path.normpath(productDir)
 
         if not eupsPathDir:             # can happen with no self.path and self.root != None
             raise RuntimeError, \
