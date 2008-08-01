@@ -32,7 +32,7 @@ class Distrib(eupsDistrib.Distrib):
             self.buildFilePath = None
             print >> sys.stderr, "Incorrectly initialised eupsDistribBuilder: %s" % e
 
-    def createPackage(self, productName, versionName, baseDir, productDir):
+    def createPackage(self, productName, versionName, baseDir, productDir, overwrite=False):
         """Create a package (which basically means locating a
         buildfile which contains information about its CVS/SVN root,
         Then write a small file to the manifest directory allowing us to
@@ -72,7 +72,7 @@ class Distrib(eupsDistrib.Distrib):
                 raise RuntimeError, ("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
-        if os.access(full_builder, os.R_OK) and not self.Eups.force:
+        if os.access(full_builder, os.R_OK) and not overwrite and not self.Eups.force:
             if self.Eups.verbose > 1:
                 print >> sys.stderr, "Not recreating", full_builder
             return "build:" + builder

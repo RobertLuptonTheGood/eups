@@ -25,7 +25,7 @@ class Distrib(eupsDistrib.Distrib):
             self.pacmanCache = None
             print >> sys.stderr, "Incorrectly initialised eupsDistribPacman: %s" % e
 
-    def createPackage(self, productName, versionName, baseDir=None, productDir=None):
+    def createPackage(self, productName, versionName, baseDir=None, productDir=None, overwrite=False):
         """Create a package distribution and return a distribution ID (a pacman cache ID)"""
 
         return "pacman:%s:%s-%s" % (self.pacmanCache, productName, versionName)

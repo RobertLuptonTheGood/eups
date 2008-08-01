@@ -366,7 +366,7 @@ class Distrib(object):
 
         return manifest_product, manifest_product_version, productsRoot, top_version, products
 
-    def write_manifest(self, manifest, top_productName, top_version, products):
+    def write_manifest(self, manifest, top_productName, top_version, products, overwrite=False):
         """Write a manifest file"""
         
         manifestDir = os.path.join(self.packageBase, "manifests")
@@ -379,7 +379,7 @@ class Distrib(object):
         if not manifest:
             manifest = os.path.join(manifestDir, self.manifestFile(top_productName, top_version))
 
-        if os.access(manifest, os.R_OK) and not self.Eups.force:
+        if os.access(manifest, os.R_OK) and not overwrite and not self.Eups.force:
             if self.Eups.verbose:
                 print >> sys.stderr, "Not recreating", manifest
             return
@@ -608,24 +608,31 @@ def create(Distrib, top_productName, top_version, manifest=None):
             ptablefile = "none"
 
         productList = [(productName, top_version, False)]
-        dependencies = Distrib.Eups.dependencies_from_table(ptablefile)
-        if dependencies:
-            for (product, optionalInTable, currentRequested) in dependencies:
-                productName = product.name
-                version = product.version
-                if not version:
-                    version = Distrib.Eups.findCurrentVersion(productName)[1]
-                productList += [(productName, version, optionalInTable)]
+        if not Distrib.no_dependencies:
+            dependencies = Distrib.Eups.dependencies_from_table(ptablefile)
+            if dependencies:
+                for (product, optionalInTable, currentRequested) in dependencies:
+                    productName = product.name
+                    version = product.version
+                    if not version:
+                        version = Distrib.Eups.findCurrentVersion(productName)[1]
+                    productList += [(productName, version, optionalInTable)]
     else:
         top_product = Distrib.Eups.Product(top_productName, top_version)
         productList = []
-        for (product, optionalInTable, currentRequested) in top_product.dependencies(setupType="build"):
-            productList += [(product.name, product.version, optionalInTable)]
+        if not Distrib.no_dependencies:
+            for (product, optionalInTable, currentRequested) in top_product.dependencies(setupType="build"):
+                productList += [(product.name, product.version, optionalInTable)]
 
     products = []
     for (productName, version, optional) in productList:
         if Distrib.Eups.verbose > 1:
             print "Product:", productName, "  Flavor:", Distrib.installFlavor, "  Version:", version
+
+        if productName == top_productName:
+            overwrite = True            # always allow the top-level package to be overwritten --- they asked us to
+        else:
+            overwrite = False           # dependent packages shouldn't be overwritten unless force is true
 
         if productName == top_productName and Distrib.noeups:
             baseDir, pDB, pdir = None, None, None
@@ -687,7 +694,7 @@ def create(Distrib, top_productName, top_version, manifest=None):
                             baseDir = ""; productDir = pdir
 
         distID = Distrib.createPackage(productName=productName, versionName=version,
-                                       baseDir=baseDir, productDir=productDir)
+                                       baseDir=baseDir, productDir=productDir, overwrite=overwrite)
 
         if optional and not distID:
             if Distrib.Eups.verbose > -1:
@@ -726,7 +733,7 @@ def create(Distrib, top_productName, top_version, manifest=None):
                 tablefile_for_distrib = os.path.join(tabledir, "%s-%s" % (productName, ptablefile))
 
             if tablefile_for_distrib:
-                if os.access(tablefile_for_distrib, os.R_OK) and not Distrib.Eups.force:
+                if os.access(tablefile_for_distrib, os.R_OK) and not overwrite and not Distrib.Eups.force:
                     if Distrib.Eups.verbose > 1:
                         print >> sys.stderr, "Not recreating", tablefile_for_distrib
                 else:

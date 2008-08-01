@@ -15,12 +15,12 @@ class Distrib(eupsDistrib.Distrib):
 
     implementation = "tarball"     # which implementation is provided?
 
-    def createPackage(self, productName, versionName, baseDir, productDir):
+    def createPackage(self, productName, versionName, baseDir, productDir, overwrite=False):
         """Create a tarball and return a distribution ID which happens to be its name"""
 
         tarball = "%s-%s.tar.gz" % (productName, versionName)
 
-        if os.access("%s/%s" % (self.packageBase, tarball), os.R_OK) and not force:
+        if os.access("%s/%s" % (self.packageBase, tarball), os.R_OK) and not overwrite and not self.Eups.force:
             if self.Eups.verbose > 0:
                 print >> sys.stderr, "Not recreating", tarball
             return tarball
