@@ -181,10 +181,12 @@ class Distrib(eupsDistrib.Distrib):
             if re.search("^#!/bin/(ba|k)?sh", line):      # a #!/bin/sh line; not needed
                 continue
 
-            if re.search(r"(^|[^\\])#", line): # make comments executable statements that can be chained with &&
-                line =  re.sub(r"^(\s*)#(.*)", r"\1: \2", line)
-                line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
-                                       #: comments as : is an executable command
+            if False:                          # there doesn't seem to be any need to do this
+                if re.search(r"(^|[^\\])#", line): # make comments executable statements that can be chained with &&
+                    line =  re.sub(r"^(\s*)#(.*)", r"\1: \2", line)
+                    line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
+                                           #: comments as : is an executable command
+                    line += " &&"
 
             line = re.sub(r"^\s*setup\s", "setup -j ", line)
             if not re.search(r"^\s*$", line): # don't confuse the test for an empty build file ("not lines")
