@@ -44,6 +44,7 @@ class Distrib(object):
         if tag and not eups.isValidTag(tag):
             raise RuntimeError, ("Unknown tag %s; expected one of \"%s\"" % (tag, "\" \"".join(eups.getValidTags())))
         self.tag = tag
+        self.tagged_versions = {}
         self.preferredTag = None        # old Ray usage; to be removed??
         self.no_dependencies = no_dependencies
         self.allowIncomplete = allowIncomplete
@@ -240,15 +241,16 @@ class Distrib(object):
     def lookup_tagged_version(self, productName):
         """Attempt to lookup a package's version with the specified tag, as declared using eups distrib"""
 
-        try:
-            for p in TaggedVersion(self).read():
-                (name, flavor, version) = p
-                if name == productName and flavor == self.Eups.flavor:
-                    return version
-        except:
-            pass
+        if not self.tagged_versions:
+            try:
+                for p in TaggedVersion(self).read():
+                    (name, flavor, version) = p
+                    if flavor == self.Eups.flavor:
+                        self.tagged_versions[name] = version
+            except:
+                pass
 
-        return ""
+        return self.tagged_versions.get(productName, "")
 
     #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -913,6 +915,11 @@ def install(Distrib, top_product, top_version, manifest):
             except IndexError:
                 pass
 
+        if Distrib.tag:            # use tagged version, ignoring the version name
+            if Distrib.Eups.verbose:
+                print >> sys.stderr, "Using tag %s not %s for %s" % (Distrib.tag, versionName, productName)
+            versionName = Distrib.lookup_tagged_version(productName)
+
         if info and len(info) > 0 and not re.search("^LOCAL:", info[1]):
             if productName != top_product:
                 setups += ["setup %s %s &&" % (productName, versionName)]
@@ -928,7 +935,7 @@ def install(Distrib, top_product, top_version, manifest):
         # If we're asking for a tagged distribution, ignore the distID as it specifies an
         # explicit version.  We don't do this for the toplevel product as we don't enjoy infinite recursion 
         #
-        if Distrib.tag and productName != top_product:
+        if Distrib.tag and productName != top_product and distID != "None":
             if Distrib.Eups.verbose > 1:
                 print >> sys.stderr, "Ignoring distID %s as you specified tag %s" % (distID, Distrib.tag)
             distID = "None"
