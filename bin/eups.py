@@ -2575,7 +2575,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             tablefile = "%s.table" % productName
 
         if productDir != "none":
-            productDir = re.sub(r"^~", os.environ["HOME"], productDir)
+            if os.environ.has_key("HOME"):
+                productDir = re.sub(r"^~", os.environ["HOME"], productDir)
             if not re.search(r"^/", productDir):
                 productDir = os.path.join(os.getcwd(), productDir)
             productDir = os.path.normpath(productDir)
