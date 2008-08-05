@@ -71,7 +71,7 @@ alias setup 'eval `%(setup)s \\!*`'
 alias unsetup 'eval `%(setup)s --unsetup \\!*`'
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup,  "unique_path" : unique_path}
+       "setup" : setup,  "unique_path" : "\\\n".join(unique_path.split("\n"))}
 
 for s in setup_aliases.keys():
     print >> fd, "alias %s %s" % (setup_aliases[s], s)
