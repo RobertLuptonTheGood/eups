@@ -2574,8 +2574,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if tablefile is None:
             tablefile = "%s.table" % productName
 
-        if not eupsPathDir:             # look for proper home on self.path
+        if productDir != "none":
+            productDir = re.sub(r"^~", os.environ["HOME"], productDir)
+            if not re.search(r"^/", productDir):
+                productDir = os.path.join(os.getcwd(), productDir)
             productDir = os.path.normpath(productDir)
+
+        if not eupsPathDir:             # look for proper home on self.path
             for d in self.path:
                 if os.path.commonprefix([productDir, d]) == d:
                     eupsPathDir = d
@@ -2583,8 +2588,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
             if not eupsPathDir:
                 eupsPathDir = self.path[0]
-        else:
-            productDir = os.path.normpath(productDir)
 
         if not eupsPathDir:             # can happen with no self.path and self.root != None
             raise RuntimeError, \
