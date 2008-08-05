@@ -3263,12 +3263,12 @@ getFlavor = flavor                      # useful in this file if you have a vari
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def setup(Eups, productName, version=Current, fwd=True, setupType=None):
-    """Return a filename which, when sourced, will setup a product (if fwd is false, unset it up)"""
+    """Return a set of commands which, when sourced, will setup a product (if fwd is false, unset it up)"""
+
+    cmds = []
 
     ok, version, reason = Eups.setup(productName, version, fwd, setupType=setupType)
     if ok:
-        tfd, tmpfile = tempfile.mkstemp("", productName + "_", dir=eupsTmpdir("setup"))
-        tfd = os.fdopen(tfd, "w")
         #
         # Set new variables
         #
@@ -3295,7 +3295,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
 
                 cmd = "echo \"%s\"" % cmd
 
-            tfd.write(cmd + "\n")
+            cmds += [cmd]
         #
         # unset ones that have disappeared
         #
@@ -3317,7 +3317,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
 
                 cmd = "echo \"%s\"" % cmd
 
-            tfd.write(cmd + "\n")
+            cmds += [cmd]
         #
         # Now handle aliases
         #
@@ -3339,7 +3339,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
             if Eups.noaction:
                 cmd = "echo \"%s\"" % re.sub(r"`", r"\`", cmd)
 
-            tfd.write(cmd + "\n")
+            cmds += [cmd]
         #
         # and unset ones that used to be present, but are now gone
         #
@@ -3355,18 +3355,10 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
             if Eups.noaction:
                 cmd = "echo \"%s\"" % cmd
 
-            tfd.write(cmd + "\n")
-        #
-        # Make the file cleanup after itself
-        #    
-        if Eups.verbose > 3:
-            print >> sys.stderr, "Not deleting %s" % tmpfile
-        else:
-            tfd.write("/bin/rm -f %s\n" % tmpfile)
-
-        return tmpfile
+            cmds += [cmd]
     elif fwd and version == Current:
         print >> sys.stderr, "No version of %s is declared current" % productName
+        cmds += ["false"]               # as in /bin/false
     else:
         if fwd:
             versionName = version
@@ -3379,7 +3371,9 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
         else:
             print >> sys.stderr, "Failed to unsetup %s: %s" % (productName, reason)
 
-    return ""
+        cmds += ["false"]               # as in /bin/false
+
+    return cmds
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
