@@ -123,18 +123,15 @@ try:
                      verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
                      max_depth=max_depth, exact_version=exact_version)
                           
-    tmpfile = eups.setup(Eups, productName, version, fwd=not unsetup, setupType=setupType)
+    cmds = eups.setup(Eups, productName, version, fwd=not unsetup, setupType=setupType)
 except RuntimeError, e:
     print >> sys.stderr, e
     if allowRaise:
         raise
-    tmpfile = None
+    cmds = ["false"]
 
-if tmpfile:
-    if Eups.shell == "sh":
-        print ". %s" % tmpfile
-    else:
-        print "source %s" % tmpfile
-else:
-    print "false"
-        
+if Eups.verbose > 1:
+    print >> sys.stderr, "\n\t".join(["Issuing commands:"] + cmds)
+
+print ";\n".join(cmds)
+
