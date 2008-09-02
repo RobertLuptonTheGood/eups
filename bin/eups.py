@@ -1374,7 +1374,8 @@ class Eups(object):
     """Control eups"""
 
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
-                 shell=None, verbose=False, noaction=False, force=False, ignore_versions=False, exact_version=False,
+                 shell=None, verbose=False, quiet=0,
+                 noaction=False, force=False, ignore_versions=False, exact_version=False,
                  keep=False, max_depth=-1):
                  
         self.verbose = verbose
@@ -1442,7 +1443,7 @@ class Eups(object):
             
         self.root = root
             
-        self.quiet = 0
+        self.quiet = quiet
         self.keep = keep
         self.noaction = noaction
         self.force = force
@@ -2472,14 +2473,29 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                             pversionName = pversionName() # might be Current
                         except TypeError:
                             pass
-                            
-                        print >> sys.stderr, "You setup %s %s, and are now setting up %s" % \
-                              (product.name, sversionName, pversionName)
+
+                        if self.keep:
+                            verb = "requesting"
+                        else:
+                            verb = "setting up"
+
+                        if self.quiet <= 0:
+                            print >> sys.stderr, "You setup %s %s, and are now %s %s" % \
+                                  (product.name, sversionName, verb, pversionName)
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
                 keptProduct = self.alreadySetupProducts[product.name]
 
-                if not self.isSetup(keptProduct):
+                resetup = True          # do I need to re-setup this product?
+                if self.isSetup(keptProduct):
+                    resetup = False
+                    
+                if self.version_cmp(keptProduct.version, product.version) < 0:
+                    keptProduct = product                     
+                    self.alreadySetupProducts[product.name] = product # keep this one instead
+                    resetup = True
+
+                if resetup:
                     #
                     # We need to resetup the product, but be careful. We can't just call
                     # setup recursively as that'll just blow the call stack; but we do
