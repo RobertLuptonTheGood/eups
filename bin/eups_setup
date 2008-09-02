@@ -77,6 +77,7 @@ keep = opts.options.get("-k", False)
 max_depth = int(opts.options.get("-S", -1))
 noaction = opts.options.get('-n')
 path = opts.options.get('-Z')
+quiet = opts.options.get('-q', 0)
 root = opts.options.get('-r')
 setupType = opts.options.get('-t')
 unsetup = opts.options.get('-u', False)
@@ -120,7 +121,7 @@ if just:
 #
 try:
     Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
-                     verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
+                     quiet=quiet, verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
                      max_depth=max_depth, exact_version=exact_version)
                           
     cmds = eups.setup(Eups, productName, version, fwd=not unsetup, setupType=setupType)
