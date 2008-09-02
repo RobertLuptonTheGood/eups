@@ -2432,8 +2432,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if recursionDepth == 0:
             self._msgs["setup"] = {}
 
+        setup_msgs = self._msgs["setup"]
         if fwd and self.verbose and recursionDepth >= 0:
-            setup_msgs = self._msgs["setup"]
 
             indent = "| " * (recursionDepth/2)
             if recursionDepth%2 == 1:
@@ -2479,9 +2479,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         else:
                             verb = "setting up"
 
-                        if self.quiet <= 0:
-                            print >> sys.stderr, "You setup %s %s, and are now %s %s" % \
-                                  (product.name, sversionName, verb, pversionName)
+                        msg = "You setup %s %s, and are now %s %s" % \
+                              (product.name, sversionName, verb, pversionName)
+
+                        if self.quiet <= 0 and not (self.keep and setup_msgs.has_key(msg)):
+                            print >> sys.stderr, msg
+                        setup_msgs[msg] = 1
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
                 keptProduct = self.alreadySetupProducts[product.name]
