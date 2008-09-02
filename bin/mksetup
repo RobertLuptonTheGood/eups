@@ -108,8 +108,8 @@ else
     export PYTHONPATH="%(bindir)s"
 fi
 
-function setup   { eval `%(setup)s           $@`; }; export -f setup
-function unsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup""" \
+function setup   { eval `%(setup)s           "$@"`; }; export -f setup
+function unsetup { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup""" \
     % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
        "setup" : setup,  "unique_path" : unique_path}
 
