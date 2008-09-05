@@ -2432,13 +2432,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if recursionDepth == 0:
             self._msgs["setup"] = {}
 
+        indent = "| " * (recursionDepth/2)
+        if recursionDepth%2 == 1:
+            indent += "|"
+
         setup_msgs = self._msgs["setup"]
         if fwd and self.verbose and recursionDepth >= 0:
-
-            indent = "| " * (recursionDepth/2)
-            if recursionDepth%2 == 1:
-                indent += "|"
-
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
             if self.verbose > 1 or not setup_msgs.has_key(key):
                 print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
@@ -2508,9 +2507,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     self.setup(keptProduct, recursionDepth=-9999, noRecursion=True)
                     self.setup(keptProduct, recursionDepth=recursionDepth, setupToplevel=False)
 
-                if (keptProduct.version != product.version and self.verbose) or self.verbose > 1:
-                    print >> sys.stderr, "            %s %s is already setup; keeping" % \
-                          (len(indent)*" " + keptProduct.name, keptProduct.version)
+                if (keptProduct.version != product.version and
+                    ((self.keep and self.quiet <= 0) or self.verbose)) or self.verbose > 1:
+                    msg = "%s %s is already setup; keeping" % \
+                          (keptProduct.name, keptProduct.version)
+
+                    if not setup_msgs.has_key(msg):
+                        print >> sys.stderr, "            %s" % (len(indent)*" " + msg)
+                        setup_msgs[msg] = 1
 
                 return True, keptProduct.version, None
 
