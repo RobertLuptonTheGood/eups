@@ -3267,8 +3267,8 @@ def flavor():
     if os.environ.has_key("EUPS_FLAVOR"):
         return os.environ["EUPS_FLAVOR"]
 
-    uname = str.split(os.popen('uname -s').readline(), "\n")[0]
-    mach = str.split(os.popen('uname -m').readline(), "\n")[0]
+    uname = os.uname()[0]
+    mach =  os.uname()[4]
 
     if uname == "Linux":
        if re.search(r"_64$", mach):
