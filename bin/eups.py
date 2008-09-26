@@ -1042,7 +1042,7 @@ class VersionFile(object):
 
                     tablefile = self.info[flavor]["table_file"]
                     if not self.info[flavor].has_key("ups_dir") and tablefile != "none":
-                        if tablefile != ("%s.table" % self.productName):
+                        if tablefile != ("%s.table" % self.productName) and not os.path.isabs(tablefile):
                             print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
                         self.info[flavor]["ups_dir"] = "ups"
 
@@ -1302,8 +1302,12 @@ class Product(object):
         self.table = Table(self.tableFileName()).expandEupsVariables(self)
         
     def __str__(self):
+        if self.Eups:
+            flavor = self.Eups.flavor
+        else:
+            flavor = getFlavor()
         s = ""
-        s += "%s %s -f %s -Z %s" % (self.name, self.version, self.Eups.flavor, self.db)
+        s += "%s %s -f %s -Z %s" % (self.name, self.version, flavor, self.db)
 
         return s
 
@@ -1316,11 +1320,13 @@ class Product(object):
         name = "SETUP_" + self.name
 
         if os.environ.has_key(name):
-            pass
-        elif os.environ.has_key(name.upper()):
-            name = name.upper()
+            return name                 # exact match
 
-        return name
+        envNames = filter(lambda k: re.search(r"^%s$" % name, k, re.IGNORECASE), os.environ.keys())
+        if envNames:
+            return envNames[0]
+        else:
+            return name.upper()
 
     def getSetupVersion(self):
         """Return the version, eupsPathDir, productDir, tablefile, and flavor for an already-setup product"""
@@ -2154,6 +2160,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
     def unsetupSetupProduct(self, product):
         """ """
+
         versionName, eupsPathDir, productDir, tablefile, flavor = product.getSetupVersion()
 
         if not versionName or not (eupsPathDir or re.search(r"^LOCAL:", versionName)):
