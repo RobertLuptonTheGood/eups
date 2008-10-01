@@ -2,19 +2,20 @@
 #
 # The main eups programme
 #
-import os, re, sys
+import os, re, sys, traceback
 import pdb
 import eups
-import eupsDistrib
-import eupsDistribFactory
+import eups, eupsServer
 import eupsDistribBuilder
-import eupsDistribPacman
-import eupsDistribTarball
+from eupsDistribution import Distribution
 import eupsGetopt
 import eupsTable
+from eupsServer import ServerConf
+from eupsDistribFactory import DistribFactory
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+distribClasses = {}
 try:
     startupFile = os.environ["EUPS_STARTUP"]
     execfile(startupFile)
@@ -104,15 +105,34 @@ elif cmd == "declare":
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
 elif cmd == "distrib":
+    helpStr = """Usage:
+    eups_distrib [operation] [options] [product [version]]
+    eups_distrib -V
+    eups_distrib list [-Nv] [-Z eupspath] [-z dbz] [-r serverurl] 
+                   [-T tmpdir] [-S serverClass] [product [version]]
+    eups_distrib install [-CgnjvGF] [-Z eupspath] [-z dbz] [-r serverurl] 
+                   [-T tmpdir] [-D distribClass] [-S serverClass] 
+                   product [version]
+    eups_distrib create [-gnvF] [-s serverdir|-r serverurl] [-Z eupspath] 
+                   [-z dbz] [-T tmpdir] [-D distribClass] [-S serverClass] 
+                   product [version]
+    eups_distrib clean [-NvFR] [-Z eupspath] [-z dbz] 
+                   [-T tmpdir] [-D distribClass]
+                   product version
+
+    Manage packages either as a user (via list, install, or remove) or as 
+    a provider (via create).  
+"""
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["cmd", "product", "version"])
 
-    installFlavorFlag = "-\002"
-    tarballFlag = "-\003"
-    tmpDirFlag = "-\004"
     options["-b"] = (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")
     options["-B"] = (True,  "--build", "Search for build files on this :-separated path\n(\"\" -> product's installed ups directory)")
-    options["-C"] = (False, "--current", "Create a list of products that are current; equivalent to --tag=current")
     options["-c"] = (False, "--create", "Create a package for distribution")
+    options["-C"] = (False, "--current", "Create a list of products that are current; equivalent to --tag=current")
+    options["-d"] = (True,  "--distribType", "Create a distribution with this type name (e.g. 'tarball', 'builder')")
+    options["-D"] = (True,  "--distrib-class", "register this Distrib class (repeat as needed)")
+    options["-f"] = (False, "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")
+    options["-F"] = (False, "--force", "Force requested behaviour")
     options["-g"] = (True,  "--groupAccess", "Give specified group r/w access to all built packages")
     options["-i"] = (False, "--install", "Extract and install the specified package")
     options["-I"] = (False, "--incomplete", "Allow a manifest including packages we don't know how to install")
@@ -120,16 +140,16 @@ elif cmd == "distrib":
     options["-l"] = (False, "--list", "List available products")
     options["-m"] = (True,  "--manifest", "Use this manifest file")
     options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
-    options["-p"] = (True,  "--pacman", "Use this pacman cache to install packages")
     options["-r"] = (True,  "--root", "Location of manifests/buildfiles/tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
-    #options["-t"] = (True,  "--prefer-tag", "Prefer distributions that are tagged with this tag")
+    options["-R"] = (False, "--remove", "Clean and Remove all remnants of a declared product")
+    options["-L"] = (False, "--clean", "Clean remnants building/installing a product")
+    options["-s"] = (True,  "--server-dir", "the directory tree to save created packages under")
+    options["-S"] = (True,  "--server-class", "register this DistribServer class (repeat as needed)")
     options["-t"] = (True,  "--tag", "Install versions with this tag (e.g. current or stable)")
-    options[tmpDirFlag] = (True,  "--tmp-dir", "Build products in this directory (when --build is specified)")
-    options[installFlavorFlag] = \
-                               (True, "--install-flavor", "Create a distribution for this flavor (useful with --build)")
-    options[tarballFlag] = (False, "--tarball", "Create a distribution with tarballs")
+    options["-T"] = (True,  "--tmp-dir", "Build products in this directory")
     
     aliases["-i"] = "--extract"
+    aliases["-f"] = "--install-flavor"
 elif cmd == "expandbuild":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildFile", "outDir")
 
@@ -264,6 +284,7 @@ force = opts.options.get('-F', False)
 noaction = opts.options.get('-n')
 path = opts.options.get('-Z')
 verbose = opts.options.get('-v')
+if not verbose:  verbose = 0
 
 if not (narg[0] <= len(opts.argv) <= narg[1]):
     if narg[0] == narg[1]:
@@ -342,7 +363,7 @@ def main(cmd, opts):
     elif cmd == "distrib":
         # Allow distrib's sub-commands to be specified as verbs, not options
         if len(opts.argv) > 0:
-            if opts.argv[0] in ("create", "install", "list"):
+            if opts.argv[0] in ("create", "install", "list", "clean"):
                 cmd = opts.argv.pop(0)
 
                 if cmd == "create":
@@ -351,47 +372,69 @@ def main(cmd, opts):
                     opts.options["-i"] = 1
                 elif cmd == "list":
                     opts.options["-l"] = 1
+                elif cmd == "clean":
+                    opts.options["-L"] = 1
                 else:
                     raise AssertionError, ("Impossible distrib subcommand %s" % cmd)
 
             if len(opts.argv) > 2:
                 print >> sys.stderr, "Unknown subcommand for eups distrib: %s" % opts.argv[0]
                 sys.exit(1)
-        
-        buildFilePath = opts.options.get('-B', None)
-        preferFlavor = opts.options.get('-b', False)
+
         if opts.options.get('-C'):      # -C it old synonym for --tag=current
             if opts.options.has_key("-t") and opts.options["-t"] != "current":
                 print >> sys.stderr, "You man not specify --current and --tag"
                 sys.exit(1)
             print >> sys.stderr, "Please use --tag=current next time, not --current/-C"
             opts.options["-t"] = "current"
-        create = opts.options.get('-c', False)
-        obeyGroups = opts.options.get('-g', None)
-        no_dependencies = opts.options.get('-j', False)
-        allowIncomplete = opts.options.get('-I', False)
-        install = opts.options.get('-i', False)
-        list = opts.options.get('-l', False)
-        manifest = opts.options.get('-m', None)
-        noeups = opts.options.get('-N', False)
-        pacmanCache = opts.options.get('-p', None) # use this pacman cache to install packages?
-        tarball = opts.options.get(tarballFlag, False) # use tarballs to install packages?
 
-        if list and Eups.noaction:
-            print >> sys.stderr, "You may not specify --list along with --noaction"
+        create = opts.options.get('-c', False)
+        list = opts.options.get('-l', False)
+        install = opts.options.get('-i', False)
+        clean = opts.options.get('-L', False)
+
+        manifest = opts.options.get('-m', None)
+        tag = opts.options.get('-t', None)
+        useflavor = opts.options.get('-f', None)
+        makeCurrent = opts.options.get('-C', None)
+        serverDir = opts.options.get('-s', None)
+        nodepend = opts.options.get('-j', False)
+        distName = opts.options.get('-d', None)
+
+        pkgroots = opts.options.get('-r', None)
+        if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
+            pkgroots = os.environ["EUPS_PKGROOT"]
+        if pkgroots is None:
+            pkgroots = ''
+
+        # pkgroots may be a |-delimited list of URLs
+        pkgroots = pkgroots.strip().split('|')
+        if len(pkgroots) == 0 and Eups.verbose:
+            print >> sys.stderr, "No package root specified; you will not be able install packages"
             sys.exit(1)
 
-        packageBase = opts.options.get('-r', None)
+        if len(pkgroots) == 0 and Eups.noeups:
+            print >> sys.stderr, "--noeups option requires package root to be specified (via -r or $EUPS_PKGROOT)"
+            sys.exit(1)
 
-        pkgroot = os.environ.get("EUPS_PKGROOT", None)
-        if not packageBase:
-            packageBase = pkgroot
-
-        tag = opts.options.get('-t', None)
-
-        installFlavor = opts.options.get(installFlavorFlag, flavor)
-        tmpDir = opts.options.get(tmpDirFlag, None)
-
+        # handle extra options
+        dopts = { 'config': {} }
+        dopts['noeups']     = opts.options.get('-N', False)
+        dopts['noaction']   = opts.options.get('-n', False)
+        dopts['allowIncomplete'] = opts.options.get('-I', False)
+        dopts['buildFilePath'] = opts.options.get('-B', None)
+        if opts.options.get('-T'):
+            dopts['buildDir'] = opts.options.get('-T')
+        if opts.options.get('-G'):
+            dopts['serverconf']['PREFER_GENERIC']  = True
+        if opts.options.get('-S'):
+            dopts['serverconf']['DISTRIB_SERVER_CLASS']  = True
+        if opts.options.get('-D'):
+            dopts['serverconf']['DISTRIB_CLASS']  = True
+        if opts.options.get('-g'):
+            dopts['obeygroups'] = True
+            dopts['groupowner'] = opts.options.get('-g')
+        
         try:
             productName = opts.argv[0]
         except IndexError:
@@ -407,9 +450,13 @@ def main(cmd, opts):
         try:
             versionName = opts.argv[1]
         except IndexError:
-            versionName = ""
+            versionName = None
 
-        if create + install + list != 1:
+        if list and Eups.noaction:
+            print >> sys.stderr, "You may not specify --list along with --noaction"
+            sys.exit(1)
+
+        if create + install + list + clean != 1:
             print >> sys.stderr, "Please specify exactly one of --create, --install, and --list"
             sys.exit(1)
 
@@ -419,52 +466,163 @@ def main(cmd, opts):
             desire = "install"
         elif list:
             desire = "list"
+        elif clean:
+            desire = "clean"
         else:
             raise AssertionError, "You can't get here"
         #
         # Check that eups is installed in that db
         #
         packageBasePath = []
-        if packageBase:
-            packageBasePath += packageBase.split("|")
 
-            if pkgroot and packageBase != pkgroot:
-                packageBasePath += [pkgroot]            
-        else:
-            for eupsPathDir in Eups.path:
-                ups_db = Eups.getUpsDB(eupsPathDir)
-
-                if not os.path.isdir(ups_db):
-                    raise RuntimeError, ("Products database %s doesn't exist; please install eups" % ups_db)
-
-                packageBasePath += [os.path.join(eupsPathDir, "packages", installFlavor)]
-
-        if create and noeups and not buildFilePath:
+        if create and dopts['noeups'] and not dopts['buildFilePath']:
             print >> sys.stderr, \
                   "You must specify a path with --build if you are using build files and specify --noeups"
             sys.exit(1)
-        #
-        # Figure out what sort of distribution is desired
-        #
-        if pacmanCache:
-            distribImpl = eupsDistribPacman.Distrib.implementation
-        elif tarball:
-            distribImpl = eupsDistribTarball.Distrib.implementation
-        elif buildFilePath:
-            distribImpl = eupsDistribBuilder.Distrib.implementation
-        else:
-            distribImpl = eupsDistrib.Distrib.implementation
-        #
-        # Make our Distrib object using a factory function
-        #
-        Distrib = eupsDistribFactory.Distrib(distribImpl, Eups, packageBasePath, obeyGroups=obeyGroups,
-                                             tag=tag, preferFlavor=preferFlavor, installFlavor=installFlavor,
-                                             no_dependencies=no_dependencies, allowIncomplete=allowIncomplete,
-                                             noeups=noeups,
-                                             pacmanCache=pacmanCache,
-                                             buildDir=tmpDir, buildFilePath=buildFilePath,
-                                             )
-        distrib(Distrib, desire, productName, versionName, manifest=manifest)
+
+        try: 
+            if desire == "list":
+                if len(pkgroots) == 0:
+                    print >> sys.stderr, "No package servers to query; set -r or $EUPS_PKGROOT"
+                    sys.exit(1)
+
+                for pkgroot in pkgroots:
+                    ds = ServerConf.makeServer(pkgroot, eups=Eups, 
+                                               verbosity=Eups.verbose)
+                    df = DistribFactory(Eups, ds)
+                    for name in distribClasses.keys():
+                        df.register(distribClasses[name], name)
+
+                    dist = Distribution(Eups, pkgroot, options=dopts, 
+                                        distFactory=df, verbosity=Eups.verbose)
+                                        
+                    pkgs = dist.listPackages(productName, versionName)
+
+                    which = "secondary"
+                    if pkgroot is pkgroots[0]:  which = "primary"
+
+                    if len(pkgs) > 0:
+                        if len(pkgroots) > 0:
+                            print "Available products from %s server (%s):" % \
+                                (which, pkgroot)
+                        for (name, ver, flav) in pkgs:
+                            print "  %-20s %-10s %s" % (name, flav, ver)
+                    else:
+                        print "No matching products available from %s server (%s)" % (which, pkgroot)
+
+            elif desire == "install":
+                if productName is None:
+                    print >> sys.stderr, "Please provide a product to install"
+                    sys.exit(1)
+                if len(pkgroots) == 0:
+                    print >> sys.stderr, "No package server URL provided; can't install"
+                    sys.exit(1)
+
+                for pkgroot in pkgroots:
+                    which = "secondary"
+                    if pkgroot is pkgroots[0]:  which = "primary"
+
+                    ds = ServerConf.makeServer(pkgroot, eups=Eups, 
+                                               verbosity=Eups.verbose)
+                    df = DistribFactory(Eups, ds)
+                    for name in distribClasses.keys():
+                        df.register(distribClasses[name], name)
+
+                    dist = Distribution(Eups, pkgroot, options=dopts, 
+                                        distFactory=df, verbosity=Eups.verbose)
+
+                    try:
+                        dist.install(productName, versionName, makeCurrent,
+                                     nodepend=nodepend, 
+                                     manifest=manifest)
+                        break
+                    except eupsServer.RemoteFileNotFound, e:
+                        print >> sys.stderr, "Unable to get", productName, \
+                            "from", which, "server because"
+                        print >> sys.stderr, str(e)
+                        if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
+                            print >> sys.stderr, "Trying next server."
+                        else:
+                            print >> sys.stderr, "Giving up."
+                            sys.exit(1)
+
+                    except eupsServer.ServerError, e:
+                        msg = "Install failed while pulling data from %s"
+                        if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
+                            msg += "; trying next server."
+                            print >> sys.stderr, msg
+                            sys.exit(1)
+                        else:
+                            print >> sys.stderr, msg
+
+
+            elif desire == "create":
+                if productName is None or versionName is None:
+                    print >> sys.stderr, "Please provide a product and version to create"
+                    sys.exit(1)
+
+                pkgroot = None
+                if pkgroots:  pkgroot = pkgroots[0]
+
+                ds = ServerConf.makeServer(pkgroot, eups=Eups, 
+                                           verbosity=Eups.verbose)
+                df = DistribFactory(Eups, ds)
+                for name in distribClasses.keys():
+                    df.register(distribClasses[name], name)
+                dist = Distribution(Eups, pkgroot, options=dopts, 
+                                    distFactory=df, verbosity=Eups.verbose)
+
+                if not serverDir and dist.distServer is not None and \
+                     eupsServer.LocalTransporter.canHandle(dist.distServer.base):
+                    serverDir = dist.distServer.base
+
+                if not serverDir:
+                    print >> sys.stderr, "Please specify a server directory with -s"
+                    sys.exit(1)
+                if not distName:
+                    print >> sys.stderr, "Please specify a distribution type name (e.g. tarball, builder, pacman, etc)"
+                    sys.exit(1)
+
+                dist.create(serverDir, distName, productName, versionName,
+                            nodepend=nodepend, manifest=manifest)
+
+            elif desire == "clean":
+
+                uninstall = bool(opts.options.get('-R'))
+                flav = opts.options.get('-f')
+                if not flav:
+                    flav = Eups.flavor
+
+                df = DistribFactory(Eups, None)
+                for name in distribClasses.keys():
+                    df.register(distribClasses[name], name)
+
+                dist = Distribution(Eups, None, options=dopts, 
+                                    distFactory=df, verbosity=Eups.verbose)
+                dist.clean(productName, versionName, flav, uninstall)
+
+
+        except RuntimeError, e:
+            print >> sys.stderr, str(e)
+            sys.exit(2)
+        except eupsServer.ServerError, e:
+            print >> sys.stderr, "Server error: ", str(e)
+            sys.exit(2)
+        except SystemExit, e:
+            sys.exit(e.code)
+        except KeyboardInterrupt, e:
+            if Eups.verbose > 0:
+                traceback.print_exc()
+            print >> sys.stderr, "Keyboard interrupt:", str(e)
+            sys.exit(4)
+        except Exception, e:
+            print >> sys.stderr, "Sorry! Implementation Error: ", str(e)
+            if True:
+                print >> sys.stderr
+                traceback.print_exc()
+            sys.exit(3)
+
+
     elif cmd in ("expandbuild", "expandtable"):
         productList = {}
         if cmd == "expandbuild":

@@ -2,69 +2,185 @@
 # -*- python -*-
 #
 # Export a product and its dependencies as a package, or install a
-# product from a package
+# product from a package: a specialization for the "Builder" mechanism
 #
-import os
-import re, sys
-import pdb
+import sys, os, re, atexit, shutil
 import eups
 import eupsDistrib
+import eupsServer
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+class Distrib(eupsDistrib.DefaultDistrib):
+    """A class to encapsulate Pacman-based product distribution
 
-class Distrib(eupsDistrib.Distrib):
-    """Handle distribution via curl/cvs/svn and explicit build files"""
+    OPTIONS:
+    The behavior of a Distrib class is fine-tuned via options (a dictionary
+    of named values) that are passed in at construction time.  The options 
+    supported are:
+       noeups           do not use the local EUPS database for information  
+                          while creating packages.       
+       obeyGroups       when creating files (other on the user side or the 
+                          server side), set group ownership and make group
+                          writable
+       groupowner       when obeyGroups is true, change the group owner of 
+                          to this value
+       allowIncomplete  if True, do not stop if we can't create a buildfile
+                          for a specific package.  
+       buildDir         a directory to use to build a package during install.
+                          If this is a relative path, the full path will be
+                          relative to the product root for the installation.
+       buildFilePath    a colon-delimited set of directories to look for 
+                          build file templates in.
+    """
 
-    implementation = "builder"     # which implementation is provided?
+    NAME = "builder"
 
-    def checkInit(self):
-        """Check that self is properly initialised; this matters for subclasses with special needs"""
+    def __init__(self, Eups, distServ, flavor, tag="current", options=None,
+                 verbosity=0, log=sys.stderr):
+        eupsDistrib.Distrib.__init__(self, Eups, distServ, flavor, tag, options,
+                                     verbosity, log)
+
+        self._msgs = {}
+
+        self.allowIncomplete = False
+        if self.options.has_key('allowIncomplete'):
+            self.allowIncomplete = self.options['allowIncomplete']
+
+        self.buildFilePath = ""
+        if self.options.has_key('buildFilePath'):
+            self.buildFilePath = self.options['buildFilePath']
+
+        self.svnroot = ""
+        if self.options.has_key('svnroot'):
+            self.svnroot = self.options['svnroot']
+
+        self.cvsroot = ""
+        if self.options.has_key('cvsroot'):
+            self.cvsroot = self.options['cvsroot']
+
+        
+
+    # @staticmethod   # requires python 2.4
+    def parseDistID(distID):
+        """Return a valid package location if and only we recognize the 
+        given distribution identifier
+
+        This implementation return a location if it starts with "pacman:"
+        """
+        prefix = "build:"
+        distID = distID.strip()
+        if distID.startswith(prefix):
+            return distID[len(prefix):]
+
+        return None
+
+    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
+
+    def checkInit(self, forserver=True):
+        """Check that self is properly initialised; this matters for subclasses 
+        with special needs"""
+        okay = True
+        if not eupsDistrib.Distrib.checkInit(self, forserver):
+            okay = False
 
         try:
             type(self.buildDir)
         except AttributeError, e:
             self.buildDir = None
-            print >> sys.stderr, "Incorrectly initialised eupsDistribBuilder: %s" % e
+            print >> self.log, "Incorrectly initialised eupsDistribBuilder: %s" % e
+            okay = False
 
-        try:
-            type(self.buildFilePath)
-        except AttributeError, e:
-            self.buildFilePath = None
-            print >> sys.stderr, "Incorrectly initialised eupsDistribBuilder: %s" % e
+        if forserver:
+            try:
+                type(self.buildFilePath)
+            except AttributeError, e:
+                self.buildFilePath = None
+                print >> self.log, "Incorrectly initialised eupsDistribBuilder: %s" % e
+                okay = False
 
-    def createPackage(self, productName, versionName, baseDir, productDir, overwrite=False):
-        """Create a package (which basically means locating a
-        buildfile which contains information about its CVS/SVN root,
-        Then write a small file to the manifest directory allowing us to
-        bootstrap the build.  The build file is looked for in
-        buildFilePath, a : separated set of directories ("" -> the installed
-        product's ups directory).  Then return a distribution ID
+        return okay
+
+    def initServerTree(self, serverDir):
+        """initialize the given directory to serve as a package distribution
+        tree.
+        @param serverDir    the directory to initialize
         """
+        eupsDistrib.DefaultDistrib.initServerTree(self, serverDir)
 
-        if re.search(r"^LOCAL:(.*)", versionName):
-            raise RuntimeError, ("I can't create a distribution from a local setup: %s" % versionName)
+        config = os.path.join(serverDir, eupsServer.serverConfigFilename)
+        if not os.path.exists(config):
+            configcontents = """# Configuration for a Builder-based server
+MANIFEST_URL = %(base)s/manifests/%(product)s-%(version)s.manifest
+BUILD_URL = %(base)s/builds/%(path)s
+DIST_URL = %(base)s/builds/%(path)s
+"""
+            cf = open(config, 'a')
+            try:
+                cf.write(configcontents)
+            finally:
+                cf.close()
+
+
+    def getManifestPath(self, serverDir, product, version, flavor=None):
+        """return the path where the manifest for a particular product will
+        be deployed on the server.  In this implementation, all manifest 
+        files are deployed into a subdirectory of serverDir called "manifests"
+        with the filename form of "<product>-<version>.manifest".  Since 
+        this implementation produces generic distributions, the flavor 
+        parameter is ignored.
+
+        @param serverDir      the local directory representing the root of 
+                                 the package distribution tree.  In this 
+                                 implementation, the returned path will 
+                                 start with this directory.
+        @param product        the name of the product that the manifest is 
+                                for
+        @param version        the name of the product version
+        @param flavor         the flavor of the target platform for the 
+                                manifest.  This implementation ignores
+                                this parameter.
+        """
+        return os.path.join(serverDir, "manifests", 
+                            "%s-%s.manifest" % (product, version))
+
+    def createPackage(self, serverDir, product, version, flavor=None,
+                      force=False):
+        """Write a package distribution into server directory tree and 
+        return the distribution ID 
+        @param serverDir      a local directory representing the root of the 
+                                  package distribution tree
+        @param product        the name of the product to create the package 
+                                distribution for
+        @param version        the name of the product version
+        @param flavor         the flavor of the target platform; this may 
+                                be ignored by the implentation
+        @param force          if True, this package will overwrite any 
+                                previously existing distribution files
+        """
+        productName = product
+        versionName = version
+
+        (baseDir, productDir) = self.getProductInstDir(product, version, flavor)
 
         builder = "%s-%s.build" % (productName, versionName)
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:
             msg = "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
-
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
             if os.path.exists(os.path.join("ups", "%s.build" % productName)):
                 msg += "\n" + "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (productName)
 
-            if self.Eups.verbose > 2 or not self._msgs.has_key(msg):
+            if self.verbose > 1 or not self._msgs.has_key(msg):
                 self._msgs[msg] = 1
-                print >> sys.stderr, msg
+                print >> self.log, msg
             if self.allowIncomplete:
                 return None
 
             raise RuntimeError, "I'm giving up. Use --incomplete if you want to proceed with a partial distribution"
 
-        builderDir = os.path.join(self.packageBase, "builds")
+        builderDir = os.path.join(serverDir, "builds")
         if not os.path.isdir(builderDir):
             try:
                 os.mkdir(builderDir)
@@ -72,18 +188,18 @@ class Distrib(eupsDistrib.Distrib):
                 raise RuntimeError, ("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
-        if os.access(full_builder, os.R_OK) and not overwrite and not self.Eups.force:
+        if os.access(full_builder, os.R_OK) and not force:
             if self.Eups.verbose > 1:
-                print >> sys.stderr, "Not recreating", full_builder
+                print >> self.log, "Not recreating", full_builder
             return "build:" + builder
 
-        if self.Eups.verbose > 0:
-            print >> sys.stderr, "Writing", full_builder
+        if self.verbose > 0:
+            print >> self.log, "Writing", full_builder
 
         try:
             if not self.Eups.noaction:
                 if False:
-                    copyfile(buildFile, full_builder)
+                    eupsServer.copyfile(buildFile, full_builder)
                 else:
                     try:
                         ifd = open(buildFile)
@@ -95,7 +211,7 @@ class Distrib(eupsDistrib.Distrib):
                         raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
 
                     try:
-                        expandBuildFile(ofd, ifd, productName, versionName, self.Eups.verbose)
+                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, self.svnroot, self.cvsroot)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
@@ -109,59 +225,87 @@ class Distrib(eupsDistrib.Distrib):
 
         return "build:" + builder
 
+    def getDistIdForPackage(self, product, version, flavor=None):
+        """return the distribution ID that for a package distribution created
+        by this Distrib class (via createPackage())
+        @param product        the name of the product to create the package 
+                                distribution for
+        @param version        the name of the product version
+        @param flavor         the flavor of the target platform; this may 
+                                be ignored by the implentation.  None means
+                                that a non-flavor-specific ID is preferred, 
+                                if supported.
+        """
+        return "build:%s-%s.build" % (product, version)
 
-    def parseDistID(self, distID):
-        """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
+    def packageCreated(self, serverDir, product, version, flavor=None):
+        """return True if a distribution package for a given product has 
+        apparently been deployed into the given server directory.  
+        @param serverDir      a local directory representing the root of the 
+                                  package distribution tree
+        @param product        the name of the product to create the package 
+                                distribution for
+        @param version        the name of the product version
+        @param flavor         the flavor of the target platform; this may 
+                                be ignored by the implentation.  None means
+                                that the status of a non-flavor-specific package
+                                is of interest, if supported.
+        """
+        location = self.parseDistID(self.getDistIdForPackage(product, version, 
+                                                             flavor))
+        return os.path.exists(os.path.join(serverDir, "builds", location))
 
-        try:
-            return re.search(r"^build:(.*)", distID).group(1)
-        except AttributeError:
-            pass
+    def installPackage(self, location, product, version, productRoot, 
+                       installDir, setups=None, buildDir=None):
+        """Install a package with a given server location into a given
+        product directory tree.
+        @param location     the location of the package on the server.  This 
+                               value is a distribution ID (distID) that has
+                               been stripped of its build type prefix.
+        @param productRoot  the product directory tree under which the 
+                               product should be installed
+        @param installDir   the preferred sub-directory under the productRoot
+                               to install the directory.  This value, which 
+                               should be a relative path name, may be
+                               ignored or over-ridden by the pacman scripts
+        @param setups       a list of EUPS setup commands that should be run
+                               to properly build this package.  This is usually
+                               ignored by the pacman scripts.
+        """
 
-        return None    
-
-    parseDistID = classmethod(parseDistID)
-
-    def installPackage(self, distID, products_root, setups):
-        """Setups is a list of setup commands needed to build this product"""
-
-        builder = Distrib.parseDistID(distID)
-        if not builder:
-            raise RuntimeError, ("Expected distribution ID of form build:*; saw \"%s\"" % distID)
-
-        tfile = self.find_file(builder)
+        builder = location
+        tfile = self.distServer.getFileForProduct(builder, product, version,
+                                                  self.Eups.flavor, 
+                                                  ftype="build", 
+                                                  noaction=self.Eups.noaction)
 
         if False:
             if not self.Eups.noaction and not os.access(tfile, os.R_OK):
                 raise RuntimeError, ("Unable to read %s" % (tfile))
 
-        if not self.buildDir:
-            self.buildDir = os.path.join(products_root, "EupsBuildDir")
+        if not buildDir:
+            buildDir = self.getOption('buildDir', 'EupsBuildDir')
+        if self.verbose > 0:
+            print >> self.log, "Building in", buildDir
 
-        if not os.path.isdir(self.buildDir):
-            if not self.Eups.noaction:
-                try:
-                    os.makedirs(self.buildDir)
-                except OSError, e:
-                    print >> sys.stderr, "Failed to create %s: %s" % (self.buildDir, e)
-
-        if self.Eups.verbose > 0:
-            print >> sys.stderr, "Executing %s in %s" % (builder, self.buildDir)
+        if self.verbose > 0:
+            print >> self.log, "Executing %s in %s" % (builder, buildDir)
         #
         # Does this build file look OK?  In particular, does it contain a valid
         # CVS/SVN location or curl/wget command?
         #
-        (cvsroot, svnroot, url, other) = get_root_from_buildfile(tfile)
+        (cvsroot, svnroot, url, other) = get_root_from_buildfile(tfile, self.verbose, self.log)
         if not (cvsroot or svnroot or url or other):
-            print >> sys.stderr, \
+            print >> self.log, \
                   "Unable to find a {cvs,svn}root or wget/curl command in %s; continuing" % (tfile)
         #
         # Prepare to actually do some work
         #
-        cmd = ["cd %s && " % (self.buildDir)]
-        cmd += setups
+        cmd = ["cd %s && " % buildDir]
+        if setups is not None:
+            cmd += map(lambda x: x + " && ", setups)
 
-        if self.Eups.verbose > 2:
+        if self.verbose > 2:
             cmd += ["set -vx &&"]
         #
         # Rewrite build file to replace any setup commands by "setup -j" as
@@ -187,7 +331,6 @@ class Distrib(eupsDistrib.Distrib):
                     line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
                                            #: comments as : is an executable command
                     line += " &&"
-
             line = re.sub(r"^\s*setup\s", "setup -j ", line)
             if not re.search(r"^\s*$", line): # don't confuse the test for an empty build file ("not lines")
                 lines += [line]
@@ -199,19 +342,14 @@ class Distrib(eupsDistrib.Distrib):
         #
         # Did they ask to have group permissions honoured?
         #
-        if self.obeyGroups:
-            if self.Eups.verbose > 2:
-                print "Giving group %s r/w access" % group
-
-            cmd += ["chgrp -R %s %s*" % (group, os.path.splitext(builder)[0])]
-            cmd += ["chmod -R g+rwX %s*" % (group, os.path.splitext(builder)[0])]
+        self.setGroupPerms(os.path.splitext(builder)[0] + "*")
 
         #
         # Write modified (== as run) build file to self.buildDir
         #
-        bfile = os.path.join(self.buildDir, builder)
-        if eupsDistrib.issamefile(bfile, tfile):
-            print >> sys.stderr, "%s and %s are the same; not adding setups to installed build file" % \
+        bfile = os.path.join(buildDir, builder)
+        if eupsServer.issamefile(bfile, tfile):
+            print >> self.log, "%s and %s are the same; not adding setups to installed build file" % \
                   (bfile, tfile)
         else:
             try:
@@ -223,11 +361,32 @@ class Distrib(eupsDistrib.Distrib):
                 os.unlink(bfile)
                 raise RuntimeError, ("Failed to write %s" % bfile)
 
-        if self.Eups.verbose:
+        if self.verbose:
             print "Issuing commands:"
             print "\t", str.join("\n\t", cmd)
 
-        eupsDistrib.system(str.join("\n", cmd), self.Eups.noaction)
+        logfile = os.path.join(buildDir, builder + ".log")
+        cmd = "(%s) > %s.log 2>&1" % (str.join("\n", cmd), logfile)
+        try: 
+            eupsServer.system(cmd, self.Eups.noaction)
+        except OSError, e:
+            if self.verbose >= 0 and os.path.exists(logfile):
+                try: 
+                    print >> self.log, "BUILD ERROR!  From build log:"
+                    eupsServer.system("tail -20 %s 1>&2" % logfile)
+                except:
+                    pass
+            raise RuntimeError("Failed to build %s: %s" % (builder, str(e)))
+
+        if self.verbose > 0:
+            print >> self.log, "Builder %s successfully completed" % builder
+
+        try:
+            self.cleanBuildDirFor(productRoot, product, version)
+        except Exception, e:
+            if self.verbose >= 0:
+                print >> self.log, "Warning: trouble cleaning build directory:",\
+                    str(e)
 
     def find_file_on_path(self, file, auxDir = None):
         """Look for a file on the :-separated buildFilePath, looking in auxDir if
@@ -247,15 +406,16 @@ class Distrib(eupsDistrib.Distrib):
             full_file = os.path.join(bd, file)
 
             if os.path.exists(full_file):
-                if self.Eups.verbose > 1:
+                if self.verbose > 1:
                     print "Found %s (%s)" % (file, full_file)
                 return full_file
 
         return None
 
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def get_root_from_buildfile(buildFile):
+def get_root_from_buildfile(buildFile, verbose=0, log=sys.stderr):
     """Given the name of a buildfile, return (cvsroot, svnroot, url);
     presumably only one will be valid"""
 
@@ -278,7 +438,7 @@ def get_root_from_buildfile(buildFile):
                 svnroot = val
             else:
                 if verbose:
-                    print >> sys.stderr, "Unknown root type:", line,
+                    print >> log, "Unknown root type:", line,
 
             continue
 
@@ -292,7 +452,7 @@ def get_root_from_buildfile(buildFile):
                 svnroot = val
             else:
                 if verbose:
-                    print >> sys.stderr, "Unknown src manager type:", line,
+                    print >> log, "Unknown src manager type:", line,
 
             continue
 
@@ -301,6 +461,8 @@ def get_root_from_buildfile(buildFile):
             url = mat.group(3)
 
     return (cvsroot, svnroot, url, other)
+
+        
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -386,7 +548,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
 
             value = subs[var]
 
-            while op:                   # a python operation to be applied to value.
+            while op:                      # a python operation to be applied to value.
                 # We could just eval the expression, but that allows a malicious user to execute random python,
                 # so we'll interpret the commands ourselves
 
@@ -415,8 +577,8 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
                 else:
                     print >> sys.stderr, "Unexpected modifier \"%s\"; ignoring" % op
 
-                if op and op[0] == ".":
-                    op = op[1:]
+                if op and op[0] == ".": 
+                    op = op[1:] 
 
             return value
 

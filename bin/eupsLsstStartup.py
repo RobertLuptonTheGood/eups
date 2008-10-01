@@ -12,19 +12,20 @@ import eupsDistribFactory
 class lsstDistrib(eupsDistribPacman.Distrib):
     """Handle distribution using LSST's pacman cache"""
 
-    implementation = "pacman:LSST"     # which implementation is provided?
+    NAME = "pacman:LSST"     # which implementation is provided?
+    prefix = NAME + ":"
+    pacmanBaseURL = "http://dev.lsstcorp.org/pkgs/pm:"
 
-    def parseDistID(self, distID):
-        """Return a valid identifier (e.g. a pacman cacheID) iff we understand this sort of distID"""
+    # @staticmethod   # requires python 2.4
+    def parseDistID(distID):
+        """Return a valid package location (e.g. a pacman cacheID) iff we understand this sort of distID"""
 
-        try:
-            return re.search(r"^pacman:((LSST):(.*))", distID).groups()
-        except AttributeError:
-            pass
+        if distID.startswith(prefix):
+            return pacmanBaseURL + distID[len(prefix):]
 
         return None
 
-    parseDistID = classmethod(parseDistID)
+    parseDistID = staticmethod(parseDistID)
 
     def createPacmanDir(self, pacmanDir):
         """Create and initialise a directory to be used by LSST's pacman."""
@@ -33,11 +34,10 @@ class lsstDistrib(eupsDistribPacman.Distrib):
             os.mkdir(pacmanDir)
 
         oPacmanDiro = os.path.join(pacmanDir, "o..pacman..o")
-        if not os.path.isdir(oPacmanDiro):
-            eupsDistrib.system("cd %s && pacman -allow urllib2 -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir),
-                               self.Eups.noaction)
+        if not os.path.isdir(opacmanDiro):
+            eupsDistrib.system("cd %s && pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir))
 
-eupsDistribFactory.registerFactory(lsstDistrib, first=True)
+distribClasses['pacman'] = lsstDistrib
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #

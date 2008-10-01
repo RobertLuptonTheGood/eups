@@ -1,106 +1,163 @@
 #!/usr/bin/env python
+# -*- python -*-
 #
-# The main eups programme
+# Export a product and its dependencies as a package, or install a
+# product from a package: a specialization for Pacman
 #
-import sys
+import sys, os, re
+import eups
 import eupsDistrib
+import eupsServer
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+import eupsDistribTarball
+import eupsDistribPacman
+import eupsDistribBuilder
 
-_distribClasses = []                          # list of possible builders
+class DistribFactory:
+    """a factory class for creating Distrib instances
 
-def registerFactory(obj, first=False):
-    """Register object (a module or class) as a type of eupsDistrib
+    This default implementation will automatically register three default 
+    Distrib class implementations:  "tarball", "pacman", and "builder".  
+    (These are loaded via _registerDefaultDistribs().)  It will also consult 
+    the DistribServer object provided at construction time for the 
+    configuration property, "DISTRIB_CLASS" (via 
+    DistribServer.getConfigPropertyList()).  Each value the form,
 
-    E.g.  import eupsDistribBuilder;  registerFactory(eupsDistribBuilder)"""
+        [name: ]module_class_name
 
-    global _distribClasses
+    where module_class_name is full module-qualified name of the Distrib 
+    sub-class and the optional name is the logical name to associate with this
+    class (for look-ups by name via createDistribByName()).  Example values 
+    include:
 
-    if isinstance(obj, type(sys)):      # isinstance(obj, module) doesn't work; why?
-        obj = obj.Distrib
+        mymodule.myDistribClass
+        tarball: mymodule.mySpecialDistribTarballClass
 
-    if first:
-        _distribClasses = [obj] + _distribClasses
-    else:
-        _distribClasses += [obj]
+    In the second example, the class would over-ride the default DistribTarball
+    class when looked up via createDistribByName().  
 
-import eupsDistribBuilder; registerFactory(eupsDistribBuilder)
-import eupsDistribPacman;  registerFactory(eupsDistribPacman)
-import eupsDistribTarball; registerFactory(eupsDistribTarball)
+    (Note that these custom classes can be encoded into the server configuration
+    file by putting each classname in a separate entry for DISTRIB_CLASS:
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+       DISTRIB_CLASS = mymodule.myDistribClass
+       DISTRIB_CLASS = tarball: mymodule.mySpecialDistribTarballClass
 
-def _chooseCtor(implementation):
-    """Return the proper constructor for the implementation"""
-    
-    for dc in _distribClasses:          # find which version provides the desired implementation
-        if dc.handles(implementation):
-            return dc
+    .)
 
-    return eupsDistrib.Distrib
+    When a Distrib class is chosen via createDistrib(), the custom classes 
+    will be searched first before the defaults.  More precisely, the classes
+    are search in the reverse order that were registered so that latter 
+    registered classes override the previous ones.  
+    """
 
-def Distrib(implementation, Eups, packageBasePath=None, installFlavor=None, preferFlavor=False,
-            tag=None, no_dependencies=False, obeyGroups=False, allowIncomplete=False,
-            noeups=False, **kwargs):
-    """A factory function to return a Distrib that provides the desired implementation
+    def __init__(self, Eups, distServ):
+        """create a factory
+        @param Eups       the eups controller instance in use
+        @param distServ   the DistribServer object to use to configure 
+                            this factory
+        """
+        self.classes = []
+        self.lookup = {}
+        self.distServer = distServ
+        self.Eups = Eups
 
-    If Eups is an eupsDistrib object, then all other arguments are ignored and we'll return a copy
-    (but with the requested implementation)"""
+        self._registerDefaultDistribs()
+        self._registerCustomDistribs()
 
-    if isinstance(Eups, eupsDistrib.Distrib):
-        oldDistrib = Eups
-        return copyDistrib(implementation, oldDistrib)
-    #
-    # We're not being asked for a copy
-    #
-    assert packageBasePath
-    #
-    # Make our Distrib object
-    #
-    Distrib = _chooseCtor(implementation)
+    def register(self, distribClass, name=None):
+        """register a Distrib class.  An attempt to register an object that 
+        is not a subclass of Distrib results in a TypeError exception.
+        Classes registered later will override previous registrations when
+        they support the same type of distribID or use the same name.  
+        @param distribClass   the class object that is a sub-class of Distrib
+        @param name           the look-up name to associate with the class.  
+                                 this name should be used when creating a 
+                                 Distrib instance via createDistribByName().
+                                 If None, the internal default name for the 
+                                 class will be used as the look-up name.
+        """
+        if not issubclass(distribClass, eupsDistrib.Distrib):
+            raise TypeError("registrant not a subclass of eupsDistrib.Distrib")
 
-    distrib = Distrib(Eups, packageBasePath, obeyGroups=obeyGroups, installFlavor=installFlavor,
-                      tag=tag, preferFlavor=preferFlavor, no_dependencies=no_dependencies,
-                      allowIncomplete=allowIncomplete, noeups=noeups)
-    #
-    # Set optional arguments;  not all may be needed by this particular eupsDistrib
-    #
-    distrib.kwargs = kwargs.copy()
-    
-    for k in kwargs.keys():
-        distrib.__dict__[k] = kwargs[k]
+        if name is None:  name = distribClass.NAME
+        self.lookup[name] = distribClass
+        self.classes.append(distribClass)
 
-    distrib.checkInit()   # check that all required fields are present
+    def _registerDefaultDistribs(self):
+        self.register(eupsDistribTarball.Distrib)
+        self.register(eupsDistribPacman.Distrib)
+        self.register(eupsDistribBuilder.Distrib)
 
-    return distrib
+    def _registerCustomDistribs(self):
+        self.registerServerDistribs(self.distServer)
 
-def copyDistrib(implementation, oldDistrib):
-    """Copy a Distrib, returning the proper subclass for the specified implementation"""
-    Distrib = _chooseCtor(implementation)
+    def registerServerDistribs(self, distServer):
+        self.distServer = distServer
+        if self.distServer is None:
+            return
+        sep = re.compile(r'\s*:\s*')
 
-    od = oldDistrib                     # just for brevity
-    distrib = Distrib(od.Eups, od.packageBasePath, obeyGroups=od.obeyGroups,
-                      tag=od.tag, preferFlavor=od.preferFlavor, no_dependencies=od.no_dependencies,
-                      noeups=od.noeups)
+        classnames = self.distServer.getConfigPropertyList("DISTRIB_CLASS")
+        for cls in classnames:
+            nameclass = sep.split(cls, 1)
+            if len(nameclass) < 2:  
+                nameclass = [ None, nameclass[0] ]
+            self.register(self.importDistribClass(nameclass[1]), nameclass[0])
 
-    distrib._msgs = od._msgs
-    #
-    # Set other parameters that are specific to distribution mechanisms
-    #
-    distrib.kwargs = od.kwargs.copy()
-    
-    for k in distrib.kwargs.keys():
-        distrib.__dict__[k] = distrib.kwargs[k]
+    def importDistribClass(self, classname):
+        """import and return the constructor for the given Distrib class name
+        @param classname   the module classname to import
+        """
+        return eupsServer.importClass(classname)
 
-    distrib.checkInit()   # check that all required fields are present
+    def createDistrib(self, distId, flavor=None, tag=None, 
+                      options=None, verbosity=0, log=sys.stderr):
+        """create a Distrib instance for a given distribution identifier
+        @param distId    a distribution identifier (as received via a manifest)
+        @param verbosity     if > 0, print status messages; the higher the 
+                               number, the more messages that are printed
+                               (default=0).
+        @param flavor     the platform type to assume.  The default is the 
+                               flavor associated with our Eups instance.
+        @param tag        the logical name of the release of packages to assume
+                            (default: "current")
+        @param log        the destination for status messages (default:
+                               sys.stderr)
+        @param options    a dictionary of named options that are used to fine-
+                            tune the behavior of this Distrib class.  See 
+                            discussion above for a description of the options
+                            supported by this implementation; sub-classes may
+                            support different ones.
+        """
+        if flavor is None:  flavor = self.Eups.flavor
+        use = self.classes[:]
+        use.reverse()
+        for cls in use:
+            if cls.parseDistID(distId):
+                return cls(self.Eups, self.distServer, 
+                           flavor, tag, options, verbosity, log)
+        raise RuntimeError("Failed to find Distrib ctor for " + distId)
 
-    return distrib
-
-def getImplementation(distID):
-    """Return the proper implementation given a distID"""
-    
-    for dc in _distribClasses:
-        if dc.parseDistID(distID):
-            return dc.implementation
-
-    return eupsDistrib.Distrib.implementation
+    def createDistribByName(self, name, flavor=None, tag=None, 
+                            options=None, verbosity=0, log=sys.stderr):
+        """create a Distrib instance for a given distribution identifier
+        @param distId    a distribution identifier (as received via a manifest)
+        @param verbosity     if > 0, print status messages; the higher the 
+                               number, the more messages that are printed
+                               (default=0).
+        @param flavor     the platform type to assume.  The default is the 
+                               flavor associated with our Eups instance.
+        @param tag        the logical name of the release of packages to assume
+                            (default: "current")
+        @param log        the destination for status messages (default:
+                               sys.stderr)
+        @param options    a dictionary of named options that are used to fine-
+                            tune the behavior of this Distrib class.  See 
+                            discussion above for a description of the options
+                            supported by this implementation; sub-classes may
+                            support different ones.
+        """
+        if flavor is None:  flavor = self.Eups.flavor
+        cls = self.lookup[name]
+        return cls(self.Eups, self.distServer, flavor, tag, options, 
+                   verbosity, log)
