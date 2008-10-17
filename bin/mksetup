@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-import os, sys
+import os, re, sys
 
 sys.argv.pop(0)                         # remove script name
 try:
@@ -22,11 +22,8 @@ ups_db = os.path.join(prefix, "ups_db")
 bindir = os.path.join("$EUPS_DIR","bin")
 setup = os.path.join('$EUPS_DIR',"bin","eups_setup");
 
-# Create a script for normalizing the EUPS_PATH
-try:
-    fd = open("uniquify_path.py", "w")
-    try:
-        print >> fd, """#! /usr/bin/env python
+# Keep only one copy of each directory in sys.argv[1]
+unique_path="""
 import sys
 pp = []
 for d in sys.argv[1].split(":"):
@@ -34,18 +31,18 @@ for d in sys.argv[1].split(":"):
         pp += [d]
 print ":".join(pp)"""
 
-    finally:
-        fd.close()
-except IOError, e:
-    print >> sys.stderr, "Unable to write uniquify_path.py: %s" % e
-    sys.exit(1)
-
 print "Writing a csh startup script";
 try:
     fd = open("setups.csh", "w")
 except IOError, e:
     print >> sys.stderr, "Unable to open setups.csh: %s" % e
     sys.exit(1)
+#
+# Problems with multi-line scripts in csh required us to use a
+# here document, and pre-substitute the path rather than pass
+# it in from the command line
+#
+unique_eups_path = re.sub(r"sys\.argv\[1\]", "\"%s:$EUPS_PATH\"" % prefix, unique_path)
 
 print >> fd, """
 if ("$?EUPS_DIR" == "1" ) then
@@ -62,7 +59,9 @@ endif
 
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-setenv EUPS_PATH `python $EUPS_DIR/bin/uniquify_path.py %(prefix)s:$EUPS_PATH`
+setenv EUPS_PATH `python` << EOT
+%(unique_eups_path)s
+EOT
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 setenv SETUP_EUPS "eups"
 # Deprecated variables
@@ -80,7 +79,7 @@ alias setup 'eval `%(setup)s \\!*`'
 alias unsetup 'eval `%(setup)s --unsetup \\!*`'
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup}
+       "setup" : setup,  "unique_eups_path" : unique_eups_path }
 
 for s in setup_aliases.keys():
     print >> fd, "alias %s %s" % (setup_aliases[s], s)
@@ -103,7 +102,7 @@ fi
 export EUPS_DIR=%(eupsdir)s
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-export EUPS_PATH=`python $EUPS_DIR/bin/uniquify_path.py %(prefix)s:$EUPS_PATH`
+export EUPS_PATH=`python -c '%(unique_path)s' %(prefix)s:$EUPS_PATH`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 export SETUP_EUPS="eups"
 # Deprecated variables
@@ -117,10 +116,10 @@ else
     export PYTHONPATH="%(bindir)s"
 fi
 
-function setup   { eval `%(setup)s           $@`; }; export -f setup
-function unsetup { eval `%(setup)s --unsetup $@`; }; export -f unsetup""" \
+function setup   { eval `%(setup)s           "$@"`; }; export -f setup
+function unsetup { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup""" \
     % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup }
+       "setup" : setup,  "unique_path" : unique_path}
 
 for s in setup_aliases.keys():
     print >> fd, "alias %s=%s" % (setup_aliases[s], s)
