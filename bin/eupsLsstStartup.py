@@ -6,38 +6,40 @@ import pdb
 import eupsDistrib
 import eupsDistribPacman
 import eupsDistribFactory
-#
-# Subclass eupsDistribPacman to allow us to initialise caches
-#
-class lsstDistrib(eupsDistribPacman.Distrib):
-    """Handle distribution using LSST's pacman cache"""
 
-    NAME = "pacman:LSST"     # which implementation is provided?
-    prefix = NAME + ":"
-    pacmanBaseURL = "http://dev.lsstcorp.org/pkgs/pm:"
+if False:                               # not needed with Ray's new scheme
+    #
+    # Subclass eupsDistribPacman to allow us to initialise caches
+    #
+    class lsstDistrib(eupsDistribPacman.Distrib):
+        """Handle distribution using LSST's pacman cache"""
 
-    # @staticmethod   # requires python 2.4
-    def parseDistID(distID):
-        """Return a valid package location (e.g. a pacman cacheID) iff we understand this sort of distID"""
+        NAME = "pacman:LSST"     # which implementation is provided?
+        prefix = NAME + ":"
+        pacmanBaseURL = "http://dev.lsstcorp.org/pkgs/pm:"
 
-        if distID.startswith(prefix):
-            return pacmanBaseURL + distID[len(prefix):]
+        # @staticmethod   # requires python 2.4
+        def parseDistID(distID):
+            """Return a valid package location (e.g. a pacman cacheID) iff we understand this sort of distID"""
 
-        return None
+            if distID.startswith(prefix):
+                return pacmanBaseURL + distID[len(prefix):]
 
-    parseDistID = staticmethod(parseDistID)
+            return None
 
-    def createPacmanDir(self, pacmanDir):
-        """Create and initialise a directory to be used by LSST's pacman."""
+        parseDistID = staticmethod(parseDistID)
 
-        if not os.path.isdir(pacmanDir):
-            os.mkdir(pacmanDir)
+        def createPacmanDir(self, pacmanDir):
+            """Create and initialise a directory to be used by LSST's pacman."""
 
-        oPacmanDiro = os.path.join(pacmanDir, "o..pacman..o")
-        if not os.path.isdir(opacmanDiro):
-            eupsDistrib.system("cd %s && pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir))
+            if not os.path.isdir(pacmanDir):
+                os.mkdir(pacmanDir)
 
-distribClasses['pacman'] = lsstDistrib
+            oPacmanDiro = os.path.join(pacmanDir, "o..pacman..o")
+            if not os.path.isdir(opacmanDiro):
+                eupsDistrib.system("cd %s && pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir))
+
+    distribClasses['pacman'] = lsstDistrib
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
