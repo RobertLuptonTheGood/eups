@@ -556,6 +556,25 @@ but no other interpretation is applied
                             print >> sys.stderr, "Unable to expand PRODUCT_VERSION in %s" % self.file
 
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
+                    #
+                    # EUPS_PATH is really an environment variable, but handle it here
+                    # if the user chose to subscript it, e.g. ${EUPS_PATH[0]}
+                    #
+                    mat = re.search(r"\${EUPS_PATH\[(\d+)\]}", value)
+                    if mat:
+                        ind = int(mat.group(1))
+                        value = re.sub(r"\[(\d+)\]}$", "", value) + "}"
+
+                        if not os.environ.has_key("EUPS_PATH"):
+                            print >> sys.stderr, "%s is not defined; not setting %s" % (value, a.args[0])
+                            continue
+
+                        try:
+                            value = os.environ["EUPS_PATH"].split(":")[ind]
+                        except IndexError:
+                            if product.Eups.verbose > 0:
+                                print >> sys.stderr, "Invalid index %d for \"%s\"; not setting %s" % \
+                                      (ind, os.environ["EUPS_PATH"], a.args[0])
 
                     a.args[i] = value
 
@@ -3315,7 +3334,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
                 pass
 
             if val and not re.search(r"^['\"].*['\"]$", val) and \
-                   re.search(r"[\s<>|&;]", val):   # quote characters that the shell cares about
+                   re.search(r"[\s<>|&;()]", val):   # quote characters that the shell cares about
                 val = "'%s'" % val
 
             if Eups.shell == "sh":
