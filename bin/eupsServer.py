@@ -1512,7 +1512,9 @@ class ServerConf(object):
 
         try:
           try:                               # for python 2.4 compat
+            lineno = 0
             for line in fd:
+                lineno += 1
                 line = commre.split(line)[0].strip()
                 if len(line) == 0:  continue
 
@@ -1522,8 +1524,8 @@ class ServerConf(object):
                 out[name].append(value.strip())
 
           except ValueError, e:
-            raise RuntimeError("format error in config file (%s): %s" %
-                               (file, line))
+            raise RuntimeError("format error in config file (%s:%d): %s" %
+                               (file, lineno, line))
         finally:
             fd.close()
 
