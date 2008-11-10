@@ -1476,6 +1476,8 @@ class Eups(object):
         self.exact_version = exact_version
         self.max_depth = max_depth      # == 0 => only setup toplevel package
 
+        self.locallyCurrent = {}        # products declared local only within self
+
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
         #
@@ -1784,6 +1786,16 @@ class Eups(object):
     def findCurrentVersion(self, productName, path=None):
         """Find current version of a product, returning eupsPathDir, version, vinfo"""
 
+        if self.locallyCurrent.has_key(productName):
+            versionName = self.locallyCurrent[productName]
+            
+            try:
+                info = self.findVersion(productName, versionName)
+            except RuntimeError, e:
+                return [None, versionName, None]
+
+            return [info[1], self.locallyCurrent[productName], { productDir : info[2], table_file : None}]
+        
         if not path:
             path = self.path
         elif isinstance(path, str):
@@ -1865,6 +1877,8 @@ class Eups(object):
 The return value is: versionName, eupsPathDir, productDir, tablefile
 
         """
+
+        input_versionName = versionName
         
         if self.ignore_versions:
            versionName = ""
@@ -1883,11 +1897,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             # If no version explicitly specified, get the first db with a current one.
             eupsPathDir, versionName, vinfo = self.findCurrentVersion(productName, path=eupsPathDirs)
 
+            if not eupsPathDir:         # a locally-declared product that doesn't really exist
+                return [versionName, eupsPathDir, None, None]
+
             eupsPathDirs = [eupsPathDir]
 
         vinfo = None
 
-        if re.search(Eups._relop_re, versionName): # we have a relational expression
+        if self.versionIsRelative(versionName): # we have a relational expression
             expr = re.sub(r"^\s*", "", versionName)
             versionName = None
             matched_eupsPathDir = None
@@ -1950,7 +1967,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         break
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate product %s %s for flavor %s" % (productName, versionName, self.flavor)
+            raise RuntimeError, "Unable to locate product %s %s for flavor %s" % \
+                  (productName, input_versionName, self.flavor)
 
         return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
@@ -2193,6 +2211,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
     # Permitted relational operators
     _relop_re = r"<=?|>=?|==";
 
+    def versionIsRelative(self, versionName):
+        if isinstance(versionName, str):
+            return re.search(Eups._relop_re, versionName)
+        else:
+            return False
+
     def version_cmp(self, v1, v2, suffix=False):
         """Compare two version strings
 
@@ -2217,7 +2241,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             if not version:
                 return "", "", ""
 
-            if len(version.split("-")) > 1: # a version string such as rel-0-8-2
+            if len(version.split("-")) > 2: # a version string such as rel-0-8-2 with more than one hyphen
                 return version, "", ""
 
             mat = re.search(r"^([^-+]+)((-)([^-+]+))?((\+)([^-+]+))?", version)
@@ -2288,9 +2312,20 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             n = n2
 
         for i in range(n):
-            try:                        # try to compare as integers
-                _c1i = int(c1[i])
-                _c2i = int(c2[i])
+            try:                        # try to compare as integers, having stripped a common prefix
+                _c2i = None             # used in test for a successfully removing a common prefix
+
+                mat = re.search(r"^([^\d]+)\d+$", c1[i])
+                if mat:
+                    prefixi = mat.group(1)
+                    if re.search(r"^%s\d+$" % prefixi, c2[i]):
+                        _c1i = int(c1[i][len(prefixi):])
+                        _c2i = int(c2[i][len(prefixi):])
+
+                if _c2i is None:
+                    _c1i = int(c1[i])
+                    _c2i = int(c2[i])
+
                 c1[i] = _c1i
                 c2[i] = _c2i
             except ValueError:
@@ -2816,8 +2851,16 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             
             self.getProduct(productName, versionName, eupsPathDir) # update the cache
 
-    def declareCurrent(self, productName, versionName, eupsPathDir=None):
-        """Declare a product current"""
+    def declareCurrent(self, productName, versionName, eupsPathDir=None, local=False):
+        """Declare a product current.
+
+        If local is true, this is only done in self's scope, and the product/version
+        needn't even be known to eups"""
+
+        if local:
+            self.locallyCurrent[productName] = versionName
+
+            return
         
         return self.declare(productName, versionName, None, eupsPathDir=eupsPathDir, declare_current=True)
     
