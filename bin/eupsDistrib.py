@@ -69,11 +69,12 @@ class Distrib(object):
                           will be set to groupWritable.
        groupowner       when obeyGroups is true, change the group owner of 
                           to this value
-       buildDir         a directory thta may be used to build a package 
+       buildDir         a directory that may be used to build a package 
                           during install.  If this is a relative path, it 
                           the full path (by default) will be relative to 
                           the product root for the installation.  (See
                           getBuildDirFor()).
+       useFlavor        Create a flavor-specific installation (i.e. not "generic")
     """
 
     NAME = None    # sub-classes should provide a string value
@@ -117,7 +118,6 @@ class Distrib(object):
         self.noeups = self.getOption("noeups", False)
         self.buildDir = self.getOption('buildDir', 'EupsBuildDir')
 
-
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the 
@@ -142,7 +142,7 @@ class Distrib(object):
         if not os.path.exists(serverDir):
             os.makedirs(serverDir)
 
-    def createPackage(self, serverDir, product, version, flavor=None):
+    def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID.  If a package is made up of several files,
         all of them (except for the manifest) should be deployed by this 
@@ -358,15 +358,16 @@ class Distrib(object):
                                       None, None, None, False)
 
             # use the server as source of package information
-            ptableflie = None
-            try:
-                ptablefile = \
-                    self.distServer.getTableFile(product, version, 
-                                                 self.flavor)
-            except RemoteFileNotFound, e:
-                if self.verbose > 0:
-                    print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % product
-                ptablefile = "none"
+            ptablefile = self.findTableFile(product, version, self.flavor)
+            if not ptablefile:
+                try:
+                    ptablefile = \
+                        self.distServer.getTableFile(product, version, 
+                                                     self.flavor)
+                except RemoteFileNotFound, e:
+                    if self.verbose > 0:
+                        print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % product
+                    ptablefile = "none"
 
             dependencies = self.Eups.dependencies_from_table(ptablefile)
 
@@ -382,75 +383,90 @@ class Distrib(object):
         for (dprod, dopt, dcurrent) in dependencies:
             productName = dprod.name
             versionName = dprod.version
-            if not versionName:
-                versionName = self.Eups.findCurrentVersion(productName)[1]
+
+            try:
+                versionName = self.Eups.findVersion(productName, versionName)[0]
+            except RuntimeError, e:
+                if self.Eups.versionIsRelative(versionName):
+                    if self.allowIncomplete:
+                        print >> self.log, "%s; using current instead" % e
+                        versionName = self.Eups.findVersion(productName, eups.Current)[0]
+                    else:
+                        raise
+
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)
         productList.reverse()
 
         # now let's go back and fill in the product directory
         for dprod in productList.getProducts():
-            (basedir, dprod.instDir) = \
-                self.getProductInstDir(dprod.product, dprod.version, 
-                                       dprod.flavor)
+            if self.noeups and product == dprod.product:
+                basedir, dprod.instDir = None, "/dev/null"
+            else:
+                (basedir, dprod.instDir) = \
+                          self.getProductInstDir(dprod.product, dprod.version, dprod.flavor)
 
         return productList
 
     def getProductInstDir(self, product, version, flavor):
         """return the directory where a product is installed split into 
-        it's base directory and it product directory (name/version).
+        its base directory and its product directory (name/version).
         """
         productDir = "/dev/null"
         baseDir = ""
-        if not self.noeups or product != dprod.product:
-            try:
-                pinfo = self.Eups.listProducts(product, version)[0]
-                if not pinfo[3]: 
-                    pinfo[3] = "none"   # the product directory
-            except KeyboardInterrupt:
-                sys.exit(1)
-            except IndexError, e:
-                print >> self.log, \
-                    "WARNING: Failed to find the product", product, \
-                    version, "(%s)" % flavor
-                return (baseDir, product)
-            except Exception, e:
-                print >> self.log, \
-                    "WARNING: Failed to lookup directory for",      \
-                    "product", product, version, "(%s):" % flavor,  \
-                    str(e)
-                return (baseDir, product)
+        try:
+            pinfo = self.Eups.listProducts(product, version)[0]
+            if not pinfo[3]: 
+                pinfo[3] = "none"   # the product directory
+        except KeyboardInterrupt:
+            sys.exit(1)
+        except IndexError, e:
+            verbosityToPrint = 0        # control printing the warning
+            if self.noeups:
+                verbosityToPrint += 1
 
-            if pinfo[1] != version:
+            if self.Eups.verbose > verbosityToPrint:
                 print >> self.log, \
-                    "Warning: Something's wrong with %s; %s != %s" % \
-                    (product, version, pinfo[1])
-                    
-            if pinfo[3] == "none":
-                productDir = "none"
-            else:
-                try:
-                    (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo[3]).groups()
-                except:
-                    if self.verbose > 1:
-                        print >> self.log, \
-                            "Split of \"%s\" at \"%s\" failed; proceeding" \
-                            % (pinfo[3], product)
-                    if False:
-                        pass
-                    else:
-                        try:
-                            (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo[3]).groups()
-                            if self.verbose > 1:
-                                print >> self.log, \
-                                    "Guessing \"%s\" has productdir \"%s\"" \
-                                    % (pinfo[3], productDir)
-                        except:
-                            if self.verbose:
-                                print >> self.log, \
-                                    "Again failed to split \"%s\" into baseDir and productdir" \
-                                    % (pinfo[3])
-                            productDir = pinfo[3]
+                      "WARNING: Failed to find the product", product, \
+                      version, "(%s)" % flavor
+            return (baseDir, product)
+        except Exception, e:
+            print >> self.log, \
+                "WARNING: Failed to lookup directory for",      \
+                "product", product, version, "(%s):" % flavor,  \
+                str(e)
+            return (baseDir, product)
+
+        if pinfo[1] != version:
+            print >> self.log, \
+                "Warning: Something's wrong with %s; %s != %s" % \
+                (product, version, pinfo[1])
+
+        if pinfo[3] == "none":
+            productDir = "none"
+        else:
+            try:
+                (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo[3]).groups()
+            except:
+                if self.verbose > 1:
+                    print >> self.log, \
+                        "Split of \"%s\" at \"%s\" failed; proceeding" \
+                        % (pinfo[3], product)
+                if False:
+                    pass
+                else:
+                    try:
+                        (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo[3]).groups()
+                        if self.verbose > 1:
+                            print >> self.log, \
+                                "Guessing \"%s\" has productdir \"%s\"" \
+                                % (pinfo[3], productDir)
+                    except:
+                        if self.verbose:
+                            print >> self.log, \
+                                "Again failed to split \"%s\" into baseDir and productdir" \
+                                % (pinfo[3])
+                        productDir = pinfo[3]
 
         return (baseDir, productDir)
                 
@@ -677,6 +693,7 @@ class DefaultDistrib(Distrib):
             os.makedirs(mandir)
 
         out = os.path.join(mandir, "%s-%s.manifest" % (product, version))
+        
         man = Manifest(product, version, self.Eups, 
                        verbosity=self.verbose-1, log=self.log)
         for dep in productDeps:
@@ -715,6 +732,10 @@ class DefaultDistrib(Distrib):
                                                    flavor)
 
         return deps
+
+    def findTableFile(self, product, version, flavor):
+        """Give the distrib a chance to produce a table file"""
+        return None
 
 def findInstallableRoot(Eups):
     """return the first directory in the eups path that the user can install 

@@ -1,54 +1,13 @@
-"""Define and register a subclass of eupsDistribPacman that can initialise the
-pacman installation for LSST"""
+""" Configure eups for LSST """
 
 import os, re, sys
 import pdb
-import eupsDistrib
-import eupsDistribPacman
-import eupsDistribFactory
-
-if False:                               # not needed with Ray's new scheme
-    #
-    # Subclass eupsDistribPacman to allow us to initialise caches
-    #
-    class lsstDistrib(eupsDistribPacman.Distrib):
-        """Handle distribution using LSST's pacman cache"""
-
-        NAME = "pacman:LSST"     # which implementation is provided?
-        prefix = NAME + ":"
-        pacmanBaseURL = "http://dev.lsstcorp.org/pkgs/pm:"
-
-        # @staticmethod   # requires python 2.4
-        def parseDistID(distID):
-            """Return a valid package location (e.g. a pacman cacheID) iff we understand this sort of distID"""
-
-            if distID.startswith(prefix):
-                return pacmanBaseURL + distID[len(prefix):]
-
-            return None
-
-        parseDistID = staticmethod(parseDistID)
-
-        def createPacmanDir(self, pacmanDir):
-            """Create and initialise a directory to be used by LSST's pacman."""
-
-            if not os.path.isdir(pacmanDir):
-                os.mkdir(pacmanDir)
-
-            oPacmanDiro = os.path.join(pacmanDir, "o..pacman..o")
-            if not os.path.isdir(opacmanDiro):
-                eupsDistrib.system("cd %s && pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit" % (pacmanDir))
-
-    distribClasses['pacman'] = lsstDistrib
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-#
-# Define a distribution type "preferred"
-#
-eups.defineValidTags("preferred")
-
-if False:
-    eups.defineValidSetupTypes("build") # this one's defined already
+import eups
+import eupsDistribBuilder
+try:
+    import lsst.svn
+except ImportError:
+    print >> sys.stderr, "Unable to import lsst.svn --- maybe scons isn't setup?"
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -63,3 +22,74 @@ def eupsCmdHook(cmd, argv):
 
     if cmd == "fetch":
         argv[1:2] = ["distrib", "install"]
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def rewriteTicketVersion(line):
+    """A callback that knows about the LSST concention that a tagname such as
+       ticket_374
+   means the top of ticket 374, and
+      ticket_374+svn6021
+   means revision 6021 on ticket 374"""
+    #
+    # Look for a tagname that we recognise as having special significance
+    #
+    try:
+        mat = re.search(r"^\s*svn\s+(?:co|checkout)\s+([^\s]+)", line)
+        if mat:
+            URL = mat.group(1)
+
+            if re.search(r"^([^\s]+)/trunk$", URL): # already processed
+                return line
+
+            try:
+                type, which, revision = lsst.svn.parseVersionName(URL)
+
+                rewrite = None
+                if type == "branch":
+                    rewrite = "/branches/%s" % which
+                elif type == "ticket":
+                    rewrite = "/tickets/%s" % which
+
+                if rewrite is None:
+                    raise RuntimeError, ""
+
+                if revision:
+                    rewrite += " -r %s" % revision
+
+                line = re.sub(r"/tags/([^/\s]+)", rewrite, line)
+            except RuntimeError, e:
+                raise RuntimeError, ("rewriteTicketVersion: invalid version specification \"%s\" in %s: %s" % \
+                                     (URL, line[:-1], e))
+
+    except AttributeError, e:
+        print >> sys.stderr, "Your version of sconsUtils is too old to support parsing version names"
+    
+    return line
+
+if __name__ == "__main__":
+
+    #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    #
+    # Define a distribution type "preferred"
+    #
+    eups.defineValidTags("preferred")
+
+    if False:
+        eups.defineValidSetupTypes("build") # this one's defined already
+    #
+    # Rewrite ticket names into proper svn urls
+    #
+    eupsDistribBuilder.buildfilePatchCallbacks.add(rewriteTicketVersion)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+import eups
+import eupsServer
+
+class ExtendibleConfigurableDistribServer(eupsServer.ConfigurableDistribServer):
+    """A version of ConfigurableDistribServer that we could augment
+    """
+
+    def __init__(self, *args):
+        super(eupsServer.ConfigurableDistribServer, self).__init__(*args)

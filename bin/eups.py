@@ -1794,7 +1794,8 @@ class Eups(object):
             except RuntimeError, e:
                 return [None, versionName, None]
 
-            return [info[1], self.locallyCurrent[productName], { productDir : info[2], table_file : None}]
+            vinfo = { "productDir" : info[2], "table_file" : None }
+            return [info[1], self.locallyCurrent[productName], vinfo]
         
         if not path:
             path = self.path
@@ -2613,7 +2614,12 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
     def declare(self, productName, versionName, productDir, eupsPathDir=None, tablefile=None, declare_current=False):
         """Declare a product.  productDir may be None if declare_current.  N.b. tablefile=None means that the
-        default "productName.table" table should be used;  set tablefile="none" if you want no table"""
+        default "productName.table" table should be used;  set tablefile="none" if you want no table
+        "tablefile" may be an open file descriptor, in which case we'll write the tablefile for you.
+        """
+
+        if re.search(r"[^a-zA-Z_0-9]", productName):
+            raise RuntimeError, ("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
 
         if productDir and not productName:
             productName = guessProduct(os.path.join(productDir, "ups"))
@@ -2650,6 +2656,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not productDir:
             raise RuntimeError, \
                   ("Please specify a productDir for %s %s (maybe \"none\")" % (productName, versionName))
+
+        if productDir == "/dev/null":   # Oh dear, we failed to find it
+            print >> sys.stderr, "Failed to find productDir for %s %s; assuming \"none\"" % (productName, versionName)
+            productDir = "none"
 
         if productDir != "none" and not os.path.isdir(productDir):
             raise RuntimeError, \

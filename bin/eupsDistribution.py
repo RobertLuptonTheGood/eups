@@ -39,6 +39,8 @@ class Distribution(object):
                                sys.stderr)
         """
         self.Eups = Eups
+        if not flavor:
+            flavor = Eups.flavor
         self.flavor = flavor
         self.distFactory = distFactory
         self.options = options
@@ -152,7 +154,7 @@ class Distribution(object):
             installed = []
         if setups is None:
             setups = []
-        flavor = self.Eups.flavor
+        flavor = self.flavor
 
         idstring = " %s %s for %s" % \
             (manifest.product, manifest.version, flavor)
@@ -174,7 +176,7 @@ class Distribution(object):
                 info = self.Eups.listProducts(prod.product, prod.version)
                 if len(info) > 0:
                     installed.append(pver)
-                    setups.append("setup %s %s" % (prod.product, prod.version))
+                    setups.append("setup --keep %s %s" % (prod.product, prod.version))
                     if self.verbose >= 0:
                         print >> self.log, \
                             "Required product %s %s already installed" % \
@@ -430,7 +432,7 @@ class Distribution(object):
                                None (the default) means the default flavor.
         @param distId       the distribution ID used to install the package.
         """
-        if not flavor:  flavor = self.Eups.flavor
+        if not flavor:  flavor = self.flavor
         distrib = self.distFactory.createDistrib(distId, flavor,
                                                  options=self.options, 
                                                  verbosity=self.verbose, 
@@ -511,16 +513,19 @@ class Distribution(object):
 
         # make sure we have a table file if we need it
         if unknown:
-            upsdir = os.path.join(rootdir,'ups')
-            tablefile = os.path.join(upsdir, product + ".table")
-            if not os.path.exists(tablefile):
-                if not os.path.exists(upsdir):
-                    os.makedirs(upsdir)
-                self.distServer.getFileForProduct(tablefileloc, product, 
-                                                  version, flavor,
-                                                  filename=tablefile)
-            if not os.path.exists(tablefile):
-                raise RuntimeError("Failed to cache table file to " + tablefile)
+            if rootdir == "/dev/null":
+                pass
+            else:
+                upsdir = os.path.join(rootdir,'ups')
+                tablefile = os.path.join(upsdir, product + ".table")
+                if not os.path.exists(tablefile):
+                    if not os.path.exists(upsdir):
+                        os.makedirs(upsdir)
+                    self.distServer.getFileForProduct(tablefileloc, product, 
+                                                      version, flavor,
+                                                      filename=tablefile)
+                if not os.path.exists(tablefile):
+                    raise RuntimeError("Failed to cache table file to " + tablefile)
 
         if self.verbose > 1:
             cur = ""
@@ -588,7 +593,7 @@ class Distribution(object):
         try:
             distrib = \
                 self.distFactory.createDistribByName(distName, 
-                                                     options=opts,
+                                                     options=opts, flavor=self.flavor,
                                                      verbosity=self.verbose)
         except KeyError:
             distrib = None
@@ -604,7 +609,10 @@ class Distribution(object):
             man = Manifest.fromFile(manifest, self.Eups, self.Eups.verbose-1)
 
         # we will always overwrite the top package
-        id = distrib.createPackage(serverRoot, product, version, self.flavor)
+        id = distrib.createPackage(serverRoot, product, version, self.flavor, overwrite=True)
+
+        for p in man.getProducts():
+            self.Eups.declareCurrent(p.product, p.version, local=True)
 
         if not nodepend:
             created = [ "%s-%s" % (product, version) ]

@@ -386,9 +386,10 @@ class DistribServer(object):
             del self.config[name]
         return out
 
-    def clearConfigCache(self, Eups=None):
+    def clearConfigCache(self, Eups=None, verbosity=None):
         if Eups is None:  Eups = eups.Eups()
-        ServerConf.clearConfigCache(Eups, [self.base], self.verbose, self.log)
+        if verbosity is None: verbosity = self.verbose
+        ServerConf.clearConfigCache(Eups, [self.base], verbosity, self.log)
 
 
 class ConfigurableDistribServer(DistribServer):
@@ -397,6 +398,17 @@ class ConfigurableDistribServer(DistribServer):
 
     def _initConfig_(self):
         DistribServer._initConfig_(self)
+
+        # allowed keys in config files
+        validKeys = ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS", "AVAILABLE_PRODUCTS_URL", "MANIFEST_DIR",
+                     "BUILD_URL",
+                     "MANIFEST_URL", "TABLE_URL", "LIST_URL", "PRODUCT_FILE_URL", "FILE_URL", "DIST_URL",
+                     "MANIFEST_DIR_URL", "MANIFEST_FILE_RE", "PREFER_GENERIC", ]
+
+        for k in self.config.keys():
+            if not (k in validKeys):
+                print >> self.log, "Invalid config parameter %s ignored" % k
+
         if not self.config.has_key('MANIFEST_URL'):
             self.config['MANIFEST_URL'] = \
                 "%(base)s/manifests/%(product)s-%(version)s.manifest";
@@ -513,7 +525,7 @@ class ConfigurableDistribServer(DistribServer):
         if self.getConfigProperty('PREFER_GENERIC', ''):
             locations = ("TAGGED", "", "FLAVOR")
 
-        for i in xrange(0, 3):
+        for i in range(len(locations)):
             if locations[i] == "":
                 param = "%s_URL" % ftype
             else:
@@ -521,7 +533,7 @@ class ConfigurableDistribServer(DistribServer):
             tmpl = self.getConfigProperty(param, None)
 
             if tmpl is None:
-                if self.verbose > 1:
+                if self.verbose > 2:
                     print >> self.log, \
                         "Config parameter, %s, not set; skipping" % param
                 continue
@@ -646,7 +658,7 @@ class ConfigurableDistribServer(DistribServer):
             filere = re.compile(filere)
             src = self.getConfigProperty("MANIFEST_DIR", "manifests") % data
 
-            files = self.listFiles(src, None, None, noaction)
+            files = self.listFiles(src, flavor, tag, noaction)
             out = []
             for file in files:
                 m = filere.search(file)
@@ -1034,6 +1046,7 @@ class TransporterFactory(object):
             if cls.canHandle(source):
                 return cls(source, verbosity, log)
 
+        import pdb; pdb.set_trace()
         raise RuntimeError("Transport for file not recognized: " + source)
 
 defaultTransporterFactory = TransporterFactory();
@@ -1229,6 +1242,11 @@ class Dependency(object):
     def __init__(self, product, version, flavor, tablefile, instDir, distId,
                  isOptional=False, extra=None):
         self.product = product
+        if not isinstance(version, str):
+            if isinstance(version, type):
+                version = version()
+            else:
+                version = version.__str__()
         self.version = version
         self.flavor = flavor
         self.tablefile = tablefile
@@ -1298,6 +1316,7 @@ class Manifest(object):
         """add a dependency in the form of a dependency object"""
         if not isinstance(dep, Dependency):
             raise TypeError("not a Dependency instance: " + str(dep))
+
         self.products.append(dep)
 
     def getProducts(self):
@@ -1529,6 +1548,12 @@ class ServerConf(object):
         finally:
             fd.close()
 
+        # check syntax of *CLASS
+        for k in ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS",]:
+            if out.has_key(k):
+                if len(out[k][-1].split(".")) < 2:
+                    print >> self.log, "Invalid config parameter %s: %s (expected module.class)" % (k, out[k][-1])
+
         return out;
 
     def writeConfFile(self, file):
@@ -1553,7 +1578,7 @@ class ServerConf(object):
             cache = os.path.join(eups.getUpsDB(stack), "_servers_")
             if not os.path.exists(cache):
                 continue
-            if not os.access(stack, os.W_OK) or os.access(stack, os.W_OK):
+            if not os.access(stack, os.W_OK) or not os.access(cache, os.W_OK):
                 if verbosity > 0:
                     print >> log, "Insufficient permissions to clear", \
                         "cache in %s; skipping" % stack

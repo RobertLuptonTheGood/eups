@@ -88,13 +88,29 @@ try:
 except IndexError:
     cmd = None
 #
+# Parse arguments common to all sub commands
+#
+debugOptions = opts.options.get(debugFlag, "").split(":")
+for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
+    print >> sys.stderr, "%s in not a valid option to --debug" % bad
+allowRaise = "raise" in debugOptions
+
+dbz = opts.options.get('-z')
+flavor = opts.options.get('-f', eups.flavor())
+force = opts.options.get('-F', False)
+noaction = opts.options.get('-n')
+path = opts.options.get('-Z')
+verbose = opts.options.get('-v')
+if not verbose:  verbose = 0
+#
 # Choose arguments based on cmd
 #
 if cmd:
     helpStr = "eups [commonOptions] %s [options]" % cmd
 
 if cmd == "admin":
-    helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | listCache | clearLocks")
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildCache | clearCache | listCache | clearLocks | clearServerCache")
+    options["-r"] = (True,  "--root", "Location of manifests/buildfiles/tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
 elif cmd == "declare":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
     helpStr += "\n\nDeclare a product"
@@ -131,7 +147,7 @@ elif cmd == "distrib":
     options["-C"] = (False, "--current", "Create a list of products that are current; equivalent to --tag=current")
     options["-d"] = (True,  "--distribType", "Create a distribution with this type name (e.g. 'tarball', 'builder')")
     options["-D"] = (True,  "--distrib-class", "register this Distrib class (repeat as needed)")
-    options["-f"] = (False, "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`")
+    options["-f"] = (False, "--flavor", "Create an installation specialised to the current flavor")
     options["-F"] = (False, "--force", "Force requested behaviour")
     options["-g"] = (True,  "--groupAccess", "Give specified group r/w access to all built packages")
     options["-i"] = (False, "--install", "Extract and install the specified package")
@@ -149,7 +165,7 @@ elif cmd == "distrib":
     options["-T"] = (True,  "--tmp-dir", "Build products in this directory")
     
     aliases["-i"] = "--extract"
-    aliases["-f"] = "--install-flavor"
+    aliases["-f"] = "--use-flavor"
 elif cmd == "expandbuild":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildFile", "outDir")
 
@@ -273,19 +289,6 @@ if opts.options.get('-h') or not cmd:
     opts.usage()
     sys.exit(0)
 
-debugOptions = opts.options.get(debugFlag, "").split(":")
-for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
-    print >> sys.stderr, "%s in not a valid option to --debug" % bad
-allowRaise = "raise" in debugOptions
-
-dbz = opts.options.get('-z')
-flavor = opts.options.get('-f', eups.flavor())
-force = opts.options.get('-F', False)
-noaction = opts.options.get('-n')
-path = opts.options.get('-Z')
-verbose = opts.options.get('-v')
-if not verbose:  verbose = 0
-
 if not (narg[0] <= len(opts.argv) <= narg[1]):
     if narg[0] == narg[1]:
         print >> sys.stderr, "Expected %d arguments, saw %d" % (narg[0], len(opts.argv))
@@ -383,7 +386,7 @@ def main(cmd, opts):
 
         if opts.options.get('-C'):      # -C it old synonym for --tag=current
             if opts.options.has_key("-t") and opts.options["-t"] != "current":
-                print >> sys.stderr, "You man not specify --current and --tag"
+                print >> sys.stderr, "You may not specify --current and --tag"
                 sys.exit(1)
             print >> sys.stderr, "Please use --tag=current next time, not --current/-C"
             opts.options["-t"] = "current"
@@ -395,34 +398,36 @@ def main(cmd, opts):
 
         manifest = opts.options.get('-m', None)
         tag = opts.options.get('-t', None)
-        useflavor = opts.options.get('-f', None)
         makeCurrent = opts.options.get('-C', None)
+        noeups = opts.options.get('-N', False)
         serverDir = opts.options.get('-s', None)
         nodepend = opts.options.get('-j', False)
         distName = opts.options.get('-d', None)
 
-        pkgroots = opts.options.get('-r', None)
-        if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
-            pkgroots = os.environ["EUPS_PKGROOT"]
-        if pkgroots is None:
-            pkgroots = ''
+        installFlavor = flavor
+        if opts.options.get('-f', False):
+            if cmd != "create":
+                print >> sys.stderr, "--use-flavor only makes sense with create"
+        else:
+            if cmd == "create":
+                installFlavor = "generic"
 
-        # pkgroots may be a |-delimited list of URLs
-        pkgroots = pkgroots.strip().split('|')
+        pkgroots = getPkgroots(opts)
         if len(pkgroots) == 0 and Eups.verbose:
             print >> sys.stderr, "No package root specified; you will not be able install packages"
             sys.exit(1)
 
-        if len(pkgroots) == 0 and Eups.noeups:
+        if len(pkgroots) == 0 and noeups:
             print >> sys.stderr, "--noeups option requires package root to be specified (via -r or $EUPS_PKGROOT)"
             sys.exit(1)
 
         # handle extra options
         dopts = { 'config': {} }
-        dopts['noeups']     = opts.options.get('-N', False)
+        dopts['noeups']     = noeups
         dopts['noaction']   = opts.options.get('-n', False)
         dopts['allowIncomplete'] = opts.options.get('-I', False)
         dopts['buildFilePath'] = opts.options.get('-B', None)
+
         if opts.options.get('-T'):
             dopts['buildDir'] = opts.options.get('-T')
         if opts.options.get('-G'):
@@ -493,7 +498,7 @@ def main(cmd, opts):
                     for name in distribClasses.keys():
                         df.register(distribClasses[name], name)
 
-                    dist = Distribution(Eups, pkgroot, options=dopts, 
+                    dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
                                         distFactory=df, verbosity=Eups.verbose)
                                         
                     pkgs = dist.listPackages(productName, versionName)
@@ -528,7 +533,7 @@ def main(cmd, opts):
                     for name in distribClasses.keys():
                         df.register(distribClasses[name], name)
 
-                    dist = Distribution(Eups, pkgroot, options=dopts, 
+                    dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
                                         distFactory=df, verbosity=Eups.verbose)
 
                     try:
@@ -547,7 +552,7 @@ def main(cmd, opts):
                             sys.exit(1)
 
                     except eupsServer.ServerError, e:
-                        msg = "Install failed while pulling data from %s"
+                        msg = "Install failed while pulling data: %s" % e
                         if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
                             msg += "; trying next server."
                             print >> sys.stderr, msg
@@ -569,7 +574,7 @@ def main(cmd, opts):
                 df = DistribFactory(Eups, ds)
                 for name in distribClasses.keys():
                     df.register(distribClasses[name], name)
-                dist = Distribution(Eups, pkgroot, options=dopts, 
+                dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
                                     distFactory=df, verbosity=Eups.verbose)
 
                 if not serverDir and dist.distServer is not None and \
@@ -597,7 +602,7 @@ def main(cmd, opts):
                 for name in distribClasses.keys():
                     df.register(distribClasses[name], name)
 
-                dist = Distribution(Eups, None, options=dopts, 
+                dist = Distribution(Eups, None, options=dopts, flavor=installFlavor,
                                     distFactory=df, verbosity=Eups.verbose)
                 dist.clean(productName, versionName, flav, uninstall)
 
@@ -862,6 +867,22 @@ def main(cmd, opts):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def getPkgroots(opts):
+    """Parse opts and return pkgroots"""
+    
+    pkgroots = opts.options.get('-r', None)
+    if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
+        pkgroots = os.environ["EUPS_PKGROOT"]
+    if pkgroots is None:
+        return []
+
+    # pkgroots may be a |-delimited list of URLs
+    pkgroots = pkgroots.strip().split('|')
+
+    return pkgroots
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def eupsAdmin(Eups, subcmd):
     if not subcmd:
         print >> sys.stderr, helpStr
@@ -875,6 +896,14 @@ def eupsAdmin(Eups, subcmd):
         Eups.listCache()
     elif subcmd == "clearLocks":
         Eups.clearLocks()
+    elif subcmd == "clearServerCache":
+        pkgroots = getPkgroots(opts)
+        for pkgroot in pkgroots:
+            ds = ServerConf.makeServer(pkgroot, eups=Eups, verbosity=Eups.verbose)
+            df = DistribFactory(Eups, ds)
+            dist = Distribution(Eups, pkgroot, distFactory=df, verbosity=Eups.verbose)
+            
+            dist.distServer.clearConfigCache(verbosity=Eups.verbose)
     else:
         print >> sys.stderr, "Unexpected sub-command: %s" % subcmd
         print >> sys.stderr, helpStr

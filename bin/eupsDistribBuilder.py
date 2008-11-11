@@ -108,11 +108,17 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)
         if not os.path.exists(config):
+            if self.flavor == "generic":
+                flavorPath = ""
+            else:
+                flavorPath = "%(flavor)s/"
+
             configcontents = """# Configuration for a Builder-based server
-MANIFEST_URL = %(base)s/manifests/%(product)s-%(version)s.manifest
-BUILD_URL = %(base)s/builds/%(path)s
-DIST_URL = %(base)s/builds/%(path)s
-"""
+MANIFEST_URL = %%(base)s/manifests/%s%%(product)s-%%(version)s.manifest
+BUILD_URL = %%(base)s/builds/%%(path)s
+DIST_URL = %%(base)s/builds/%%(path)s
+""" % (flavorPath)
+            
             cf = open(config, 'a')
             try:
                 cf.write(configcontents)
@@ -143,7 +149,7 @@ DIST_URL = %(base)s/builds/%(path)s
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None,
-                      force=False):
+                      overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -153,13 +159,13 @@ DIST_URL = %(base)s/builds/%(path)s
         @param version        the name of the product version
         @param flavor         the flavor of the target platform; this may 
                                 be ignored by the implentation
-        @param force          if True, this package will overwrite any 
-                                previously existing distribution files
+        @param overwrite      if True, this package will overwrite any 
+                                previously existing distribution files even if Eups.force is false
         """
         productName = product
         versionName = version
 
-        (baseDir, productDir) = self.getProductInstDir(product, version, flavor)
+        (baseDir, productDir) = self.getProductInstDir(productName, versionName, flavor)
 
         builder = "%s-%s.build" % (productName, versionName)
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
@@ -169,8 +175,10 @@ DIST_URL = %(base)s/builds/%(path)s
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
-            if os.path.exists(os.path.join("ups", "%s.build" % productName)):
-                msg += "\n" + "N.b. found %s.build in ./ups; consider adding ./ups to --build path" % (productName)
+            for d in self.buildFilePath.split(":") + ["."]:
+                if os.path.exists(os.path.join(d, "ups", "%s.build" % productName)):
+                    msg += "\n" + "N.b. found %s.build in %s/ups; consider adding %s/ups to --build path" % \
+                           (d, d, productName)
 
             if self.verbose > 1 or not self._msgs.has_key(msg):
                 self._msgs[msg] = 1
@@ -183,12 +191,12 @@ DIST_URL = %(base)s/builds/%(path)s
         builderDir = os.path.join(serverDir, "builds")
         if not os.path.isdir(builderDir):
             try:
-                os.mkdir(builderDir)
+                os.makedirs(builderDir)
             except:
                 raise RuntimeError, ("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
-        if os.access(full_builder, os.R_OK) and not force:
+        if os.access(full_builder, os.R_OK) and not (overwrite or self.Eups.force):
             if self.Eups.verbose > 1:
                 print >> self.log, "Not recreating", full_builder
             return "build:" + builder
@@ -288,8 +296,11 @@ DIST_URL = %(base)s/builds/%(path)s
         if self.verbose > 0:
             print >> self.log, "Building in", buildDir
 
+        logfile = os.path.join(buildDir, builder + ".log") # we'll log the build to this file
+
         if self.verbose > 0:
             print >> self.log, "Executing %s in %s" % (builder, buildDir)
+            print >> self.log, "Writing log to %s" % (logfile)
         #
         # Does this build file look OK?  In particular, does it contain a valid
         # CVS/SVN location or curl/wget command?
@@ -308,7 +319,7 @@ DIST_URL = %(base)s/builds/%(path)s
         if self.verbose > 2:
             cmd += ["set -vx &&"]
         #
-        # Rewrite build file to replace any setup commands by "setup -j" as
+        # Rewrite build file to replace any setup commands by "setup --keep" as
         # we're not necessarily declaring products current, so we're setting
         # things up explicitly and a straight setup in the build file file
         # undo our hard work
@@ -331,8 +342,8 @@ DIST_URL = %(base)s/builds/%(path)s
                     line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
                                            #: comments as : is an executable command
                     line += " &&"
-            line = re.sub(r"^\s*setup\s", "setup -j ", line)
-            if not re.search(r"^\s*$", line): # don't confuse the test for an empty build file ("not lines")
+            line = re.sub(r"^\s*setup\s", "setup --keep ", line)
+            if not re.search(r"^\s*(\#.*)?$", line): # don't confuse the test for an empty build file ("not lines")
                 lines += [line]
         del fd
 
@@ -365,8 +376,10 @@ DIST_URL = %(base)s/builds/%(path)s
             print "Issuing commands:"
             print "\t", str.join("\n\t", cmd)
 
-        logfile = os.path.join(buildDir, builder + ".log")
-        cmd = "(%s) > %s.log 2>&1" % (str.join("\n", cmd), logfile)
+        if False:
+            cmd = "(%s) 2>&1 | tee > %s" % (str.join("\n", cmd), logfile)
+        else:
+            cmd = "(%s) > %s 2>&1 " % (str.join("\n", cmd), logfile)
         try: 
             eupsServer.system(cmd, self.Eups.noaction)
         except OSError, e:
@@ -388,8 +401,14 @@ DIST_URL = %(base)s/builds/%(path)s
                 print >> self.log, "Warning: trouble cleaning build directory:",\
                     str(e)
 
-    def find_file_on_path(self, file, auxDir = None):
-        """Look for a file on the :-separated buildFilePath, looking in auxDir if
+
+    def findTableFile(self, productName, version, flavor):
+        """Give the distrib a chance to produce a table file"""
+
+        return self.find_file_on_path("%s.table" % productName)
+
+    def find_file_on_path(self, fileName, auxDir = None):
+        """Look for a fileName on the :-separated buildFilePath, looking in auxDir if
         an element of path is empty"""
 
         if not self.buildFilePath:
@@ -403,12 +422,30 @@ DIST_URL = %(base)s/builds/%(path)s
                     bd = auxDir
                 else:
                     continue
-            full_file = os.path.join(bd, file)
 
-            if os.path.exists(full_file):
+            if re.match(bd, r"\*%"):    # search recursively for desired file
+                bd = bd[0:-1]
+                if self.verbose > 2:
+                    print "Searching %s recursively for %s)" % (bd, fileName)
+                
+                for dir, subDirs, files in os.walk(bd):
+                    if dir == ".svn":   # don't look in SVN private directories
+                        continue
+                    
+                    for f in files:
+                        if f == fileName:
+                            full_fileName = os.path.join(dir, fileName)
+
+                            if self.verbose > 1:
+                                print "Found %s (%s)" % (fileName, full_fileName)
+                            return full_fileName
+
+            full_fileName = os.path.join(bd, fileName)
+
+            if os.path.exists(full_fileName):
                 if self.verbose > 1:
-                    print "Found %s (%s)" % (file, full_file)
-                return full_file
+                    print "Found %s (%s)" % (fileName, full_fileName)
+                return full_fileName
 
         return None
 
@@ -462,7 +499,64 @@ def get_root_from_buildfile(buildFile, verbose=0, log=sys.stderr):
 
     return (cvsroot, svnroot, url, other)
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class BuildfilePatchCallbacks(object):
+    """Callbacks to modify build files.
+    
+     E.g. we can define a callback to rewrite SVN root to recognise a tagname
+      "svnXXX" as a request for release XXX
+      """
+
+    callbacks = []
+    user_callbacks = []
+
+    def __init__(self):
+        pass
+
+    def add(self, callback, system=False):
+        """Declare a callback to modify a build file; iff system is true, it's a "system" callback
+        which isn't deleted (by default) by the clear member function
+
+        The callbacks accept a line of the file, and return a possibly
+        modified version of the same line
+
+        N.b.  A version specification ABC will appear in an SVN root as tags/ABC;
+        e.g. the default callback list includes
+           lambda line: re.sub(r"/tags/svn", "/trunk -r ", line)
+        """
+        if system:
+            BuildfilePatchCallbacks.callbacks += [callback]
+        else:
+            BuildfilePatchCallbacks.user_callbacks += [callback]
+
+    def apply(self, line):
+        """Apply all callbacks to a line (system callbacks are applied first"""
         
+        for c in BuildfilePatchCallbacks.callbacks + BuildfilePatchCallbacks.user_callbacks:
+            line = c(line)
+
+        return line
+
+    def clear(user=True, system=False):
+        """Clear the list of buildfile patch callbacks
+        
+        If user is True, clear  user-defined callbacks
+        If system is True, clear system-defined callbacks
+        """
+        if user:
+            BuildfilePatchCallbacks.user_callbacks = []
+        if system:
+            BuildfilePatchCallbacks.callbacks = []
+
+try:
+    type(buildfilePatchCallbacks)
+except NameError:
+    buildfilePatchCallbacks = BuildfilePatchCallbacks()
+    #
+    # Recognise that a tagname svnXYZ is version XYZ on the trunk 
+    #
+    buildfilePatchCallbacks.add(lambda line: re.sub(r"/tags/svn", "/trunk -r ", line), system=True)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -589,6 +683,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
     for line in ifd:
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
-        line = re.sub(r"/tags/svn", "/trunk -r ", line);
+
+        line = buildfilePatchCallbacks.apply(line)
 
         print >> ofd, line,
