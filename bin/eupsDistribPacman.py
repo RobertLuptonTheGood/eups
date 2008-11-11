@@ -104,7 +104,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None, 
-                      force=False):
+                      overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -114,8 +114,8 @@ class Distrib(eupsDistrib.DefaultDistrib):
         @param version        the name of the product version
         @param flavor         the flavor of the target platform; this may 
                                 be ignored by the implentation
-        @param force          if True, this package will overwrite any 
-                                previously existing distribution files
+        @param overwrite      if True, this package will overwrite any 
+                                previously existing distribution files even if Eups.force is false
         """
 
         # we don't have a way of creating pacman files.  

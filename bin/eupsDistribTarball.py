@@ -73,7 +73,7 @@ DIST_URL = %(base)s/%(path)s
                 cf.close()
 
     def createPackage(self, serverDir, product, version, flavor=None, 
-                      force=False):
+                      overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -83,14 +83,14 @@ DIST_URL = %(base)s/%(path)s
         @param version        the name of the product version
         @param flavor         the flavor of the target platform; this may 
                                 be ignored by the implentation
-        @param force          if True, this package will overwrite any 
-                                previously existing distribution files
+        @param overwrite      if True, this package will overwrite any 
+                                previously existing distribution files even if Eups.force is false
         """
         if flavor is None:  flavor = self.Eups.flavor
         tarball = self.getDistIdForPackage(product, version, flavor)
         (baseDir, productDir) = self.getProductInstDir(product, version, flavor)
 
-        if os.access("%s/%s" % (serverDir, tarball), os.R_OK) and not force:
+        if os.access("%s/%s" % (serverDir, tarball), os.R_OK) and not (self.Eups.force or overwrite):
             if self.verbose > 0:
                 print >> self.log, "Not recreating", tarball
             return tarball
