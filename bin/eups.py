@@ -856,12 +856,27 @@ class Action(object):
                     vers = logicalVersion
 
         productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth)
-        if not productOK and fwd and not optional:
-            try:
-                vers = vers()           # may be Current or Setup
-            except:
-                pass
-            raise RuntimeError, ("Failed to setup required product %s %s: %s" % (productName, vers, reason))
+        if not productOK and fwd:
+            if optional:                # setup the pre-existing version (if any)
+                try:
+                    product = Eups.Product(productName, noInit=True).initFromSetupVersion(Eups.oldEnviron)
+                    q = Quiet(Eups)
+                    productOK, vers, reason = Eups.setup(productName, product.version, fwd, recursionDepth)
+                    del q
+                    if productOK:
+                        if Eups.verbose > 0:
+                            print >> sys.stderr, "Kept previously setup %s %s" % (product.name, product.version)
+                    else:
+                        #debug(reason)
+                        pass
+                except RuntimeError, e:
+                    pass
+            else:
+                try:
+                    vers = vers()           # may be Current or Setup
+                except:
+                    pass
+                raise RuntimeError, ("Failed to setup required product %s %s: %s" % (productName, vers, reason))
 
     def execute_envPrepend(self, Eups, fwd=True):
         """Execute envPrepend"""
@@ -1274,10 +1289,10 @@ class Product(object):
                           self.Eups.findFullySpecifiedVersion(self.name, versionName, flavor, eupsPathDir)
             self.table = Table(tablefile).expandEupsVariables(self)
 
-    def initFromSetupVersion(self):
+    def initFromSetupVersion(self, environ=None):
         """Initialize a Product that's already setup"""
 
-        versionName, eupsPathDir, productDir, tablefile, flavor = self.getSetupVersion()
+        versionName, eupsPathDir, productDir, tablefile, flavor = self.getSetupVersion(environ)
         if not versionName:
             raise RuntimeError, ("%s is not setup" % self.name)
 
@@ -1347,10 +1362,10 @@ class Product(object):
         else:
             return name.upper()
 
-    def getSetupVersion(self):
+    def getSetupVersion(self, environ=None):
         """Return the version, eupsPathDir, productDir, tablefile, and flavor for an already-setup product"""
 
-        return self.Eups.findSetupVersion(self.name)
+        return self.Eups.findSetupVersion(self.name, environ)
 
     def checkCurrent(self, isCurrent=None):
         """check if product is current.  This shouldn't be needed if update the db when declaring products"""
@@ -1827,14 +1842,19 @@ class Eups(object):
             raise RuntimeError, \
                   ("Unable to locate a current version of %s for flavor %s" % (productName, self.flavor))
 
-    def findSetupVersion(self, productName):
-        """Find setup version of a product, returning the version, eupsPathDir, productDir, None (for tablefile), and flavor"""
+    def findSetupVersion(self, productName, environ=None):
+        """Find setup version of a product, returning the version, eupsPathDir, productDir, None (for tablefile), and flavor
+        If environ is specified search it for environment variables; otherwise look in os.environ
+        """
+
+        if not environ:
+            environ = os.environ
 
         product = self.Product(productName, noInit=True)
 
         versionName, eupsPathDir, productDir, tablefile, flavor = Setup, None, None, None, None
         try:
-            args = os.environ[product.envarSetupName()].split()
+            args = environ[product.envarSetupName()].split()
         except KeyError:
             return None, eupsPathDir, productDir, tablefile, flavor
 
@@ -1849,7 +1869,7 @@ class Eups(object):
                       "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
 
         if productName == "eups" and not args: # you can get here if you initialised eups by sourcing setups.c?sh
-            args = ["LOCAL:%s" % os.environ["EUPS_DIR"], "-Z", "(none)"]
+            args = ["LOCAL:%s" % environ["EUPS_DIR"], "-Z", "(none)"]
 
         if len(args) > 0 and args[0] != "-f":
             versionName = args.pop(0)
@@ -1867,7 +1887,7 @@ class Eups(object):
             versionName = self.findCurrentVersion(productName, eupsPathDir)[1]
 
         try:
-            productDir = os.environ[product.envarDirName()]
+            productDir = environ[product.envarDirName()]
         except KeyError:
             pass
             
@@ -2016,7 +2036,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
         tablefile = vinfo["table_file"]
         if tablefile is None:
-            #debug("tablefile is None in _finishFinding")
             tablefile = "none"
 
         if vinfo.has_key("ups_dir"):
@@ -2563,7 +2582,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     #
                     # We need to resetup the product, but be careful. We can't just call
                     # setup recursively as that'll just blow the call stack; but we do
-                    # want keep the be active for dependent products.  Hence the two
+                    # want keep to be active for dependent products.  Hence the two
                     # calls to setup
                     #
                     self.setup(keptProduct, recursionDepth=-9999, noRecursion=True)
@@ -2610,6 +2629,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
     def unsetup(self, productName, versionName=None):
         """Unsetup a product"""
+
         self.setup(productName, versionName, fwd=False)
 
     def declare(self, productName, versionName, productDir, eupsPathDir=None, tablefile=None, declare_current=False):
