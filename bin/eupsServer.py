@@ -1046,7 +1046,6 @@ class TransporterFactory(object):
             if cls.canHandle(source):
                 return cls(source, verbosity, log)
 
-        import pdb; pdb.set_trace()
         raise RuntimeError("Transport for file not recognized: " + source)
 
 defaultTransporterFactory = TransporterFactory();
@@ -1328,6 +1327,16 @@ class Manifest(object):
         to install them"""
         self.products.reverse()
 
+    def roll(self, n=1):
+        """Roll the list of products by n (n=1: [a, b, c, d] -> [b, c, d, a]"""
+        if n < 0:
+            n = -n
+            for i in range(n):
+                self.products.insert(0, self.products.pop())
+        else:
+            for i in range(n):
+                self.products.append(self.products.pop(0))
+
     def read(self, file, setproduct=True):
         """load the dependencies listed in a file"""
 
@@ -1371,7 +1380,7 @@ class Manifest(object):
         """
         product = self.product
         if product is None:
-            product = "UNKNONW PRODUCT"
+            product = "UNKNOWN_PRODUCT"
         version = self.version
         if version is None:
             version = "generic"
@@ -1456,7 +1465,7 @@ class ServerConf(object):
                     print >> self.log, "...as", cached
 
         if configFile is None:
-            # we were not provided with a config file, so we'll get it from 
+            # we were not provided with a config file, so we'll try to get it from 
             # the server and (maybe) cache it.
             configFile = cached
         elif save:
@@ -1475,11 +1484,13 @@ class ServerConf(object):
 
                 ds = DistribServer(packageBase, 
                                    verbosity=self.verbose, log=self.log);
-                configFile = ds.getConfigFile(configFile)
+                try:
+                    configFile = ds.getConfigFile(configFile)
+                except RuntimeError:    # may not exist if this is a new installation
+                    pass
 
             if not os.path.exists(configFile):
-                raise RuntimeException("Failed to find or cache config file: " +
-                                       configFile)
+                raise RuntimeError, ("Failed to find or cache config file: " + configFile)
 
             self.data = self.readConfFile(configFile);
 

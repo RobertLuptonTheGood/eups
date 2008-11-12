@@ -394,12 +394,17 @@ DIST_URL = %%(base)s/builds/%%(path)s
         if self.verbose > 0:
             print >> self.log, "Builder %s successfully completed" % builder
 
-        try:
-            self.cleanBuildDirFor(productRoot, product, version)
-        except Exception, e:
-            if self.verbose >= 0:
-                print >> self.log, "Warning: trouble cleaning build directory:",\
-                    str(e)
+        if False:
+            # 
+            # cleanBuildDirFor is in Distribution, not Distrib.  As I don't
+            # really want to clean up automatically, I'm not fixing this
+            #
+            try:
+                self.cleanBuildDirFor(productRoot, product, version)
+            except Exception, e:
+                if self.verbose >= 0:
+                    print >> self.log, "Warning: trouble cleaning build directory:",\
+                        str(e)
 
 
     def findTableFile(self, productName, version, flavor):

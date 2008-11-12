@@ -396,7 +396,10 @@ class Distrib(object):
 
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)
-        productList.reverse()
+        #
+        # We need to install those products in the correct order
+        #
+        productList.roll()
 
         # now let's go back and fill in the product directory
         for dprod in productList.getProducts():
@@ -669,7 +672,7 @@ class DefaultDistrib(Distrib):
             return os.path.join(serverDir, "manifests", flavor, file)
 
     def writeManifest(self, serverDir, productDeps, product, version,
-                      flavor=None):
+                      flavor=None, force=False):
         """write out a manifest file for a given product with the given
         dependencies.  See getManifestPath() for an explanation of where
         manifests are deployed.  
@@ -698,7 +701,30 @@ class DefaultDistrib(Distrib):
                        verbosity=self.verbose-1, log=self.log)
         for dep in productDeps:
             man.addDepInst(dep)
+        #
+        # Go through that manifest copying table files into the distribution tree
+        #
+        for dep in productDeps:
+            if not dep.tablefile:
+                dep.tablefile = "none"
+            if dep.tablefile == "none":
+                continue
 
+            fulltablename = dep.tablefile
+            tabledir = os.path.join(serverDir, "tables")
+            dep.tablefile = "%s-%s.table" % (dep.product, dep.version)
+            tablefile_for_distrib = os.path.join(tabledir, dep.tablefile)
+
+            if os.access(tablefile_for_distrib, os.R_OK) and not force:
+                if self.Eups.verbose > 1:
+                    print >> sys.stderr, "Not recreating", tablefile_for_distrib
+            else:
+                if self.Eups.verbose > 1:
+                    print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
+                eupsServer.copyfile(fulltablename, tablefile_for_distrib)
+        #
+        # Finally write the manifest file itself
+        #
         man.write(out, flavor=flavor)
         self.setGroupPerms(out)
         
@@ -726,10 +752,26 @@ class DefaultDistrib(Distrib):
 
         # go through dependencies and fill in the missing info
         for prod in deps.getProducts():
-            prod.tablefile = "%s.table" % prod.product
+            prod.distId = self.getDistIdForPackage(prod.product, prod.version, flavor)
+            #
+            # Find product's table file
+            #
+            prod.tablefile = None
+            try:
+                if prod.product == "scons":
+                    raise RuntimeError, "foooo"
+                prod.tablefile = self.Eups.Product(prod.product, prod.version).table.file
+            except KeyboardInterrupt:
+                raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
+                                     (prod.product, prod.version))
+            except RuntimeError, e:
+                prod.tablefile = self.findTableFile(prod.product, prod.version, flavor)
+            except Exception, e:
+                pass
 
-            prod.distId = self.getDistIdForPackage(prod.product, prod.version,
-                                                   flavor)
+            if prod.tablefile == None:
+                print >> sys.stderr, "WARNING: Failed to lookup tablefile for %s %s: %s" %(prod.product, prod.version, e)
+                prod.tablefile = "none"
 
         return deps
 

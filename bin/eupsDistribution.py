@@ -610,7 +610,10 @@ class Distribution(object):
 
         # we will always overwrite the top package
         id = distrib.createPackage(serverRoot, product, version, self.flavor, overwrite=True)
-
+        #
+        # Any products in the top-level table file will be considered current for
+        # the purposes of creating this distribution
+        #
         for p in man.getProducts():
             self.Eups.declareCurrent(p.product, p.version, local=True)
 
@@ -634,7 +637,7 @@ class Distribution(object):
 
         # deploy the manifest file
         distrib.writeManifest(serverRoot, man.getProducts(), product, version, 
-                              self.flavor)
+                              self.flavor, self.Eups.force)
         
     def _recursiveCreate(self, serverRoot, distrib, manifest, created=None, 
                          recurse=True):
@@ -682,7 +685,7 @@ class Distribution(object):
                 self._recursiveCreate(serverRoot, distrib, man, created, recurse)
 
             distrib.writeManifest(serverRoot, man.getProducts(), dp.product,
-                                  dp.version, self.flavor)
+                                  dp.version, self.flavor, self.Eups.force)
 
     def _availableAtLocation(self, dp, serverRoot):
         distrib = self.distFactory.createDistrib(dp.distId, dp.flavor, None,
