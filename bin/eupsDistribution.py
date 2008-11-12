@@ -219,7 +219,7 @@ class Distribution(object):
                         "Package %s %s installed successfully" % \
                         (prod.product, prod.version)
 
-                setups.append("setup %s %s" % (prod.product, prod.version))
+                setups.append("setup --keep %s %s" % (prod.product, prod.version))
 
                 # declare the newly installed package, if necessary
                 root = os.path.join(productRoot, flavor, prod.instDir)
@@ -512,9 +512,12 @@ class Distribution(object):
             raise RuntimeError(msg)
 
         # make sure we have a table file if we need it
+        tablefile = tablefileloc
         if unknown:
             if rootdir == "/dev/null":
-                pass
+                tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
+                                                              version, flavor)
+                tablefile = open(tablefile)
             else:
                 upsdir = os.path.join(rootdir,'ups')
                 tablefile = os.path.join(upsdir, product + ".table")
@@ -525,15 +528,10 @@ class Distribution(object):
                                                       version, flavor,
                                                       filename=tablefile)
                 if not os.path.exists(tablefile):
-                    raise RuntimeError("Failed to cache table file to " + tablefile)
-
-        if self.verbose > 1:
-            cur = ""
-            if asCurrent: cur = "as Current"
-            print >> self.log, "Declaring", product, rootdir, cur 
+                    raise RuntimeError("Failed to find table file %s" % tablefile)
 
         self.Eups.declare(product, version, rootdir, eupsPathDir=productRoot, 
-                          declare_current=asCurrent)
+                          tablefile=tablefile, declare_current=asCurrent)
                           
 
     def listPackages(self, product=None, version=None, tag=None):
