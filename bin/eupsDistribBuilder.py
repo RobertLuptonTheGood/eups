@@ -317,7 +317,9 @@ DIST_URL = %%(base)s/builds/%%(path)s
             cmd += map(lambda x: x + " && ", setups)
 
         if self.verbose > 2:
-            cmd += ["set -vx &&"]
+            cmd += ["set -x &&"]
+            if self.verbose > 3:
+                cmd += ["set -v &&"]
         #
         # Rewrite build file to replace any setup commands by "setup --keep" as
         # we're not necessarily declaring products current, so we're setting
