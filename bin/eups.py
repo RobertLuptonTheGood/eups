@@ -900,13 +900,14 @@ class Action(object):
 
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}
-                key = re.search(r"^$\?{([^}]*)}", value).group(0)
+                                            # if they don't exist, ignore the entire line
+                key = re.search(r"^\$\?{([^}]*)}", value).group(1)
                 if os.environ.has_key(key):
                     value = os.environ[key]
                 else:
                   if Eups.verbose > 0:
                       print >> sys.stderr, "$%s is not defined; not setting %s" % (key, value)
-                      return
+                  return
             except AttributeError:
                 pass
 
@@ -965,13 +966,14 @@ class Action(object):
 
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}
-                vkey = re.search(r"^$\?{([^}]*)}", value).group(0)
+                                            # if they don't exist, ignore the entire line
+                vkey = re.search(r"^\$\?{([^}]*)}", value).group(1)
                 if os.environ.has_key(vkey):
                     value = os.environ[vkey]
                 else:
-                  if Eups.verbose > 0:
-                      print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
-                      return
+                    if Eups.verbose > 0:
+                        print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
+                    return
             except AttributeError:
                 pass
 

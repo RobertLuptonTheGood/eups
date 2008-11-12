@@ -1,6 +1,6 @@
 """A simple recursive descent parser for logical expressions"""
 
-import re
+import os, re
 
 class Parser(object):
     """Evaluate a logical expression, returning a Bool.  The grammar is:
@@ -23,11 +23,11 @@ class Parser(object):
                name
                ( expr )
 
-names are declared using Parser.declare()
+names are declared using Parser.define()
         """
     def __init__(self, exprStr):
         exprStr = re.sub(r"['\"]([^'\"]+)['\"]", r"\1", exprStr)
-        self._tokens = re.split(r"([\w.+]+|\s+|==|!=|<=|>=|[()<>])", exprStr)
+        self._tokens = re.split(r"(\$\??{[^}]+}|[\w.+]+|\s+|==|!=|<=|>=|[()<>])", exprStr)
         self._tokens = filter(lambda p: p and not re.search(r"^\s*$", p), self._tokens)
         
         self._symbols = {}
@@ -42,6 +42,23 @@ names are declared using Parser.declare()
         """Attempt to lookup a key in the symbol table"""
         key0 = key
         
+        try:
+            envVar, modifier, value = re.search(r"^\${([^:}]*)(:-([^\}*]*))?}", key).groups()
+
+            if not value or value == "false":
+                value = False
+
+            if os.environ.has_key(envVar):
+                return os.environ[envVar]
+            elif modifier:
+                return value
+            else:
+                raise RuntimeError, ("Environment variable $%s is not defined" % envVar)
+        except TypeError:
+            pass
+        except AttributeError:
+            pass
+
         if not self._caseSensitive:
             key = key.lower()
 
@@ -140,14 +157,17 @@ names are declared using Parser.declare()
     def _prim(self):
         next = self._peek()
 
-        if next == "(":
+        if next == "(" or (next == "!" or next == "not"):
             self._next()
 
             term = self._expr()
             
-            next = self._next()
-            if next != ")":
-                raise RuntimeError, ("Saw next = \"%s\" in prim" % next)
+            if next == "!" or next == "not":
+                term = not term
+            elif next == "(":
+                next = self._next()
+                if next != ")":
+                    raise RuntimeError, ("Saw next = \"%s\" in prim" % next)
 
             return term
 
