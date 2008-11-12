@@ -2464,7 +2464,14 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 msg = "I can't unsetup %s as it isn't setup" % productName
                 if self.verbose > 1 and not self.quiet:
                     print >> sys.stderr, msg
-                return False, versionName, msg
+
+                if not self.force:
+                    return False, versionName, msg
+                #
+                # Fake enough to be able to unset the environment variables
+                #
+                product = self.Product(productName, noInit=True)
+                product.table = Table("none")
 
             if versionName and versionName != Current and versionName != Setup:
                 if not self.version_match(product.version, versionName):
