@@ -143,10 +143,10 @@ class Distribution(object):
             man = self.distServer.getManifest(product, version, flavor,
                                               self.Eups.noaction)
 
-        self._recursiveInstall(man, product, version, productRoot, 
+        self._recursiveInstall(0, man, product, version, productRoot, 
                                asCurrent, opts)
 
-    def _recursiveInstall(self, manifest, product, version, productRoot, 
+    def _recursiveInstall(self, recursionLevel, manifest, product, version, productRoot, 
                           asCurrent=None, opts=None, recurse=True, setups=None, 
                           installed=None, tag=None, ances=None):
                           
@@ -176,10 +176,11 @@ class Distribution(object):
                 info = self.Eups.listProducts(prod.product, prod.version)
                 if len(info) > 0:
                     installed.append(pver)
-                    setups.append("setup --keep %s %s" % (prod.product, prod.version))
+                    if recursionLevel == 0:
+                        setups.append("setup --keep %s %s" % (prod.product, prod.version))
                     if self.verbose >= 0:
                         print >> self.log, \
-                            "Required product %s %s already installed" % \
+                            "Required product %s %s is already installed" % \
                             (prod.product, prod.version)
                         continue;
 
@@ -259,7 +260,7 @@ class Distribution(object):
                 nextman = \
                     self.distServer.getManifest(prod.product, prod.version, 
                                                 flavor, self.Eups.noaction)
-                self._recursiveInstall(nextman, prod.product, prod.version, 
+                self._recursiveInstall(recursionLevel + 1, nextman, prod.product, prod.version, 
                                        productRoot, asCurrent, opts, True, 
                                        setups, installed, tag, ances)
 
