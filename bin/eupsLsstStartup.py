@@ -6,8 +6,9 @@ import eups
 import eupsDistribBuilder
 try:
     import lsst.svn
+    noLsstSvn = 0
 except ImportError:
-    print >> sys.stderr, "Unable to import lsst.svn --- maybe scons isn't setup?"
+    noLsstSvn = 1
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -31,6 +32,12 @@ def rewriteTicketVersion(line):
    means the top of ticket 374, and
       ticket_374+svn6021
    means revision 6021 on ticket 374"""
+
+    if noLsstSvn:
+        if noLsstSvn > 1:
+            print >> sys.stderr, "Unable to import lsst.svn --- maybe scons isn't setup?"
+            noLsstSvn = -1
+        return
     #
     # Look for a tagname that we recognise as having special significance
     #
