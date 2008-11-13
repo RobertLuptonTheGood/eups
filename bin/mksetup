@@ -126,4 +126,26 @@ for s in setup_aliases.keys():
 
 del fd
 
+print "Creating zsh startup script from sh one";
+try:
+    ifd = open("setups.sh", "r")
+except IOError, e:
+    print >> sys.stderr, "Unable to open setups.sh: %s" % e
+    sys.exit(1)
+
+try:
+    ofd = open("setups.zsh", "w")
+except IOError, e:
+    print >> sys.stderr, "Unable to open setups.zsh: %s" % e
+    sys.exit(1)
+
+for line in ifd.readlines():
+    # Modify function declaration syntax
+    line = re.sub(r"^function ((:?un)?setup)", r"\1()", line);
+    line = re.sub(r"; export -f (:?un)?setup\s*$", r"\n", line);
+    
+    print >> ofd, line,
+
+del ifd; del ofd
+
 sys.exit(0)

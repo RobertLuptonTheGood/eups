@@ -1433,6 +1433,8 @@ class Eups(object):
                 shell = "sh"
             elif re.search(r"(^|/)(csh|tcsh)$", shell):
                 shell = "csh"
+            elif re.search(r"(^|/)(zsh)$", shell):
+                shell = "zsh"
             else:
                 raise RuntimeError, ("Unknown shell type %s" % shell)    
 
@@ -3433,7 +3435,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
                    re.search(r"[\s<>|&;()]", val):   # quote characters that the shell cares about
                 val = "'%s'" % val
 
-            if Eups.shell == "sh":
+            if Eups.shell == "sh" or Eups.shell == "zsh":
                 cmd = "export %s=%s" % (key, val)
             elif Eups.shell == "csh":
                 cmd = "setenv %s %s" % (key, val)
@@ -3455,7 +3457,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
             if os.environ.has_key(key):
                 continue
 
-            if Eups.shell == "sh":
+            if Eups.shell == "sh" or Eups.shell == "zsh":
                 cmd = "unset %s" % (key)
             elif Eups.shell == "csh":
                 cmd = "unsetenv %s" % (key)
@@ -3484,6 +3486,8 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
             elif Eups.shell == "csh":
                 value = re.sub(r"\$@", r"\!*", value)
                 cmd = "alias %s \'%s\'" % (key, value)
+            elif Eups.shell == "zsh":
+                cmd = "%s() { %s ; }" % (key, value, key)
 
             if Eups.noaction:
                 cmd = "echo \"%s\"" % re.sub(r"`", r"\`", cmd)
@@ -3496,7 +3500,7 @@ def setup(Eups, productName, version=Current, fwd=True, setupType=None):
             if Eups.aliases.has_key(key):
                 continue
 
-            if Eups.shell == "sh":
+            if Eups.shell == "sh" or Eups.shell == "zsh":
                 cmd = "unset %s" % (key)
             elif Eups.shell == "csh":
                 cmd = "unalias %s" (key)
