@@ -60,6 +60,7 @@ Supported commands are:
 	flavor		Return the current flavor
 	list            List some or all products
         path [n]        Print the current eups path, or an element thereof
+        pkgroot [n]     Print the current eups pkgroot, or an element thereof
 	pkg-config	Return the options associated with product
 	remove          Remove an eups product from the system
 	undeclare	Undeclare a product
@@ -231,9 +232,9 @@ elif cmd == "list":
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
     options["-t"] = (True,  "--type", "Specify type of setup (permitted values: build)")
-elif cmd == "path":
+elif cmd == "path" or cmd == "pkgroot":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
-    helpStr += "\n\nPrint the eups path; with index print just one element (-ve: from end)"
+    helpStr += "\n\nPrint the eups %s; with index print just one element (-ve: from end)" % cmd
 elif cmd == "pkg-config":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nPrint information about products"
@@ -708,18 +709,24 @@ def main(cmd, opts):
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
                      dependencies=dependencies, setupType=setupType)
-    elif cmd == "path":
-        _path = Eups.path
+    elif cmd == "path" or cmd == "pkgroot":
+        if cmd == "path":
+            _what = "EUPS_PATH"
+            _path = Eups.path
+        elif cmd == "pkgroot":
+            _what = "EUPS_PKGROOT"
+            _path = os.environ.get(_what, "").split("|")
+            
         try:
             if opts.argv:
                 a = opts.argv.pop()
                 n = int(a)
                 if n < 0:
-                    n += len(Eups.path)
+                    n += len(_path)
 
-                _path = [Eups.path[n]]
+                _path = [_path[n]]
         except IndexError:
-            print >> sys.stderr, "Element %d of EUPS_PATH doesn't exist" % (n)
+            print >> sys.stderr, "Element %d of %s doesn't exist" % (n, _what)
             sys.exit(1)
         except ValueError:
             print >> sys.stderr, "Unrecognised argument to eups %s: %s" % (cmd, a)
