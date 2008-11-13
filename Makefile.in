@@ -58,7 +58,7 @@ install : show
 		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \
 	done
 	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
-	@echo "Remember to source $(EUPS_DIR)/bin/setups.[c]sh"
+	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
 declare :
 	@vers="$$(bin/eups_distrib --version 2>&1 | awk '{print $$2}')"; \
 	eups_declare --root $(EUPS_DIR) eups $$vers && \
