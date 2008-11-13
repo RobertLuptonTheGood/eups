@@ -120,6 +120,9 @@ elif cmd == "declare":
     options["-M"] = (True,  None,
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
+elif cmd == "depends":
+    print >> sys.stderr, "I think that you meant \"eups list --dependencies\""
+    sys.exit(1)
 elif cmd == "distrib":
     helpStr = """Usage:
     eups_distrib [operation] [options] [product [version]]
@@ -263,8 +266,11 @@ elif cmd == "uses":
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-o"] = (False, "--optional", "Show optional setups")
-else:
+elif not cmd:
     narg = (0, 0)
+else:
+    print >> sys.stderr, "Unrecognised eups command: %s" % cmd
+    sys.exit(1)    
 #
 # Parse arguments
 #
@@ -542,9 +548,8 @@ def main(cmd, opts):
                                      manifest=manifest)
                         break
                     except eupsServer.RemoteFileNotFound, e:
-                        print >> sys.stderr, "Unable to get", productName, \
-                            "from", which, "server because"
-                        print >> sys.stderr, str(e)
+                        print >> sys.stderr, "Unable to get %s from %s server because: %s" % (productName, which, e)
+
                         if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
                             print >> sys.stderr, "Trying next server."
                         else:
