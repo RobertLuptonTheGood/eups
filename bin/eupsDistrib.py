@@ -365,21 +365,38 @@ class Distrib(object):
                         self.distServer.getTableFile(product, version, 
                                                      self.flavor)
                 except RemoteFileNotFound, e:
-                    if self.verbose > 0:
-                        print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % product
-                    ptablefile = "none"
+                    pass
 
-            dependencies = self.Eups.dependencies_from_table(ptablefile)
-
+            if ptablefile:
+                dependencies = self.Eups.dependencies_from_table(ptablefile)
+            else:
+                if self.verbose > 0:
+                    print >> self.log, "Failed to find %s's table file; trying eups" % product
         else:
+            productList = Manifest(product, version, self.Eups, self.verbose-1, self.log)
 
-            # consult the local EUPS database
-            productList = Manifest(product, version, self.Eups,
-                                   self.verbose-1, self.log)
-            tprod = self.Eups.Product(product, version)
-            dependencies = tprod.dependencies(recursive=recursive,
-                                              setupType="build")
+        if ptablefile is None:
+            # consult the EUPS database
+            try:
+                tprod = self.Eups.Product(product, version)
+                dependencies = tprod.dependencies(recursive=recursive, setupType="build")
+            except RuntimeError, e:
+                if self.noeups:
+                    if self.verbose > 0:
+                        print >> self.log, e
+                else:
+                    raise
+        #
+        # Still no luck? If noeups we'll proceed without a tablefile
+        #
+        if self.noeups and dependencies is None:
+            if self.verbose > 0:
+                print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % product
 
+            dependencies = self.Eups.dependencies_from_table("non")
+        #
+        # We have our dependencies; proceed
+        #
         for (dprod, dopt, dcurrent) in dependencies:
             productName = dprod.name
             versionName = dprod.version
@@ -758,8 +775,6 @@ class DefaultDistrib(Distrib):
             #
             prod.tablefile = None
             try:
-                if prod.product == "scons":
-                    raise RuntimeError, "foooo"
                 prod.tablefile = self.Eups.Product(prod.product, prod.version).table.file
             except KeyboardInterrupt:
                 raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
