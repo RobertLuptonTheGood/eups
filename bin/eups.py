@@ -865,7 +865,8 @@ class Action(object):
                     del q
                     if productOK:
                         if Eups.verbose > 0:
-                            print >> sys.stderr, "Kept previously setup %s %s" % (product.name, product.version)
+                            print >> sys.stderr, "            %sKept previously setup %s %s" % \
+                                  (recursionDepth*" ", product.name, product.version)
                     else:
                         #debug(reason)
                         pass
@@ -1990,8 +1991,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         break
 
         if not vinfo:                       # no version is available
-            raise RuntimeError, "Unable to locate product %s %s for flavor %s" % \
-                  (productName, input_versionName, self.flavor)
+            msg = "Unable to locate product %s %s for flavor %s" % (productName, input_versionName, self.flavor)
+
+            if not self.versionIsRelative(versionName):
+                print >> sys.stderr, "%s; trying \">= %s\"" % (msg, versionName)
+                return self.findVersion(productName, ">= %s" % versionName, eupsPathDirs)
+
+            raise RuntimeError, msg
 
         return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
@@ -2568,11 +2574,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                         else:
                             verb = "setting up"
 
-                        msg = "You setup %s %s, and are now %s %s" % \
+                        msg = "%s %s is setup, and you are now %s %s" % \
                               (product.name, sversionName, verb, pversionName)
 
-                        if self.quiet <= 0 and not (self.keep and setup_msgs.has_key(msg)):
-                            print >> sys.stderr, msg
+                        if self.quiet <= 0 and self.verbose > 0 and not (self.keep and setup_msgs.has_key(msg)):
+                            print >> sys.stderr, "            %s%s" % (recursionDepth*" ", msg)
                         setup_msgs[msg] = 1
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
@@ -2582,7 +2588,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                 if self.isSetup(keptProduct):
                     resetup = False
                     
-                if self.version_cmp(keptProduct.version, product.version) < 0:
+                if self.version_cmp(product.version, keptProduct.version) > 0:
                     keptProduct = product                     
                     self.alreadySetupProducts[product.name] = product # keep this one instead
                     resetup = True
@@ -2597,13 +2603,16 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
                     self.setup(keptProduct, recursionDepth=-9999, noRecursion=True)
                     self.setup(keptProduct, recursionDepth=recursionDepth, setupToplevel=False)
 
-                if (keptProduct.version != product.version and
-                    ((self.keep and self.quiet <= 0) or self.verbose)) or self.verbose > 1:
+                if keptProduct.version != product.version and self.keep and \
+                       ((self.quiet <= 0 and self.verbose > 0) or self.verbose > 2):
                     msg = "%s %s is already setup; keeping" % \
                           (keptProduct.name, keptProduct.version)
 
                     if not setup_msgs.has_key(msg):
-                        print >> sys.stderr, "            %s" % (len(indent)*" " + msg)
+                        if not self.verbose:
+                            print >> sys.stderr, msg
+                        else:
+                            print >> sys.stderr, "            %s" % (len(indent)*" " + msg)
                         setup_msgs[msg] = 1
 
                 return True, keptProduct.version, None
@@ -2615,6 +2624,11 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             self.setEnv(product.envarDirName(), product.dir)
             self.setEnv(product.envarSetupName(),
                         "%s %s -f %s -Z %s" % (product.name, product.version, product.Eups.flavor, product.db))
+            #
+            # Remember that we've set this up in case we want to keep it later
+            #
+            if not self.alreadySetupProducts.has_key(product.name):
+                self.alreadySetupProducts[product.name] = product
         elif fwd:
             assert not setupToplevel
         else:
