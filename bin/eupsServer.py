@@ -1329,6 +1329,9 @@ class Manifest(object):
 
     def roll(self, n=1):
         """Roll the list of products by n (n=1: [a, b, c, d] -> [b, c, d, a]"""
+        if len(self.products) == 0:
+            return
+
         if n < 0:
             n = -n
             for i in range(n):
