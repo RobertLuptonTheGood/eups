@@ -1995,7 +1995,7 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not vinfo:                       # no version is available
             msg = "Unable to locate product %s %s for flavor %s" % (productName, input_versionName, self.flavor)
 
-            if not self.versionIsRelative(versionName):
+            if versionName and not self.versionIsRelative(versionName):
                 print >> sys.stderr, "%s; trying \">= %s\"" % (msg, versionName)
                 return self.findVersion(productName, ">= %s" % versionName, eupsPathDirs)
 
@@ -2243,9 +2243,6 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
     def versionIsRelative(self, versionName):
         if isinstance(versionName, str):
-            if versionName == "None" or versionName == "none":
-                return False
-
             return re.search(Eups._relop_re, versionName)
         else:
             return False
