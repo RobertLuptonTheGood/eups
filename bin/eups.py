@@ -2243,6 +2243,9 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
 
     def versionIsRelative(self, versionName):
         if isinstance(versionName, str):
+            if versionName == "None" or versionName == "none":
+                return False
+
             return re.search(Eups._relop_re, versionName)
         else:
             return False
