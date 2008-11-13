@@ -1996,7 +1996,8 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
             msg = "Unable to locate product %s %s for flavor %s" % (productName, input_versionName, self.flavor)
 
             if versionName and not self.versionIsRelative(versionName):
-                print >> sys.stderr, "%s; trying \">= %s\"" % (msg, versionName)
+                if self.verbose:
+                    print >> sys.stderr, "%s; trying \">= %s\"" % (msg, versionName)
                 return self.findVersion(productName, ">= %s" % versionName, eupsPathDirs)
 
             raise RuntimeError, msg
