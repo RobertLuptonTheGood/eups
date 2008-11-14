@@ -3555,6 +3555,9 @@ def productDir(productName, versionName=Setup, Eups=None):
     of Eups
     """
 
+    if not productName:
+        raise RuntimeError, "Please specify a product name"
+
     if not Eups:                        # only setup version is available
         if versionName != Setup:
             raise RuntimeError, \
