@@ -49,6 +49,9 @@ class Distrib(eupsDistrib.DefaultDistrib):
         if self.options.has_key('buildFilePath'):
             self.buildFilePath = self.options['buildFilePath']
 
+        self.nobuild = self.options.get("nobuild", False)
+        self.noclean = self.options.get("noclean", False)
+
         self.svnroot = ""
         if self.options.has_key('svnroot'):
             self.svnroot = self.options['svnroot']

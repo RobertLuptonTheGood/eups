@@ -15,7 +15,7 @@ class Distribution(object):
     """an engine for handling package installation and creation requests"""
 
     def __init__(self, Eups, packageBase, flavor=None, options=None, 
-                 distFactory=None, verbosity=0, log=sys.stderr):
+                 distFactory=None, verbosity=0, log=sys.stderr, noclean=False):
         """create a Distribution engine for a given server base URL
         @param Eups          the Eups controller instance to use
         @param packageBase   the base URL for the package server to pull 
@@ -42,6 +42,7 @@ class Distribution(object):
         if not flavor:
             flavor = Eups.flavor
         self.flavor = flavor
+        self.noclean = noclean
         self.distFactory = distFactory
         self.options = options
         self.verbose = verbosity
@@ -187,9 +188,10 @@ class Distribution(object):
                 if self.verbose >= 0 and prod.product == manifest.product and \
                         prod.version == manifest.version:
                     if self.verbose > 0:
-                        self.log.write("Dependencies complete; ")
-                    print >> self.log, "now installing", \
-                        prod.product, prod.version
+                        print >> self.log, "Dependencies complete; now installing",
+                    else:
+                        print >> self.log, "now installing",
+                    print >> self.log, prod.product, prod.version
 
                 builddir = self.makeBuildDirFor(productRoot, prod.product,
                                                 prod.version, flavor)
@@ -233,7 +235,11 @@ class Distribution(object):
                 self._recordDistID(prod.distId, root)
 
                 # clean up the build directory
-                self.clean(prod.product, prod.version)
+                if self.noclean:
+                    if self.verbose:
+                        print >> sys.stderr, "Not removing the build directory %s; you can cleanup manually with \"eups distrib clean\"" % (self.getBuildDirFor(self.getInstallRoot(), prod.product, prod.version))
+                else:
+                    self.clean(prod.product, prod.version)
 
             else:
                 # get the manifest for each dependency and install it 
@@ -490,7 +496,7 @@ class Distribution(object):
         # directly 
         dodeclare = unknown = False
         try:
-            self.Eups.findVersion(product, version)
+            self.Eups.findVersion(product, version, allowNewer=False)
         except RuntimeError, e:
             dodeclare = unknown = True
 

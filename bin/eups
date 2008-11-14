@@ -31,6 +31,12 @@ except Exception, e:
 # Flags that don't really have short forms are specified with non-printable options
 #
 debugFlag = "-\001"
+# for eups distrib:
+nobuildFlag = "-\002"
+nocleanFlag = "-\003"
+# for eups remove
+noInteractiveFlag = "-\002"
+
 allowedDebugOptions = ["raise"]
 
 options = {
@@ -161,6 +167,8 @@ elif cmd == "distrib":
     options["-l"] = (False, "--list", "List available products")
     options["-m"] = (True,  "--manifest", "Use this manifest file")
     options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
+    options[nobuildFlag] = (False, "--nobuild", "Don\'t attempt to build the product; just declare it")
+    options[nocleanFlag] = (False, "--noclean", "Don\'t  clean up after successfully building the product")
     options["-r"] = (True,  "--root", "Location of manifests/buildfiles/tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
     options["-R"] = (False, "--remove", "Clean and Remove all remnants of a declared product")
     options["-L"] = (False, "--clean", "Clean remnants building/installing a product")
@@ -249,7 +257,6 @@ elif cmd == "remove":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
     helpStr += "\n\nRemove a product"
 
-    noInteractiveFlag = "-\002"
     options["-i"] = (False, "--interactive", "Prompt user before actually removing products (default if -R)")
     options[noInteractiveFlag] = (False, "--noInteractive", "Don't prompt user before actually removing products")
     options["-N"] = (False, "--noCheck", "Don't check whether recursively removed products are needed")
@@ -411,6 +418,7 @@ def main(cmd, opts):
         tag = opts.options.get('-t', None)
         makeCurrent = opts.options.get('-C', None)
         noeups = opts.options.get('-N', False)
+        noclean = opts.options.get(nocleanFlag)
         serverDir = opts.options.get('-s', None)
         nodepend = opts.options.get('-j', False)
         distName = opts.options.get('-d', None)
@@ -436,6 +444,8 @@ def main(cmd, opts):
         dopts = { 'config': {} }
         dopts['noeups']     = noeups
         dopts['noaction']   = opts.options.get('-n', False)
+        dopts['nobuild']   = opts.options.get(nobuildFlag, False)
+        dopts['noclean']   = opts.options.get(nocleanFlag, False)
         dopts['allowIncomplete'] = opts.options.get('-I', False)
         dopts['buildFilePath'] = opts.options.get('-B', None)
 
@@ -545,7 +555,7 @@ def main(cmd, opts):
                         df.register(distribClasses[name], name)
 
                     dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                        distFactory=df, verbosity=Eups.verbose)
+                                        distFactory=df, verbosity=Eups.verbose, noclean=dopts['noclean'])
 
                     try:
                         dist.install(productName, versionName, makeCurrent,
@@ -615,7 +625,6 @@ def main(cmd, opts):
                 dist = Distribution(Eups, None, options=dopts, flavor=installFlavor,
                                     distFactory=df, verbosity=Eups.verbose)
                 dist.clean(productName, versionName, flav, uninstall)
-
 
         except RuntimeError, e:
             print >> sys.stderr, str(e)
