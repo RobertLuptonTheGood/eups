@@ -31,6 +31,8 @@ except Exception, e:
 # Flags that don't really have short forms are specified with non-printable options
 #
 debugFlag = "-\001"
+versionFlag = "-\002"                   # used by sub-commands
+flavorFlag = "-\003"                    # used by sub-commands
 allowedDebugOptions = ["raise"]
 
 options = {
@@ -151,7 +153,7 @@ elif cmd == "distrib":
     options["-C"] = (False, "--current", "Create a list of products that are current; equivalent to --tag=current")
     options["-d"] = (True,  "--distribType", "Create a distribution with this type name (e.g. 'tarball', 'builder')")
     options["-D"] = (True,  "--distrib-class", "register this Distrib class (repeat as needed)")
-    options["-f"] = (False, "--flavor", "Create an installation specialised to the current flavor")
+    options[flavorFlag] = (False, "--use-flavor", "Create an installation specialised to the current flavor")
     options["-F"] = (False, "--force", "Force requested behaviour")
     options["-g"] = (True,  "--groupAccess", "Give specified group r/w access to all built packages")
     options["-i"] = (False, "--install", "Extract and install the specified package")
@@ -232,6 +234,7 @@ elif cmd == "list":
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
     options["-t"] = (True,  "--type", "Specify type of setup (permitted values: build)")
+    options[versionFlag] = (False,  "--version", "Print the version")
 elif cmd == "path" or cmd == "pkgroot":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
     helpStr += "\n\nPrint the eups %s; with index print just one element (-ve: from end)" % cmd
@@ -412,7 +415,7 @@ def main(cmd, opts):
         distName = opts.options.get('-d', None)
 
         installFlavor = flavor
-        if opts.options.get('-f', False):
+        if opts.options.get(flavorFlag, False):
             if cmd != "create":
                 print >> sys.stderr, "--use-flavor only makes sense with create"
         else:
@@ -699,6 +702,7 @@ def main(cmd, opts):
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
         setupType = opts.options.get('-t')
+        version = opts.options.get(versionFlag)
 
         productName, versionName = None, None
         if opts.argv:
@@ -708,7 +712,7 @@ def main(cmd, opts):
 
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
-                     dependencies=dependencies, setupType=setupType)
+                     dependencies=dependencies, version=version, setupType=setupType)
     elif cmd == "path" or cmd == "pkgroot":
         if cmd == "path":
             _what = "EUPS_PATH"
@@ -947,7 +951,8 @@ def distrib(Distrib, desire, productName, versionName, manifest=None):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def listProducts(Eups, productName=None, versionName=None,
-                 current=False, setup=False, tablefile=False, directory=False, dependencies=False, setupType=None):
+                 current=False, setup=False, tablefile=False, directory=False, dependencies=False,
+                 version=False, setupType=None):
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
@@ -1006,6 +1011,8 @@ def listProducts(Eups, productName=None, versionName=None,
                 except RuntimeError, e:
                     print >> sys.stderr, e
                     info += "???"
+        elif version:
+            info += "%-10s" % (version)
         else:
             if productName and not productNameIsGlob:
                 info += "   "
