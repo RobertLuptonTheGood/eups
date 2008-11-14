@@ -2920,8 +2920,18 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         
         return self.declare(productName, versionName, None, eupsPathDir=eupsPathDir, declare_current=True)
     
-    def undeclare(self, productName, versionName, eupsPathDir=None, undeclare_current=False):
+    def undeclare(self, productName, versionName=None, eupsPathDir=None, undeclare_current=False):
         """Undeclare a product."""
+
+        if not versionName:
+            productList = self.listProducts(productName)
+            versionList = map(lambda el: el[1], productList)
+            
+            if len(versionList) == 1:
+                versionName = versionList[0]
+            elif len(versionList) > 1:
+                raise RuntimeError, ("Product %s has versions \"%s\"; please choose one and try again" %
+                                     (productName, "\" \"".join(versionList)))
 
         try:
             product = self.getProduct(productName, versionName, eupsPathDir)

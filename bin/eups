@@ -255,7 +255,7 @@ elif cmd == "setup" or cmd == "unsetup":
           (cmd, cmd)
     sys.exit(1)
 elif cmd == "undeclare":
-    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product", "version"])
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nUndeclare a product"
 
     options["-c"] = (False,  "--current", "Stop version from being current")
@@ -856,7 +856,11 @@ def main(cmd, opts):
     elif cmd == "undeclare":
         undeclare_current = opts.options.get('-c', False)
 
-        productName, versionName = opts.argv[0:2]
+        productName = opts.argv.pop(0)
+        if opts.argv:
+            versionName = opts.argv.pop(0)
+        else:
+            versionName = None
 
         Eups.undeclare(productName, versionName, undeclare_current=undeclare_current)
     elif cmd == "uses":
