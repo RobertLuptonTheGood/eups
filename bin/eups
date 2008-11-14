@@ -127,17 +127,17 @@ elif cmd == "depends":
     sys.exit(1)
 elif cmd == "distrib":
     helpStr = """Usage:
-    eups_distrib [operation] [options] [product [version]]
-    eups_distrib -V
-    eups_distrib list [-Nv] [-Z eupspath] [-z dbz] [-r serverurl] 
+    eups distrib [operation] [options] [product [version]]
+    eups distrib -V
+    eups distrib list [-Nv] [-Z eupspath] [-z dbz] [-r serverurl] 
                    [-T tmpdir] [-S serverClass] [product [version]]
-    eups_distrib install [-CgnjvGF] [-Z eupspath] [-z dbz] [-r serverurl] 
+    eups distrib install [-CgnjvGF] [-Z eupspath] [-z dbz] [-r serverurl] 
                    [-T tmpdir] [-D distribClass] [-S serverClass] 
                    product [version]
-    eups_distrib create [-gnvF] [-s serverdir|-r serverurl] [-Z eupspath] 
+    eups distrib create [-gnvF] [-s serverdir|-r serverurl] [-Z eupspath] 
                    [-z dbz] [-T tmpdir] [-D distribClass] [-S serverClass] 
                    product [version]
-    eups_distrib clean [-NvFR] [-Z eupspath] [-z dbz] 
+    eups distrib clean [-NvFR] [-Z eupspath] [-z dbz] 
                    [-T tmpdir] [-D distribClass]
                    product version
 
