@@ -703,7 +703,7 @@ def main(cmd, opts):
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
         setupType = opts.options.get('-t')
-        version = opts.options.get("-V")
+        showVersion = opts.options.get("-V")
 
         productName, versionName = None, None
         if opts.argv:
@@ -713,7 +713,7 @@ def main(cmd, opts):
 
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
-                     dependencies=dependencies, version=version, setupType=setupType)
+                     dependencies=dependencies, showVersion=showVersion, setupType=setupType)
     elif cmd == "path" or cmd == "pkgroot":
         if cmd == "path":
             _what = "EUPS_PATH"
@@ -953,7 +953,7 @@ def distrib(Distrib, desire, productName, versionName, manifest=None):
 
 def listProducts(Eups, productName=None, versionName=None,
                  current=False, setup=False, tablefile=False, directory=False, dependencies=False,
-                 version=False, setupType=None):
+                 showVersion=False, setupType=None):
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
@@ -1012,7 +1012,7 @@ def listProducts(Eups, productName=None, versionName=None,
                 except RuntimeError, e:
                     print >> sys.stderr, e
                     info += "???"
-        elif version:
+        elif showVersion:
             info += "%-10s" % (version)
         else:
             if productName and not productNameIsGlob:
