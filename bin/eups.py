@@ -3041,10 +3041,13 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         # Maybe they wanted Current or Setup?
         #
         if productVersion == Current:
-            current = True; productVersion = None
+            current = True
 
         if productVersion == Setup:
-            setup = True; productVersion = None
+            setup = True
+
+        if current or setup:
+            productVersion = None
         #
         # Find all products on path (cached in self.versions, of course)
         #
