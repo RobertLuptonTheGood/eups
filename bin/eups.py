@@ -1,5 +1,6 @@
 # -*- python -*-
 import glob, re, os, pwd, shutil, sys, time
+import filecmp
 import fnmatch
 import cPickle
 import tempfile
@@ -1898,10 +1899,12 @@ class Eups(object):
             
         return versionName, eupsPathDir, productDir, tablefile, flavor
 
-    def findVersion(self, productName, versionName=Current, eupsPathDirs=None):
+    def findVersion(self, productName, versionName=Current, eupsPathDirs=None, allowNewer=False):
         """Find a version of a product (if no version is specified, return current version)
 The return value is: versionName, eupsPathDir, productDir, tablefile
 
+If allowNewer is true, look for versions that are >= the specified version if an exact
+match fails.
         """
 
         input_versionName = versionName
@@ -1995,9 +1998,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         if not vinfo:                       # no version is available
             msg = "Unable to locate product %s %s for flavor %s" % (productName, input_versionName, self.flavor)
 
-            if versionName and not self.versionIsRelative(versionName):
+            if allowNewer and versionName and not self.versionIsRelative(versionName):
                 if self.verbose:
                     print >> sys.stderr, "%s; trying \">= %s\"" % (msg, versionName)
+                import pdb; pdb.set_trace()
                 return self.findVersion(productName, ">= %s" % versionName, eupsPathDirs)
 
             raise RuntimeError, msg
@@ -2787,8 +2791,10 @@ The return value is: versionName, eupsPathDir, productDir, tablefile
         differences = []
         if _productDir and productDir != _productDir:
             differences += ["%s != %s" % (productDir, _productDir)]
-        if _tablefile and tablefile != os.path.basename(_tablefile):
-            differences += ["%s != %s" % (tablefile, os.path.basename(_tablefile))]
+        if _tablefile and tablefile != _tablefile:
+            # Different names; see if they're different content too
+            if not filecmp.cmp(tablefile, _tablefile):
+                differences += ["%s != %s" % (tablefile, _tablefile)]
 
         redeclare = True
         if _productDir and _tablefile and not differences:
