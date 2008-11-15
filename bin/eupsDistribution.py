@@ -170,27 +170,29 @@ class Distribution(object):
             if pver in installed:
                 continue
 
+            info = self.Eups.listProducts(prod.product, prod.version)
+
+            if len(info) > 0:
+                installed.append(pver)
+                if recursionLevel == 0:
+                    setups.append("setup --keep %s %s" % (prod.product, prod.version))
+                if self.verbose >= 0:
+                    print >> self.log, \
+                        "Required product %s %s is already installed" % \
+                        (prod.product, prod.version)
+                    continue;
+
+
             if not recurse or \
                     (prod.product == product and 
                      prod.version == version):
-
-                info = self.Eups.listProducts(prod.product, prod.version)
-                if len(info) > 0:
-                    installed.append(pver)
-                    if recursionLevel == 0:
-                        setups.append("setup --keep %s %s" % (prod.product, prod.version))
-                    if self.verbose >= 0:
-                        print >> self.log, \
-                            "Required product %s %s is already installed" % \
-                            (prod.product, prod.version)
-                        continue;
 
                 if self.verbose >= 0 and prod.product == manifest.product and \
                         prod.version == manifest.version:
                     if self.verbose > 0:
                         print >> self.log, "Dependencies complete; now installing",
                     else:
-                        print >> self.log, "now installing",
+                        print >> self.log, "Installing",
                     print >> self.log, prod.product, prod.version
 
                 builddir = self.makeBuildDirFor(productRoot, prod.product,
