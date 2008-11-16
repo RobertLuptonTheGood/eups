@@ -2793,8 +2793,12 @@ match fails.
             differences += ["%s != %s" % (productDir, _productDir)]
         if _tablefile and tablefile != _tablefile:
             # Different names; see if they're different content too
-            if not filecmp.cmp(tablefile, _tablefile):
-                differences += ["%s != %s" % (tablefile, _tablefile)]
+            diff = ["%s != %s" % (tablefile, _tablefile)] # possible difference
+            try:
+                if not filecmp.cmp(tablefile, _tablefile):
+                    differences += diff
+            except OSError:
+                differences += diff
 
         redeclare = True
         if _productDir and _tablefile and not differences:
