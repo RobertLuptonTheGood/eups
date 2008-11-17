@@ -347,6 +347,7 @@ class Distrib(object):
         productList = Manifest(product, version, self.Eups,
                                self.verbose-1, self.log)
         dependencies = None
+        ptablefile = None
         if self.noeups:
 
             if recursive and self.verbose > 0:
