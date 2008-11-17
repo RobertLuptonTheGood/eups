@@ -501,151 +501,129 @@ def main(cmd, opts):
         #
         packageBasePath = []
 
-        if create and dopts['noeups'] and not dopts['buildFilePath']:
+        if create and dopts['noeups'] and distName == "builder" and not dopts['buildFilePath']:
             print >> sys.stderr, \
-                  "You must specify a path with --build if you are using build files and specify --noeups"
+                  "You must specify a path with --build if you're using --noeups"
             sys.exit(1)
 
-        try: 
-            if desire == "list":
-                if len(pkgroots) == 0:
-                    print >> sys.stderr, "No package servers to query; set -r or $EUPS_PKGROOT"
-                    sys.exit(1)
+        if desire == "list":
+            if len(pkgroots) == 0:
+                print >> sys.stderr, "No package servers to query; set -r or $EUPS_PKGROOT"
+                sys.exit(1)
 
-                for pkgroot in pkgroots:
-                    ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                               verbosity=Eups.verbose)
-                    df = DistribFactory(Eups, ds)
-                    for name in distribClasses.keys():
-                        df.register(distribClasses[name], name)
+            for pkgroot in pkgroots:
+                ds = ServerConf.makeServer(pkgroot, eups=Eups, 
+                                           verbosity=Eups.verbose)
+                df = DistribFactory(Eups, ds)
+                for name in distribClasses.keys():
+                    df.register(distribClasses[name], name)
 
-                    dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                        distFactory=df, verbosity=Eups.verbose)
-                                        
-                    pkgs = dist.listPackages(productName, versionName)
+                dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
+                                    distFactory=df, verbosity=Eups.verbose)
 
-                    which = "secondary"
-                    if pkgroot is pkgroots[0]:  which = "primary"
+                pkgs = dist.listPackages(productName, versionName)
 
-                    if len(pkgs) > 0:
-                        if len(pkgroots) > 0:
-                            print "Available products from %s server (%s):" % \
-                                (which, pkgroot)
-                        for (name, ver, flav) in pkgs:
-                            print "  %-20s %-10s %s" % (name, flav, ver)
-                    else:
-                        print "No matching products available from %s server (%s)" % (which, pkgroot)
+                which = "secondary"
+                if pkgroot is pkgroots[0]:  which = "primary"
 
-            elif desire == "install":
-                if productName is None:
-                    print >> sys.stderr, "Please provide a product to install"
-                    sys.exit(1)
-                if len(pkgroots) == 0:
-                    print >> sys.stderr, "No package server URL provided; can't install"
-                    sys.exit(1)
+                if len(pkgs) > 0:
+                    if len(pkgroots) > 0:
+                        print "Available products from %s server (%s):" % \
+                            (which, pkgroot)
+                    for (name, ver, flav) in pkgs:
+                        print "  %-20s %-10s %s" % (name, flav, ver)
+                else:
+                    print "No matching products available from %s server (%s)" % (which, pkgroot)
 
-                for pkgroot in pkgroots:
-                    which = "secondary"
-                    if pkgroot is pkgroots[0]:  which = "primary"
+        elif desire == "install":
+            if productName is None:
+                print >> sys.stderr, "Please provide a product to install"
+                sys.exit(1)
+            if len(pkgroots) == 0:
+                print >> sys.stderr, "No package server URL provided; can't install"
+                sys.exit(1)
 
-                    ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                               verbosity=Eups.verbose)
-                    df = DistribFactory(Eups, ds)
-                    for name in distribClasses.keys():
-                        df.register(distribClasses[name], name)
-
-                    dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                        distFactory=df, verbosity=Eups.verbose, noclean=dopts['noclean'])
-
-                    try:
-                        dist.install(productName, versionName, makeCurrent,
-                                     nodepend=nodepend, 
-                                     manifest=manifest)
-                        break
-                    except eupsServer.RemoteFileNotFound, e:
-                        print >> sys.stderr, "Unable to get %s from %s server because: %s" % (productName, which, e)
-
-                        if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
-                            print >> sys.stderr, "Trying next server."
-                        else:
-                            print >> sys.stderr, "Giving up."
-                            sys.exit(1)
-
-                    except eupsServer.ServerError, e:
-                        msg = "Install failed while pulling data: %s" % e
-                        if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
-                            msg += "; trying next server."
-                            print >> sys.stderr, msg
-                            sys.exit(1)
-                        else:
-                            print >> sys.stderr, msg
-
-
-            elif desire == "create":
-                if productName is None or versionName is None:
-                    print >> sys.stderr, "Please provide a product and version to create"
-                    sys.exit(1)
-
-                pkgroot = None
-                if pkgroots:  pkgroot = pkgroots[0]
+            for pkgroot in pkgroots:
+                which = "secondary"
+                if pkgroot is pkgroots[0]:  which = "primary"
 
                 ds = ServerConf.makeServer(pkgroot, eups=Eups, 
                                            verbosity=Eups.verbose)
                 df = DistribFactory(Eups, ds)
                 for name in distribClasses.keys():
                     df.register(distribClasses[name], name)
+
                 dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                    distFactory=df, verbosity=Eups.verbose)
+                                    distFactory=df, verbosity=Eups.verbose, noclean=dopts['noclean'])
 
-                if not serverDir and dist.distServer is not None and \
-                     eupsServer.LocalTransporter.canHandle(dist.distServer.base):
-                    serverDir = dist.distServer.base
+                try:
+                    dist.install(productName, versionName, makeCurrent,
+                                 nodepend=nodepend, 
+                                 manifest=manifest)
+                    break
+                except eupsServer.RemoteFileNotFound, e:
+                    print >> sys.stderr, "Unable to get %s from %s server because: %s" % (productName, which, e)
 
-                if not serverDir:
-                    print >> sys.stderr, "Please specify a server directory with -s"
-                    sys.exit(1)
-                if not distName:
-                    print >> sys.stderr, "Please specify a distribution type name (e.g. tarball, builder, pacman, etc)"
-                    sys.exit(1)
+                    if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
+                        print >> sys.stderr, "Trying next server."
+                    else:
+                        print >> sys.stderr, "Giving up."
+                        sys.exit(1)
 
-                dist.create(serverDir, distName, productName, versionName,
-                            nodepend=nodepend, manifest=manifest)
+                except eupsServer.ServerError, e:
+                    msg = "Install failed while pulling data: %s" % e
+                    if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
+                        msg += "; trying next server."
+                        print >> sys.stderr, msg
+                        sys.exit(1)
+                    else:
+                        print >> sys.stderr, msg
 
-            elif desire == "clean":
 
-                uninstall = bool(opts.options.get('-R'))
-                flav = opts.options.get('-f')
-                if not flav:
-                    flav = Eups.flavor
+        elif desire == "create":
+            if productName is None or versionName is None:
+                print >> sys.stderr, "Please provide a product and version to create"
+                sys.exit(1)
 
-                df = DistribFactory(Eups, None)
-                for name in distribClasses.keys():
-                    df.register(distribClasses[name], name)
+            pkgroot = None
+            if pkgroots:  pkgroot = pkgroots[0]
 
-                dist = Distribution(Eups, None, options=dopts, flavor=installFlavor,
-                                    distFactory=df, verbosity=Eups.verbose)
-                dist.clean(productName, versionName, flav, uninstall)
+            ds = ServerConf.makeServer(pkgroot, eups=Eups, 
+                                       verbosity=Eups.verbose)
+            df = DistribFactory(Eups, ds)
+            for name in distribClasses.keys():
+                df.register(distribClasses[name], name)
+            dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
+                                distFactory=df, verbosity=Eups.verbose)
 
-        except RuntimeError, e:
-            print >> sys.stderr, str(e)
-            sys.exit(2)
-        except eupsServer.ServerError, e:
-            print >> sys.stderr, "Server error: ", str(e)
-            sys.exit(2)
-        except SystemExit, e:
-            sys.exit(e.code)
-        except KeyboardInterrupt, e:
-            if Eups.verbose > 0:
-                traceback.print_exc()
-            print >> sys.stderr, "Keyboard interrupt:", str(e)
-            sys.exit(4)
-        except Exception, e:
-            print >> sys.stderr, "Sorry! Implementation Error: ", str(e)
-            if True:
-                print >> sys.stderr
-                traceback.print_exc()
-            sys.exit(3)
+            if not serverDir and dist.distServer is not None and \
+                 eupsServer.LocalTransporter.canHandle(dist.distServer.base):
+                serverDir = dist.distServer.base
 
+            if not serverDir:
+                print >> sys.stderr, "Please specify a server directory with -s"
+                sys.exit(1)
+            if not distName:
+                print >> sys.stderr, "Please specify a distribution type name (e.g. -d tarball, -d builder, etc)"
+                sys.exit(1)
+
+            dist.create(serverDir, distName, productName, versionName,
+                        nodepend=nodepend, manifest=manifest)
+
+        elif desire == "clean":
+
+            uninstall = bool(opts.options.get('-R'))
+            flav = opts.options.get('-f')
+            if not flav:
+                flav = Eups.flavor
+
+            df = DistribFactory(Eups, None)
+            for name in distribClasses.keys():
+                df.register(distribClasses[name], name)
+
+            dist = Distribution(Eups, None, options=dopts, flavor=installFlavor,
+                                distFactory=df, verbosity=Eups.verbose)
+            dist.clean(productName, versionName, flav, uninstall)
 
     elif cmd in ("expandbuild", "expandtable"):
         productList = {}
@@ -1175,9 +1153,20 @@ else:
         main(cmd, opts)
     except RuntimeError, e:
         print >> sys.stderr, e
-        sys.exit(1)
+        sys.exit(2)
     except OSError, e:
         print >> sys.stderr, e
         sys.exit(1)
+    except eupsServer.ServerError, e:
+        print >> sys.stderr, "Server error: ", str(e)
+        sys.exit(2)
+    except SystemExit, e:
+        sys.exit(e.code)
+    except KeyboardInterrupt, e:
+        print >> sys.stderr, "Keyboard interrupt:", str(e)
+        sys.exit(4)
+    except Exception, e:
+        print >> sys.stderr, "Sorry! Implementation Error: ", str(e)
+        sys.exit(3)
 
 sys.exit(0)

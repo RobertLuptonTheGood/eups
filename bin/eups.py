@@ -1460,9 +1460,8 @@ class Eups(object):
         self.path = []
         for p in path:
             if not os.path.isdir(p):
-                if self.verbose:
-                    print >> sys.stderr, \
-                          "%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p
+                print >> sys.stderr, \
+                      "%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p
                 continue
 
             self.path += [os.path.normpath(p)]

@@ -22,13 +22,15 @@ ups_db = os.path.join(prefix, "ups_db")
 bindir = os.path.join("$EUPS_DIR","bin")
 setup = os.path.join('$EUPS_DIR',"bin","eups_setup");
 
-# Keep only one copy of each directory in sys.argv[1]
+# Keep only one copy of each directory in sys.argv[1], but make sure that sys.argv[2] is present
 unique_path="""
 import sys
 pp = []
 for d in sys.argv[1].split(":"):
     if d and d not in pp:
         pp += [d]
+if not sys.argv[2] in pp:
+    pp = [sys.argv[2]] + pp
 print ":".join(pp)"""
 
 print "Writing a csh startup script";
@@ -42,7 +44,9 @@ except IOError, e:
 # here document, and pre-substitute the path rather than pass
 # it in from the command line
 #
-unique_eups_path = re.sub(r"sys\.argv\[1\]", "\"%s:$EUPS_PATH\"" % prefix, unique_path)
+unique_eups_path = unique_path
+unique_eups_path = re.sub(r"sys\.argv\[1\]", "\"$EUPS_PATH\"", unique_eups_path)
+unique_eups_path = re.sub(r"sys\.argv\[2\]", "\"%s\"" % prefix, unique_eups_path)
 
 print >> fd, """
 if ("$?EUPS_DIR" == "1" ) then
@@ -102,7 +106,7 @@ fi
 export EUPS_DIR=%(eupsdir)s
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-export EUPS_PATH=`python -c '%(unique_path)s' %(prefix)s:$EUPS_PATH`
+export EUPS_PATH=`python -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 export SETUP_EUPS="eups"
 # Deprecated variables

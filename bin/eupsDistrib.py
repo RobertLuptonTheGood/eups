@@ -393,7 +393,7 @@ class Distrib(object):
             if self.verbose > 0:
                 print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % product
 
-            dependencies = self.Eups.dependencies_from_table("non")
+            dependencies = self.Eups.dependencies_from_table("none")
         #
         # We have our dependencies; proceed
         #
