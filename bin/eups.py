@@ -1680,6 +1680,10 @@ class Eups(object):
 
             persistentDB = self.getPersistentDB(eupsPathDir)
             
+            persistentDBDir = os.path.dirname(persistentDB)
+            if not os.path.isdir(persistentDBDir):
+                os.makedirs(persistentDBDir)
+
             lock = self.lockDB(eupsPathDir)
             try:
                 fd = open(persistentDB, "w")
