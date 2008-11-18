@@ -4,6 +4,7 @@
 # services for communicating with a remote package server
 #
 import sys, os, re, atexit, shutil
+import fnmatch
 import tempfile
 import urllib2
 import eups
@@ -195,9 +196,9 @@ class DistribServer(object):
                 file = self.getFile("manifests/"+file, flavor, tag)
                 man = Manifest.fromFile(file);
 
-                if product and man.product != product:
+                if product and not fnmatch.fnmatchcase(man.product, product):
                     continue
-                if version and man.version != version:
+                if version and not fnmatch.fnmatchcase(man.version, version):
                     continue
                 if flavor and man.flavor != flavor:
                     continue
@@ -664,9 +665,9 @@ class ConfigurableDistribServer(DistribServer):
                 m = filere.search(file)
                 if m is None: continue
                 m = m.groupdict()
-                if (not m["product"] or 
-                    (product and product != m["product"]) or
-                    (version and version != m["version"])): 
+                if not m["product"] or  \
+                   (product and not fnmatch.fnmatchcase(m["product"], product)) or \
+                   (version and not fnmatch.fnmatchcase(m["version"], version)):
                     continue
 
                 info = [m["product"], "unknown", "generic"]
