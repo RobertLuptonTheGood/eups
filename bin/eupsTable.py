@@ -104,7 +104,8 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             if not Eups.version_match(version, logical):
                 print >> sys.stderr, "Warning: %s %s failed to match condition \"%s\"" % (productName, version, logical)
         else:
-            logical = ">= %s" % version
+            if version: 
+                logical = ">= %s" % version
 
         args = flags + [productName]
         if version:
