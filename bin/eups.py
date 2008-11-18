@@ -903,9 +903,10 @@ class Action(object):
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}
                                             # if they don't exist, ignore the entire line
-                key = re.search(r"^\$\?{([^}]*)}", value).group(1)
+                varRE = r"^\$\?{([^}]*)}"                                            
+                key = re.search(varRE, value).group(1)
                 if os.environ.has_key(key):
-                    value = os.environ[key]
+                    value = re.sub(varRE, os.environ[key], value)
                 else:
                   if Eups.verbose > 0:
                       print >> sys.stderr, "$%s is not defined; not setting %s" % (key, value)
@@ -969,9 +970,10 @@ class Action(object):
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}
                                             # if they don't exist, ignore the entire line
-                vkey = re.search(r"^\$\?{([^}]*)}", value).group(1)
+                varRE = r"^\$\?{([^}]*)}"
+                vkey = re.search(varRE, value).group(1)
                 if os.environ.has_key(vkey):
-                    value = os.environ[vkey]
+                    value = re.sub(varRE, os.environ[vkey], value)
                 else:
                     if Eups.verbose > 0:
                         print >> sys.stderr, "$%s is not defined; not setting %s" % (vkey, key)
