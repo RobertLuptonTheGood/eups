@@ -51,13 +51,18 @@ def rewriteTicketVersion(line):
                 return line
 
             try:
-                type, which, revision = lsst.svn.parseVersionName(URL)
+                try:
+                    type, which, revision = lsst.svn.parseVersionName(URL)
+                except ValueError:      # old version doesn't return pm
+                    type, which, revision, pm = lsst.svn.parseVersionName(URL)
 
                 rewrite = None
                 if type == "branch":
                     rewrite = "/branches/%s" % which
                 elif type == "ticket":
                     rewrite = "/tickets/%s" % which
+                elif type == "tag":
+                    return line
 
                 if rewrite is None:
                     raise RuntimeError, ""
