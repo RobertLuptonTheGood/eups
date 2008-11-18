@@ -131,7 +131,7 @@ except RuntimeError, e:
         raise
     cmds = ["false"]
 
-if Eups.verbose > 1:
+if Eups.verbose > 2:
     print >> sys.stderr, "\n\t".join(["Issuing commands:"] + cmds)
 
 print ";\n".join(cmds)
