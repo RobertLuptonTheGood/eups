@@ -84,7 +84,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             logical = " ".join(words[left + 1 : right])
             del words[left : right + 1]
 
-        if version and re.search(r"[<=>]", version): # a logical expression
+        if version and Eups.versionIsRelative(version):
             if logical:                 # how did this happen? Version is logical and also a [logical]
                 print >> sys.stderr, "Two logical expressions are present in %s; using first" % original
                 
@@ -103,6 +103,8 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
         if logical:
             if not Eups.version_match(version, logical):
                 print >> sys.stderr, "Warning: %s %s failed to match condition \"%s\"" % (productName, version, logical)
+        else:
+            logical = ">= %s" % version
 
         args = flags + [productName]
         if version:
