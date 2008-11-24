@@ -2006,7 +2006,6 @@ match fails.
             if allowNewer and versionName and not self.versionIsRelative(versionName):
                 if self.verbose:
                     print >> sys.stderr, "%s; trying \">= %s\"" % (msg, versionName)
-                import pdb; pdb.set_trace()
                 return self.findVersion(productName, ">= %s" % versionName, eupsPathDirs)
 
             raise RuntimeError, msg
