@@ -521,15 +521,14 @@ class Distribution(object):
             raise RuntimeError(msg)
 
         # make sure we have a table file if we need it
-        tablefile = tablefileloc
+        upsdir = os.path.join(rootdir,'ups')
+        tablefile = os.path.join(upsdir, product + ".table")
         if unknown:
             if rootdir == "/dev/null":
                 tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
                                                               version, flavor)
                 tablefile = open(tablefile)
             else:
-                upsdir = os.path.join(rootdir,'ups')
-                tablefile = os.path.join(upsdir, product + ".table")
                 if not os.path.exists(tablefile):
                     if not os.path.exists(upsdir):
                         os.makedirs(upsdir)
@@ -538,6 +537,8 @@ class Distribution(object):
                                                       filename=tablefile)
                 if not os.path.exists(tablefile):
                     raise RuntimeError("Failed to find table file %s" % tablefile)
+        if not os.path.exists(tablefile):
+            tablefile = tablefileloc
 
         self.Eups.declare(product, version, rootdir, eupsPathDir=productRoot, 
                           tablefile=tablefile, declare_current=asCurrent)
