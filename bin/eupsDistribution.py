@@ -527,7 +527,7 @@ class Distribution(object):
             if rootdir == "/dev/null":
                 tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
                                                               version, flavor)
-                tablefile = open(tablefile)
+
             else:
                 if not os.path.exists(tablefile):
                     if not os.path.exists(upsdir):
