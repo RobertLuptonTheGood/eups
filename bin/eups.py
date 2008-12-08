@@ -3216,12 +3216,12 @@ match fails.
         except RuntimeError, e:
             raise RuntimeError, ("product %s %s doesn't seem to exist" % (productName, versionName))
 
-        deps = [(product, False)]
+        deps = [(product, False, False)]
         if recursive:
             deps += product.dependencies()
 
         productsToRemove = []
-        for product, o in deps:
+        for product, o, currentRequested in deps:
             if checkRecursive:
                 usedBy = filter(lambda el: el[0] != topProduct or el[1] != topVersion,
                                 userInfo.users(product.name, product.version))
