@@ -32,7 +32,22 @@ def eupsCmdHook(cmd, argv):
     if cmd == "fetch":
         argv[1:2] = ["distrib", "install"]
     """
-    pass
+
+    for hook in eupsCmdHooks:
+        hook(cmd, argv)
+
+def eupsAddCmdHook(hook, reset=False):
+    global eupsCmdHooks
+    if reset:
+        eupsCmdHooks = []
+
+    if hook:
+        eupsCmdHooks += [hook]
+
+try:
+    eupsCmdHooks
+except NameError:
+    eupsAddCmdHook(None, reset=True)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
