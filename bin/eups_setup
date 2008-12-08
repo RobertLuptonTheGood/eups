@@ -4,12 +4,13 @@ import eups
 import eupsGetopt
 
 try:
-    startupFile = os.environ["EUPS_STARTUP"]
-    execfile(startupFile)
+    for startupFile in os.environ["EUPS_STARTUP"].split(':'):
+        try:
+            execfile(startupFile)
+        except Exception, e:
+            print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 except KeyError:
     pass
-except Exception, e:
-    print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -32,7 +33,8 @@ options = {
     "-q" : (False, "--quiet", "Be extra quiet"),
     "-r" : (True,  "--root", "Location of product being setup"),
     "-S" : (True,  "--max-depth", "Only show this many levels of dependencies (use with -v)"),
-    "-t" : (True,  "--type", "Specify type of setup (permitted values: build)"),
+    "-t" : (True,  "--tag", "Setup version with this tag (e.g. stable)"),
+    "-T" : (True,  "--type", "Specify type of setup (permitted values: build)"),
     "-u" : (False, "--unsetup", "Unsetup the specified product"),
     "-V" : (False, "--version", "Print eups version number and exit"),
     "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
@@ -79,7 +81,13 @@ noaction = opts.options.get('-n')
 path = opts.options.get('-Z')
 quiet = opts.options.get('-q', 0)
 root = opts.options.get('-r')
-setupType = opts.options.get('-t')
+setupType = opts.options.get('-T')
+tag = opts.options.get('-t', None)
+if tag and not eups.isValidTag(tag):
+    print >> sys.stderr, "%s is not a valid tag; please choose one of \"%s\"" % \
+          (tag, '" "'.join(eups.getValidTags()))
+    sys.exit(1)
+
 unsetup = opts.options.get('-u', False)
 verbose = opts.options.get('-v', 0)
 
@@ -96,11 +104,13 @@ if root:
 
 if opts.argv:
     version = opts.argv.pop(0)
+    if tag:
+        print >> sys.stderr, "Ignoring tag %s as you specified an explicit version %s" % (tag, version)
 else:
     if unsetup:
         version = None
     else:
-        version = eups.Current
+        version = eups.Current(tag)
 
 if opts.argv:
     pass
@@ -122,7 +132,7 @@ if just:
 try:
     Eups = eups.Eups(flavor=flavor, path=path, dbz=dbz, root=root, readCache=False, force=force,
                      quiet=quiet, verbose=verbose, noaction=noaction, keep=keep, ignore_versions=ignore_versions,
-                     max_depth=max_depth, exact_version=exact_version)
+                     max_depth=max_depth, exact_version=exact_version, currentType=eups.Current(tag))
                           
     cmds = eups.setup(Eups, productName, version, fwd=not unsetup, setupType=setupType)
 except RuntimeError, e:

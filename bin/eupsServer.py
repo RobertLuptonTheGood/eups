@@ -1457,16 +1457,21 @@ class ServerConf(object):
             raise RuntimeError("config file not found: " + configFile)
 
         # cached is the location of the cached configuration file under ups_db
-        cached = self.cachedConfigFile(self.base);
-        if save:
-            # make sure the cache directory exists
-            pdir = os.path.dirname(cached)
-            if not os.path.exists(pdir):
-                os.makedirs(pdir)
-            if self.verbose > 0 and not os.path.exists(cached):
-                print >> self.log, "Caching configuration for", self.base
-                if self.verbose > 1:
-                    print >> self.log, "...as", cached
+        if not self.base:
+            if self.verbose > 0:
+                print >> self.log, "Warning: no pkgroot is available"
+            cached = None
+        else:
+            cached = self.cachedConfigFile(self.base);
+            if save:
+                # make sure the cache directory exists
+                pdir = os.path.dirname(cached)
+                if not os.path.exists(pdir):
+                    os.makedirs(pdir)
+                if self.verbose > 0 and not os.path.exists(cached):
+                    print >> self.log, "Caching configuration for", self.base
+                    if self.verbose > 1:
+                        print >> self.log, "...as", cached
 
         if configFile is None:
             # we were not provided with a config file, so we'll try to get it from 
@@ -1477,26 +1482,29 @@ class ServerConf(object):
             copyfile(configFile, cached)
 
         try:
-            if not os.path.exists(configFile):
-                # if we're going to the server but not saving it, we'll use 
-                # a temp file (which will happen if configFile is None).
-                if not save:  configFile = None
+            if not configFile:
+                self.data = {}
+            else:
+                if not os.path.exists(configFile):
+                    # if we're going to the server but not saving it, we'll use 
+                    # a temp file (which will happen if configFile is None).
+                    if not save:  configFile = None
 
-                if self.verbose > 0:
-                    print >> self.log, \
-                        "Pulling configuration for %s from server" % self.base
+                    if self.verbose > 0:
+                        print >> self.log, \
+                            "Pulling configuration for %s from server" % self.base
 
-                ds = DistribServer(packageBase, 
-                                   verbosity=self.verbose, log=self.log);
-                try:
-                    configFile = ds.getConfigFile(configFile)
-                except RuntimeError:    # may not exist if this is a new installation
-                    pass
+                    ds = DistribServer(packageBase, 
+                                       verbosity=self.verbose, log=self.log);
+                    try:
+                        configFile = ds.getConfigFile(configFile)
+                    except RuntimeError:    # may not exist if this is a new installation
+                        pass
 
-            if not os.path.exists(configFile):
-                raise RuntimeError, ("Failed to find or cache config file: " + configFile)
+                if not os.path.exists(configFile):
+                    raise RuntimeError, ("Failed to find or cache config file: " + configFile)
 
-            self.data = self.readConfFile(configFile);
+                self.data = self.readConfFile(configFile);
 
         except RemoteFileNotFound, e:
             if self.verbose > 0:

@@ -17,12 +17,13 @@ from eupsDistribFactory import DistribFactory
 
 distribClasses = {}
 try:
-    startupFile = os.environ["EUPS_STARTUP"]
-    execfile(startupFile)
+    for startupFile in os.environ["EUPS_STARTUP"].split(':'):
+        try:
+            execfile(startupFile)
+        except Exception, e:
+            print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 except KeyError:
     pass
-except Exception, e:
-    print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -128,6 +129,7 @@ elif cmd == "declare":
     options["-M"] = (True,  None,
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
+    options["-t"] = (True,  "--tag", "Install versions with this tag (e.g. current or stable)")
 elif cmd == "depends":
     print >> sys.stderr, "I think that you meant \"eups list --dependencies\""
     sys.exit(1)
@@ -242,12 +244,16 @@ elif cmd == "list":
     options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
-    options["-t"] = (True,  "--type", "Specify type of setup (permitted values: build)")
+    options["-t"] = (True,  "--tag", "List versions with this tag (e.g. current or stable)")
+    options["-T"] = (True,  "--type", "Specify type of setup (permitted values: build)")
     subcmd_uses_version = True;
     options["-V"] = (False,  "--version", "Print the version")
 elif cmd == "path" or cmd == "pkgroot":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
     helpStr += "\n\nPrint the eups %s; with index print just one element (-ve: from end)" % cmd
+elif cmd == "startup":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
+    helpStr += "\n\nPrint the startup files (as specified by $EUPS_STARTUP) that eups will source;\nwith index print just one element (-ve: from end)"
 elif cmd == "pkg-config":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nPrint information about products"
@@ -271,6 +277,7 @@ elif cmd == "undeclare":
     helpStr += "\n\nUndeclare a product"
 
     options["-c"] = (False,  "--current", "Stop version from being current")
+    options["-t"] = (True,  "--tag", "Undeclare versions with this tag (e.g. current or stable)")
 elif cmd == "uses":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nShow which products setup the specified product (and maybe version of that product)"
@@ -341,10 +348,11 @@ def main(cmd, opts):
 
         eupsAdmin(Eups, subcmd)
     elif cmd == "declare":
-        declare_current = opts.options.get('-c', False)
+        declareCurrent = opts.options.get('-c', False)
         productDir = opts.options.get('-r', None)
         tablefile = opts.options.get('-m', None)
         externalTablefile = opts.options.get('-M', None)
+        tag = opts.options.get('-t', None)
 
         if opts.argv:
             productName = opts.argv.pop(0)
@@ -381,7 +389,7 @@ def main(cmd, opts):
                     sys.exit(1)
 
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
-                     declare_current=declare_current)
+                     declareCurrent=declareCurrent)
     elif cmd == "distrib":
         # Allow distrib's sub-commands to be specified as verbs, not options
         if len(opts.argv) > 0:
@@ -417,6 +425,9 @@ def main(cmd, opts):
 
         manifest = opts.options.get('-m', None)
         tag = opts.options.get('-t', None)
+        if tag and not eups.isValidTag(tag):
+            raise RuntimeError, "%s is not a valid tag; please choose one of \"%s\"" % \
+                  (tag, '" "'.join(eups.getValidTags()))
         makeCurrent = opts.options.get('-C', None)
         noeups = opts.options.get('-N', False)
         noclean = opts.options.get(nocleanFlag)
@@ -691,8 +702,11 @@ def main(cmd, opts):
         Eups.exact_version = opts.options.get("-e", False)
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
-        setupType = opts.options.get('-t')
+        setupType = opts.options.get('-T')
+        tag = opts.options.get('-t', None)
         showVersion = opts.options.get("-V")
+
+        current = makeCurrentObject(current, tag)
 
         productName, versionName = None, None
         if opts.argv:
@@ -703,13 +717,16 @@ def main(cmd, opts):
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
                      dependencies=dependencies, showVersion=showVersion, setupType=setupType)
-    elif cmd == "path" or cmd == "pkgroot":
+    elif cmd == "path" or cmd == "pkgroot" or cmd == "startup":
         if cmd == "path":
             _what = "EUPS_PATH"
             _path = Eups.path
         elif cmd == "pkgroot":
             _what = "EUPS_PKGROOT"
             _path = os.environ.get(_what, "").split("|")
+        elif cmd == "startup":
+            _what = "EUPS_STARTUP"
+            _path = os.environ.get(_what, "").split(":")
             
         try:
             if opts.argv:
@@ -848,7 +865,7 @@ def main(cmd, opts):
     elif cmd == "setup" or cmd == "unsetup":
         print "Please use the command \"%s\" which modifies your environment" % " ".join([cmd] + opts + argv)
     elif cmd == "undeclare":
-        undeclare_current = opts.options.get('-c', False)
+        undeclareCurrent = makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None))
 
         productName = opts.argv.pop(0)
         if opts.argv:
@@ -856,7 +873,7 @@ def main(cmd, opts):
         else:
             versionName = None
 
-        Eups.undeclare(productName, versionName, undeclare_current=undeclare_current)
+        Eups.undeclare(productName, versionName, undeclareCurrent=undeclareCurrent)
     elif cmd == "uses":
         current = opts.options.get('-c', False)
         depth = int(opts.options.get('-d', "9999"))
@@ -874,6 +891,24 @@ def main(cmd, opts):
         eupsUses(Eups, productName, versionName, depth, showOptional, current)
     else:
         print "Unknown eups command \"%s\"" % cmd
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def makeCurrentObject(current, tag):
+    """Parse the -c and -t flags, returning a Current object or None"""
+
+    if current:
+        if tag:
+            print >> sys.stderr, "You specified --current and --tag=%s; ignoring tag" % tag
+        return eups.Current()
+        
+    if tag:
+        if not eups.isValidTag(tag):
+            raise RuntimeError, "%s is not a valid tag; please choose one of \"%s\"" % \
+                  (tag, '" "'.join(eups.getValidTags()))
+        return eups.Current(tag)
+
+    return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1014,9 +1049,9 @@ def listProducts(Eups, productName=None, versionName=None,
 
             extra = []
             if isCurrent:
-                extra += ["Current"]
+                extra += [isCurrent.tag]
             if isSetup:
-                extra += ["Setup"]
+                extra += ["setup"]
             if extra:
                 info += "\t" + " ".join(extra)
 

@@ -507,10 +507,10 @@ class Distribution(object):
                 dodeclare = True
         except IndexError, e:
             dodeclare = True
-            if asCurrent is None:  asCurrent = True
+            if asCurrent is None:  asCurrent = eups.Current()
         except RuntimeError, e:
             dodeclare = True
-            if asCurrent is None:  asCurrent = True
+            if asCurrent is None:  asCurrent = eups.Current()
 
         if not dodeclare:
             return
@@ -541,7 +541,7 @@ class Distribution(object):
             tablefile = tablefileloc
 
         self.Eups.declare(product, version, rootdir, eupsPathDir=productRoot, 
-                          tablefile=tablefile, declare_current=asCurrent)
+                          tablefile=tablefile, declareCurrent=asCurrent)
                           
 
     def listPackages(self, product=None, version=None, tag=None):
