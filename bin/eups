@@ -83,7 +83,7 @@ if len(sys.argv) > 1:
 else:
     cmd = None
 
-eups.eupsCmdHook(cmd, sys.argv)
+eups.commandCallbacks.apply(cmd, sys.argv)
 
 try:
     opts = eupsGetopt.Getopt(options, sys.argv[:], aliases, helpStr, checkArgs=False)
@@ -361,6 +361,8 @@ def main(cmd, opts):
                 if verbose:
                     print >> sys.stderr, "Guessed product/version %s/%s from directory name" % \
                           (productName, versionName)
+            else:
+                productName = None
 
         if not productName or not versionName:
             print >> sys.stderr, "Please provide a product and version name"

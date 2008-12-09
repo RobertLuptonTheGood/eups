@@ -550,7 +550,7 @@ class BuildfilePatchCallbacks(object):
 
         return line
 
-    def clear(user=True, system=False):
+    def clear(self, user=True, system=False):
         """Clear the list of buildfile patch callbacks
         
         If user is True, clear  user-defined callbacks

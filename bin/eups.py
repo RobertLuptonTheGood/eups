@@ -22,32 +22,81 @@ def debug(*args, **kwargs):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def eupsCmdHook(cmd, argv):
-    """Called by eups to allow users to customize behaviour by defining it in EUPS_STARTUP
+class CommandCallbacks(object):
+    """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
+        and calling eups.commandCallbacks.add(hook)"""
 
-    The arguments are the command (e.g. "admin" if you type "eups admin")
-    and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+    callbacks = []
 
-    E.g.
-    if cmd == "fetch":
-        argv[1:2] = ["distrib", "install"]
-    """
+    def __init__(self):
+        pass
 
-    for hook in eupsCmdHooks:
-        hook(cmd, argv)
+    def add(self, callback):
+        """
+        Add a command callback.
+        
+        The arguments are the command (e.g. "admin" if you type "eups admin")
+        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+        
+        E.g.
+        if cmd == "fetch":
+            argv[1:2] = ["distrib", "install"]
+        """
+        CommandCallbacks.callbacks += [callback]
 
-def eupsAddCmdHook(hook, reset=False):
-    global eupsCmdHooks
-    if reset:
-        eupsCmdHooks = []
+    def apply(self, cmd, argv):
+        """Call the command callbacks on cmd, argv"""
+        
+        for hook in CommandCallbacks.callbacks:
+            hook(cmd, argv)
 
-    if hook:
-        eupsCmdHooks += [hook]
+    def clear(self):
+        """Clear the list of command callbacks"""
+        CommandCallbacks.callbacks = []
 
 try:
-    eupsCmdHooks
+    type(commandCallbacks)
 except NameError:
-    eupsAddCmdHook(None, reset=True)
+    commandCallbacks = CommandCallbacks()
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class VersionCallbacks(object):
+    """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
+        and calling eups.versionCallbacks.add(hook)"""
+
+    callbacks = []
+
+    def __init__(self):
+        pass
+
+    def add(self, callback):
+        """
+        Add a version callback.
+        
+        The arguments are the two version strings, and the return value is the
+        (maybe modified) versions that you prefer
+        """
+        VersionCallbacks.callbacks += [callback]
+
+    def apply(self, v1, v2):
+        """Call the version callbacks on v1, v2"""
+
+        v1 = v1[:]; v2 = v2[:]
+        
+        for hook in VersionCallbacks.callbacks:
+            v1, v2 = hook(v1, v2)
+
+        return v1, v2
+
+    def clear(self):
+        """Clear the list of version callbacks"""
+        VersionCallbacks.callbacks = []
+
+try:
+    type(versionCallbacks)
+except NameError:
+    versionCallbacks = VersionCallbacks()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -208,6 +257,9 @@ defineValidSetupTypes()                      # reset list
 defineValidSetupTypes("build")               # valid values of type
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class _Current(object):                         # needed to read ticket #525 cache files
+    pass
 
 class Current(object):
     """A class used to specify the current version (e.g. versionName=Current)"""
@@ -1434,6 +1486,8 @@ class Quiet(object):
 class Eups(object):
     """Control eups"""
 
+    cacheVersion = "1.0"                # revision number for cache; must match
+
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=False, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
@@ -1657,6 +1711,18 @@ class Eups(object):
                 self.versions[db] = {}
 
             for flavor in versions[db].keys():
+                if flavor == "version":
+                    cacheVersion = versions[db][flavor]
+
+                    if cacheVersion != Eups.cacheVersion:
+                        raise RuntimeError, \
+                              ("Saw cache version %s (expected %s) in %s; please run \"eups admin buildCache\"" % 
+                               (cacheVersion, Eups.cacheVersion, eupsPathDir))
+
+                    self.versions[db][flavor] = cacheVersion
+
+                    continue
+
                 if not self.versions[db].has_key(flavor):
                     self.versions[db][flavor] = {}
 
@@ -2308,6 +2374,8 @@ match fails.
                     vvv = re.sub(r"%s$" % suffix, "", version)
 
             return vvv, eee, fff
+
+        v1, v2 = versionCallbacks.apply(v1, v2)
 
         prim1, sec1, ter1 = split_version(v1)
         prim2, sec2, ter2 = split_version(v2)

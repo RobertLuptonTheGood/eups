@@ -42,7 +42,7 @@ options = {
     }
 aliases = {}
 
-eups.eupsCmdHook("setup", sys.argv)
+eups.commandCallbacks.apply("setup", sys.argv)
 
 try:
     opts = eupsGetopt.Getopt(options, sys.argv, aliases, "setup [options] [product [version]]")
