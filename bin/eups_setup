@@ -105,7 +105,8 @@ if root:
 if opts.argv:
     version = opts.argv.pop(0)
     if tag:
-        print >> sys.stderr, "Ignoring tag %s as you specified an explicit version %s" % (tag, version)
+        if verbose > 1:
+            print >> sys.stderr, "Using %s although you specified tag %s" % (version, tag)
 else:
     if unsetup:
         version = None

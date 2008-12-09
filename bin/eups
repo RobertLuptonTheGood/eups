@@ -348,11 +348,12 @@ def main(cmd, opts):
 
         eupsAdmin(Eups, subcmd)
     elif cmd == "declare":
-        declareCurrent = opts.options.get('-c', False)
         productDir = opts.options.get('-r', None)
         tablefile = opts.options.get('-m', None)
         externalTablefile = opts.options.get('-M', None)
         tag = opts.options.get('-t', None)
+
+        Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
 
         if opts.argv:
             productName = opts.argv.pop(0)
@@ -389,7 +390,7 @@ def main(cmd, opts):
                     sys.exit(1)
 
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
-                     declareCurrent=declareCurrent)
+                     declareCurrent=Eups.currentType)
     elif cmd == "distrib":
         # Allow distrib's sub-commands to be specified as verbs, not options
         if len(opts.argv) > 0:
@@ -865,7 +866,7 @@ def main(cmd, opts):
     elif cmd == "setup" or cmd == "unsetup":
         print "Please use the command \"%s\" which modifies your environment" % " ".join([cmd] + opts + argv)
     elif cmd == "undeclare":
-        undeclareCurrent = makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None))
+        Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
 
         productName = opts.argv.pop(0)
         if opts.argv:
@@ -873,7 +874,7 @@ def main(cmd, opts):
         else:
             versionName = None
 
-        Eups.undeclare(productName, versionName, undeclareCurrent=undeclareCurrent)
+        Eups.undeclare(productName, versionName, undeclareCurrent=Eups.currentType)
     elif cmd == "uses":
         current = opts.options.get('-c', False)
         depth = int(opts.options.get('-d', "9999"))

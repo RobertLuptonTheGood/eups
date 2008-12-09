@@ -1352,7 +1352,7 @@ class Product(object):
     def currentFileName(self):
         """Return a tag's chain file's fully qualified name"""
 
-        return os.path.join(self.Eups.getUpsDB(self.db), self.name, self.currentType.filename())
+        return os.path.join(self.Eups.getUpsDB(self.db), self.name, self.Eups.currentType.filename())
 
     def versionFileName(self):
         """Return a fully qualified versionfile name"""
@@ -1454,6 +1454,8 @@ class Quiet(object):
 class Eups(object):
     """Control eups"""
 
+    cacheVersion = "1.1"                # revision number for cache; must match
+
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=False, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
@@ -1525,7 +1527,7 @@ class Eups(object):
             
         self.root = root
 
-        self.currentType = currentType    # type of "Current" (e.g. current, stable, ...)
+        self.setCurrentType(currentType)
         self.quiet = quiet
         self.keep = keep
         self.noaction = noaction
@@ -1561,6 +1563,10 @@ class Eups(object):
                     self.localVersions[product.name] = os.environ[product.envarDirName()]
             except TypeError:
                 pass
+
+    def setCurrentType(self, currentType):
+        """Set type of "Current" we want (e.g. current, stable, ...)"""
+        self.currentType = currentType
 
     def Product(self, *args, **kwargs):
         """Create a Product"""
@@ -1678,6 +1684,18 @@ class Eups(object):
                 self.versions[db] = {}
 
             for flavor in versions[db].keys():
+                if flavor == "version":
+                    cacheVersion = versions[db][flavor]
+
+                    if cacheVersion != Eups.cacheVersion:
+                        raise RuntimeError, \
+                              ("Saw cache version %s (expected %s) in %s; please run \"eups admin buildCache\"" % 
+                               (cacheVersion, Eups.cacheVersion, eupsPathDir))
+
+                    self.versions[db][flavor] = cacheVersion
+
+                    continue
+
                 if not self.versions[db].has_key(flavor):
                     self.versions[db][flavor] = {}
 
@@ -1687,6 +1705,18 @@ class Eups(object):
 
                         for v in versions[db][flavor][p]:
                             self.versions[db][flavor][p][v] = versions[db][flavor][p][v]
+                            #
+                            # Convert old-style caches
+                            #
+                            if True:
+                                prod = self.versions[db][flavor][p][v]
+
+                                if isinstance(prod._current, bool): # old style _current, pre #523 changes
+                                    tmp = prod._current
+                                    prod._current = {}
+                                    prod.currentType = Current()
+                                    prod._current[prod.currentType] = tmp
+                            
     
     def writeDB(self, eupsPathDir, force=False):
         """Write eupsPathDir's version DB to a persistent DB"""
@@ -1721,6 +1751,8 @@ class Eups(object):
             persistentDBDir = os.path.dirname(persistentDB)
             if not os.path.isdir(persistentDBDir):
                 os.makedirs(persistentDBDir)
+
+            self.versions[eupsPathDir]["version"] = Eups.cacheVersion
 
             lock = self.lockDB(eupsPathDir)
             try:
@@ -1761,7 +1793,8 @@ class Eups(object):
                 else:
                     colon = ""
 
-                print "%-30s (%d products)%s" % (db, len(productNames), colon)
+                print "%-30s (%d products) [cache version %s]%s" % (db, len(productNames),
+                                                                    self.versions[db].get("version", "unknown"), colon)
 
                 if not self.verbose:
                     continue
