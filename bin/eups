@@ -83,7 +83,13 @@ if len(sys.argv) > 1:
 else:
     cmd = None
 
-eups.commandCallbacks.apply(cmd, sys.argv)
+try:
+    opts = eupsGetopt.Getopt(options, sys.argv, aliases)
+    verbose = opts.options["-v"]
+except:
+    verbose = 0
+
+eups.commandCallbacks.apply("eups %s" % cmd, sys.argv, verbose)
 
 try:
     opts = eupsGetopt.Getopt(options, sys.argv[:], aliases, helpStr, checkArgs=False)

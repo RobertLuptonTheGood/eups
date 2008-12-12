@@ -44,15 +44,26 @@ class CommandCallbacks(object):
         """
         CommandCallbacks.callbacks += [callback]
 
-    def apply(self, cmd, argv):
+    def apply(self, cmd, argv, verbose=0):
         """Call the command callbacks on cmd, argv"""
-        
+
+        argv[0] = os.path.basename(argv[0])
+
+        argv0 = argv[:]                 # used for helpful messages
         for hook in CommandCallbacks.callbacks:
             hook(cmd, argv)
+
+        if verbose > 1 and argv != argv0:
+            print >> sys.stderr, "Command hooks rewrote \"%s\" as \"%s\"" % \
+                  (" ".join(argv0), " ".join(argv))
 
     def clear(self):
         """Clear the list of command callbacks"""
         CommandCallbacks.callbacks = []
+
+    def list(self):
+        for hook in CommandCallbacks.callbacks:
+            print >> sys.stderr, hook
 
 try:
     type(commandCallbacks)
@@ -82,7 +93,10 @@ class VersionCallbacks(object):
     def apply(self, v1, v2):
         """Call the version callbacks on v1, v2"""
 
-        v1 = v1[:]; v2 = v2[:]
+        if v1:
+            v1 = v1[:]
+        if v2:
+            v2 = v2[:]
         
         for hook in VersionCallbacks.callbacks:
             v1, v2 = hook(v1, v2)
