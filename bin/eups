@@ -150,7 +150,7 @@ elif cmd == "distrib":
                    [-T tmpdir] [-D distribClass]
                    product version
 
-    Manage packages either as a user (via list, install, or remove) or as 
+    Manage packages either as a user (via clean, install, or list) or as 
     a provider (via create).  
 """
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["cmd", "product", "version"])
@@ -493,8 +493,8 @@ def main(cmd, opts):
             print >> sys.stderr, "You may not specify --list along with --noaction"
             sys.exit(1)
 
-        if create + install + list + clean != 1:
-            print >> sys.stderr, "Please specify exactly one of --create, --install, and --list"
+        if clean + create + install + list != 1:
+            print >> sys.stderr, "Please specify exactly one of clean, create, install, and list"
             sys.exit(1)
 
         if create:
