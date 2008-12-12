@@ -155,7 +155,18 @@ def getValidTags():
 
 def isValidTag(tag):
     """Is tag valid?"""
+
+    if isinstance(tag, _Current):
+        tag = tag.tag
+        
     return validTags.count(tag) > 0
+
+def checkValidTag(tag):
+    """Check if tag is valid, returning the tag if so (and raising RuntimeError if it isn't)"""
+    if tag and not isValidTag(tag):
+        raise RuntimeError, "\"%s\" is not a valid tag; please choose one of \"%s\"" % (tag, '" "'.join(getValidTags()))
+
+    return tag
 
 defineValidTags()                       # reset list
 defineValidTags("current", "stable")    # valid types of tag
@@ -1924,7 +1935,7 @@ class Eups(object):
         if not vinfo:                       # no currentType version is available
             if currentType != Current() and fallbackToCurrent: # try vanilla Current()
                 try:
-                    if self.verbose > 2:
+                    if not isValidTag(currentType) or self.verbose > 2:
                         print >> sys.stderr, "Unable to locate a %s version of %s, trying current" % \
                               (currentType.tag, productName)
 

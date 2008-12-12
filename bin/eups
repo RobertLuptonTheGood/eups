@@ -19,7 +19,8 @@ distribClasses = {}
 try:
     for startupFile in os.environ["EUPS_STARTUP"].split(':'):
         try:
-            execfile(startupFile)
+            if startupFile:
+                execfile(startupFile)
         except Exception, e:
             print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 except KeyError:
@@ -100,7 +101,7 @@ except IndexError:
 #
 debugOptions = opts.options.get(debugFlag, "").split(":")
 for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
-    print >> sys.stderr, "%s in not a valid option to --debug" % bad
+    print >> sys.stderr, "\"%s\" in not a valid option to --debug" % bad
 allowRaise = "raise" in debugOptions
 
 dbz = opts.options.get('-z')
@@ -425,10 +426,7 @@ def main(cmd, opts):
         clean = opts.options.get('-L', False)
 
         manifest = opts.options.get('-m', None)
-        tag = opts.options.get('-t', None)
-        if tag and not eups.isValidTag(tag):
-            raise RuntimeError, "%s is not a valid tag; please choose one of \"%s\"" % \
-                  (tag, '" "'.join(eups.getValidTags()))
+        tag = eups.checkValidTag(opts.options.get('-t', None))
         makeCurrent = opts.options.get('-C', None)
         noeups = opts.options.get('-N', False)
         noclean = opts.options.get(nocleanFlag)
@@ -707,7 +705,7 @@ def main(cmd, opts):
         tag = opts.options.get('-t', None)
         showVersion = opts.options.get("-V")
 
-        current = makeCurrentObject(current, tag)
+        current = makeCurrentObject(current, tag, checkTag=False)
 
         productName, versionName = None, None
         if opts.argv:
@@ -895,7 +893,7 @@ def main(cmd, opts):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def makeCurrentObject(current, tag):
+def makeCurrentObject(current, tag, checkTag=True):
     """Parse the -c and -t flags, returning a Current object or None"""
 
     if current:
@@ -903,13 +901,14 @@ def makeCurrentObject(current, tag):
             print >> sys.stderr, "You specified --current and --tag=%s; ignoring tag" % tag
         return eups.Current()
         
-    if tag:
-        if not eups.isValidTag(tag):
-            raise RuntimeError, "%s is not a valid tag; please choose one of \"%s\"" % \
-                  (tag, '" "'.join(eups.getValidTags()))
-        return eups.Current(tag)
 
-    return None
+    if tag:
+        if checkTag:
+            eups.checkValidTag(tag)
+            
+        return eups.Current(tag)
+    else:
+        return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

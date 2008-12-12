@@ -6,7 +6,8 @@ import eupsGetopt
 try:
     for startupFile in os.environ["EUPS_STARTUP"].split(':'):
         try:
-            execfile(startupFile)
+            if startupFile:
+                execfile(startupFile)
         except Exception, e:
             print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 except KeyError:
@@ -83,11 +84,6 @@ quiet = opts.options.get('-q', 0)
 root = opts.options.get('-r')
 setupType = opts.options.get('-T')
 tag = opts.options.get('-t', None)
-if tag and not eups.isValidTag(tag):
-    print >> sys.stderr, "%s is not a valid tag; please choose one of \"%s\"" % \
-          (tag, '" "'.join(eups.getValidTags()))
-    sys.exit(1)
-
 unsetup = opts.options.get('-u', False)
 verbose = opts.options.get('-v', 0)
 
