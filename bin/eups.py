@@ -22,17 +22,95 @@ def debug(*args, **kwargs):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def eupsCmdHook(cmd, argv):
-    """Called by eups to allow users to customize behaviour by defining it in EUPS_STARTUP
+class CommandCallbacks(object):
+    """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
+        and calling eups.commandCallbacks.add(hook)"""
 
-    The arguments are the command (e.g. "admin" if you type "eups admin")
-    and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+    callbacks = []
 
-    E.g.
-    if cmd == "fetch":
-        argv[1:2] = ["distrib", "install"]
-    """
-    pass
+    def __init__(self):
+        pass
+
+    def add(self, callback):
+        """
+        Add a command callback.
+        
+        The arguments are the command (e.g. "admin" if you type "eups admin")
+        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+        
+        E.g.
+        if cmd == "fetch":
+            argv[1:2] = ["distrib", "install"]
+        """
+        CommandCallbacks.callbacks += [callback]
+
+    def apply(self, cmd, argv, verbose=0):
+        """Call the command callbacks on cmd, argv"""
+
+        argv[0] = os.path.basename(argv[0])
+
+        argv0 = argv[:]                 # used for helpful messages
+        for hook in CommandCallbacks.callbacks:
+            hook(cmd, argv)
+
+        if verbose > 1 and argv != argv0:
+            print >> sys.stderr, "Command hooks rewrote \"%s\" as \"%s\"" % \
+                  (" ".join(argv0), " ".join(argv))
+
+    def clear(self):
+        """Clear the list of command callbacks"""
+        CommandCallbacks.callbacks = []
+
+    def list(self):
+        for hook in CommandCallbacks.callbacks:
+            print >> sys.stderr, hook
+
+try:
+    type(commandCallbacks)
+except NameError:
+    commandCallbacks = CommandCallbacks()
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class VersionCallbacks(object):
+    """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
+        and calling eups.versionCallbacks.add(hook)"""
+
+    callbacks = []
+
+    def __init__(self):
+        pass
+
+    def add(self, callback):
+        """
+        Add a version callback.
+        
+        The arguments are the two version strings, and the return value is the
+        (maybe modified) versions that you prefer
+        """
+        VersionCallbacks.callbacks += [callback]
+
+    def apply(self, v1, v2):
+        """Call the version callbacks on v1, v2"""
+
+        if v1:
+            v1 = v1[:]
+        if v2:
+            v2 = v2[:]
+        
+        for hook in VersionCallbacks.callbacks:
+            v1, v2 = hook(v1, v2)
+
+        return v1, v2
+
+    def clear(self):
+        """Clear the list of version callbacks"""
+        VersionCallbacks.callbacks = []
+
+try:
+    type(versionCallbacks)
+except NameError:
+    versionCallbacks = VersionCallbacks()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1466,7 +1544,6 @@ class Eups(object):
     """Control eups"""
 
     cacheVersion = "1.1"                # revision number for cache; must match
-
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=False, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
@@ -2387,6 +2464,8 @@ match fails.
                     vvv = re.sub(r"%s$" % suffix, "", version)
 
             return vvv, eee, fff
+
+        v1, v2 = versionCallbacks.apply(v1, v2)
 
         prim1, sec1, ter1 = split_version(v1)
         prim2, sec2, ter2 = split_version(v2)

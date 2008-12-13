@@ -45,7 +45,13 @@ options = {
     }
 aliases = {}
 
-eups.eupsCmdHook("setup", sys.argv)
+try:
+    opts = eupsGetopt.Getopt(options, sys.argv, aliases)
+    verbose = opts.options["-v"]
+except:
+    verbose = 0
+    
+eups.commandCallbacks.apply("setup", sys.argv, verbose)
 
 try:
     opts = eupsGetopt.Getopt(options, sys.argv, aliases, "setup [options] [product [version]]")
