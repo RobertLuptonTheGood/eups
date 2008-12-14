@@ -451,7 +451,7 @@ def main(cmd, opts):
                 installFlavor = "generic"
 
         pkgroots = getPkgroots(opts)
-        if len(pkgroots) == 0 and Eups.verbose:
+        if (install or list) and (len(pkgroots) == 0 and Eups.verbose):
             print >> sys.stderr, "No package root specified; you will not be able install packages"
             sys.exit(1)
 

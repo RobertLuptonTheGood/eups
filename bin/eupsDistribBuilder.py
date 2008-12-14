@@ -178,7 +178,12 @@ DIST_URL = %%(base)s/builds/%%(path)s
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
-            for d in self.buildFilePath.split(":") + ["."]:
+            bpath = []
+            if self.buildFilePath:
+                bpath += self.buildFilePath.split(":")
+            bpath += ["."]
+
+            for d in bpath:
                 if os.path.exists(os.path.join(d, "ups", "%s.build" % productName)):
                     msg += "\n" + "N.b. found %s.build in %s/ups; consider adding %s/ups to --build path" % \
                            (d, d, productName)
@@ -606,7 +611,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
             svnroot = os.environ["SVNROOT"]
         elif os.path.isdir(".svn"):
             try:
-                rfd = os.popen("svn info .svn")
+                rfd = os.popen("svn info .")
                 for line in rfd:
                     mat = re.search(r"^Repository Root: (\S+)", line)
                     if mat:

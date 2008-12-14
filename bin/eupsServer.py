@@ -1468,7 +1468,7 @@ class ServerConf(object):
                 pdir = os.path.dirname(cached)
                 if not os.path.exists(pdir):
                     os.makedirs(pdir)
-                if self.verbose > 0 and not os.path.exists(cached):
+                if self.verbose > 0 and self.base != "/dev/null" and not os.path.exists(cached):
                     print >> self.log, "Caching configuration for", self.base
                     if self.verbose > 1:
                         print >> self.log, "...as", cached
@@ -1490,7 +1490,7 @@ class ServerConf(object):
                     # a temp file (which will happen if configFile is None).
                     if not save:  configFile = None
 
-                    if self.verbose > 0:
+                    if self.base != "/dev/null" and self.verbose > 0:
                         print >> self.log, \
                             "Pulling configuration for %s from server" % self.base
 
@@ -1507,7 +1507,7 @@ class ServerConf(object):
                 self.data = self.readConfFile(configFile);
 
         except RemoteFileNotFound, e:
-            if self.verbose > 0:
+            if self.base != "/dev/null" and self.verbose > 0:
                 print >> self.log, \
                     "Warning: No configuration available from server;", \
                     'assuming "vanilla" server'                
