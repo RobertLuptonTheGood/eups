@@ -209,48 +209,6 @@ def ctimeTZ(t=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def defineValidTags(*tags):
-    """Define a permissible tag name (e.g. stable)"""
-    global validTags
-
-    if not tags:
-        validTags = []
-    else:
-        validTags += tags
-    #
-    # Make tags unique (and don't use set as it isn't in python 2.3)
-    #
-    tmp = {}
-    for t in validTags:
-        tmp[t] = 1
-
-    validTags = tmp.keys()
-    validTags.sort()
-
-def getValidTags():
-    """Return (a copy of) all valid tags"""
-    return validTags[:]
-
-def isValidTag(tag):
-    """Is tag valid?"""
-
-    if isinstance(tag, _Current):
-        tag = tag.tag
-        
-    return validTags.count(tag) > 0
-
-def checkValidTag(tag):
-    """Check if tag is valid, returning the tag if so (and raising RuntimeError if it isn't)"""
-    if tag and not isValidTag(tag):
-        raise RuntimeError, "\"%s\" is not a valid tag; please choose one of \"%s\"" % (tag, '" "'.join(getValidTags()))
-
-    return tag
-
-defineValidTags()                       # reset list
-defineValidTags("current", "stable")    # valid types of tag
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 def defineValidSetupTypes(*types):
     """Define a permissible type of setup (e.g. build)"""
     global validSetupTypes
@@ -519,6 +477,70 @@ CHAIN = %s
 
         return self
     
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class ValidTag(object):
+    """A valid tag"""
+
+    def __init__(self, tag, fallbackTags=None):
+        self.tag = tag
+        if not fallbackTags:
+            fallbackTags = []
+        self.fallbackTags = fallbackTags
+
+def defineValidTag(tag=None, fallbackTags=[Current()]):
+    """Define a permissible tag name (e.g. stable), and a list of tags to check if the tag can't be found.
+
+    If tag is None, reset the list of valid tags to empty
+    """
+    global validTags
+
+    if fallbackTags:
+        if isinstance(fallbackTags, str):
+            fallbackTags = [fallbackTags]
+            
+        for i in range(len(fallbackTags)):
+            if isinstance(fallbackTags[i], str):
+                fallbackTags[i] = Current(fallbackTags[i])
+
+    if not tag:
+        validTags = {}
+    else:
+        validTags[tag] = ValidTag(tag, fallbackTags)
+
+def getValidTags():
+    """Return (a copy of) all valid tags"""
+
+    vtags = validTags.keys()
+    vtags.sort()
+
+    return vtags
+
+def getValidTagFallbacks(tag):
+    try:
+        return validTags[tag].fallbackTags
+    except KeyError:
+        return []
+
+def isValidTag(tag):
+    """Is tag valid?"""
+
+    if isinstance(tag, _Current):
+        tag = tag.tag
+        
+    return validTags.has_key(tag)
+
+def checkValidTag(tag):
+    """Check if tag is valid, returning the tag if so (and raising RuntimeError if it isn't)"""
+    if tag and not isValidTag(tag):
+        raise RuntimeError, "\"%s\" is not a valid tag; please choose one of \"%s\"" % (tag, '" "'.join(getValidTags()))
+
+    return tag
+
+defineValidTag()                       # reset list
+defineValidTag("current") 
+defineValidTag("stable", ["beta"]) 
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Table(object):
@@ -1491,7 +1513,7 @@ class Product(object):
 
         return self.Eups.findSetupVersion(self.name, environ)
 
-    def checkCurrent(self, isCurrent=None, currentType=None, fallbackToCurrent=True):
+    def checkCurrent(self, isCurrent=None, currentType=None):
         """check if product is current.  This shouldn't be needed if update the db when declaring products"""
 
         if not currentType:
@@ -1503,7 +1525,7 @@ class Product(object):
             self._current[currentType] = None
             try:
                 cdb, cversion, cvinfo = self.Eups.findCurrentVersion(self.name,
-                                                                     currentType=currentType, fallbackToCurrent=False)
+                                                                     currentType=currentType, currentTypesToTry=[])
                 if cdb == self.db and cversion == self.version:
                     self._current[currentType] = currentType
             except RuntimeError:
@@ -1645,6 +1667,7 @@ class Eups(object):
         #
         self.localVersions = {}
 
+        q = Quiet(self)
         for product in self.getSetupProducts():
             try:
                 if re.search(r"^LOCAL:", product.version):
@@ -1654,7 +1677,9 @@ class Eups(object):
 
     def setCurrentType(self, currentType):
         """Set type of "Current" we want (e.g. current, stable, ...)"""
-        self.currentType = currentType
+        self.currentType = currentType  # our Current type
+        # list of currentTypes to try if this one fails
+        self.currentTypesToTry = getValidTagFallbacks(currentType.tag)
 
     def Product(self, *args, **kwargs):
         """Create a Product"""
@@ -1966,11 +1991,13 @@ class Eups(object):
             del self.aliases[key]
         self.oldAliases[key] = None # so it'll be deleted if no new alias is defined
 
-    def findCurrentVersion(self, productName, path=None, currentType=None, fallbackToCurrent=True):
+    def findCurrentVersion(self, productName, path=None, currentType=None, currentTypesToTry=None):
         """Find current version of a product, returning eupsPathDir, version, vinfo"""
 
         if not currentType:
             currentType = self.currentType
+        if currentTypesToTry is None:
+            currentTypesToTry = self.currentTypesToTry
 
         if currentType == Current() and self.locallyCurrent.has_key(productName):
             versionName = self.locallyCurrent[productName]
@@ -2009,14 +2036,23 @@ class Eups(object):
                 except KeyError:
                     pass                # not current in this eupsPathDir
 
-        if not vinfo:                       # no currentType version is available
-            if currentType != Current() and fallbackToCurrent: # try vanilla Current()
+        if not vinfo:                   # no currentType version is available
+            for otherCurrentType in currentTypesToTry:
+                if otherCurrentType == currentType: # we've tried this one already
+                    continue
                 try:
                     if not isValidTag(currentType) or self.verbose > 2:
-                        print >> sys.stderr, "Unable to locate a %s version of %s, trying current" % \
-                              (currentType.tag, productName)
+                        print >> sys.stderr, "Unable to locate a %s version of %s, trying %s" % \
+                              (currentType.tag, productName, otherCurrentType)
 
-                    return self.findCurrentVersion(productName, path=path, currentType=Current())
+                    vers = self.findCurrentVersion(productName, path=path,
+                                                   currentType=otherCurrentType, currentTypesToTry=[])
+
+                    if not self.quiet and self.verbose > 0:
+                        print >> sys.stderr, "Unable to locate a %s version of %s, using %s" % \
+                              (currentType.tag, productName, otherCurrentType)
+
+                    return vers
                 except RuntimeError:
                     pass
 
@@ -2679,7 +2715,7 @@ match fails.
                 try:
                     product = self.getProduct(productName, versionName)
                 except RuntimeError, e:
-                    if self.verbose:
+                    if False and self.verbose:
                         print >> sys.stderr, e
 
                     return False, versionName, e
@@ -2694,9 +2730,11 @@ match fails.
         #
         if recursionDepth == 0:
             if fwd:
+                q = Quiet(self)
                 self.alreadySetupProducts = {}
                 for p in self.getSetupProducts():
                     self.alreadySetupProducts[p.name] = p
+                del q
 
         table = product.table
 
@@ -3248,7 +3286,7 @@ match fails.
                     product = self.versions[db][self.flavor][name][version]
                     product.Eups = self     # don't use the cached Eups
 
-                    isCurrent = product.checkCurrent(currentType=current, fallbackToCurrent=False)
+                    isCurrent = product.checkCurrent(currentType=current)
                     isSetup = self.isSetup(product)
 
                     if current and current != isCurrent:
