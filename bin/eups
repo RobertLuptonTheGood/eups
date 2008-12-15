@@ -874,13 +874,19 @@ def main(cmd, opts):
     elif cmd == "undeclare":
         Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
 
+        if opts.options.get('-c', False) or opts.options.get("-t", None): # they want to undeclare a tag (inc. current)
+            undeclareCurrent = Eups.currentType
+        else:
+            undeclareCurrent = None
+        
+
         productName = opts.argv.pop(0)
         if opts.argv:
             versionName = opts.argv.pop(0)
         else:
             versionName = None
 
-        Eups.undeclare(productName, versionName, undeclareCurrent=Eups.currentType)
+        Eups.undeclare(productName, versionName, undeclareCurrent=undeclareCurrent)
     elif cmd == "uses":
         current = opts.options.get('-c', False)
         depth = int(opts.options.get('-d', "9999"))
