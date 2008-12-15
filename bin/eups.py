@@ -1605,6 +1605,7 @@ class Eups(object):
                 
         if dbz:
             path = filter(lambda p: re.search(r"/%s(/|$)" % dbz, p), path)
+            os.environ["EUPS_PATH"] = ":".join(path)
 
         self.path = []
         for p in path:
@@ -2923,8 +2924,9 @@ match fails.
                   ("Please specify a productDir for %s %s (maybe \"none\")" % (productName, versionName))
 
         if productDir == "/dev/null":   # Oh dear, we failed to find it
-            print >> sys.stderr, "Failed to find productDir for %s %s; assuming \"none\"" % (productName, versionName)
             productDir = "none"
+            print >> sys.stderr, "Failed to find productDir for %s %s; assuming \"%s\"" % \
+                  (productName, versionName, productDir)
 
         if productDir != "none" and not os.path.isdir(productDir):
             raise RuntimeError, \
