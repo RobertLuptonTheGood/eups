@@ -659,7 +659,15 @@ class ConfigurableDistribServer(DistribServer):
             filere = re.compile(filere)
             src = self.getConfigProperty("MANIFEST_DIR", "manifests") % data
 
-            files = self.listFiles(src, flavor, tag, noaction)
+            try:
+                files = self.listFiles(src, flavor, tag, noaction)
+            except RemoteFileNotFound, e:
+                print >> self.log, e
+                files = []
+            except ServerNotResponding, e:
+                print >> self.log, e
+                files = []
+
             out = []
             for file in files:
                 m = filere.search(file)

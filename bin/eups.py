@@ -1677,6 +1677,10 @@ class Eups(object):
 
     def setCurrentType(self, currentType):
         """Set type of "Current" we want (e.g. current, stable, ...)"""
+
+        if not currentType:
+            currentType = Current()
+
         self.currentType = currentType  # our Current type
         # list of currentTypes to try if this one fails
         self.currentTypesToTry = getValidTagFallbacks(currentType.tag)
