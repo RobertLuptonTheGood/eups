@@ -527,7 +527,7 @@ class Distribution(object):
             if rootdir == "/dev/null":
                 tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
                                                               version, flavor)
-
+                tablefile = open(tablefile, "r")
             else:
                 if not os.path.exists(tablefile):
                     if not os.path.exists(upsdir):
@@ -537,8 +537,9 @@ class Distribution(object):
                                                       filename=tablefile)
                 if not os.path.exists(tablefile):
                     raise RuntimeError("Failed to find table file %s" % tablefile)
-        if not os.path.exists(tablefile):
-            tablefile = tablefileloc
+        if not isinstance(tablefile, file):
+            if not os.path.exists(tablefile):
+                tablefile = tablefileloc
 
         self.Eups.declare(product, version, rootdir, eupsPathDir=productRoot, 
                           tablefile=tablefile, declareCurrent=asCurrent)
