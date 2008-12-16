@@ -543,6 +543,16 @@ defineValidTag("stable", ["beta"])
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def _isRealFilename(filename):
+    """Return True iff \"filename\" is a real filename, not a placeholder.  It need not exist"""
+
+    if filename is None:
+        return False
+    elif filename in ("none", "???"):
+        return False
+    else:
+        return True
+    
 class Table(object):
     """A class that represents a eups table file"""
 
@@ -553,7 +563,7 @@ class Table(object):
         self.old = False
         self._actions = []
 
-        if tableFile != "none":
+        if _isRealFilename(tableFile):
             self._read(tableFile)
 
     def _rewrite(self, contents):
@@ -1221,7 +1231,7 @@ class VersionFile(object):
                         self.info[flavor]["table_file"] = "none"
 
                     tablefile = self.info[flavor]["table_file"]
-                    if not self.info[flavor].has_key("ups_dir") and tablefile != "none":
+                    if not self.info[flavor].has_key("ups_dir") and _isRealFilename(tablefile):
                         if tablefile != ("%s.table" % self.productName) and not os.path.isabs(tablefile):
                             print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
                         self.info[flavor]["ups_dir"] = "ups"
@@ -2250,7 +2260,7 @@ match fails.
     def _finishFinding(self, vinfo, productName, versionName, eupsPathDir):
         productDir = vinfo["productDir"]
 
-        if productDir == "none" or productDir == "/dev/null":
+        if not _isRealFilename(productDir) or productDir == "/dev/null":
             productDir = None
         else:
             if not re.search(r"^/", productDir):
@@ -2278,10 +2288,10 @@ match fails.
             if not re.search(r"^/", ups_dir) and productDir: # interpret wrt productDir
                 ups_dir = os.path.join(productDir, ups_dir)
         else:
-            if tablefile != "none":
+            if _isRealFilename(tablefile):
                 print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
 
-        if tablefile != "none":
+        if _isRealFilename(tablefile):
             if not re.search(r"^/", tablefile):
                 tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
@@ -2289,7 +2299,7 @@ match fails.
                 if self.verbose >= 1 + self.quiet:
                     print >> sys.stderr, \
                           "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
-                tablefile = "none"
+                tablefile = "???"
 
         return versionName, eupsPathDir, productDir, tablefile
 
@@ -2928,14 +2938,14 @@ match fails.
             print >> sys.stderr, "Failed to find productDir for %s %s; assuming \"%s\"" % \
                   (productName, versionName, productDir)
 
-        if productDir != "none" and not os.path.isdir(productDir):
+        if _isRealFilename(productDir) and not os.path.isdir(productDir):
             raise RuntimeError, \
                   ("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
 
         if tablefile is None:
             tablefile = "%s.table" % productName
 
-        if productDir != "none":
+        if _isRealFilename(productDir):
             if os.environ.has_key("HOME"):
                 productDir = re.sub(r"^~", os.environ["HOME"], productDir)
             if not re.search(r"^/", productDir):
@@ -2956,7 +2966,7 @@ match fails.
                   ("No EUPS_PATH is defined; I can't guess where to declare %s %s" % (productName, versionName))
 
         ups_dir, tablefileIsFd = "ups", False
-        if tablefile == "none":
+        if not _isRealFilename(tablefile):
             ups_dir = None
         elif tablefile:
             if isinstance(tablefile, file):
@@ -2978,8 +2988,8 @@ match fails.
         # Check that tablefile exists
         #
         assert tablefile
-        if not tablefileIsFd and tablefile != "none":
-            if not productDir or productDir == "none":
+        if not tablefileIsFd and _isRealFilename(tablefile):
+            if _isRealFilename(productDir):
                 if ups_dir:
                     try:
                         full_tablefile = os.path.join(ups_dir, tablefile)
@@ -3350,7 +3360,7 @@ match fails.
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
-        if tablefile != "none":
+        if _isRealFile(tablefile):
             for (product, optional, currentRequested) in \
                     Table(tablefile).dependencies(self, eupsPathDirs, setupType=setupType):
                 dependencies += [(product, optional, currentRequested)]
@@ -3431,7 +3441,7 @@ match fails.
             if removedDirs.has_key(dir): # file is already removed
                 continue
 
-            if dir and dir != "none":
+            if _isRealFilename(dir):
                 if self.noaction:
                     print "rm -rf %s" % dir
                 else:
