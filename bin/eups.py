@@ -508,6 +508,11 @@ def defineValidTag(tag=None, fallbackTags=[Current()]):
     else:
         validTags[tag] = ValidTag(tag, fallbackTags)
 
+def defineValidTags(*tags):
+    """Backwards compatibility to define a set of tags;  note that these tags fallback only to Current()"""
+    for t in tags:
+        defineValidTag(t)
+
 def getValidTags():
     """Return (a copy of) all valid tags"""
 
@@ -1642,7 +1647,7 @@ class Eups(object):
 
         if root:
             root = re.sub(r"^~", os.environ["HOME"], root)
-            if not re.search(r"^/", root):
+            if not os.path.isabs(root):
                 root = os.path.join(os.getcwd(), root)
             root = os.path.normpath(root)
             
@@ -2263,7 +2268,7 @@ match fails.
         if not _isRealFilename(productDir) or productDir == "/dev/null":
             productDir = None
         else:
-            if not re.search(r"^/", productDir):
+            if not os.path.isabs(productDir):
                 productDir = os.path.join(eupsPathDir, productDir)
 
             if not os.path.isdir(productDir):
@@ -2285,14 +2290,14 @@ match fails.
                 ups_dir = re.sub(r"\$PROD_DIR", productDir, ups_dir)
             ups_dir = re.sub(r"\$UPS_DB", ups_db, ups_dir)
 
-            if not re.search(r"^/", ups_dir) and productDir: # interpret wrt productDir
+            if not os.path.isabs(ups_dir) and productDir: # interpret wrt productDir
                 ups_dir = os.path.join(productDir, ups_dir)
         else:
             if _isRealFilename(tablefile):
                 print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
 
         if _isRealFilename(tablefile):
-            if not re.search(r"^/", tablefile):
+            if not os.path.isabs(tablefile):
                 tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
             if not os.path.exists(tablefile):
@@ -2948,7 +2953,7 @@ match fails.
         if _isRealFilename(productDir):
             if os.environ.has_key("HOME"):
                 productDir = re.sub(r"^~", os.environ["HOME"], productDir)
-            if not re.search(r"^/", productDir):
+            if not os.path.isabs(productDir):
                 productDir = os.path.join(os.getcwd(), productDir)
             productDir = os.path.normpath(productDir)
 
@@ -2995,6 +3000,10 @@ match fails.
                         full_tablefile = os.path.join(ups_dir, tablefile)
                     except Exception, e:
                         raise RuntimeError, ("Unable to generate full tablefilename: %s" % e)
+                    
+                    if not os.path.isfile(full_tablefile) and not os.path.isabs(full_tablefile):
+                        full_tablefile = os.path.join(productDir, full_tablefile)
+
                 else:
                     full_tablefile = tablefile
             else:
@@ -3126,6 +3135,10 @@ match fails.
             cfile = ""
             try:
                 cfile = product.currentFileName()
+
+                cdir = os.path.dirname(cfile)
+                if not os.path.isdir(cdir):
+                    os.makedirs(cdir)
 
                 if not self.noaction:
                     fd = open(cfile + ".new~", "w")
