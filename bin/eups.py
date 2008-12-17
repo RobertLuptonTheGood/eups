@@ -3331,30 +3331,33 @@ match fails.
         #
         # Add in LOCAL: setups
         #
-        if setup:
-            for lproductName in self.localVersions.keys():
-                product = self.Product(lproductName, noInit=True)
-                try:
-                    product.initFromDirectory(self.localVersions[product.name])
-                except RuntimeError, e:
-                    if not self.quiet:
-                        print >> sys.stderr, ("Problem with product %s found in environment: %s" % (lproductName, e))
+        for lproductName in self.localVersions.keys():
+            product = self.Product(lproductName, noInit=True)
+
+            if not setup and (productName and productName != lproductName): # always print local setups of productName
+                continue
+
+            try:
+                product.initFromDirectory(self.localVersions[product.name])
+            except RuntimeError, e:
+                if not self.quiet:
+                    print >> sys.stderr, ("Problem with product %s found in environment: %s" % (lproductName, e))
+                continue
+
+            if productName and not fnmatch.fnmatchcase(product.name, productName):
+                continue
+            if productVersion and not fnmatch.fnmatchcase(product.version, productVersion):
+                continue
+
+            if current and productName != lproductName:
+                isCurrent = product.checkCurrent()
+                if current != isCurrent:
                     continue
 
-                if productName and not fnmatch.fnmatchcase(product.name, productName):
-                    continue
-                if productVersion and not fnmatch.fnmatchcase(product.version, productVersion):
-                    continue
-
-                if current and productName != lproductName:
-                    isCurrent = product.checkCurrent()
-                    if current != isCurrent:
-                        continue
-
-                values = []
-                values += [product.name]
-                values += [product.version, product.db, product.dir, current, True]
-                productList += [values]
+            values = []
+            values += [product.name]
+            values += [product.version, product.db, product.dir, current, True]
+            productList += [values]
         #
         # And sort them for the end user
         #
