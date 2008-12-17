@@ -3346,7 +3346,7 @@ match fails.
                 if productVersion and not fnmatch.fnmatchcase(product.version, productVersion):
                     continue
 
-                if current:
+                if current and productName != lproductName:
                     isCurrent = product.checkCurrent()
                     if current != isCurrent:
                         continue

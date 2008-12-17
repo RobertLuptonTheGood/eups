@@ -995,6 +995,9 @@ def listProducts(Eups, productName=None, versionName=None,
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
+    if True or (dependencies and setup):
+        Eups.setCurrentType(current)
+
     productList = Eups.listProducts(productName, versionName, current, setup)
     
     if dependencies:
