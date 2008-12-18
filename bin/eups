@@ -995,8 +995,7 @@ def listProducts(Eups, productName=None, versionName=None,
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
-    if True or (dependencies and setup):
-        Eups.setCurrentType(current)
+    #Eups.setCurrentType(current)
 
     productList = Eups.listProducts(productName, versionName, current, setup)
     
@@ -1065,7 +1064,7 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "%-20s %-55s" % (db, productDir)
 
             extra = []
-            if isCurrent:
+            if isCurrent and isCurrent.tag != " ":
                 extra += [isCurrent.tag]
             if isSetup:
                 extra += ["setup"]

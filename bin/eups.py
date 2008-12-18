@@ -3349,14 +3349,18 @@ match fails.
             if productVersion and not fnmatch.fnmatchcase(product.version, productVersion):
                 continue
 
-            if current and productName != lproductName:
+            thisCurrent = current
+            if current:
                 isCurrent = product.checkCurrent()
                 if current != isCurrent:
-                    continue
+                    if productName == lproductName and current != Current():
+                        thisCurrent = Current(" ") # they may have setup -r . --tag=XXX
+                    else:
+                        continue
 
             values = []
             values += [product.name]
-            values += [product.version, product.db, product.dir, current, True]
+            values += [product.version, product.db, product.dir, thisCurrent, True]
             productList += [values]
         #
         # And sort them for the end user
