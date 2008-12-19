@@ -250,6 +250,8 @@ except NameError:
         _tags = {}
 
         def __init__(self, tag):
+            if tag:
+                tag = re.sub(r"^tag:", "", tag)
             self.tag = tag
 
         def __str__(self):
@@ -260,6 +262,9 @@ except NameError:
 
 def Current(tag=None):
     """Factory function to return exactly one instantiation of each tag type of _Current"""
+
+    if isinstance(tag, _Current):
+        return tag
 
     if not tag:
         tag = "current"
@@ -286,8 +291,8 @@ def isSpecialVersion(versionName, setup=True):
 class CurrentChain(object):
     """A class that represents a chain file"""
 
-    def __init__(self,  Eups, productName=None, versionName=None, productDir=None):
-        """Parse a current file; Eups.currentType may specify that it is a file for some other tag (e.g. stable)"""
+    def __init__(self,  Eups, productName=None, versionName=None, productDir=None, currentType=None):
+        """Parse a current file; currentType (defaults to Eups.currentType) may specify that it is a file for some other tag (e.g. stable)"""
         
         self.file = None
         self.productName = productName
@@ -308,7 +313,12 @@ class CurrentChain(object):
             self._read(filename)
             return
         
-        self.chain = Eups.currentType.tag
+        if not currentType:
+            tag = Eups.currentType.tag
+        elif not isinstance(currentType, str):
+            tag = currentType.tag
+
+        self.chain = tag
         #
         # We have to do the work ourselves
         #
@@ -1475,10 +1485,17 @@ class Product(object):
         else:
             return None
 
-    def currentFileName(self):
-        """Return a tag's chain file's fully qualified name"""
+    def currentFileName(self, currentType=None, all=False):
+        """Return a tag's chain file's fully qualified name; if all is true, return list of all chain files"""
 
-        return os.path.join(self.Eups.getUpsDB(self.db), self.name, self.Eups.currentType.filename())
+        if not currentType:
+            currentType = self.Eups.currentType
+
+        dir = os.path.join(self.Eups.getUpsDB(self.db), self.name)
+        if all:
+            return glob.glob(os.path.join(dir, "*.chain"))
+        else:
+            return os.path.join(dir, currentType.filename())
 
     def versionFileName(self):
         """Return a fully qualified versionfile name"""
@@ -3170,6 +3187,35 @@ match fails.
         
         return self.declare(productName, versionName, None, eupsPathDir=eupsPathDir, declareAs=True)
     
+    def removeCurrent(self, product, eupsPathDir, currentType=None):
+        """Remove the CurrentChain for productName/versionName from the live current chain (of type currentType)"""
+
+        current = CurrentChain(self, product.name, product.version, eupsPathDir, currentType=currentType)
+
+        lock = self.lockDB(eupsPathDir)
+
+        updatedChain = CurrentChain(product.currentFileName(currentType)).remove(current)
+
+        cfile = ""
+        try:
+            cfile = product.currentFileName(currentType)
+
+            if self.verbose or self.noaction:
+                print >> sys.stderr, "Removing %s %s from %s chain for %s" % \
+                      (product.name, product.version, Current(currentType).tag, eupsPathDir)
+
+            if not self.noaction:
+                if len(updatedChain.info.keys()) == 0: # not declared for any flavor
+                    os.unlink(cfile)
+                else:
+                    fd = open(cfile + ".new~", "w")
+                    updatedChain.write(fd)
+                    del fd
+
+                    shutil.move(cfile + ".new~", cfile) # actually update the file
+        except Exception, e:
+            raise RuntimeError, ("Unable to update %s: %s" % (cfile, e))
+
     def undeclare(self, productName, versionName=None, eupsPathDir=None, undeclareCurrent=None):
         """Undeclare a product."""
 
@@ -3206,35 +3252,13 @@ match fails.
         if not product.isCurrent():
             if undeclareCurrent:
                 if self.verbose:
-                    print >> sys.stderr, "Product %s %s is already not current" % (productName, versionName)
+                    print >> sys.stderr, "Product %s %s is already not tagged %s" % (productName, versionName,
+                                                                                     Current(self.currentType).tag)
         else:
-            current = CurrentChain(self, productName, versionName, eupsPathDir)
-
-            lock = self.lockDB(eupsPathDir)
-            #
-            # Remove the CurrentChain that we just created from productName from the live current chain
-            #
-            updatedChain = CurrentChain(product.currentFileName()).remove(current)
-
-            cfile = ""
             try:
-                cfile = product.currentFileName()
-
-                if self.verbose or self.noaction:
-                    print >> sys.stderr, "Removing %s %s from current chain for %s" % \
-                          (productName, versionName, eupsPathDir)
-
-                if not self.noaction:
-                    if len(updatedChain.info.keys()) == 0: # not declared for any flavor
-                        os.unlink(cfile)
-                    else:
-                        fd = open(cfile + ".new~", "w")
-                        updatedChain.write(fd)
-                        del fd
-
-                        shutil.move(cfile + ".new~", cfile) # actually update the file
-            except Exception, e:
-                print >> sys.stderr, "Unable to update %s: %s" % (cfile, e)
+                self.removeCurrent(product, eupsPathDir, self.currentType)
+            except RuntimeError, e:
+                print >> sys.stderr, e
 
         if undeclareCurrent:           # we're done
             return True
@@ -3275,6 +3299,12 @@ match fails.
             pass
         except Exception, e:
             print >> sys.stderr, "Unable to update %s: %s" % (vfile, e)
+        #
+        # See if any product had any other tags attached to it
+        #
+        currentTypes = map(lambda f: os.path.splitext(os.path.basename(f))[0], product.currentFileName(all=True))
+        for c in currentTypes:
+            self.removeCurrent(product, eupsPathDir, currentType=Current(c))
 
         self.intern(product, delete=True)
 
