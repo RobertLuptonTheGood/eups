@@ -2085,7 +2085,7 @@ class Eups(object):
                     vers = self.findCurrentVersion(productName, path=path,
                                                    currentType=otherCurrentType, currentTypesToTry=[])
 
-                    if not self.quiet and self.verbose > 0:
+                    if not self.quiet and self.verbose > 1:
                         print >> sys.stderr, "Unable to locate a %s version of %s, using %s" % \
                               (currentType.tag, productName, otherCurrentType)
 
@@ -2222,7 +2222,7 @@ match fails.
                         vinfo = _vinfo
 
                         if cvinfo and versionName != cversionName and self.verbose > 0 + self.quiet:
-                            print >> sys.stderr, "Using %s version %s to satisfy \"%s\" (%s is current)" % \
+                            print >> sys.stderr, "Using %s %s to satisfy \"%s\" (%s is current)" % \
                                   (productName, versionName, expr, cversionName)
 
                         extra = ""
@@ -3088,7 +3088,7 @@ match fails.
                         info += " %s as" % productDir
                 info += " %s %s" % (productName, versionName)
                 if declareCurrent:
-                    info += " %s" % self.Current
+                    info += " %s" % self.currentType
                 info += " in %s" % (eupsPathDir)
 
                 print >> sys.stderr, info

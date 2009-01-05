@@ -289,7 +289,8 @@ elif cmd == "uses":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nShow which products setup the specified product (and maybe version of that product)"
 
-    options["-c"] = (False, "--current", "Look for products that setup current version")
+    options["-c"] = (False, "--current", "Look for products that setup product only because it's current\n" +
+                     "N.b. This isn't the same as specifying product's current version")
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-o"] = (False, "--optional", "Show optional setups")
@@ -466,7 +467,7 @@ def main(cmd, opts):
         dopts['nobuild']   = opts.options.get(nobuildFlag, False)
         dopts['noclean']   = opts.options.get(nocleanFlag, False)
         dopts['allowIncomplete'] = opts.options.get('-I', False)
-        dopts['buildFilePath'] = opts.options.get('-B', None)
+        dopts['buildFilePath'] = opts.options.get('-B', ":")
 
         if opts.options.get('-T'):
             dopts['buildDir'] = opts.options.get('-T')
@@ -995,16 +996,35 @@ def listProducts(Eups, productName=None, versionName=None,
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
-    #Eups.setCurrentType(current)
-
     productList = Eups.listProducts(productName, versionName, current, setup)
     
     if dependencies:
         Eups._msgs["dependencies"] = {}               # maintain list of printed dependencies
         recursionDepth, indent = 0, ""
         
+    productTags = {}                    # list of tags indexed by product
+
     for name, version, db, productDir, isCurrent, isSetup in productList:
         info = ""
+
+        # look up this product's tags and save them in productTags[name]
+        if not productTags.has_key(name):
+            productTags[name] = {}
+            for currentFile in Eups.Product(name, version, eupsPathDirs=db).currentFileName(all=True):
+                cchain = eups.CurrentChain(currentFile)
+                try:
+                    v = cchain.info[Eups.flavor]["version"]
+                except KeyError:
+                    pass
+
+                if not productTags[name].has_key(v):
+                    productTags[name][v] = []
+                productTags[name][v] += [cchain.chain]
+
+            for v in productTags[name].keys(): # sort the tags applied to a given version
+                tags = productTags[name][v]
+                tags.sort()             # can't use "sorted" in older pythons
+                productTags[name][v] = tags
 
         if dependencies:
             if not info:
@@ -1064,8 +1084,12 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "%-20s %-55s" % (db, productDir)
 
             extra = []
-            if isCurrent and isCurrent.tag != " ":
-                extra += [isCurrent.tag]
+
+            try:
+                extra += [" ".join(productTags[name][version])] # any tags applied to this version
+            except KeyError:
+                pass
+
             if isSetup:
                 extra += ["setup"]
             if extra:
@@ -1089,6 +1113,7 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
         print fmt % ("product", "version", "%s version" % productName)
 
     for (p, pv, requestedInfo) in userList:
+        #import pdb; pdb.set_trace()
         requestedVersion, optional, currentRequested = requestedInfo
 
         if optional and not showOptional:

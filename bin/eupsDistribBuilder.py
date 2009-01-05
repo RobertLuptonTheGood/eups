@@ -174,7 +174,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:
-            msg = "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
+            msg = "I can't find a build file %s.build anywhere on builder path \"%s\"" % (productName, self.buildFilePath)
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
