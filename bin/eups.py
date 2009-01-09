@@ -259,6 +259,30 @@ except NameError:
 
         def filename(self):
             return "%s.chain" % self.tag
+#
+# Define which tag is used if we don't specify one
+#
+try:                                    # don't redefine setDefaultTag as it'd reset the default
+    setDefaultTag                                        
+except NameError:
+    def setDefaultTag(tag=None):
+        """Set the default tag (i.e. current)"""
+        if tag:
+            try:
+                if isValidTag(tag):
+                    setDefaultTag._tag = tag
+                else:
+                    raise RuntimeError, ("%s is not a valid tag" % tag)
+            except NameError:           # isValidTag doesn't exist while sourcing this file, and Current() is called
+                setDefaultTag._tag = tag
+
+        return setDefaultTag._tag
+
+    def getDefaultTag():
+        """Return the current iterpretation of "current" """
+        return setDefaultTag(None)
+
+    setDefaultTag("current")                # the default-default tag is "current"
 
 def Current(tag=None):
     """Factory function to return exactly one instantiation of each tag type of _Current"""
@@ -267,7 +291,7 @@ def Current(tag=None):
         return tag
 
     if not tag:
-        tag = "current"
+        tag = getDefaultTag()
 
     if not _Current._tags.has_key(tag):
         _Current._tags[tag] = _Current(tag)
@@ -2626,7 +2650,8 @@ match fails.
     def version_match(self, vname, expr):
         """Return vname if it matches the logical expression expr"""
 
-        expr = filter(lambda x: x != "", re.split(r"\s*(%s|\|\|)\s*" % Eups._relop_re, expr))
+        expr0 = expr
+        expr = filter(lambda x: not re.search(r"^\s*$", x), re.split(r"\s*(%s|\|\||\s)\s*" % Eups._relop_re, expr))
 
         oring = True;                       # We are ||ing primitives
         i = -1
@@ -2639,11 +2664,11 @@ match fails.
             elif re.search(r"^[-+.:/\w]+$", expr[i]):
                 op = "=="
                 v = expr[i]
-            elif expr == "||" or expr == "or":
+            elif expr[i] == "||" or expr[i] == "or":
                 oring = True;                     # fine; that is what we expected to see
                 continue
             else:
-                print >> sys.stderr, "Unexpected operator %s in \"%s\"" % (expr[i], expr)
+                print >> sys.stderr, "Unexpected operator %s in \"%s\"" % (expr[i], expr0)
                 break
 
             if oring:                # Fine;  we have a primitive to OR in
@@ -2652,7 +2677,7 @@ match fails.
 
                 oring = False
             else:
-                print >> sys.stderr, "Expected logical operator || in \"%s\" at %s" % (expr, v)
+                print >> sys.stderr, "Expected logical operator || in \"%s\" at %s" % (expr0, v)
 
         return None
 
@@ -2754,8 +2779,13 @@ match fails.
                 except RuntimeError, e:
                     if False and self.verbose:
                         print >> sys.stderr, e
-
-                    return False, versionName, e
+                    #
+                    # We couldn't find it, but maybe it's already setup locally? That'd be OK
+                    #
+                    if self.keep and self.alreadySetupProducts.has_key(productName):
+                        product = self.alreadySetupProducts[productName]
+                    else:
+                        return False, versionName, e
 
         if setupType and not isValidSetupType(setupType):
             raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % \
