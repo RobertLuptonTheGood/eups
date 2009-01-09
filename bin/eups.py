@@ -2511,9 +2511,13 @@ match fails.
             return 
 
         oldProduct = self.Product(product.name, noInit=True)
-        oldProduct.init(versionName, flavor, eupsPathDir)
+        try:
+            oldProduct.init(versionName, flavor, eupsPathDir)
 
-        self.setup(oldProduct, fwd=False)  # do the actual unsetup
+            self.setup(oldProduct, fwd=False)  # do the actual unsetup
+        except RuntimeError, e:
+            # This can happen if the product's setup but you mess with the ups db by hand
+            print >> sys.stderr, "Unable to unsetup %s %s: %s" % (product.name, versionName, e)
 
     # Permitted relational operators
     _relop_re = r"<=?|>=?|==";
