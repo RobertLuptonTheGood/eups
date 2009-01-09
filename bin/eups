@@ -722,6 +722,10 @@ def main(cmd, opts):
         if opts.argv:
             versionName = opts.argv.pop(0)
 
+        if dependencies and not versionName:
+            print >> sys.stderr, "You must specify a version when you ask for dependencies"
+            sys.exit(1);
+
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
                      dependencies=dependencies, showVersion=showVersion, setupType=setupType)
@@ -1095,7 +1099,8 @@ def listProducts(Eups, productName=None, versionName=None,
             if extra:
                 info += "\t" + " ".join(extra)
 
-        print info
+        if info:
+            print info
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1104,6 +1109,18 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
     # To work
     #
     userList = Eups.uses(productName, versionName, depth)
+
+    if len(userList) == 0:              # nobody cares.  Maybe the product doesn't exist?
+        productList = Eups.listProducts(productName, versionName)
+        if len(productList) == 0:
+            versionNameStr = versionName
+            if versionNameStr:
+                versionNameStr += " "
+            else:
+                versionNameStr = ""
+                
+            print >> sys.stdout, "Product %s %sisn't declared" % (productName, versionNameStr)
+            sys.exit(1)
 
     fmt = "%-20s %-15s"
     if versionName:                             # we know the product version, so don't print it again
