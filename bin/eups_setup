@@ -22,6 +22,7 @@ allowedDebugOptions = ["raise"]
 
 options = {
     "-F" : (False, "--force", "Force requested behaviour"),
+    "-E" : (False,  "--inexact", "Don't use exact matching even though an explicit version is specified"),
     "-e" : (False,  "--exact", "Use the as-installed version, not the conditional in the table file"),
     "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
     "-h" : (False, "--help", "Print this help message"),
@@ -77,6 +78,7 @@ for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
 
 allowRaise = "raise" in debugOptions
 dbz = opts.options.get('-z')
+inexact_version = opts.options.get("-E", False)
 exact_version = opts.options.get("-e", False)
 flavor = opts.options.get('-f', eups.flavor())
 force = opts.options.get('-F', False)
@@ -92,6 +94,11 @@ setupType = opts.options.get('-T')
 tag = opts.options.get('-t', None)
 unsetup = opts.options.get('-u', False)
 verbose = opts.options.get('-v', 0)
+
+if exact_version and inexact_version:
+    print >> sys.stderr, "Specifying --exact --inexact confuses me, so I'll ignore both"
+    exact_version = False
+    inexact_version = False
 
 productName = None
 if opts.argv:
@@ -109,8 +116,13 @@ if opts.argv:
     if tag:
         if verbose > 1:
             print >> sys.stderr, "Using %s although you specified tag %s" % (version, tag)
-    exact_version = True                # if they specify a version, that's what they want
+
+    if not inexact_version:
+        exact_version = True # if they specify a version, that's what they want
 else:
+    if inexact_version and verbose:
+        print >> sys.stderr, "--inexact has no effect unless you request a specific version"
+
     if unsetup:
         version = None
     else:
