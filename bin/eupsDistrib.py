@@ -360,11 +360,9 @@ class Distrib(object):
 
             # use the server as source of package information
             ptablefile = self.findTableFile(product, version, self.flavor)
-            if not ptablefile:
+            if not ptablefile and self.distServer:
                 try:
-                    ptablefile = \
-                        self.distServer.getTableFile(product, version, 
-                                                     self.flavor)
+                    ptablefile = self.distServer.getTableFile(product, version, self.flavor)
                 except RemoteFileNotFound, e:
                     pass
 
@@ -408,7 +406,7 @@ class Distrib(object):
                 if self.Eups.versionIsRelative(versionName):
                     if self.allowIncomplete:
                         print >> self.log, "%s; using current instead" % e
-                        versionName = self.Eups.findVersion(productName, eups.Current)[0]
+                        versionName = self.Eups.findVersion(productName, eups.Current())[0]
                     else:
                         raise
 

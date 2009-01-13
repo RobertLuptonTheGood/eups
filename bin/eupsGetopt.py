@@ -8,7 +8,7 @@ import re, sys
 # number of occurrences of the flag
 
 class Getopt:
-    def __init__(self, options, argv = sys.argv, aliases = {}, msg = None, checkArgs=True, extras=None):
+    def __init__(self, options, argv=sys.argv, aliases={}, msg = None, checkArgs=True, extras=None):
         """A class to represent the processed command line arguments.
 
 options is a dictionary whose keys are is the short name of the option
@@ -19,10 +19,16 @@ a help string.  E.g.
     ["-i", (False, "--install", "Extract and install the specified package")],
 Values may be provided as a separate argument (-o XXX) or with = (-o=XXX).
 
-If you specify the same option more than once, the values will be concatenated
-(separated by :) if the option takes a value, and incremented if it doesn't; i.e.
-   -a -b XXX -a -a -b=YYY
-sets options["-a"] to 3, and options["-b"] to "XXX:YYY"
+If you specify an option that doesn't take a value more than once, the
+value will be incremented each time the option appears.  This is not
+the usual behaviour for options with values, but can be achieved with
+"--opt+=val".  E.g.
+   -a -b XXX -a -a -b+=YYY
+sets options["-a"] to 3, and options["-b"] to "XXX:YYY".  You can circumvent
+this behaviour by saying "-b=" to reset the argument; this even works if the option
+expects no arguments. Hence
+   -a -b XXX -a -a= -b= -b+=YYY -b+=ZZZ
+doesn't set options["-a"], and sets options["-b"] to "YYY:ZZZ".
 
 aliases is another dictionary, with values that specify additional long versions
 of options; e.g.
@@ -93,19 +99,34 @@ are not recognised they are silently ignored
                 nargv += [a]
                 continue
 
-            mat = re.search(r"^([^=]+)=(.*)$", a)
+            mat = re.search(r"^([^=+]+)(\+?=)(.*)$", a)
             if mat:
-                (a, val) = mat.groups()
+                (a, eqOp, val) = mat.groups()
+                if not val:
+                    val = (None, None)  # A special value that isn't None
             else:
-                val = None            
+                eqOp, val = "=", None
 
             if longopts.has_key(a):
                 a = longopts[a]
 
+            if val == (None, None):     # reset any pre-existing values for this argument
+                if opts.has_key(a):
+                    del opts[a]
+                    
+                if not options.has_key(a): # We're going to continue and miss this check
+                    if not processingExtras and checkArgs:
+                        raise RuntimeError, ("Unrecognised option %s" % a)
+
+                continue                # don't process the argument, which would set it
+
             if options.has_key(a):
                 if options[a][0]:
-                    if opts.has_key(a):
-                        opts[a] += ":"
+                    if eqOp == "+=":
+                        if opts.has_key(a):
+                            opts[a] += ":"
+                        else:
+                            opts[a] = ""
                     else:
                         opts[a] = ""
 
@@ -117,6 +138,12 @@ are not recognised they are silently ignored
 
                     opts[a] += val
                 else:
+                    if val:
+                        msg = "Ignoring value \"%s\" for option %s" % (val, a)
+                        if not Getopt._warnings.has_key(msg):
+                            Getopt._warnings[msg] = 1
+                            print >> sys.stderr, msg
+
                     if opts.has_key(a):
                         opts[a] += 1
                     else:
@@ -194,6 +221,12 @@ Options:""" % self.msg
             if self.cmd_aliases.has_key(opt):
                 print >> sys.stderr, "                           Alias%s:" % \
                       (len(self.cmd_aliases[opt]) == 1 and [""] or ["es"])[0], " ".join(self.cmd_aliases[opt])
+
+    _warnings = {}                 # warning messages we've already printed
+
+    def reset():
+        """Reset the Getopt class to its pristine state"""
+        _warnings = {}
 
 def declareArgs(helpStr, required=None, optional=None):
     """Return an augmented helpStr and (nmin, nmax) given lists of required and optional arguments;

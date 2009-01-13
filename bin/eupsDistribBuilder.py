@@ -107,6 +107,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         tree.
         @param serverDir    the directory to initialize
         """
+
         eupsDistrib.DefaultDistrib.initServerTree(self, serverDir)
 
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)
@@ -174,11 +175,16 @@ DIST_URL = %%(base)s/builds/%%(path)s
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:
-            msg = "I can't find a build file %s.build anywhere on \"%s\"" % (productName, self.buildFilePath)
+            msg = "I can't find a build file %s.build anywhere on builder path \"%s\"" % (productName, self.buildFilePath)
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
-            for d in self.buildFilePath.split(":") + ["."]:
+            bpath = []
+            if self.buildFilePath:
+                bpath += self.buildFilePath.split(":")
+            bpath += ["."]
+
+            for d in bpath:
                 if os.path.exists(os.path.join(d, "ups", "%s.build" % productName)):
                     msg += "\n" + "N.b. found %s.build in %s/ups; consider adding %s/ups to --build path" % \
                            (d, d, productName)
@@ -606,7 +612,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
             svnroot = os.environ["SVNROOT"]
         elif os.path.isdir(".svn"):
             try:
-                rfd = os.popen("svn info .svn")
+                rfd = os.popen("svn info .")
                 for line in rfd:
                     mat = re.search(r"^Repository Root: (\S+)", line)
                     if mat:
@@ -696,6 +702,9 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
 
-        line = buildfilePatchCallbacks.apply(line)
+        try:
+            line = buildfilePatchCallbacks.apply(line)
+        except RuntimeError, e:
+            print >> sys.stderr, ("Warning: %s" % e)
 
         print >> ofd, line,

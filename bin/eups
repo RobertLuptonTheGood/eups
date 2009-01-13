@@ -7,7 +7,7 @@ import pdb
 import eups
 import eups, eupsServer
 import eupsDistribBuilder
-from eupsDistribution import Distribution
+from eupsDistribution import Distribution, DistributionSet
 import eupsGetopt
 import eupsTable
 from eupsServer import ServerConf
@@ -17,12 +17,14 @@ from eupsDistribFactory import DistribFactory
 
 distribClasses = {}
 try:
-    startupFile = os.environ["EUPS_STARTUP"]
-    execfile(startupFile)
+    for startupFile in os.environ["EUPS_STARTUP"].split(':'):
+        try:
+            if startupFile:
+                execfile(startupFile)
+        except Exception, e:
+            print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 except KeyError:
     pass
-except Exception, e:
-    print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -105,7 +107,7 @@ except IndexError:
 #
 debugOptions = opts.options.get(debugFlag, "").split(":")
 for bad in filter(lambda o: o not in [""] + allowedDebugOptions, debugOptions):
-    print >> sys.stderr, "%s in not a valid option to --debug" % bad
+    print >> sys.stderr, "\"%s\" in not a valid option to --debug" % bad
 allowRaise = "raise" in debugOptions
 
 dbz = opts.options.get('-z')
@@ -134,6 +136,7 @@ elif cmd == "declare":
     options["-M"] = (True,  None,
                      "Import the given table file directly into the database\n(may be \"-\" for stdin)")
     options["-r"] = (True,  "--root", "Location of product being declared")
+    options["-t"] = (True,  "--tag", "Install versions with this tag (e.g. current or stable)")
 elif cmd == "depends":
     print >> sys.stderr, "I think that you meant \"eups list --dependencies\""
     sys.exit(1)
@@ -153,7 +156,7 @@ elif cmd == "distrib":
                    [-T tmpdir] [-D distribClass]
                    product version
 
-    Manage packages either as a user (via list, install, or remove) or as 
+    Manage packages either as a user (via clean, install, or list) or as 
     a provider (via create).  
 """
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["cmd", "product", "version"])
@@ -248,12 +251,16 @@ elif cmd == "list":
     options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-m"] = (False,  "--table", "Print name of table file")
     options["-s"] = (False,  "--setup", "Only show setup products")
-    options["-t"] = (True,  "--type", "Specify type of setup (permitted values: build)")
+    options["-t"] = (True,  "--tag", "List versions with this tag (e.g. current or stable)")
+    options["-T"] = (True,  "--type", "Specify type of setup (permitted values: build)")
     subcmd_uses_version = True;
     options["-V"] = (False,  "--version", "Print the version")
 elif cmd == "path" or cmd == "pkgroot":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
     helpStr += "\n\nPrint the eups %s; with index print just one element (-ve: from end)" % cmd
+elif cmd == "startup":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, "index")
+    helpStr += "\n\nPrint the startup files (as specified by $EUPS_STARTUP) that eups will source;\nwith index print just one element (-ve: from end)"
 elif cmd == "pkg-config":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nPrint information about products"
@@ -277,11 +284,13 @@ elif cmd == "undeclare":
     helpStr += "\n\nUndeclare a product"
 
     options["-c"] = (False,  "--current", "Stop version from being current")
+    options["-t"] = (True,  "--tag", "Undeclare versions with this tag (e.g. current or stable)")
 elif cmd == "uses":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, ["product"], ["version"])
     helpStr += "\n\nShow which products setup the specified product (and maybe version of that product)"
 
-    options["-c"] = (False, "--current", "Look for products that setup current version")
+    options["-c"] = (False, "--current", "Look for products that setup product only because it's current\n" +
+                     "N.b. This isn't the same as specifying product's current version")
     options["-d"] = (True,  "--depth", "Only search down this many layers of dependency")
     options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-o"] = (False, "--optional", "Show optional setups")
@@ -347,10 +356,12 @@ def main(cmd, opts):
 
         eupsAdmin(Eups, subcmd)
     elif cmd == "declare":
-        declare_current = opts.options.get('-c', False)
         productDir = opts.options.get('-r', None)
         tablefile = opts.options.get('-m', None)
         externalTablefile = opts.options.get('-M', None)
+        tag = opts.options.get('-t', None)
+
+        Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
 
         if opts.argv:
             productName = opts.argv.pop(0)
@@ -389,7 +400,7 @@ def main(cmd, opts):
                     sys.exit(1)
 
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
-                     declare_current=declare_current)
+                     declareCurrent=Eups.currentType)
     elif cmd == "distrib":
         # Allow distrib's sub-commands to be specified as verbs, not options
         if len(opts.argv) > 0:
@@ -424,7 +435,7 @@ def main(cmd, opts):
         clean = opts.options.get('-L', False)
 
         manifest = opts.options.get('-m', None)
-        tag = opts.options.get('-t', None)
+        tag = eups.checkValidTag(opts.options.get('-t', None))
         makeCurrent = opts.options.get('-C', None)
         noeups = opts.options.get('-N', False)
         noclean = opts.options.get(nocleanFlag)
@@ -441,7 +452,7 @@ def main(cmd, opts):
                 installFlavor = "generic"
 
         pkgroots = getPkgroots(opts)
-        if len(pkgroots) == 0 and Eups.verbose:
+        if (install or list) and (len(pkgroots) == 0 and Eups.verbose):
             print >> sys.stderr, "No package root specified; you will not be able install packages"
             sys.exit(1)
 
@@ -456,7 +467,7 @@ def main(cmd, opts):
         dopts['nobuild']   = opts.options.get(nobuildFlag, False)
         dopts['noclean']   = opts.options.get(nocleanFlag, False)
         dopts['allowIncomplete'] = opts.options.get('-I', False)
-        dopts['buildFilePath'] = opts.options.get('-B', None)
+        dopts['buildFilePath'] = opts.options.get('-B', ":")
 
         if opts.options.get('-T'):
             dopts['buildDir'] = opts.options.get('-T')
@@ -491,8 +502,8 @@ def main(cmd, opts):
             print >> sys.stderr, "You may not specify --list along with --noaction"
             sys.exit(1)
 
-        if create + install + list + clean != 1:
-            print >> sys.stderr, "Please specify exactly one of --create, --install, and --list"
+        if clean + create + install + list != 1:
+            print >> sys.stderr, "Please specify exactly one of clean, create, install, and list"
             sys.exit(1)
 
         if create:
@@ -503,6 +514,7 @@ def main(cmd, opts):
             desire = "list"
         elif clean:
             desire = "clean"
+            pkgroots = [None]
         else:
             raise AssertionError, "You can't get here"
         #
@@ -515,63 +527,33 @@ def main(cmd, opts):
                   "You must specify a path with --build if you're using --noeups"
             sys.exit(1)
 
+
+        ds = DistributionSet(Eups, pkgroots, dopts, installFlavor, distribClasses) # all the available Distributions
+
         if desire == "list":
-            if len(pkgroots) == 0:
-                print >> sys.stderr, "No package servers to query; set -r or $EUPS_PKGROOT"
-                sys.exit(1)
-
-            for pkgroot in pkgroots:
-                ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                           verbosity=Eups.verbose)
-                df = DistribFactory(Eups, ds)
-                for name in distribClasses.keys():
-                    df.register(distribClasses[name], name)
-
-                dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                    distFactory=df, verbosity=Eups.verbose)
-
-                pkgs = dist.listPackages(productName, versionName)
-
-                which = "secondary"
-                if pkgroot is pkgroots[0]:  which = "primary"
-
+            for (pkgroot, pkgs) in ds.listPackages(productName, versionName):
                 if len(pkgs) > 0:
                     if len(pkgroots) > 0:
-                        print "Available products from %s server (%s):" % \
-                            (which, pkgroot)
+                        print "Available products from %s server (%s):" % (ds.primary[pkgroot], pkgroot)
                     for (name, ver, flav) in pkgs:
                         print "  %-20s %-10s %s" % (name, flav, ver)
                 else:
-                    print "No matching products available from %s server (%s)" % (which, pkgroot)
-
+                    print "No matching products available from %s server (%s)" % (ds.primary[pkgroot], pkgroot)
         elif desire == "install":
             if productName is None:
                 print >> sys.stderr, "Please provide a product to install"
                 sys.exit(1)
-            if len(pkgroots) == 0:
-                print >> sys.stderr, "No package server URL provided; can't install"
-                sys.exit(1)
 
-            for pkgroot in pkgroots:
-                which = "secondary"
-                if pkgroot is pkgroots[0]:  which = "primary"
-
-                ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                           verbosity=Eups.verbose)
-                df = DistribFactory(Eups, ds)
-                for name in distribClasses.keys():
-                    df.register(distribClasses[name], name)
-
-                dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                    distFactory=df, verbosity=Eups.verbose, noclean=dopts['noclean'])
+            for pkgroot in ds.pkgroots:
+                dist = ds.distributions[pkgroot]
 
                 try:
-                    dist.install(productName, versionName, makeCurrent,
-                                 nodepend=nodepend, 
-                                 manifest=manifest)
+                    dist.install(productName, versionName, makeCurrent, nodepend=nodepend,
+                                 manifest=manifest, distributionSet=ds)
                     break
                 except eupsServer.RemoteFileNotFound, e:
-                    print >> sys.stderr, "Unable to get %s from %s server because: %s" % (productName, which, e)
+                    print >> sys.stderr, "Unable to get %s from %s server because: %s" % \
+                          (productName, ds.primary[pkgroot], e)
 
                     if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
                         print >> sys.stderr, "Trying next server."
@@ -587,23 +569,12 @@ def main(cmd, opts):
                         sys.exit(1)
                     else:
                         print >> sys.stderr, msg
-
-
         elif desire == "create":
             if productName is None or versionName is None:
                 print >> sys.stderr, "Please provide a product and version to create"
                 sys.exit(1)
 
-            pkgroot = None
-            if pkgroots:  pkgroot = pkgroots[0]
-
-            ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                       verbosity=Eups.verbose)
-            df = DistribFactory(Eups, ds)
-            for name in distribClasses.keys():
-                df.register(distribClasses[name], name)
-            dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                distFactory=df, verbosity=Eups.verbose)
+            dist = ds.distributions[ds.pkgroots[0]]
 
             if not serverDir and dist.distServer is not None and \
                  eupsServer.LocalTransporter.canHandle(dist.distServer.base):
@@ -617,21 +588,12 @@ def main(cmd, opts):
                 sys.exit(1)
 
             dist.create(serverDir, distName, productName, versionName,
-                        nodepend=nodepend, manifest=manifest)
-
+                        nodepend=nodepend, manifest=manifest, distributionSet=ds)
         elif desire == "clean":
-
             uninstall = bool(opts.options.get('-R'))
-            flav = opts.options.get('-f')
-            if not flav:
-                flav = Eups.flavor
+            flav = opts.options.get('-f', Eups.flavor)
 
-            df = DistribFactory(Eups, None)
-            for name in distribClasses.keys():
-                df.register(distribClasses[name], name)
-
-            dist = Distribution(Eups, None, options=dopts, flavor=installFlavor,
-                                distFactory=df, verbosity=Eups.verbose)
+            dist = ds.distributions[ds.pkgroots[0]]
             dist.clean(productName, versionName, flav, uninstall)
 
     elif cmd in ("expandbuild", "expandtable"):
@@ -699,8 +661,11 @@ def main(cmd, opts):
         Eups.exact_version = opts.options.get("-e", False)
         tablefile = opts.options.get('-m', False)
         setup = opts.options.get('-s', False)
-        setupType = opts.options.get('-t')
+        setupType = opts.options.get('-T')
+        tag = opts.options.get('-t', None)
         showVersion = opts.options.get("-V")
+
+        current = makeCurrentObject(current, tag, checkTag=False)
 
         productName, versionName = None, None
         if opts.argv:
@@ -708,16 +673,23 @@ def main(cmd, opts):
         if opts.argv:
             versionName = opts.argv.pop(0)
 
+        if dependencies and not versionName:
+            print >> sys.stderr, "You must specify a version when you ask for dependencies"
+            sys.exit(1);
+
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
                      dependencies=dependencies, showVersion=showVersion, setupType=setupType)
-    elif cmd == "path" or cmd == "pkgroot":
+    elif cmd == "path" or cmd == "pkgroot" or cmd == "startup":
         if cmd == "path":
             _what = "EUPS_PATH"
             _path = Eups.path
         elif cmd == "pkgroot":
             _what = "EUPS_PKGROOT"
             _path = os.environ.get(_what, "").split("|")
+        elif cmd == "startup":
+            _what = "EUPS_STARTUP"
+            _path = os.environ.get(_what, "").split(":")
             
         try:
             if opts.argv:
@@ -856,7 +828,13 @@ def main(cmd, opts):
     elif cmd == "setup" or cmd == "unsetup":
         print "Please use the command \"%s\" which modifies your environment" % " ".join([cmd] + opts + argv)
     elif cmd == "undeclare":
-        undeclare_current = opts.options.get('-c', False)
+        Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
+
+        if opts.options.get('-c', False) or opts.options.get("-t", None): # they want to undeclare a tag (inc. current)
+            undeclareCurrent = Eups.currentType
+        else:
+            undeclareCurrent = None
+        
 
         productName = opts.argv.pop(0)
         if opts.argv:
@@ -864,7 +842,7 @@ def main(cmd, opts):
         else:
             versionName = None
 
-        Eups.undeclare(productName, versionName, undeclare_current=undeclare_current)
+        Eups.undeclare(productName, versionName, undeclareCurrent=undeclareCurrent)
     elif cmd == "uses":
         current = opts.options.get('-c', False)
         depth = int(opts.options.get('-d', "9999"))
@@ -882,6 +860,25 @@ def main(cmd, opts):
         eupsUses(Eups, productName, versionName, depth, showOptional, current)
     else:
         print "Unknown eups command \"%s\"" % cmd
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def makeCurrentObject(current, tag, checkTag=True):
+    """Parse the -c and -t flags, returning a Current object or None"""
+
+    if current:
+        if tag:
+            print >> sys.stderr, "You specified --current and --tag=%s; ignoring tag" % tag
+        return eups.Current()
+        
+
+    if tag:
+        if checkTag:
+            eups.checkValidTag(tag)
+            
+        return eups.Current(tag)
+    else:
+        return None
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -929,25 +926,6 @@ def eupsAdmin(Eups, subcmd):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def distrib(Distrib, desire, productName, versionName, manifest=None):
-    #
-    # To work
-    #
-    if desire == "create":
-        if Distrib.noeups and not versionName:
-            raise RuntimeError, "You must specify a version if you use --noeups"
-
-        eupsDistrib.create(Distrib, productName, versionName, manifest)
-    elif desire == "install":
-        eupsDistrib.install(Distrib, productName, versionName, manifest)
-    elif desire == "list":
-        for p, v in eupsDistrib.listProducts(Distrib, productName, versionName, manifest):
-            print "%-20s %s" % (p, v)
-    else:
-        raise AssertionError, ("You can't get here (desire == %s); complain to RHL" % desire)
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 def listProducts(Eups, productName=None, versionName=None,
                  current=False, setup=False, tablefile=False, directory=False, dependencies=False,
                  showVersion=False, setupType=None):
@@ -960,8 +938,29 @@ def listProducts(Eups, productName=None, versionName=None,
         Eups._msgs["dependencies"] = {}               # maintain list of printed dependencies
         recursionDepth, indent = 0, ""
         
+    productTags = {}                    # list of tags indexed by product
+
     for name, version, db, productDir, isCurrent, isSetup in productList:
         info = ""
+
+        # look up this product's tags and save them in productTags[name]
+        if not productTags.has_key(name):
+            productTags[name] = {}
+            for currentFile in Eups.Product(name, version, eupsPathDirs=db).currentFileName(all=True):
+                cchain = eups.CurrentChain(currentFile)
+                try:
+                    v = cchain.info[Eups.flavor]["version"]
+                except KeyError:
+                    pass
+
+                if not productTags[name].has_key(v):
+                    productTags[name][v] = []
+                productTags[name][v] += [cchain.chain]
+
+            for v in productTags[name].keys(): # sort the tags applied to a given version
+                tags = productTags[name][v]
+                tags.sort()             # can't use "sorted" in older pythons
+                productTags[name][v] = tags
 
         if dependencies:
             if not info:
@@ -1021,14 +1020,19 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "%-20s %-55s" % (db, productDir)
 
             extra = []
-            if isCurrent:
-                extra += ["Current"]
+
+            try:
+                extra += [" ".join(productTags[name][version])] # any tags applied to this version
+            except KeyError:
+                pass
+
             if isSetup:
-                extra += ["Setup"]
+                extra += ["setup"]
             if extra:
                 info += "\t" + " ".join(extra)
 
-        print info
+        if info:
+            print info
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -1038,6 +1042,18 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
     #
     userList = Eups.uses(productName, versionName, depth)
 
+    if len(userList) == 0:              # nobody cares.  Maybe the product doesn't exist?
+        productList = Eups.listProducts(productName, versionName)
+        if len(productList) == 0:
+            versionNameStr = versionName
+            if versionNameStr:
+                versionNameStr += " "
+            else:
+                versionNameStr = ""
+                
+            print >> sys.stdout, "Product %s %sisn't declared" % (productName, versionNameStr)
+            sys.exit(1)
+
     fmt = "%-20s %-15s"
     if versionName:                             # we know the product version, so don't print it again
         print fmt % ("product", "version")
@@ -1046,6 +1062,7 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
         print fmt % ("product", "version", "%s version" % productName)
 
     for (p, pv, requestedInfo) in userList:
+        #import pdb; pdb.set_trace()
         requestedVersion, optional, currentRequested = requestedInfo
 
         if optional and not showOptional:
