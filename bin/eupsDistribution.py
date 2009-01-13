@@ -82,7 +82,7 @@ class Distribution(object):
         return out
 
     def install(self, product, version=None, asCurrent=None, tag=None, 
-                nodepend=False, options=None, manifest=None):
+                nodepend=False, options=None, manifest=None, distributionSet=None):
         """
         @param product    the name of the product to install
         @param version    the desired version of the product; if not provided,
@@ -562,12 +562,12 @@ class Distribution(object):
                                                      self.flavor, tag)
 
     def create(self, serverRoot, distName, product, version, tag=None, 
-               nodepend=False, options=None, manifest=None):
+               nodepend=False, options=None, manifest=None, distributionSet=None):
         """create and all necessary files for making a particular package
         available and deploy them into a local server directory.  This creates
         not only the requested product but also all of its dependencies unless
         nodepends is True.  Unless Eups.force is True, it will not recreate the 
-        a package that is already deployed under ther serverRoot directory.
+        a package that is already deployed under the serverRoot directory.
         @param serverRoot   the root directory of a local server distribution
                               tree
         @param distName     the name of the distribution type to create.  The
@@ -628,7 +628,7 @@ class Distribution(object):
 
         if not nodepend:
             created = [ "%s-%s" % (product, version) ]
-            self._recursiveCreate(serverRoot, distrib, man, created, True)
+            self._recursiveCreate(serverRoot, distrib, man, created, True, distributionSet)
 
         # update the manifest record for the requested product
         dp = man.getDependency(product, version)
@@ -649,10 +649,10 @@ class Distribution(object):
                               self.flavor, self.Eups.force)
         
     def _recursiveCreate(self, serverRoot, distrib, manifest, created=None, 
-                         recurse=True):
+                         recurse=True, distributionSet=None):
         if created is None: 
             created = []
-        
+
         for dp in manifest.getProducts():
             pver = "%s-%s" % (dp.product, dp.version)
             if pver in created:
@@ -671,15 +671,33 @@ class Distribution(object):
                                           flavor):
                     if not self.Eups.force:
                         if self.verbose > 0:
-                            print >> self.log, "Dependency,", dp.product, \
-                                dp.version, "already deployed; skipping"
+                            print >> self.log, "Dependency %s %s already deployed; skipping" % (dp.product, dp.version)
                         created.append(pver)
                         continue
 
                     elif self.verbose > 0:
-                        print >> self.log, "Overwriting existing dependency,", \
-                            dp.product, dp.version
+                        print >> self.log, "Overwriting existing dependency,", dp.product, dp.version
                         
+            #
+            # Check if this product is available elsewhere
+            #
+            if distributionSet and not self.Eups.force:
+                already_available = False # have we discovered that it's available from a server?
+                for (pkgroot, pkgs) in distributionSet.pkgList:
+                    if already_available:
+                        break
+
+                    for (p, v, f) in pkgs:
+                        if (dp.product, dp.version) == (p, v):
+                            if self.verbose > 0:
+                                print >> self.log, "Dependency %s %s is already available from %s; skipping" % \
+                                      (dp.product, dp.version, pkgroot)
+                            already_available = True
+                            break
+
+                if already_available:
+                    created.append(pver)
+                    continue
 
             # we now should attempt to create this package because it appears 
             # not to be available
@@ -691,7 +709,7 @@ class Distribution(object):
             dp.distId = id
                 
             if recurse:
-                self._recursiveCreate(serverRoot, distrib, man, created, recurse)
+                self._recursiveCreate(serverRoot, distrib, man, created, recurse, distributionSet)
 
             distrib.writeManifest(serverRoot, man.getProducts(), dp.product,
                                   dp.version, self.flavor, self.Eups.force)
@@ -818,3 +836,63 @@ class Distribution(object):
     def clearServerCache(self):
         if self.distServer:
             self.distServer.clearConfigCache()
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class DistributionSet(object):
+    """A set of Distributions to be searched for the desired Distribution and thence product"""
+
+    def __init__(self, Eups, pkgroots, dopts={}, installFlavor=None, distribClasses=None):
+        if len(pkgroots) == 0:
+            raise RuntimeError, ("No package servers to query; set -r or $EUPS_PKGROOT")
+
+        if not distribClasses:
+            distribClasses = {}
+
+        self.pkgroots = []                   # Pkgroots that we know about (a list as we care about the order)
+        self.distributions = {}              # (Server, Distribution) that correspond to the pkgroots
+        self.pkgList = []                    # list of provided packages
+        self.primary = {}                    # is this pkgroot primary?
+
+        primary = "primary"
+        for pkgroot in pkgroots:
+            if pkgroot == None:
+                ds = None
+            else:
+                ds = ServerConf.makeServer(pkgroot, eups=Eups, verbosity=Eups.verbose)
+
+            df = DistribFactory(Eups, ds)
+
+            for name in distribClasses.keys():
+                df.register(distribClasses[name], name)
+
+            dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
+                                distFactory=df, verbosity=Eups.verbose, noclean=dopts.get("noclean"))
+
+            self.pkgroots += [pkgroot]
+            self.distributions[pkgroot] = dist
+            self.pkgList += [(pkgroot, dist.listPackages())]
+            self.primary[pkgroot] = primary
+
+            primary = "secondary"
+    
+    def listPackages(self, productName, versionName):
+        """Return a list of tuples (pkgroot, package-list)"""
+        
+        if not productName and not versionName: # they want everything
+            return self.pkgList
+
+        pkgList = []
+        for (pkgroot, pkgs) in self.pkgList:
+            our_pkgs = []
+            for (name, version, flav) in pkgs:
+                if productName and productName != name:
+                    continue
+                if versionName and versionName != version:
+                    continue
+
+                our_pkgs += [(name, version, flav)]
+                
+            pkgList += [(pkgroot, our_pkgs)]
+
+        return pkgList

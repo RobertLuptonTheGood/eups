@@ -7,7 +7,7 @@ import pdb
 import eups
 import eups, eupsServer
 import eupsDistribBuilder
-from eupsDistribution import Distribution
+from eupsDistribution import Distribution, DistributionSet
 import eupsGetopt
 import eupsTable
 from eupsServer import ServerConf
@@ -514,6 +514,7 @@ def main(cmd, opts):
             desire = "list"
         elif clean:
             desire = "clean"
+            pkgroots = [None]
         else:
             raise AssertionError, "You can't get here"
         #
@@ -526,63 +527,33 @@ def main(cmd, opts):
                   "You must specify a path with --build if you're using --noeups"
             sys.exit(1)
 
+
+        ds = DistributionSet(Eups, pkgroots, dopts, installFlavor, distribClasses) # all the available Distributions
+
         if desire == "list":
-            if len(pkgroots) == 0:
-                print >> sys.stderr, "No package servers to query; set -r or $EUPS_PKGROOT"
-                sys.exit(1)
-
-            for pkgroot in pkgroots:
-                ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                           verbosity=Eups.verbose)
-                df = DistribFactory(Eups, ds)
-                for name in distribClasses.keys():
-                    df.register(distribClasses[name], name)
-
-                dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                    distFactory=df, verbosity=Eups.verbose)
-
-                pkgs = dist.listPackages(productName, versionName)
-
-                which = "secondary"
-                if pkgroot is pkgroots[0]:  which = "primary"
-
+            for (pkgroot, pkgs) in ds.listPackages(productName, versionName):
                 if len(pkgs) > 0:
                     if len(pkgroots) > 0:
-                        print "Available products from %s server (%s):" % \
-                            (which, pkgroot)
+                        print "Available products from %s server (%s):" % (ds.primary[pkgroot], pkgroot)
                     for (name, ver, flav) in pkgs:
                         print "  %-20s %-10s %s" % (name, flav, ver)
                 else:
-                    print "No matching products available from %s server (%s)" % (which, pkgroot)
-
+                    print "No matching products available from %s server (%s)" % (ds.primary[pkgroot], pkgroot)
         elif desire == "install":
             if productName is None:
                 print >> sys.stderr, "Please provide a product to install"
                 sys.exit(1)
-            if len(pkgroots) == 0:
-                print >> sys.stderr, "No package server URL provided; can't install"
-                sys.exit(1)
 
-            for pkgroot in pkgroots:
-                which = "secondary"
-                if pkgroot is pkgroots[0]:  which = "primary"
-
-                ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                           verbosity=Eups.verbose)
-                df = DistribFactory(Eups, ds)
-                for name in distribClasses.keys():
-                    df.register(distribClasses[name], name)
-
-                dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                    distFactory=df, verbosity=Eups.verbose, noclean=dopts['noclean'])
+            for pkgroot in ds.pkgroots:
+                dist = ds.distributions[pkgroot]
 
                 try:
-                    dist.install(productName, versionName, makeCurrent,
-                                 nodepend=nodepend, 
-                                 manifest=manifest)
+                    dist.install(productName, versionName, makeCurrent, nodepend=nodepend,
+                                 manifest=manifest, distributionSet=ds)
                     break
                 except eupsServer.RemoteFileNotFound, e:
-                    print >> sys.stderr, "Unable to get %s from %s server because: %s" % (productName, which, e)
+                    print >> sys.stderr, "Unable to get %s from %s server because: %s" % \
+                          (productName, ds.primary[pkgroot], e)
 
                     if len(pkgroots) > 0 and pkgroot is not pkgroots[-1]:
                         print >> sys.stderr, "Trying next server."
@@ -598,23 +569,12 @@ def main(cmd, opts):
                         sys.exit(1)
                     else:
                         print >> sys.stderr, msg
-
-
         elif desire == "create":
             if productName is None or versionName is None:
                 print >> sys.stderr, "Please provide a product and version to create"
                 sys.exit(1)
 
-            pkgroot = None
-            if pkgroots:  pkgroot = pkgroots[0]
-
-            ds = ServerConf.makeServer(pkgroot, eups=Eups, 
-                                       verbosity=Eups.verbose)
-            df = DistribFactory(Eups, ds)
-            for name in distribClasses.keys():
-                df.register(distribClasses[name], name)
-            dist = Distribution(Eups, pkgroot, options=dopts, flavor=installFlavor,
-                                distFactory=df, verbosity=Eups.verbose)
+            dist = ds.distributions[ds.pkgroots[0]]
 
             if not serverDir and dist.distServer is not None and \
                  eupsServer.LocalTransporter.canHandle(dist.distServer.base):
@@ -628,21 +588,12 @@ def main(cmd, opts):
                 sys.exit(1)
 
             dist.create(serverDir, distName, productName, versionName,
-                        nodepend=nodepend, manifest=manifest)
-
+                        nodepend=nodepend, manifest=manifest, distributionSet=ds)
         elif desire == "clean":
-
             uninstall = bool(opts.options.get('-R'))
-            flav = opts.options.get('-f')
-            if not flav:
-                flav = Eups.flavor
+            flav = opts.options.get('-f', Eups.flavor)
 
-            df = DistribFactory(Eups, None)
-            for name in distribClasses.keys():
-                df.register(distribClasses[name], name)
-
-            dist = Distribution(Eups, None, options=dopts, flavor=installFlavor,
-                                distFactory=df, verbosity=Eups.verbose)
+            dist = ds.distributions[ds.pkgroots[0]]
             dist.clean(productName, versionName, flav, uninstall)
 
     elif cmd in ("expandbuild", "expandtable"):
@@ -972,25 +923,6 @@ def eupsAdmin(Eups, subcmd):
         print >> sys.stderr, "Unexpected sub-command: %s" % subcmd
         print >> sys.stderr, helpStr
         sys.exit(1)
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-def distrib(Distrib, desire, productName, versionName, manifest=None):
-    #
-    # To work
-    #
-    if desire == "create":
-        if Distrib.noeups and not versionName:
-            raise RuntimeError, "You must specify a version if you use --noeups"
-
-        eupsDistrib.create(Distrib, productName, versionName, manifest)
-    elif desire == "install":
-        eupsDistrib.install(Distrib, productName, versionName, manifest)
-    elif desire == "list":
-        for p, v in eupsDistrib.listProducts(Distrib, productName, versionName, manifest):
-            print "%-20s %s" % (p, v)
-    else:
-        raise AssertionError, ("You can't get here (desire == %s); complain to RHL" % desire)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
