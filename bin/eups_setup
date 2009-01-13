@@ -109,6 +109,7 @@ if opts.argv:
     if tag:
         if verbose > 1:
             print >> sys.stderr, "Using %s although you specified tag %s" % (version, tag)
+    exact_version = True                # if they specify a version, that's what they want
 else:
     if unsetup:
         version = None
