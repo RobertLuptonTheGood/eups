@@ -3444,7 +3444,7 @@ match fails.
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
-        if _isRealFile(tablefile):
+        if _isRealFilename(tablefile):
             for (product, optional, currentRequested) in \
                     Table(tablefile).dependencies(self, eupsPathDirs, setupType=setupType):
                 dependencies += [(product, optional, currentRequested)]
@@ -3571,8 +3571,7 @@ match fails.
                     if self.force:
                         print >> sys.stderr, "%s; removing anyway" % (msg)
                     else:
-                        print >> sys.stderr, "%s; specify force to remove" % (msg)
-                        continue
+                        raise RuntimeError, ("%s; specify force to remove" % (msg))
 
             if recursive:
                 productsToRemove += self._remove(product.name, product.version, (product.name != productName),
@@ -3595,6 +3594,8 @@ match fails.
     """
         if not productName and versionName:
             raise RuntimeError, ("You may not specify a version \"%s\" but not a product" % versionName)
+
+        self.exact_version = True
 
         if True:
             productList = self.listProducts(None)
