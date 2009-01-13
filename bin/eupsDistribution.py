@@ -107,6 +107,7 @@ class Distribution(object):
         @param manifest   use this manifest (a local file) as the manifest for 
                             the requested product instead of downloading manifest
                             from the server.
+        @param distributionSet list of Distributions to search for product if not found in self
         """
         if self.distServer is None:
             raise RuntimeError("No distribution server set")
@@ -145,11 +146,11 @@ class Distribution(object):
                                               self.Eups.noaction)
 
         self._recursiveInstall(0, man, product, version, productRoot, 
-                               asCurrent, opts)
+                               asCurrent, opts, distributionSet=distributionSet)
 
     def _recursiveInstall(self, recursionLevel, manifest, product, version, productRoot, 
                           asCurrent=None, opts=None, recurse=True, setups=None, 
-                          installed=None, tag=None, ances=None):
+                          installed=None, tag=None, ances=None, distributionSet=None):
                           
         if installed is None:
             installed = []
@@ -264,13 +265,22 @@ class Distribution(object):
                                 print >> self.log, "\t", a
                     continue
                 ances.append(pver)
+                #
+                # Find the server that provides the desired product
+                #
+                if distributionSet:
+                    dist = distributionSet.lookup(prod.product, prod.version, flavor)
+                else:
+                    dist = None
 
-                nextman = \
-                    self.distServer.getManifest(prod.product, prod.version, 
-                                                flavor, self.Eups.noaction)
-                self._recursiveInstall(recursionLevel + 1, nextman, prod.product, prod.version, 
+                if not dist:
+                    dist = self
+
+                nextman = dist.distServer.getManifest(prod.product, prod.version, 
+                                                      flavor, self.Eups.noaction)
+                dist._recursiveInstall(recursionLevel + 1, nextman, prod.product, prod.version, 
                                        productRoot, asCurrent, opts, True, 
-                                       setups, installed, tag, ances)
+                                       setups, installed, tag, ances, distributionSet=distributionSet)
 
     def getBuildDirFor(self, productRoot, product, version, flavor=None):
         """return a recommended directory to use to build a given product.
@@ -596,6 +606,7 @@ class Distribution(object):
                               nodepend is True) consult the remote server to 
                               determine if the package is available with the 
                               given distID.
+        @param distributionSet list of Distributions to search for product if not found in self
         """
         opts = self._mergeOptions(options)
 
@@ -896,3 +907,16 @@ class DistributionSet(object):
             pkgList += [(pkgroot, our_pkgs)]
 
         return pkgList
+
+    def lookup(self, productName, versionName, flavor):
+        """Lookup the Distribution providing (productName, versionName, flavor)"""
+
+        for (pkgroot, pkgs) in self.pkgList:
+            for (name, version, flav) in pkgs:
+                if name == productName and version == versionName:
+                    if flavor and flav != "generic" and flavor != flav:
+                        continue
+
+                    return self.distributions[pkgroot]
+
+        return None
