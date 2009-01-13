@@ -107,6 +107,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         tree.
         @param serverDir    the directory to initialize
         """
+
         eupsDistrib.DefaultDistrib.initServerTree(self, serverDir)
 
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)
@@ -701,6 +702,9 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
 
-        line = buildfilePatchCallbacks.apply(line)
+        try:
+            line = buildfilePatchCallbacks.apply(line)
+        except RuntimeError, e:
+            print >> sys.stderr, ("Warning: %s" % e)
 
         print >> ofd, line,
