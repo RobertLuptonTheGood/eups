@@ -169,10 +169,23 @@ class Distribution(object):
         for prod in products:
             pver = "%s-%s" % (prod.product, prod.version)
             if pver in installed:
-                continue
+                if not asCurrent:
+                    continue
+                #
+                # Is it already declared with this tag?
+                #
+                try:
+                    self.Eups.findVersion(prod.product, self.Eups.getCurrent())
+                    if self.verbose > 0:
+                        "%s is already declared %s" % (prod.product, self.Eups.getCurrent())
+                    continue
+                except RuntimeError, e: # We didn't find a stable version; we'll have to look it up
+                    eups.debug("XX", e)
+                    pass
 
             info = self.Eups.listProducts(prod.product, prod.version)
 
+            justDeclare = False         # do we only need to declare this product?
             if len(info) > 0:
                 installed.append(pver)
                 if recursionLevel == 0:
@@ -181,56 +194,72 @@ class Distribution(object):
                     print >> self.log, \
                         "Required product %s %s is already installed" % \
                         (prod.product, prod.version)
-                    continue;
 
+                if asCurrent:       # we need to process dependencies so as to declare them Current()
+                    justDeclare = True
+                else:
+                    continue
 
             if not recurse or \
                     (prod.product == product and 
                      prod.version == version):
 
-                if self.verbose >= 0 and prod.product == manifest.product and \
-                        prod.version == manifest.version:
-                    if self.verbose > 0:
-                        print >> self.log, "Dependencies complete; now installing",
-                    else:
-                        print >> self.log, "Installing",
-                    print >> self.log, prod.product, prod.version
+                if justDeclare:
+                    pass
+                else:
+                    if self.verbose >= 0 and prod.product == manifest.product and \
+                            prod.version == manifest.version:
+                        if self.verbose > 0:
+                            print >> self.log, "Dependencies complete; now installing",
+                        else:
+                            print >> self.log, "Installing",
+                        print >> self.log, prod.product, prod.version
 
-                builddir = self.makeBuildDirFor(productRoot, prod.product,
-                                                prod.version, flavor)
-                # write the distID to the build directory to aid 
-                # clean-up if it fails
-                self._recordDistID(prod.distId, builddir)
-                
-                distrib = \
-                    self.distFactory.createDistrib(prod.distId, flavor, 
-                                                   tag, opts, self.verbose, 
-                                                   self.log)
-                if self.verbose > 1 and 'NAME' in dir(distrib):
-                    print >> self.log, "Using Distrib type:", distrib.NAME
+                    builddir = self.makeBuildDirFor(productRoot, prod.product,
+                                                    prod.version, flavor)
+                    # write the distID to the build directory to aid 
+                    # clean-up if it fails
+                    self._recordDistID(prod.distId, builddir)
 
-                try:
-                    distrib.installPackage(distrib.parseDistID(prod.distId), 
-                                           prod.product, prod.version,
-                                           productRoot, prod.instDir, setups,
-                                           builddir)
-                except eupsServer.RemoteFileNotFound, e:
+                    distrib = \
+                        self.distFactory.createDistrib(prod.distId, flavor, 
+                                                       tag, opts, self.verbose, 
+                                                       self.log)
+                    if self.verbose > 1 and 'NAME' in dir(distrib):
+                        print >> self.log, "Using Distrib type:", distrib.NAME
+
+                    try:
+                        distrib.installPackage(distrib.parseDistID(prod.distId), 
+                                               prod.product, prod.version,
+                                               productRoot, prod.instDir, setups,
+                                               builddir)
+                    except eupsServer.RemoteFileNotFound, e:
+                        if self.verbose >= 0:
+                            print >> self.log, "Failed to install %s %s: %s" % \
+                                (prod.product, prod.version, str(e))
+                        raise e
+
                     if self.verbose >= 0:
-                        print >> self.log, "Failed to install %s %s: %s" % \
-                            (prod.product, prod.version, str(e))
-                    raise e
-
-                if self.verbose >= 0:
-                    print >> self.log, \
-                        "Package %s %s installed successfully" % \
-                        (prod.product, prod.version)
+                        print >> self.log, \
+                            "Package %s %s installed successfully" % \
+                            (prod.product, prod.version)
 
                 setups.append("setup --keep %s %s" % (prod.product, prod.version))
 
                 # declare the newly installed package, if necessary
                 root = os.path.join(productRoot, flavor, prod.instDir)
-                self.ensureDeclare(prod.product, prod.version, prod.tablefile,
-                                   root, productRoot, asCurrent)
+                if justDeclare:
+                    tablefile = None    # don't try to redeclare product, just make it current
+                else:
+                    tablefile = prod.tablefile
+                    
+                try:
+                    self.ensureDeclare(prod.product, prod.version, tablefile,
+                                       root, productRoot, asCurrent)
+                except RuntimeError, e:
+                    print >> sys.stderr, e
+                    continue
+                
                 installed.append(pver)
 
                 # write the distID to the installdir/ups directory to aid 
@@ -245,11 +274,21 @@ class Distribution(object):
                     self.clean(prod.product, prod.version)
 
             else:
+                # We may still need to declare the product
+                if justDeclare:
+                    try:
+                        self.ensureDeclare(prod.product, prod.version, asCurrent=True)
+                    except RuntimeError, e:
+                        print >> sys.stderr, e
+
                 # get the manifest for each dependency and install it 
                 # recursively
                 if self.verbose > 0:
-                    print >> self.log, "Installing %s %s and its dependencies" \
-                        % (prod.product, prod.version)
+                    if justDeclare:
+                        print >> self.log, "Declaring %s %s and its dependencies %s" % \
+                              (prod.product, prod.version, self.Eups.getCurrent().tag)
+                    else:
+                        print >> self.log, "Installing %s %s and its dependencies" % (prod.product, prod.version)
 
                 if ances is None: 
                     ances = [ "%s-%s" % (manifest.product, manifest.version) ]
@@ -497,7 +536,7 @@ class Distribution(object):
         return distId
             
 
-    def ensureDeclare(self, product, version, tablefileloc, rootdir, 
+    def ensureDeclare(self, product, version, tablefileloc=None, rootdir=None, 
                       productRoot=None, asCurrent=None):
         
         flavor = self.Eups.flavor
@@ -517,23 +556,25 @@ class Distribution(object):
                 dodeclare = True
         except IndexError, e:
             dodeclare = True
-            if asCurrent is None:  asCurrent = eups.Current()
+            if asCurrent is None:  asCurrent = self.Eups.getCurrent()
         except RuntimeError, e:
             dodeclare = True
-            if asCurrent is None:  asCurrent = eups.Current()
+            if asCurrent is None:
+                asCurrent = self.Eups.getCurrent()
 
         if not dodeclare:
             return
 
-        if not os.path.exists(rootdir):
+        if rootdir and not os.path.exists(rootdir):
             msg = "%s %s installation not found at %s" % \
                 (product, version, rootdir)
             raise RuntimeError(msg)
 
         # make sure we have a table file if we need it
-        upsdir = os.path.join(rootdir,'ups')
-        tablefile = os.path.join(upsdir, product + ".table")
         if unknown:
+            upsdir = os.path.join(rootdir,'ups')
+            tablefile = os.path.join(upsdir, product + ".table")
+
             if rootdir == "/dev/null":
                 tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
                                                               version, flavor)
@@ -547,7 +588,10 @@ class Distribution(object):
                                                       filename=tablefile)
                 if not os.path.exists(tablefile):
                     raise RuntimeError("Failed to find table file %s" % tablefile)
-        if not isinstance(tablefile, file):
+        else:
+            tablefile = None
+            
+        if tablefile and not isinstance(tablefile, file):
             if not os.path.exists(tablefile):
                 tablefile = tablefileloc
 
@@ -568,8 +612,7 @@ class Distribution(object):
         """
         if self.distServer is None:
             raise RuntimeError("No distribution server set")
-        return self.distServer.listAvailableProducts(product, version,
-                                                     self.flavor, tag)
+        return self.distServer.listAvailableProducts(product, version, self.flavor, tag)
 
     def create(self, serverRoot, distName, product, version, tag=None, 
                nodepend=False, options=None, manifest=None, distributionSet=None):
@@ -853,7 +896,7 @@ class Distribution(object):
 class DistributionSet(object):
     """A set of Distributions to be searched for the desired Distribution and thence product"""
 
-    def __init__(self, Eups, pkgroots, dopts={}, installFlavor=None, distribClasses=None):
+    def __init__(self, Eups, pkgroots, dopts={}, installFlavor=None, distribClasses=None, tag=None):
         if len(pkgroots) == 0:
             raise RuntimeError, ("No package servers to query; set -r or $EUPS_PKGROOT")
 
@@ -882,7 +925,13 @@ class DistributionSet(object):
 
             self.pkgroots += [pkgroot]
             self.distributions[pkgroot] = dist
-            self.pkgList += [(pkgroot, dist.listPackages())]
+
+            try:
+                packages = dist.listPackages(tag=tag)
+            except RemoteFileNotFound:
+                packages = [(None, None, None)]
+            self.pkgList += [(pkgroot, packages)]
+            
             self.primary[pkgroot] = primary
 
             primary = "secondary"
