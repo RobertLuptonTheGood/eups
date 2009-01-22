@@ -116,9 +116,10 @@ class DistribServer(object):
                                                   verbosity=self.verbose-1,
                                                   log=self.log)
             except RemoteFileNotFound, e:
-                if flavor is None:  flavor = "a generic platform"
-                msg = 'Product release "%s" for %s not found on server' % \
-                    (tag, flavor)
+                if flavor is None:
+                    flavor = "a generic platform"
+                
+                msg = 'Product release "%s" for %s not found on server' % (tag, flavor)
                 raise RemoteFileNotFound(msg, e)
 
     def getTaggedProductInfo(self, product, flavor, tag=None):
@@ -182,14 +183,16 @@ class DistribServer(object):
         @param flavor      the flavor of the target platform
         @param tag         an optional name for a release of the product
         """
-        if flavor  is not None and tag is not None:
-            out = self.getTaggedProductList(tag, flavor)
-            for i in xrange(0,len(out)):
-                out[i] = out[i][:3]
 
+        out = []
+        if flavor is not None and tag is not None:
+            try:
+                for val in self.getTaggedProductList(tag, flavor).getProducts():
+                    out += [(val[0], val[2], val[1])]
+            except ServerNotResponding, e:
+                print >> self.log, e
         else:
             files = self.listFiles("manifests", flavor, tag)
-            out = []
             for file in files:
                 # each file is a manifest; check its product/version/flavor
                 # by reading the manifest's header
@@ -205,7 +208,7 @@ class DistribServer(object):
 
                 out.append([man.product, man.version, man.flavor])
 
-            return out
+        return out
 
     def getFile(self, path, flavor=None, tag=None, ftype=None, 
                 filename=None, noaction=False):
@@ -1117,7 +1120,7 @@ class TaggedProductList(object):
         @param products   a TaggedProductList instance whose content should 
                             be merged.
         """
-        for p in products.products():
+        for p in products.getProducts():
             addProduct(p[0], p[2], p[1], p[3:])
 
     def read(self, filename):
@@ -1215,7 +1218,7 @@ EUPS distribution %s version list. Version %s
         if self.info.has_key(product):
             del self.info[product]
 
-    def products(self, sort=False):
+    def getProducts(self, sort=False):
         """return the product info for all known products as a list of lists"""
         products = self.products
         if sort:
