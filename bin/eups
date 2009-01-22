@@ -141,53 +141,59 @@ elif cmd == "depends":
     print >> sys.stderr, "I think that you meant \"eups list --dependencies\""
     sys.exit(1)
 elif cmd == "distrib":
-    helpStr = """Usage:
-    eups distrib [operation] [options] [product [version]]
-    eups distrib -V
-    eups distrib list [-Nv] [-Z eupspath] [-z dbz] [-r serverurl] 
-                   [-T tmpdir] [-S serverClass] [product [version]]
-    eups distrib install [-CgnjvGF] [-Z eupspath] [-z dbz] [-r serverurl] 
-                   [-T tmpdir] [-D distribClass] [-S serverClass] 
-                   product [version]
-    eups distrib create [-gnvF] [-s serverdir|-r serverurl] [-Z eupspath] 
-                   [-z dbz] [-T tmpdir] [-D distribClass] [-S serverClass] 
-                   product [version]
-    eups distrib clean [-NvFR] [-Z eupspath] [-z dbz] 
-                   [-T tmpdir] [-D distribClass]
-                   product version
+    helpStr = """eups distrib -V
+    eups distrib -h
+    eups distrib list [options] [product [version]]
+    eups distrib install options product [version]
+    eups distrib create options product [version]
+    eups distrib clean options product version
 
     Manage packages either as a user (via clean, install, or list) or as 
-    a provider (via create).  
-"""
-    helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["cmd", "product", "version"])
+    a provider (via create).
 
-    options["-b"] = (False, "--prefer-flavor", "Prefer distributions that are flavor-specific")
-    options["-B"] = (True,  "--build", "Search for build files on this :-separated path\n(\"\" -> product's installed ups directory)")
-    options["-c"] = (False, "--create", "Create a package for distribution")
-    options["-C"] = (False, "--current", "Create a list of products that are current; equivalent to --tag=current")
-    options["-d"] = (True,  "--distribType", "Create a distribution with this type name (e.g. 'tarball', 'builder')")
-    options["-D"] = (True,  "--distrib-class", "register this Distrib class (repeat as needed)")
-    options["-f"] = (False, "--use-flavor", "Create an installation specialised to the current flavor")
+    Use "eups distrib cmd -h" for subcommand options"""
+    
+    helpStr, narg = eupsGetopt.declareArgs(helpStr); narg = (0,3)
+
+    if len(opts.argv) < 2:
+        if opts.options.get('-h') or opts.options.get('-V'):
+            desire = "None"
+        else:
+            print >> sys.stderr, "You must specify a subcommand to eups distrib"
+            sys.exit(1)
+    else:
+        desire = opts.argv[1]
+        
+    if not desire in ("None", "clean", "create", "install", "list"):
+        print >> sys.stderr, "Please choose one of clean, create, install, and list, not %s" % desire
+        sys.exit(1)
+
     options["-F"] = (False, "--force", "Force requested behaviour")
-    options["-g"] = (True,  "--groupAccess", "Give specified group r/w access to all built packages")
-    options["-i"] = (False, "--install", "Extract and install the specified package")
-    options["-I"] = (False, "--incomplete", "Allow a manifest including packages we don't know how to install")
-    options["-j"] = (False, "--nodepend", "Just install product, but not its dependencies")
-    options["-l"] = (False, "--list", "List available products")
-    options["-m"] = (True,  "--manifest", "Use this manifest file")
-    options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
-    options[nobuildFlag] = (False, "--nobuild", "Don\'t attempt to build the product; just declare it")
-    options[nocleanFlag] = (False, "--noclean", "Don\'t  clean up after successfully building the product")
     options["-r"] = (True,  "--root", "Location of manifests/buildfiles/tarballs (may be a URL or scp specification).\nDefault: $EUPS_PKGROOT")
-    options["-R"] = (False, "--remove", "Clean and Remove all remnants of a declared product")
-    options["-L"] = (False, "--clean", "Clean remnants building/installing a product")
-    options["-s"] = (True,  "--server-dir", "the directory tree to save created packages under")
     options["-S"] = (True,  "--server-class", "register this DistribServer class (repeat as needed)")
     options["-t"] = (True,  "--tag", "Install versions with this tag (e.g. current or stable)")
-    options["-T"] = (True,  "--tmp-dir", "Build products in this directory")
     
-    aliases["-i"] = "--extract"
-    aliases["-f"] = "--use-flavor"
+    if desire in ("clean"):
+        options["-R"] = (False, "--remove", "Clean and Remove all remnants of a declared product")
+    if desire in ("create"):
+        options["-a"] = (True, "--as", "Install")
+        options["-B"] = (True,  "--build", "Search for build files on this :-separated path\n(\"\" -> product's installed ups directory)")
+        options["-d"] = (True,  "--distribType", "Create a distribution with this type name (e.g. 'tarball', 'builder')")
+        options["-D"] = (True,  "--distrib-class", "register this Distrib class (repeat as needed)")
+        options["-f"] = (False, "--use-flavor", "Create an installation specialised to the current flavor")
+        options["-I"] = (False, "--incomplete", "Allow a manifest including packages we don't know how to install")
+        options["-N"] = (False, "--noeups", "Don\'t attempt to lookup product in eups")
+        options["-s"] = (True,  "--server-dir", "the directory tree to save created packages under")
+    if desire in ("create", "install"):
+        options["-j"] = (False, "--nodepend", "Just install product, but not its dependencies")
+        options["-C"] = (False, "--current", "Create a list of products that are current; equivalent to --tag=current")
+        options["-m"] = (True,  "--manifest", "Use this manifest file")
+    if desire in ("install"):
+        options["-d"] = (True,  "--declareAs", "Declare installed products with this tag")
+        options["-g"] = (True,  "--groupAccess", "Give specified group r/w access to all built packages")
+        options[nobuildFlag] = (False, "--nobuild", "Don\'t attempt to build the product; just declare it")
+        options[nocleanFlag] = (False, "--noclean", "Don\'t  clean up after successfully building the product")
+        options["-T"] = (True,  "--tmp-dir", "Build products in this directory")
 elif cmd == "expandbuild":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, "buildFile", "outDir")
 
@@ -402,57 +408,36 @@ def main(cmd, opts):
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
                      declareCurrent=Eups.currentType)
     elif cmd == "distrib":
-        # Allow distrib's sub-commands to be specified as verbs, not options
-        if len(opts.argv) > 0:
-            if opts.argv[0] in ("create", "install", "list", "clean"):
-                cmd = opts.argv.pop(0)
+        # We already checked that there was a subcommand, called "desire"
+        assert len(opts.argv) and opts.argv.pop(0) == desire;
 
-                if cmd == "create":
-                    opts.options["-c"] = 1
-                elif cmd == "install":
-                    opts.options["-i"] = 1
-                elif cmd == "list":
-                    opts.options["-l"] = 1
-                elif cmd == "clean":
-                    opts.options["-L"] = 1
-                else:
-                    raise AssertionError, ("Impossible distrib subcommand %s" % cmd)
+        if desire == "clean":
+            pkgroots = [None]
 
-            if len(opts.argv) > 2:
-                print >> sys.stderr, "Unknown subcommand for eups distrib: %s" % opts.argv[0]
-                sys.exit(1)
-
-        if opts.options.get('-C'):      # -C it old synonym for --tag=current
+        if opts.options.get('-C'):      # -C is a synonym for "--tag=current --declareAs=current"
             if opts.options.has_key("-t") and opts.options["-t"] != "current":
                 print >> sys.stderr, "You may not specify --current and --tag"
                 sys.exit(1)
-            print >> sys.stderr, "Please use --tag=current next time, not --current/-C"
             opts.options["-t"] = "current"
-
-        create = opts.options.get('-c', False)
-        list = opts.options.get('-l', False)
-        install = opts.options.get('-i', False)
-        clean = opts.options.get('-L', False)
+            if desire == "install":
+                opts.options["-d"] = "current" # declare as current too
 
         manifest = opts.options.get('-m', None)
-        tag = eups.checkValidTag(opts.options.get('-t', None))
+        tag = opts.options.get('-t', None) # don't call checkValidTag as who knows what tags are out there?
         makeCurrent = opts.options.get('-C', None)
         noeups = opts.options.get('-N', False)
         noclean = opts.options.get(nocleanFlag)
         serverDir = opts.options.get('-s', None)
         nodepend = opts.options.get('-j', False)
-        distName = opts.options.get('-d', None)
+        if desire == "create":
+            distName = opts.options.get('-d', None)
 
         installFlavor = flavor
-        if opts.options.get("-f", False):
-            if cmd != "create":
-                print >> sys.stderr, "--use-flavor only makes sense with create"
-        else:
-            if cmd == "create":
-                installFlavor = "generic"
+        if cmd == "create" and not opts.options.get("-f", False):
+            installFlavor = "generic"
 
         pkgroots = getPkgroots(opts)
-        if (install or list) and (len(pkgroots) == 0 and Eups.verbose):
+        if desire in ("install", "list") and (len(pkgroots) == 0 and Eups.verbose):
             print >> sys.stderr, "No package root specified; you will not be able install packages"
             sys.exit(1)
 
@@ -486,7 +471,7 @@ def main(cmd, opts):
         except IndexError:
             if tag == "current":
                 productName = ""
-            elif list:
+            elif desire == "list":
                 productName = None
             elif manifest == None:
                 print >> sys.stderr, "Please specify a product\n"
@@ -498,37 +483,27 @@ def main(cmd, opts):
         except IndexError:
             versionName = None
 
-        if list and Eups.noaction:
-            print >> sys.stderr, "You may not specify --list along with --noaction"
+        if desire == "list" and Eups.noaction:
+            print >> sys.stderr, "You may not specify --noaction with list"
             sys.exit(1)
-
-        if clean + create + install + list != 1:
-            print >> sys.stderr, "Please specify exactly one of clean, create, install, and list"
-            sys.exit(1)
-
-        if create:
-            desire = "create"
-        elif install:
-            desire = "install"
-        elif list:
-            desire = "list"
-        elif clean:
-            desire = "clean"
-            pkgroots = [None]
-        else:
-            raise AssertionError, "You can't get here"
         #
         # Check that eups is installed in that db
         #
         packageBasePath = []
 
-        if create and dopts['noeups'] and distName == "builder" and not dopts['buildFilePath']:
+        if desire == "create" and dopts['noeups'] and distName == "builder" and not dopts['buildFilePath']:
             print >> sys.stderr, \
                   "You must specify a path with --build if you're using --noeups"
             sys.exit(1)
 
 
-        ds = DistributionSet(Eups, pkgroots, dopts, installFlavor, distribClasses) # all the available Distributions
+        if desire == "list":
+            onlyTag = tag               # only return distributions tagged as tag
+        else:
+            onlyTag = None
+
+        ds = DistributionSet(Eups, pkgroots, dopts, installFlavor,
+                             distribClasses, tag=onlyTag) # all the available Distributions
 
         if desire == "list":
             for (pkgroot, pkgs) in ds.listPackages(productName, versionName):
@@ -543,6 +518,11 @@ def main(cmd, opts):
             if productName is None:
                 print >> sys.stderr, "Please provide a product to install"
                 sys.exit(1)
+
+            installedTag = opts.options.get("-d", None)  # install with this tag
+            if installedTag:
+                makeCurrent = True
+                Eups.setCurrentType(makeCurrentObject(False, installedTag))
 
             for pkgroot in ds.pkgroots:
                 dist = ds.distributions[pkgroot]
@@ -871,7 +851,6 @@ def makeCurrentObject(current, tag, checkTag=True):
             print >> sys.stderr, "You specified --current and --tag=%s; ignoring tag" % tag
         return eups.Current()
         
-
     if tag:
         if checkTag:
             eups.checkValidTag(tag)
@@ -951,7 +930,7 @@ def listProducts(Eups, productName=None, versionName=None,
                 try:
                     v = cchain.info[Eups.flavor]["version"]
                 except KeyError:
-                    pass
+                    continue
 
                 if not productTags[name].has_key(v):
                     productTags[name][v] = []
