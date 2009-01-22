@@ -1041,11 +1041,22 @@ class Action(object):
             vers = Current()
 
         if not isSpecialVersion(vers):  # see if we have a version of the form "logical [exact]"
-            mat = re.search(r"(.*)\s+\[([^\]]+)\]\s*", vers)
+            mat = re.search(r"(.*)\s*\[([^\]]+)\]\s*", vers)
             if mat:
                 exactVersion, logicalVersion = mat.groups()
                 if Eups.exact_version:
-                    vers = exactVersion
+                    if not exactVersion:
+                        if Eups.verbose > 1 - fwd:
+                            if fwd:
+                                verb = "setup"
+                            else:
+                                verb = "unsetup"
+                            print >> sys.stderr, \
+                                  "You asked me to %s an exact version of %s but I only found an expression; using %s" % \
+                                  (verb, productName, logicalVersion)
+                        vers = logicalVersion
+                    else:
+                        vers = exactVersion
                 else:
                     vers = logicalVersion
 
@@ -1741,6 +1752,9 @@ class Eups(object):
         self.currentType = currentType  # our Current type
         # list of currentTypes to try if this one fails
         self.currentTypesToTry = getValidTagFallbacks(currentType.tag)
+
+    def getCurrent(self):
+        return self.currentType
 
     def Product(self, *args, **kwargs):
         """Create a Product"""
