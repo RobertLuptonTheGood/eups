@@ -1041,7 +1041,7 @@ class Action(object):
             vers = Current()
 
         if not isSpecialVersion(vers):  # see if we have a version of the form "logical [exact]"
-            mat = re.search(r"(.*)\s*\[([^\]]+)\]\s*", vers)
+            mat = re.search(r"(\S*)\s*\[([^\]]+)\]\s*", vers)
             if mat:
                 exactVersion, logicalVersion = mat.groups()
                 if Eups.exact_version:
