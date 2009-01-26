@@ -2987,6 +2987,8 @@ match fails.
             if not os.path.isfile(full_tablefile):
                 raise RuntimeError, ("I'm unable to declare %s as tablefile %s does not exist" %
                                      (productName, full_tablefile))
+        else:
+            full_tablefile = None
         #
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
@@ -3006,7 +3008,7 @@ match fails.
             # Different names; see if they're different content too
             diff = ["%s != %s" % (tablefile, _tablefile)] # possible difference
             try:
-                if not filecmp.cmp(tablefile, _tablefile):
+                if not filecmp.cmp(full_tablefile, _tablefile):
                     differences += diff
             except OSError:
                 differences += diff
@@ -3015,9 +3017,8 @@ match fails.
         if _productDir and _tablefile and not differences:
             redeclare = False
         else:
-            if declareCurrent:
-                if not differences:
-                    redeclare = False
+            if declareCurrent and not differences:
+                redeclare = False
             else:
                 if not self.force:
                     info = ""
