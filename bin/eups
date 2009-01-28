@@ -176,7 +176,7 @@ elif cmd == "distrib":
     if desire in ("clean"):
         options["-R"] = (False, "--remove", "Clean and Remove all remnants of a declared product")
     if desire in ("create"):
-        options["-a"] = (True, "--as", "Install")
+        options["-a"] = (True, "--as", "Create a distribution with this name")
         options["-B"] = (True,  "--build", "Search for build files on this :-separated path\n(\"\" -> product's installed ups directory)")
         options["-d"] = (True,  "--distribType", "Create a distribution with this type name (e.g. 'tarball', 'builder')")
         options["-D"] = (True,  "--distrib-class", "register this Distrib class (repeat as needed)")
@@ -367,8 +367,12 @@ def main(cmd, opts):
         externalTablefile = opts.options.get('-M', None)
         tag = opts.options.get('-t', None)
 
-        Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
-
+        if opts.options.get('-c', False) or opts.options.get("-t", None):
+            Eups.setCurrentType(makeCurrentObject(opts.options.get('-c', False), opts.options.get("-t", None)))
+            declareCurrent = Eups.currentType
+        else:
+            declareCurrent = None
+        
         if opts.argv:
             productName = opts.argv.pop(0)
 
@@ -406,7 +410,7 @@ def main(cmd, opts):
                     sys.exit(1)
 
         Eups.declare(productName, versionName, productDir=productDir, tablefile=tablefile,
-                     declareCurrent=Eups.currentType)
+                     declareCurrent=declareCurrent)
     elif cmd == "distrib":
         # We already checked that there was a subcommand, called "desire"
         assert len(opts.argv) and opts.argv.pop(0) == desire;
@@ -430,7 +434,7 @@ def main(cmd, opts):
         serverDir = opts.options.get('-s', None)
         nodepend = opts.options.get('-j', False)
         if desire == "create":
-            distName = opts.options.get('-d', None)
+            distribTypeName = opts.options.get('-d', None)
 
         installFlavor = flavor
         if cmd == "create" and not opts.options.get("-f", False):
@@ -491,7 +495,7 @@ def main(cmd, opts):
         #
         packageBasePath = []
 
-        if desire == "create" and dopts['noeups'] and distName == "builder" and not dopts['buildFilePath']:
+        if desire == "create" and dopts['noeups'] and distribTypeName == "builder" and not dopts['buildFilePath']:
             print >> sys.stderr, \
                   "You must specify a path with --build if you're using --noeups"
             sys.exit(1)
@@ -555,6 +559,7 @@ def main(cmd, opts):
                 sys.exit(1)
 
             dist = ds.distributions[ds.pkgroots[0]]
+            packageId = opts.options.get('-a', None)
 
             if not serverDir and dist.distServer is not None and \
                  eupsServer.LocalTransporter.canHandle(dist.distServer.base):
@@ -563,12 +568,12 @@ def main(cmd, opts):
             if not serverDir:
                 print >> sys.stderr, "Please specify a server directory with -s"
                 sys.exit(1)
-            if not distName:
+            if not distribTypeName:
                 print >> sys.stderr, "Please specify a distribution type name (e.g. -d tarball, -d builder, etc)"
                 sys.exit(1)
 
-            dist.create(serverDir, distName, productName, versionName,
-                        nodepend=nodepend, manifest=manifest, distributionSet=ds)
+            dist.create(serverDir, distribTypeName, productName, versionName,
+                        nodepend=nodepend, manifest=manifest, distributionSet=ds, packageId=packageId)
         elif desire == "clean":
             uninstall = bool(opts.options.get('-R'))
             flav = opts.options.get('-f', Eups.flavor)
@@ -1033,16 +1038,18 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
             print >> sys.stdout, "Product %s %sisn't declared" % (productName, versionNameStr)
             sys.exit(1)
 
-    fmt = "%-20s %-15s"
+    fmt = "%-25s %-15s"
+    str = fmt % ("product", "version")
+
     if versionName:                             # we know the product version, so don't print it again
-        print fmt % ("product", "version")
+        fmt2 = None
     else:
-        fmt += " %-15s"
-        print fmt % ("product", "version", "%s version" % productName)
+        fmt2 = " %-15s"
+        str += fmt2 % ("%s version" % productName)
+    print str
 
     for (p, pv, requestedInfo) in userList:
-        #import pdb; pdb.set_trace()
-        requestedVersion, optional, currentRequested = requestedInfo
+        requestedVersion, optional, currentRequested, productDepth = requestedInfo
 
         if optional and not showOptional:
             continue
@@ -1050,10 +1057,9 @@ def eupsUses(Eups, productName, versionName, depth, showOptional, current):
         if current and not currentRequested:
             continue
 
-        if versionName:
-            str = fmt % (p, pv)
-        else:
-            str = fmt % (p, pv, requestedVersion)
+        str = fmt % (("%*s%s" % (depth - productDepth, "", p)), pv)
+        if fmt2:
+            str += fmt2 % (requestedVersion)
 
         if showOptional:
             if optional:

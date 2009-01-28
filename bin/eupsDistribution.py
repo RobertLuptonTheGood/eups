@@ -435,9 +435,8 @@ class Distribution(object):
                 pass
 
             if man:
-                installDir = map(lambda x: x.installDir, 
-                                 filter(lambda y: y.product == product and
-                                                  y.version == version,
+                installDir = map(lambda x: x.instDir, 
+                                 filter(lambda y: y.product == product and y.version == version,
                                         man.getProducts()))
 
                 if installDir and os.path.isdir(installDir[0]):
@@ -614,8 +613,8 @@ class Distribution(object):
             raise RuntimeError("No distribution server set")
         return self.distServer.listAvailableProducts(product, version, self.flavor, tag)
 
-    def create(self, serverRoot, distName, product, version, tag=None, 
-               nodepend=False, options=None, manifest=None, distributionSet=None):
+    def create(self, serverRoot, distribTypeName, product, version, tag=None, 
+               nodepend=False, options=None, manifest=None, distributionSet=None, packageId=None):
         """create and all necessary files for making a particular package
         available and deploy them into a local server directory.  This creates
         not only the requested product but also all of its dependencies unless
@@ -623,7 +622,7 @@ class Distribution(object):
         a package that is already deployed under the serverRoot directory.
         @param serverRoot   the root directory of a local server distribution
                               tree
-        @param distName     the name of the distribution type to create.  The
+        @param distribTypeName     the name of the distribution type to create.  The
                               recognized names are those registered to the 
                               DistribFactory passed to this Distribution's
                               constructor.  Names recognized by default include
@@ -650,18 +649,19 @@ class Distribution(object):
                               determine if the package is available with the 
                               given distID.
         @param distributionSet list of Distributions to search for product if not found in self
+        @param packageId     name:version for distribution; default product:version (either field may be omitted)
         """
         opts = self._mergeOptions(options)
 
         try:
             distrib = \
-                self.distFactory.createDistribByName(distName, 
+                self.distFactory.createDistribByName(distribTypeName, 
                                                      options=opts, flavor=self.flavor,
                                                      verbosity=self.verbose)
         except KeyError:
             distrib = None
         if distrib is None:
-            raise RuntimeError("%s: Distrib name not recognized" % distName)
+            raise RuntimeError("%s: Distrib name not recognized" % distribTypeName)
 
         # load manifest data
         if manifest is None:
@@ -699,7 +699,21 @@ class Distribution(object):
             dp.distId = id
 
         # deploy the manifest file
-        distrib.writeManifest(serverRoot, man.getProducts(), product, version, 
+        if packageId:
+            vals = packageId.split(":")
+            if len(vals) != 2:
+                raise RuntimeError, ("Expected package Id of form name:version, saw \"%s\"" % packageId)
+            if vals[0] == "":
+                vals[0] = product
+            if vals[1] == "":
+                vals[1] = version
+                
+            packageName, packageVersion = vals
+        else:
+            packageName = product
+            packageVersion = version
+
+        distrib.writeManifest(serverRoot, man.getProducts(), packageName, packageVersion,
                               self.flavor, self.Eups.force)
         
     def _recursiveCreate(self, serverRoot, distrib, manifest, created=None, 
@@ -804,9 +818,9 @@ class Distribution(object):
         if not version:
             version = self.Eups.findCurrentVersion(product)[1]
 
-        if distName:
+        if distribTypeName:
             distrib = \
-                self.distFactory.createDistribByName(distName, 
+                self.distFactory.createDistribByName(distribTypeName, 
                                                      options=self.options,
                                                      verbosity=self.verbose,
                                                      log=self.log)

@@ -920,10 +920,15 @@ but no other interpretation is applied
 
         return s
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=False, recursionDepth=0, setupType=None):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
 
         N.b. the dependencies are not calculated recursively unless recursive is True"""
+
+        if recursive and not isinstance(recursive, bool):
+            recursiveDict = recursive
+        else:
+            recursiveDict = {}          # dictionary of products we've analysed
 
         deps = []
         for a in self.actions(Eups.flavor, setupType=setupType):
@@ -957,8 +962,9 @@ but no other interpretation is applied
                         val += [recursionDepth]
                     deps += [val]
 
-                    if recursive:
-                        deps += product.dependencies(eupsPathDirs, True, recursionDepth+1)
+                    if recursive and not recursiveDict.has_key(product.key()):
+                        recursiveDict[product.key()] = 1
+                        deps += product.dependencies(eupsPathDirs, recursiveDict, recursionDepth+1)
                         
                 except RuntimeError, e:
                     if a.extra:         # product is optional
@@ -1495,6 +1501,10 @@ class Product(object):
                           self.Eups.findFullySpecifiedVersion(self.name, versionName, flavor, eupsPathDir)
             self.table = Table(tablefile).expandEupsVariables(self)
 
+    def key(self):
+        """Return a key suitable for hashing products"""
+        return "%s-%s" % (self.name, self.version)
+
     def initFromSetupVersion(self, environ=None):
         """Initialize a Product that's already setup"""
 
@@ -1604,7 +1614,7 @@ class Product(object):
         """Is the Product current?"""
         return self._current[self.Eups.currentType]
 
-    def dependencies(self, eupsPathDirs=None, recursive=False, recursionDepth=0, setupType=None):
+    def dependencies(self, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples"""
 
         val = []
@@ -3708,7 +3718,7 @@ class Uses(object):
             if not self._setup_by.has_key(key):
                 self._setup_by[key] = []
 
-            self._setup_by[key] += [(productName, versionName, (v, o, c))]
+            self._setup_by[key] += [(productName, versionName, (v, o, c, depth))]
 
             self._do_invert(productName, versionName, self._getKey(p, v), depth - 1, o)
 
@@ -3735,6 +3745,25 @@ class Uses(object):
         if False:
             for k in self._setup_by.keys():
                 print "XX %-20s" % k, self._setup_by[k]
+        #
+        # Find the minimum depth for each product
+        #
+        for k in self._setup_by.keys():
+            vmin = {}
+            dmin = {}
+            for val in self._setup_by[k]:
+                p, pv, requestedInfo = val
+                d = requestedInfo[3]    # depth
+
+                key = "%s-%s" % (p, pv)
+                if not dmin.has_key(key) or d < dmin[key]:
+                    dmin[key] = d
+                    vmin[key] = val
+
+            self._setup_by[k] = []
+            for key in vmin.keys():
+                self._setup_by[k] += [vmin[key]]
+        #import pdb; pdb.set_trace()
         #
         # Make values in _setup_by unique
         #
