@@ -55,6 +55,18 @@ AC_ARG_WITH(eups_dir,
     fi])
 AC_SUBST(EUPS_DIR)
 dnl
+dnl Allow the user to disable building the documentation
+dnl
+MAKE_SUBDIRS="bin etc ups"
+AC_ARG_ENABLE(docs,
+   [AS_HELP_STRING(--enable-docs, [Enable building the documentation (YES)])],
+   [if [[ $enableval = "yes" ]]; then
+       MAKE_SUBDIRS="$MAKE_SUBDIRS doc"
+    fi],
+   [MAKE_SUBDIRS="$MAKE_SUBDIRS doc"],
+   )
+AC_SUBST(MAKE_SUBDIRS)
+dnl
 dnl Aliases for user commands (some people object to "setup", and it conflicts
 dnl with a RH linux command in /usr/bin)
 dnl

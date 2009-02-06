@@ -1,14 +1,15 @@
 SHELL = /bin/sh
+LATEXFLAGS = -interaction=nonstopmode
 
 all : doc;
 
 .PHONY : all doc install clean tidy
 
 eups.aux : eups.tex
-	latex eups.tex
+	latex $(LATEXFLAGS) eups.tex
 
 eups.dvi : eups.aux
-	latex eups.tex
+	latex $(LATEXFLAGS) eups.tex
 
 doc : eups.html eups.pdf;
 
@@ -30,7 +31,7 @@ eups.html : eups.aux
 	fi
 
 eups.pdf : eups.aux
-	pdflatex eups.tex
+	pdflatex $(LATEXFLAGS) eups.tex
 
 install : eups.pdf eups.html
 	cp Makefile *.tex eups.pdf eups.html $(EUPS_DIR)/doc
