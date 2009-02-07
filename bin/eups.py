@@ -1601,8 +1601,9 @@ class Product(object):
         else:
             self._current[currentType] = None
             try:
-                cdb, cversion, cvinfo = self.Eups.findCurrentVersion(self.name,
-                                                                     currentType=currentType, currentTypesToTry=[])
+                cdb, cversion, cvinfo, ctype = self.Eups.findCurrentVersion(self.name,
+                                                                            currentType=currentType,
+                                                                            currentTypesToTry=[])
                 if cdb == self.db and cversion == self.version:
                     self._current[currentType] = currentType
             except RuntimeError:
@@ -1999,7 +2000,7 @@ class Eups(object):
 
                 for productName in productNames:
                     versionNames = self.versions[db][self.flavor][productName].keys()
-                    versionNames.sort(_version_cmp)
+                    versionNames.sort(version_cmp)
 
                     print "  %-20s %s" % (productName, " ".join(versionNames))
             except IndexError, e:
@@ -2077,7 +2078,7 @@ class Eups(object):
         self.oldAliases[key] = None # so it'll be deleted if no new alias is defined
 
     def findCurrentVersion(self, productName, path=None, currentType=None, currentTypesToTry=None):
-        """Find current version of a product, returning eupsPathDir, version, vinfo"""
+        """Find current version of a product, returning eupsPathDir, version, vinfo, currentTag"""
 
         if not currentType:
             currentType = self.currentType
@@ -2090,10 +2091,10 @@ class Eups(object):
             try:
                 info = self.findVersion(productName, versionName)
             except RuntimeError, e:
-                return [None, versionName, None]
+                return [None, versionName, None, currentType]
 
             vinfo = { "productDir" : info[2], "table_file" : None }
-            return [info[1], self.locallyCurrent[productName], vinfo]
+            return [info[1], self.locallyCurrent[productName], vinfo, currentType]
         
         if not path:
             path = self.path
@@ -2114,7 +2115,7 @@ class Eups(object):
                         vers = VersionFile(vfile)
                         if vers.info.has_key(self.flavor):
                             vinfo = vers.info[self.flavor]
-                            return eupsPathDir, versionName, vinfo
+                            return eupsPathDir, versionName, vinfo, currentType
 
                     raise RuntimeError, ("Unable to find current version %s of %s for flavor %s" %
                                          (versionName, productName, self.flavor))
@@ -2221,7 +2222,7 @@ match fails.
 
         if not versionName or isSpecialVersion(versionName, setup=False):
             # If no version explicitly specified, get the first db with a current one.
-            eupsPathDir, versionName, vinfo = self.findCurrentVersion(productName, path=eupsPathDirs)
+            eupsPathDir, versionName, vinfo, currentType = self.findCurrentVersion(productName, path=eupsPathDirs)
 
             if not eupsPathDir:         # a locally-declared product that doesn't really exist
                 return [versionName, eupsPathDir, None, None]
@@ -2248,18 +2249,18 @@ match fails.
                     if vers.info.has_key(self.flavor):
                         versionNames += [(vers.version, vers.info[self.flavor])]
 
-                versionNames.sort(lambda a, b: _version_cmp(a[0], b[0]))
+                versionNames.sort(lambda a, b: version_cmp(a[0], b[0]))
                 versionNames.reverse() # so we'll try the latest version first
                 #
                 # Include the current version;  if it matches we'll use it
                 #
                 try:
-                    ceupsPathDir, cversionName, cvinfo = self.findCurrentVersion(productName, eupsPathDir)
+                    ceupsPathDir, cversionName, cvinfo, ctype = self.findCurrentVersion(productName, eupsPathDir)
                     if cvinfo:
                         versionNames = [(cversionName, cvinfo)] + versionNames
                 except RuntimeError:
                     cvinfo = None
-                    pass
+                    ctype = self.getCurrent()
                 #
                 # We have a list of possible versions, go through them in order
                 #
@@ -2270,8 +2271,8 @@ match fails.
                         vinfo = _vinfo
 
                         if cvinfo and versionName != cversionName and self.verbose > 0 + self.quiet:
-                            print >> sys.stderr, "Using %s %s to satisfy \"%s\" (%s is current)" % \
-                                  (productName, versionName, expr, cversionName)
+                            print >> sys.stderr, "Using %s %s to satisfy \"%s\" (%s is %s)" % \
+                                  (productName, versionName, expr, cversionName, ctype)
 
                         extra = ""
                         if self.verbose >= 3 + self.quiet:
@@ -2393,7 +2394,7 @@ match fails.
         foundCurrent, eupsPathDir = False, None
         if isSpecialVersion(versionName, setup=False):
             foundCurrent = True
-            eupsPathDir, versionName, vinfo = self.findCurrentVersion(productName)
+            eupsPathDir, versionName, vinfo, ctype = self.findCurrentVersion(productName)
         elif versionName == Setup():
             versionName, eupsPathDir, productDir, tablefile, flavor = self.findSetupVersion(productName)
             if not versionName:
@@ -2552,7 +2553,7 @@ match fails.
         else:
             return re.search(Eups._relop_re, versionName)
 
-    def version_cmp(self, v1, v2):
+    def _version_cmp(self, v1, v2):
         """Compare two version strings
 
     The strings are split on [._] and each component is compared, numerically
@@ -2573,7 +2574,7 @@ match fails.
     """
 
         try:
-            return versionCallback.apply(v1, v2, _version_cmp)
+            return versionCallback.apply(v1, v2, version_cmp)
         except ValueError:
             return None
         except Exception, e:
@@ -2619,9 +2620,9 @@ match fails.
     Compare two version strings, using the specified operator (< <= == >= >), returning
     true if the condition is satisfied
 
-    Uses version_cmp to define sort order """
+    Uses _version_cmp to define sort order """
 
-        cmp = self.version_cmp(v1, v2)
+        cmp = self._version_cmp(v1, v2)
 
         if cmp is None:                 # no sort order is defined
             return False
@@ -2811,7 +2812,7 @@ match fails.
                 if self.isSetup(keptProduct):
                     resetup = False
                     
-                if self.version_cmp(product.version, keptProduct.version) > 0:
+                if self._version_cmp(product.version, keptProduct.version) > 0:
                     keptProduct = product                     
                     self.alreadySetupProducts[product.name] = product # keep this one instead
                     resetup = True
@@ -3014,7 +3015,7 @@ match fails.
         differences = []
         if _productDir and productDir != _productDir:
             differences += ["%s != %s" % (productDir, _productDir)]
-        if _tablefile and tablefile != _tablefile:
+        if full_tablefile and _tablefile and tablefile != _tablefile:
             # Different names; see if they're different content too
             diff = ["%s != %s" % (tablefile, _tablefile)] # possible difference
             try:
@@ -3366,7 +3367,7 @@ match fails.
         #
         def sort_versions(a, b):
             if a[0] == b[0]:
-                return _version_cmp(a[1], b[1])
+                return version_cmp(a[1], b[1])
             else:
                 return cmp(a[0], b[0])
             
@@ -3578,8 +3579,8 @@ _ClassEups = Eups                       # so we can say, "isinstance(Eups, _Clas
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def _version_cmp(v1, v2, suffix=False):
-    """Here's the internal routine that version_cmp uses.
+def version_cmp(v1, v2, suffix=False):
+    """Here's the internal routine that _version_cmp uses.
     It's split out so that we can pass it to the callback
     """
 
@@ -3609,7 +3610,7 @@ def _version_cmp(v1, v2, suffix=False):
         if sec1 or sec2 or ter1 or ter2:
             if sec1 or sec2:
                 if (sec1 and sec2):
-                    ret = _version_cmp(sec1, sec2, True)
+                    ret = version_cmp(sec1, sec2, True)
                 else:
                     if sec1:
                         return -1
@@ -3617,11 +3618,11 @@ def _version_cmp(v1, v2, suffix=False):
                         return 1
 
                 if ret == 0:
-                    return _version_cmp(ter1, ter2, True)
+                    return version_cmp(ter1, ter2, True)
                 else:
                     return ret
 
-            return _version_cmp(ter1, ter2, True)
+            return version_cmp(ter1, ter2, True)
         else:
             return 0
 
