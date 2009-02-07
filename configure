@@ -273,7 +273,7 @@ PACKAGE_VERSION='"X.Y"'
 PACKAGE_STRING='eups "X.Y"'
 PACKAGE_BUGREPORT='rhl@astro.princeton.edu'
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS EUPS_PATH EUPS_DIR SETUP_ALIASES LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS EUPS_PATH EUPS_DIR MAKE_SUBDIRS SETUP_ALIASES LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -782,6 +782,11 @@ if test -n "$ac_init_help"; then
      short | recursive ) echo "Configuration of eups "X.Y":";;
    esac
   cat <<\_ACEOF
+
+Optional Features:
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-docs           Enable building the documentation (YES)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1312,6 +1317,17 @@ echo "$as_me: error: I can't find DB \"$eups_db\" in $EUPS_PATH" >&2;}
 echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&2;}
        fi
     fi
+fi;
+
+MAKE_SUBDIRS="bin etc ups"
+# Check whether --enable-docs or --disable-docs was given.
+if test "${enable_docs+set}" = set; then
+  enableval="$enable_docs"
+  if [ $enableval = "yes" ]; then
+       MAKE_SUBDIRS="$MAKE_SUBDIRS doc"
+    fi
+else
+  MAKE_SUBDIRS="$MAKE_SUBDIRS doc"
 fi;
 
 
@@ -1962,6 +1978,7 @@ s,@ECHO_T@,$ECHO_T,;t t
 s,@LIBS@,$LIBS,;t t
 s,@EUPS_PATH@,$EUPS_PATH,;t t
 s,@EUPS_DIR@,$EUPS_DIR,;t t
+s,@MAKE_SUBDIRS@,$MAKE_SUBDIRS,;t t
 s,@SETUP_ALIASES@,$SETUP_ALIASES,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
