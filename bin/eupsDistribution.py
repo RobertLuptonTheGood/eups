@@ -238,6 +238,8 @@ class Distribution(object):
                             print >> self.log, "Failed to install %s %s: %s" % \
                                 (prod.product, prod.version, str(e))
                         raise e
+                    except RuntimeError, e:
+                        raise e
 
                     if self.verbose >= 0:
                         print >> self.log, \
@@ -944,6 +946,21 @@ class DistributionSet(object):
                 packages = dist.listPackages(tag=tag)
             except RemoteFileNotFound:
                 packages = [(None, None, None)]
+
+            def sort_by_name_then_version_then_flavor(a, b):
+                """Sort by name, then version, then flavor"""
+                if a[0] != b[0]:
+                    return cmp(a[0], b[0])
+
+                vcmp = eups.version_cmp(a[1], b[1])
+
+                if vcmp:
+                    return vcmp
+                else:
+                    return cmp(a[2], b[2])
+
+            packages.sort(sort_by_name_then_version_then_flavor)
+
             self.pkgList += [(pkgroot, packages)]
             
             self.primary[pkgroot] = primary
@@ -952,7 +969,7 @@ class DistributionSet(object):
     
     def listPackages(self, productName, versionName):
         """Return a list of tuples (pkgroot, package-list)"""
-        
+
         if not productName and not versionName: # they want everything
             return self.pkgList
 
