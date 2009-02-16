@@ -573,26 +573,29 @@ class Distribution(object):
 
         # make sure we have a table file if we need it
         if unknown:
-            upsdir = os.path.join(rootdir,'ups')
-            tablefile = os.path.join(upsdir, product + ".table")
-
-            if rootdir == "/dev/null":
-                tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
-                                                              version, flavor)
-                tablefile = open(tablefile, "r")
+            if tablefileloc == "none":
+                tablefile = "none"
             else:
-                if not os.path.exists(tablefile):
-                    if not os.path.exists(upsdir):
-                        os.makedirs(upsdir)
-                    self.distServer.getFileForProduct(tablefileloc, product, 
-                                                      version, flavor,
-                                                      filename=tablefile)
-                if not os.path.exists(tablefile):
-                    raise RuntimeError("Failed to find table file %s" % tablefile)
+                upsdir = os.path.join(rootdir,'ups')
+                tablefile = os.path.join(upsdir, product + ".table")
+
+                if rootdir == "/dev/null":
+                    tablefile = self.distServer.getFileForProduct(tablefileloc, product, 
+                                                                  version, flavor)
+                    tablefile = open(tablefile, "r")
+                else:
+                    if not os.path.exists(tablefile):
+                        if not os.path.exists(upsdir):
+                            os.makedirs(upsdir)
+                        self.distServer.getFileForProduct(tablefileloc, product, 
+                                                          version, flavor,
+                                                          filename=tablefile)
+                    if not os.path.exists(tablefile):
+                        raise RuntimeError("Failed to find table file %s" % tablefile)
         else:
             tablefile = None
             
-        if tablefile and not isinstance(tablefile, file):
+        if tablefile and tablefile != "none" and not isinstance(tablefile, file):
             if not os.path.exists(tablefile):
                 tablefile = tablefileloc
 
