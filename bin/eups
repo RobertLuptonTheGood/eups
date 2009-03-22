@@ -436,8 +436,9 @@ def main(cmd, opts):
         if desire == "create":
             distribTypeName = opts.options.get('-d', None)
 
-        installFlavor = flavor
-        if cmd == "create" and not opts.options.get("-f", False):
+        if opts.options.get("-f", False):
+            installFlavor = flavor
+        else:
             installFlavor = "generic"
 
         pkgroots = getPkgroots(opts)

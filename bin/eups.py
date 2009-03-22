@@ -1817,22 +1817,25 @@ class Eups(object):
 
         db_mtime = os.stat(persistentDB).st_mtime # last modification date for cache
 
+        dirnames = None
         for dirpath, dirnames, filenames in os.walk(self.getUpsDB(eupsPathDir)):
             break
-        dirnames = map(lambda d: os.path.join(dirpath, d), dirnames)
 
         upToDate = True                # is cache up to date?
-        for dir in dirnames:
-            for dirpath, dirnames, filenames in os.walk(dir):
-                for file in filenames:
-                    file = os.path.join(dirpath, file)
-                    mtime = os.stat(file).st_mtime # last modification date file in ups_db
-                    if mtime > db_mtime:
-                        upToDate = False                # cache isn't up to date
-                        break
-                break
-            if not upToDate:
-                break
+        if dirnames:
+            dirnames = map(lambda d: os.path.join(dirpath, d), dirnames)
+
+            for dir in dirnames:
+                for dirpath, dirnames, filenames in os.walk(dir):
+                    for file in filenames:
+                        file = os.path.join(dirpath, file)
+                        mtime = os.stat(file).st_mtime # last modification date file in ups_db
+                        if mtime > db_mtime:
+                            upToDate = False                # cache isn't up to date
+                            break
+                    break
+                if not upToDate:
+                    break
 
         return persistentDB, True, upToDate
 
@@ -2012,6 +2015,8 @@ class Eups(object):
         for p in self.path:
             lockfile = self.getLockfile(p)
             if os.path.exists(lockfile):
+                if self.verbose:
+                    print "Removing", lockfile
                 try:
                     os.remove(lockfile)
                 except Exception, e:
