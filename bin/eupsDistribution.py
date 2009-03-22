@@ -249,7 +249,7 @@ class Distribution(object):
                 setups.append("setup --keep %s %s" % (prod.product, prod.version))
 
                 # declare the newly installed package, if necessary
-                root = os.path.join(productRoot, flavor, prod.instDir)
+                root = os.path.join(productRoot, self.Eups.flavor, prod.instDir)
                 if justDeclare:
                     tablefile = None    # don't try to redeclare product, just make it current
                 else:
