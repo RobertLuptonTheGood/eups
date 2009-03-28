@@ -312,6 +312,15 @@ def isSpecialVersion(versionName, setup=True):
     else:
         return False
 
+def checkVersionName(versionName):
+    """Check that versionName is valid (e.g. not "= 3.3.4"; cf. ticket #728)"""
+
+    if re.search(r"^\s*=\s+\S+", versionName):
+        raise RuntimeError, ("Saw version \"%s\"; did you mean to write =%s?" % (versionName, versionName))
+
+    if len(" ".split(versionName)):
+        raise RuntimeError, ("Embedded whitespace is not allowed in version names: \"%s\"" % (versionName))
+
 class CurrentChain(object):
     """A class that represents a chain file"""
 
@@ -2409,6 +2418,10 @@ match fails.
 
         if eupsPathDir:
             dbs = [eupsPathDir] + filter(lambda d: d != eupsPathDir, dbs) # put chosen version first in eupsPath
+        #
+        # Check that versionName is valid (e.g. not "= 3.3.4"; cf. ticket #728)
+        #
+        checkVersionName(versionName)   # may raise an exception
         #
         # Try to look it up in the db/product/version dictionary
         #
