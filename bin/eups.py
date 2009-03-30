@@ -318,9 +318,6 @@ def checkVersionName(versionName):
     if re.search(r"^\s*=\s+\S+", versionName):
         raise RuntimeError, ("Saw version \"%s\"; did you mean to write =%s?" % (versionName, versionName))
 
-    if len(" ".split(versionName)):
-        raise RuntimeError, ("Embedded whitespace is not allowed in version names: \"%s\"" % (versionName))
-
 class CurrentChain(object):
     """A class that represents a chain file"""
 
