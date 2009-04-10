@@ -4003,6 +4003,14 @@ def guessProduct(dir, productName=None):
     """Guess a product name given a directory containing table files.  If you provide productName,
     it'll be chosen if present; otherwise if dir doesn't contain exactly one product we'll raise RuntimeError"""
 
+    if not os.path.isdir(dir):
+        # They may have specified XXX but dir == XXX/ups
+        root, leaf = os.path.split(dir)
+        if leaf == "ups" and not os.path.isdir(root):
+            dir = root
+            
+        raise RuntimeError, ("%s isn't a directory" % dir)
+            
     productNames = map(lambda t: re.sub(r".*/([^/]+)\.table$", r"\1", t), glob.glob(os.path.join(dir, "*.table")))
 
     if not productNames:
