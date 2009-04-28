@@ -216,7 +216,7 @@ class Distribution(object):
                         print >> self.log, prod.product, prod.version
 
                     builddir = self.makeBuildDirFor(productRoot, prod.product,
-                                                    prod.version, flavor)
+                                                    prod.version, self.Eups.flavor)
                     # write the distID to the build directory to aid 
                     # clean-up if it fails
                     self._recordDistID(prod.distId, builddir)
