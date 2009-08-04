@@ -2724,6 +2724,8 @@ match fails.
         #
         # Look for product directory
         #
+        setupFlavor = self.flavor            # we may end up using e.g. "Generic"
+        
         if isinstance(productName, Product): # it's already a full Product
             product = productName; productName = product.name
         elif not fwd:
@@ -2765,7 +2767,25 @@ match fails.
                     if self.keep and self.alreadySetupProducts.has_key(productName):
                         product = self.alreadySetupProducts[productName]
                     else:
-                        return False, versionName, e
+                        #
+                        # It's not there.  Try a "Generic" (or "NULL") flavor
+                        #
+                        product = None
+
+                        for genericFlavor in ["Generic", "NULL"]:
+                            if not product and self.flavor != genericFlavor:
+                                realFlavor = self.flavor
+                                self.flavor = genericFlavor
+                                try:
+                                    product = self.getProduct(productName, versionName)
+                                    setupFlavor = genericFlavor
+                                except RuntimeError:
+                                    pass
+                                finally:
+                                    self.flavor = realFlavor
+
+                        if not product:
+                            return False, versionName, e # n.b. the error "e" from the previous attempt
 
         if setupType and not isValidSetupType(setupType):
             raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % \
@@ -2806,7 +2826,7 @@ match fails.
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
             if self.verbose > 1 or not setup_msgs.has_key(key):
                 print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
-                      (indent + product.name, self.flavor, product.version)
+                      (indent + product.name, setupFlavor, product.version)
                 setup_msgs[key] = 1
 
         if fwd and setupToplevel:
@@ -2888,7 +2908,7 @@ match fails.
 
             self.setEnv(product.envarDirName(), product.dir)
             self.setEnv(product.envarSetupName(),
-                        "%s %s -f %s -Z %s" % (product.name, product.version, product.Eups.flavor, product.db))
+                        "%s %s -f %s -Z %s" % (product.name, product.version, setupFlavor, product.db))
             #
             # Remember that we've set this up in case we want to keep it later
             #
