@@ -1404,8 +1404,8 @@ class VersionFile(object):
 
         return s
 
-    def write(self, fd=sys.stdout):
-        """Write a Version to a file"""
+    def write(self, eupsPathDir, fd):
+        """Write a Version to a file.  Strip eupsPathDir from the beginning of any directory"""
 
         print >> fd, """FILE = version
 PRODUCT = %s
@@ -1425,6 +1425,20 @@ Group:
    FLAVOR = %s
    QUALIFIERS = "%s"\
 """ % (flavor, qualifier)
+            #
+            # Strip eupsPathDir from directory names
+            #
+            for k in self.info[fq].keys():
+                value = self.info[fq][k]
+                
+                if re.search(r"^%s/" % eupsPathDir, value):
+                    if os.path.isfile(value) or os.path.isdir(value):
+                        if os.path.commonprefix([eupsPathDir, value]) == eupsPathDir:
+                            self.info[fq][k] = re.sub(r"^%s/" % eupsPathDir, "", value)
+                            debug(self.info[fq][k])
+                            if k == "table_file":
+                                self.info[fq][k] = re.sub(r"^ups_db/", "", self.info[fq][k])
+                                self.info[fq]["ups_dir"] = "$UPS_DB";
 
             for field in self._fields:
                 if field == "PROD_DIR":
@@ -1434,6 +1448,7 @@ Group:
 
                 if self.info[fq].has_key(k):
                     value = self.info[fq][k]
+                            
                     if not value:
                         if k == "productDir":
                             value = "none"
@@ -1883,7 +1898,7 @@ class Eups(object):
         try:
             versions = {eupsPathDir : unpickled.load()}
         except Exception, e:
-            msg = "Corrupted cache in %s: %s" % (eupsPathDir, e)
+            msg = "Corrupted cache in %s on load: %s" % (eupsPathDir, e)
             print >> sys.stderr, msg
             raise RuntimeError(e)
         
@@ -1958,6 +1973,9 @@ class Eups(object):
             
             persistentDBDir = os.path.dirname(persistentDB)
             if not os.path.isdir(persistentDBDir):
+                parentDir = os.path.dirname(persistentDBDir)
+                if not os.path.isdir(parentDir):
+                    raise RuntimeError, ("Directory %s does not exist" % parentDir)
                 os.makedirs(persistentDBDir)
 
             self.versions[eupsPathDir]["version"] = Eups.cacheVersion
@@ -2367,8 +2385,16 @@ match fails.
                 ups_dir = re.sub(r"\$PROD_DIR", productDir, ups_dir)
             ups_dir = re.sub(r"\$UPS_DB", ups_db, ups_dir)
 
-            if not os.path.isabs(ups_dir) and productDir: # interpret wrt productDir
-                ups_dir = os.path.join(productDir, ups_dir)
+            if not os.path.isabs(ups_dir):
+                if productDir: # interpret wrt productDir
+                    dir = os.path.join(productDir, ups_dir)
+                    if os.path.isdir(dir):
+                        ups_dir = dir
+                if not os.path.isdir(ups_dir):
+                    dir = os.path.join(eupsPathDir, ups_dir)
+                    if os.path.isdir(dir):
+                        debug(dir)
+                        ups_dir = dir
         else:
             if _isRealFilename(tablefile):
                 print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
@@ -3041,10 +3067,12 @@ match fails.
 
         redeclare = True
         if _productDir and _tablefile and not differences:
-            redeclare = False
+            if not self.force:
+                redeclare = False
         else:
             if declareCurrent and not differences:
-                redeclare = False
+                if not self.force:
+                    redeclare = False
             else:
                 if not self.force:
                     info = ""
@@ -3096,6 +3124,11 @@ match fails.
                 version.merge(VersionFile(product.versionFileName()), self.who)
             except IOError:
                 pass                    # no previous declaration exists
+            except RuntimeError, e:     # something went wrong
+                if self.force:
+                    print >> sys.stderr, "%s; proceeding" % (e)
+                else:
+                    raise RuntimeError, ("%s. Specify force to proceed" % e)
 
             vfile = ""
             try:
@@ -3107,7 +3140,7 @@ match fails.
 
                 if not self.noaction:
                     fd = open(vfile + ".new~", "w")
-                    version.write(fd)
+                    version.write(eupsPathDir, fd)
                     del fd
 
                     shutil.move(vfile + ".new~", vfile) # actually update the file
@@ -3276,7 +3309,7 @@ match fails.
                     os.unlink(vfile)
                 else:
                     fd = open(vfile + ".new~", "w")
-                    updatedVersion.write(fd)
+                    updatedVersion.write(eupsPathDir, fd)
                     del fd
 
                     shutil.move(vfile + ".new~", vfile) # actually update the file
@@ -3779,7 +3812,6 @@ class Uses(object):
             self._setup_by[k] = []
             for key in vmin.keys():
                 self._setup_by[k] += [vmin[key]]
-        #import pdb; pdb.set_trace()
         #
         # Make values in _setup_by unique
         #
@@ -3976,7 +4008,6 @@ def unsetup(Eups, productName, version=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-
 def productDir(productName, versionName=Setup(), Eups=None):
     """Return the PRODUCT_DIR for the specified product and version (default: Setup)
     If you specify a version other than Setup, you'll also need to provide an instance
@@ -3996,6 +4027,13 @@ def productDir(productName, versionName=Setup(), Eups=None):
         return Eups.listProducts(productName, versionName)[0][3]
     except IndexError:
         None
+
+
+def getSetupVersion(productName):
+    """Return product's currently setup version"""
+
+    product = Product(_ClassEups(), productName, noInit=True)
+    return product.getSetupVersion()[0]
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
         
