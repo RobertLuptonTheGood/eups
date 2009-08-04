@@ -2407,7 +2407,19 @@ match fails.
                 if self.verbose >= 1 + self.quiet:
                     print >> sys.stderr, \
                           "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
-                tablefile = "???"
+                #
+                # OK, be nice.  Look relative to eupsPathDir too
+                #
+                tablefile = os.path.join(eupsPathDir, vinfo["table_file"])
+                if not os.path.exists(tablefile):
+                    if self.verbose >= 1 + self.quiet:
+                        print >> sys.stderr, \
+                              "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
+
+                    tablefile = "???"
+                else:
+                    if self.verbose >= 1 + self.quiet:
+                        print >> sys.stderr, "\tUsing %s" % tablefile
 
         return versionName, eupsPathDir, productDir, tablefile
 
