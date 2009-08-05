@@ -452,7 +452,7 @@ class Distribution(object):
                             self.distribClean(product, version, distId, flavor)
                     
                     # make sure this directory is not declared for any product
-                    installDirs = map(lambda x: x[3], self.Eups.listProducts())
+                    installDirs = map(lambda x: x.productDir, self.Eups.listProducts())
                     if installDir[0] not in installDirs:
                         if self.verbose > 0:
                             print >> self.log, "Removing installation dir:", \
@@ -470,7 +470,7 @@ class Distribution(object):
             if info:
                 # clean up anything associated with the successfully 
                 # installed package
-                distidfile = os.path.join(info[3], "ups", "distID.txt")
+                distidfile = os.path.join(info.productDir, "ups", "distID.txt")
                 if os.path.isfile(distidfile):
                     distId = self._readDistIDFile(distidfile)
                     if distId:

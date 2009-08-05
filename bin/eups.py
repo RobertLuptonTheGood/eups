@@ -1461,16 +1461,70 @@ Group:
                     print >> fd, "   %s = %s" % (field.upper(), value)
 
         print >> fd, "End:"
-        
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class Flavor(object):
+    """A class to handle flavors"""
+
+    def __init__(self):
+        try:
+            Flavor._fallbackFlavors
+        except AttributeError:
+            Flavor._fallbackFlavors = {}
+
+            self.setFallbackFlavors(None)
+        
+    def setFallbackFlavors(self, flavor=None, fallbackList=["NULL", "Generic"]):
+        """Set a list of alternative flavors to be used if a product can't be found with the given flavor"""
+        Flavor._fallbackFlavors[flavor] = fallbackList
+
+    def getFallbackFlavors(self, flavor=None, includeMe=False):
+        """Return the list of alternative flavors to use if the specified flavor is unavailable.  The
+        alternatives to None are always available
+
+        If includeMe is true, include flavor as the first element of the returned list of flavors
+        """
+        try:
+            fallbacks = Flavor._fallbackFlavors[flavor]
+        except KeyError:
+            fallbacks = Flavor._fallbackFlavors[None]
+
+        if flavor and includeMe:
+            fallbacks = [flavor] + fallbacks
+
+        return fallbacks
+
+setFallbackFlavors = Flavor().setFallbackFlavors # make it available to our beloved users
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class ProductInformation(object):
+    """Package information about a Product"""
+
+    def __init__(self, name, version, db, productDir, isCurrent, isSetup, flavor):
+        self.name = name
+        self.version = version
+        self.db = db
+        self.productDir = productDir
+        self.isCurrent = isCurrent
+        self.isSetup = isSetup
+        self.flavor = flavor
+
+    def unpack(self):
+        """Return (some of) the information as a list;  for backward compatibility ONLY"""
+        return (self.name, self.version, self.db, self.productDir, self.isCurrent, self.isSetup)
 
 class Product(object):
     """Represent a version of a product"""
 
-    def __init__(self, Eups, productName=None, version=None, noInit=False, eupsPathDirs=None):
+    def __init__(self, Eups, productName=None, version=None, noInit=False, eupsPathDirs=None, flavor=None):
         """Initialize a Product with the specified product and (maybe) version,
         using the eups parameters"""
         self.Eups = Eups
+
+        if not flavor:
+            flavor = self.Eups.flavor
 
         self.name = productName         # product's name
         self.version = version          # product's version
@@ -1496,7 +1550,7 @@ class Product(object):
                 self.initFromDirectory(productDir)
             else:
                 self.version, self.db, self.dir, tablefile = \
-                              self.Eups.findVersion(productName, version, eupsPathDirs=eupsPathDirs)
+                              self.Eups.findVersion(productName, version, eupsPathDirs=eupsPathDirs, flavor=flavor)
                 self.table = Table(tablefile).expandEupsVariables(self)
 
     def init(self, versionName, flavor, eupsPathDir):
@@ -1761,7 +1815,8 @@ class Eups(object):
 
         if readCache:
             for p in self.path:
-                self.readDB(p)
+                for f in Flavor().getFallbackFlavors(self.flavor, True):
+                    self.readDB(p, f)
         #
         # Find locally-setup products in the environment
         #
@@ -1792,9 +1847,12 @@ class Eups(object):
         """Create a Product"""
         return Product(self, *args, **kwargs)
     
-    def getPersistentDB(self, p):
+    def getPersistentDB(self, p, flavor=None):
         """Get the name of the persistent database given a toplevel directory"""
-        return os.path.join(self.getUpsDB(p), "%s.%s" % (self.flavor, "pickleDB"))
+        if not flavor:
+            flavor = self.flavor
+            
+        return os.path.join(self.getUpsDB(p), "%s.%s" % (flavor, "pickleDB"))
 
     def getLockfile(self, path, upsDB=True):
         """Get the name of the lockfile given a toplevel directory"""
@@ -1828,10 +1886,10 @@ class Eups(object):
         else:
             os.unlink(persistentDB)
 
-    def getCacheInfo(self, eupsPathDir):
+    def getCacheInfo(self, eupsPathDir, flavor=None):
         """Return information about a cached DB"""
 
-        persistentDB = self.getPersistentDB(eupsPathDir)
+        persistentDB = self.getPersistentDB(eupsPathDir, flavor)
 
         if not os.path.exists(persistentDB):
             return persistentDB, False, False
@@ -1860,10 +1918,10 @@ class Eups(object):
 
         return persistentDB, True, upToDate
 
-    def readDB(self, eupsPathDir):
+    def readDB(self, eupsPathDir, flavor=None):
         """Read a saved version DB from persistentDB"""
         
-        persistentDB, exists, upToDate = self.getCacheInfo(eupsPathDir)
+        persistentDB, exists, upToDate = self.getCacheInfo(eupsPathDir, flavor)
 
         if not exists or not upToDate:
             if self.verbose:
@@ -2226,13 +2284,16 @@ class Eups(object):
             
         return versionName, eupsPathDir, productDir, tablefile, flavor
 
-    def findVersion(self, productName, versionName=Current(), eupsPathDirs=None, allowNewer=False):
+    def findVersion(self, productName, versionName=Current(), eupsPathDirs=None, allowNewer=False, flavor=None):
         """Find a version of a product (if no version is specified, return current version)
 The return value is: versionName, eupsPathDir, productDir, tablefile
 
 If allowNewer is true, look for versions that are >= the specified version if an exact
 match fails.
         """
+
+        if not flavor:
+            flavor = self.flavor
 
         input_versionName = versionName
         
@@ -2275,8 +2336,8 @@ match fails.
                 versionNames = []
                 for vfile in glob.glob(os.path.join(dir, "*.version")):
                     vers = VersionFile(vfile)
-                    if vers.info.has_key(self.flavor):
-                        versionNames += [(vers.version, vers.info[self.flavor])]
+                    if vers.info.has_key(flavor):
+                        versionNames += [(vers.version, vers.info[flavor])]
 
                 versionNames.sort(lambda a, b: version_cmp(a[0], b[0]))
                 versionNames.reverse() # so we'll try the latest version first
@@ -2318,12 +2379,12 @@ match fails.
                 vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
                 if os.path.exists(vfile):
                     vers = VersionFile(vfile)
-                    if vers.info.has_key(self.flavor):
-                        vinfo = vers.info[self.flavor]
+                    if vers.info.has_key(flavor):
+                        vinfo = vers.info[flavor]
                         break
 
         if not vinfo:                       # no version is available
-            msg = "Unable to locate product %s %s for flavor %s" % (productName, input_versionName, self.flavor)
+            msg = "Unable to locate product %s %s for flavor %s" % (productName, input_versionName, flavor)
 
             if allowNewer and versionName and not self.versionIsRelative(versionName):
                 if self.verbose:
@@ -2780,17 +2841,23 @@ match fails.
                         product = self.alreadySetupProducts[productName]
                     else:
                         #
-                        # It's not there.  Try a "Generic" (or "NULL") flavor
+                        # It's not there.  Try a set of other flavors that might fit the bill
                         #
                         product = None
 
-                        for genericFlavor in ["Generic", "NULL"]:
-                            if not product and self.flavor != genericFlavor:
+                        for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
+                            if not product and self.flavor != fallbackFlavor:
                                 realFlavor = self.flavor
-                                self.flavor = genericFlavor
+                                self.flavor = fallbackFlavor
                                 try:
                                     product = self.getProduct(productName, versionName)
-                                    setupFlavor = genericFlavor
+                                    setupFlavor = fallbackFlavor
+
+                                    if self.verbose > 2:
+                                        print >> sys.stderr, "Using flavor %s for %s %s" % \
+                                              (setupFlavor, productName, versionName)
+
+                                    break
                                 except RuntimeError:
                                     pass
                                 finally:
@@ -3271,7 +3338,7 @@ match fails.
 
         if not versionName:
             productList = self.listProducts(productName)
-            versionList = map(lambda el: el[1], productList)
+            versionList = map(lambda el: el.version, productList)
             
             if len(versionList) == 1:
                 versionName = versionList[0]
@@ -3361,7 +3428,8 @@ match fails.
         return True
 
     def listProducts(self, productName=None, productVersion=None, current=None, setup=False):
-        """Return a list of (name, version, db, product.dir, isCurrent, isSetup)
+        """Return a list of ProductInformation objects for products we know about
+
         If provided, restrict list to those matching productName and/or productVersion;
         matching is a la shell globbing (i.e. using fnmatch)
         """
@@ -3381,33 +3449,32 @@ match fails.
         # Find all products on path (cached in self.versions, of course)
         #
         for db in self.path:
-            if not self.versions.has_key(db) or not self.versions[db].has_key(self.flavor):
-                continue
-            
-            for name in self.versions[db][self.flavor].keys():
-                if productName and not fnmatch.fnmatchcase(name, productName):
+            for flavor in Flavor().getFallbackFlavors(self.flavor, True):
+                if not self.versions.has_key(db) or not self.versions[db].has_key(flavor):
                     continue
-                
-                for version in self.versions[db][self.flavor][name].keys():
-                    if productVersion and not fnmatch.fnmatchcase(version, productVersion):
+
+                for name in self.versions[db][flavor].keys():
+                    if productName and not fnmatch.fnmatchcase(name, productName):
                         continue
 
-                    product = self.versions[db][self.flavor][name][version]
-                    product.Eups = self     # don't use the cached Eups
+                    for version in self.versions[db][flavor][name].keys():
+                        if productVersion and not fnmatch.fnmatchcase(version, productVersion):
+                            continue
 
-                    isCurrent = product.checkCurrent(currentType=current)
-                    isSetup = self.isSetup(product)
+                        product = self.versions[db][flavor][name][version]
+                        product.Eups = self     # don't use the cached Eups
 
-                    if current and current != isCurrent:
-                        continue
+                        isCurrent = product.checkCurrent(currentType=current)
+                        isSetup = self.isSetup(product)
 
-                    if setup and not isSetup:
-                        continue
+                        if current and current != isCurrent:
+                            continue
 
-                    values = []
-                    values += [name]
-                    values += [version, db, product.dir, isCurrent, isSetup]
-                    productList += [values]
+                        if setup and not isSetup:
+                            continue
+
+                        productList.append(ProductInformation(name,
+                                                              version, db, product.dir, isCurrent, isSetup, flavor))
         #
         # Add in LOCAL: setups
         #
@@ -3438,18 +3505,16 @@ match fails.
                     else:
                         continue
 
-            values = []
-            values += [product.name]
-            values += [product.version, product.db, product.dir, thisCurrent, True]
-            productList += [values]
+            productList.append(ProductInformation(product.name,
+                                                  product.version, product.db, product.dir, thisCurrent, True, flavor))
         #
         # And sort them for the end user
         #
         def sort_versions(a, b):
-            if a[0] == b[0]:
-                return version_cmp(a[1], b[1])
+            if a.name == b.name:
+                return version_cmp(a.version, b.version)
             else:
-                return cmp(a[0], b[0])
+                return cmp(a.name, b.name)
             
         productList.sort(sort_versions)
 
@@ -3613,38 +3678,27 @@ match fails.
 
         self.exact_version = True
 
-        if True:
-            productList = self.listProducts(None)
-        else:                               # debug code only!
-            prods = ("test", "test2", "test3", "boo", "goo", "hoo")
-            #prods = (["test"])
-            #prods = (["astrotools"])
-            #prods = (["afw"])
-
-            productList = []
-            for p in prods:
-                for pl in self.list(p):
-                    productList += [pl]
+        productList = self.listProducts(None)
 
         if not productList:
             return []
 
         useInfo = Uses()
 
-        for (p, v, db, dir, isCurrent, isSetup) in productList: # for every known product
+        for pi in productList:          # for every known product
             try:
                 q = Quiet(self)
-                deps = Product(self, p, v).dependencies() # lookup top-level dependencies
+                deps = Product(self, pi.name, pi.version).dependencies() # lookup top-level dependencies
                 del q
             except RuntimeError, e:
-                print >> sys.stderr, ("%s %s: %s" % (p, v, e))
+                print >> sys.stderr, ("%s %s: %s" % (pi.name, pi.version, e))
                 continue
 
             for pd, od, currentRequested in deps:
-                if p == pd.name and v == pd.version:
+                if pi.name == pd.name and pi.version == pd.version:
                     continue
 
-                useInfo._remember(p, v, (pd.name, pd.version, od, currentRequested))
+                useInfo._remember(pi.name, pi.version, (pd.name, pd.version, od, currentRequested))
 
         useInfo._invert(depth)
         #
@@ -4056,7 +4110,7 @@ def productDir(productName, versionName=Setup(), Eups=None):
         Eups = _ClassEups()
 
     try:
-        return Eups.listProducts(productName, versionName)[0][3]
+        return Eups.listProducts(productName, versionName)[0].productDir
     except IndexError:
         None
 

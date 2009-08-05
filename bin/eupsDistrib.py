@@ -435,8 +435,8 @@ class Distrib(object):
         baseDir = ""
         try:
             pinfo = self.Eups.listProducts(product, version)[0]
-            if not pinfo[3]: 
-                pinfo[3] = "none"   # the product directory
+            if not pinfo.productDir: 
+                pinfo.productDir = "none"   # the product directory
         except KeyboardInterrupt:
             sys.exit(1)
         except IndexError, e:
@@ -456,36 +456,36 @@ class Distrib(object):
                 str(e)
             return (baseDir, product)
 
-        if pinfo[1] != version:
+        if pinfo.version != version:
             print >> self.log, \
                 "Warning: Something's wrong with %s; %s != %s" % \
-                (product, version, pinfo[1])
+                (product, version, pinfo.version)
 
-        if pinfo[3] == "none":
+        if pinfo.productDir == "none":
             productDir = "none"
         else:
             try:
-                (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo[3]).groups()
+                (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo.productDir).groups()
             except:
                 if self.verbose > 1:
                     print >> self.log, \
                         "Split of \"%s\" at \"%s\" failed; proceeding" \
-                        % (pinfo[3], product)
+                        % (pinfo.productDir, product)
                 if False:
                     pass
                 else:
                     try:
-                        (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo[3]).groups()
+                        (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo.productDir).groups()
                         if self.verbose > 1:
                             print >> self.log, \
                                 "Guessing \"%s\" has productdir \"%s\"" \
-                                % (pinfo[3], productDir)
+                                % (pinfo.productDir, productDir)
                     except:
                         if self.verbose:
                             print >> self.log, \
                                 "Again failed to split \"%s\" into baseDir and productdir" \
-                                % (pinfo[3])
-                        productDir = pinfo[3]
+                                % (pinfo.productDir)
+                        productDir = pinfo.productDir
 
         return (baseDir, productDir)
                 

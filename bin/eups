@@ -724,20 +724,20 @@ def main(cmd, opts):
         productDir = None
         if versionName:
             try:
-                name, version, db, productDir, isCurrent, isSetup = productList[0]
+                productDir = productList[0].productDir
             except IndexError:
                 pass
 
         if not productDir:              # try setup version
-            for name, version, db, dir, isCurrent, isSetup in productList:
-                if isSetup:
-                    productDir = dir
+            for pi in productList:
+                if pi.isSetup:
+                    productDir = pi.productDir
                     break
 
         if not productDir:              # try current version
-            for name, version, db, dir, isCurrent, isSetup in productList:
-                if isCurrent:
-                    productDir = dir
+            for pi in productList:
+                if pi.isCurrent:
+                    productDir = pi.productDir
                     break
 
         if productDir:
@@ -925,13 +925,14 @@ def listProducts(Eups, productName=None, versionName=None,
         
     productTags = {}                    # list of tags indexed by product
 
-    for name, version, db, productDir, isCurrent, isSetup in productList:
+    for pi in productList:
+        name, version, db = pi.name, pi.version, pi.db # for convenience
         info = ""
 
         # look up this product's tags and save them in productTags[name]
         if not productTags.has_key(name):
             productTags[name] = {}
-            for currentFile in Eups.Product(name, version, eupsPathDirs=db).currentFileName(all=True):
+            for currentFile in Eups.Product(name, version, eupsPathDirs=db, flavor=pi.flavor).currentFileName(all=True):
                 cchain = eups.CurrentChain(currentFile)
                 try:
                     v = cchain.info[Eups.flavor]["version"]
@@ -975,8 +976,8 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "%-10s" % (version)
 
             if directory:
-                if productDir:
-                    info += productDir
+                if pi.productDir:
+                    info += pi.productDir
                 else:
                     info += ""
             if tablefile:
@@ -1002,7 +1003,10 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "%-21s " % (name)
             info += "%-10s" % (version)
             if Eups.verbose:
-                info += "%-20s %-55s" % (db, productDir)
+                if Eups.verbose > 1:
+                    info += "%-10s" % (pi.flavor)
+
+                info += "%-20s %-55s" % (db, pi.productDir)
 
             extra = []
 
@@ -1011,7 +1015,7 @@ def listProducts(Eups, productName=None, versionName=None,
             except KeyError:
                 pass
 
-            if isSetup:
+            if pi.isSetup:
                 extra += ["setup"]
             if extra:
                 info += "\t" + " ".join(extra)
