@@ -2849,17 +2849,18 @@ match fails.
                             if not product and self.flavor != fallbackFlavor:
                                 realFlavor = self.flavor
                                 self.flavor = fallbackFlavor
-                                try:
-                                    product = self.getProduct(productName, versionName)
-                                    setupFlavor = fallbackFlavor
+                                try:    # workaround for python 2.4's lack of try ... except ... finally
+                                    try:
+                                        product = self.getProduct(productName, versionName)
+                                        setupFlavor = fallbackFlavor
 
-                                    if self.verbose > 2:
-                                        print >> sys.stderr, "Using flavor %s for %s %s" % \
-                                              (setupFlavor, productName, versionName)
+                                        if self.verbose > 2:
+                                            print >> sys.stderr, "Using flavor %s for %s %s" % \
+                                                  (setupFlavor, productName, versionName)
 
-                                    break
-                                except RuntimeError:
-                                    pass
+                                        break
+                                    except RuntimeError:
+                                        pass
                                 finally:
                                     self.flavor = realFlavor
 
