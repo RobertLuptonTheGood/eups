@@ -6,12 +6,12 @@
 #
 import sys, os, re
 import eups
-import eupsDistrib
-import eupsServer
+import eups.server as eupsServer
 
-import eupsDistribTarball
-import eupsDistribPacman
-import eupsDistribBuilder
+from Distrib import Distrib
+import tarball
+import pacman
+import builder
 
 class DistribFactory:
     """a factory class for creating Distrib instances
@@ -84,9 +84,9 @@ class DistribFactory:
         self.classes.append(distribClass)
 
     def _registerDefaultDistribs(self):
-        self.register(eupsDistribTarball.Distrib)
-        self.register(eupsDistribPacman.Distrib)
-        self.register(eupsDistribBuilder.Distrib)
+        self.register(tarball.Distrib)
+        self.register(pacman.Distrib)
+        self.register(builder.Distrib)
 
     def _registerCustomDistribs(self):
         self.registerServerDistribs(self.distServer)
