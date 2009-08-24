@@ -6,6 +6,7 @@
 import os, re, sys
 import shutil
 import eups
+import eups.Getopt as eupsGetopt
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -23,7 +24,7 @@ options = {
 aliases = {}
 
 try:
-    opts = eups.Getopt(options, sys.argv, aliases, "eups_uses [options] product [version]")
+    opts = eupsGetopt.Getopt(options, sys.argv, aliases, "eups_uses [options] product [version]")
 except RuntimeError, param:
     print >> sys.stderr, "Error parsing arguments: %s" % param
     sys.exit(1)

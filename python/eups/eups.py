@@ -5,8 +5,8 @@ import fnmatch
 import cPickle
 import tempfile
 import pdb
-import eupsLock
-import eupsParser
+import lock as eupsLock
+import Parser as eupsParser
 
 def debug(*args, **kwargs):
     """Print args to stderr; useful while debugging as we source the stdout when setting up.

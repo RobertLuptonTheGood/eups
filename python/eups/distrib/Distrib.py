@@ -6,9 +6,9 @@
 #
 import sys, os, re, atexit, shutil
 import eups
-import eupsServer
-from eupsServer import RemoteFileNotFound, Manifest, TaggedProductList
-from eupsParser import Parser as VersionEvaluator
+import eups.server
+from eups.server import RemoteFileNotFound, Manifest, TaggedProductList
+from eups.Parser import Parser as VersionEvaluator
 
 class Distrib(object):
     """A class to encapsulate product distribution

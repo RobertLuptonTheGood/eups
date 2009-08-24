@@ -6,11 +6,12 @@
 #
 import sys, os, re, atexit, shutil
 import eups
-import eupsDistrib
-import eupsServer
+import Distrib as eupsDistrib
+import eups.server as eupseupsServer
 
 class Distrib(eupsDistrib.DefaultDistrib):
-    """A class to encapsulate Pacman-based product distribution
+    """A class to encapsulate product distribution based on Bourne shell 
+    builder scripts
 
     OPTIONS:
     The behavior of a Distrib class is fine-tuned via options (a dictionary

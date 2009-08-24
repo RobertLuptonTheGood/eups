@@ -6,11 +6,11 @@
 #
 import sys, os, re
 import eups
-import eupsDistrib
-import eupsServer
+import Distrib as eupsDistrib
+import eups.server as eupsServer
 
 class Distrib(eupsDistrib.DefaultDistrib):
-    """A class to encapsulate Pacman-based product distribution
+    """A class to encapsulate tarball-based product distribution
 
     OPTIONS:
     The behavior of a Distrib class is fine-tuned via options (a dictionary

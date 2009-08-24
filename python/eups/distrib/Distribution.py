@@ -6,10 +6,10 @@
 #
 import sys, os, re, atexit, shutil
 import eups
-import eupsServer 
-from eupsServer import ServerConf, Manifest, TaggedProductList, RemoteFileNotFound
-from eupsDistribFactory import DistribFactory
-from eupsDistrib import DefaultDistrib, findInstallableRoot
+import eups.server 
+from eups.server import ServerConf, Manifest, TaggedProductList, RemoteFileNotFound
+from DistribFactory import DistribFactory
+from Distrib import DefaultDistrib, findInstallableRoot
 
 class Distribution(object):
     """an engine for handling package installation and creation requests"""

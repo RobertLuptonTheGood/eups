@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os, re, sys
 import eups
-import eupsGetopt
+import eups.Getopt as eupsGetopt
 
 try:
     for startupFile in os.environ["EUPS_STARTUP"].split(':'):

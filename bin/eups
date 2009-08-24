@@ -4,14 +4,12 @@
 #
 import os, re, sys, traceback
 import pdb
-import eups
-import eups, eupsServer
-import eupsDistribBuilder
-from eupsDistribution import Distribution, DistributionSet
-import eupsGetopt
-import eupsTable
-from eupsServer import ServerConf
-from eupsDistribFactory import DistribFactory
+import eups, eups.server
+import eups.distrib.builder as eupsDistribBuilder
+from eups.distrib import Distribution, DistributionSet, DistribFactory
+import eups.Getopt as eupsGetopt
+import eups.table as eupsTable
+from eups.server import ServerConf
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
