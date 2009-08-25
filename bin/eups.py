@@ -394,7 +394,7 @@ class CurrentChain(object):
             # Check for information about product
             #
             if key == "file":
-                if value.lower() != "version":
+                if value.lower() not in ["chain", "version"]:
                     raise RuntimeError, \
                           ("Expected \"File = Version\"; saw \"%s\" at %s:%d" % (line, self.file, lineNo))
             elif key == "product":
@@ -418,6 +418,8 @@ class CurrentChain(object):
     def write(self, fd=sys.stdout):
         """Write a CurrentChain to a file"""
 
+        # Should really be "FILE = chain", but eups checks for version.  I've changed it to allow
+        # chain, but let's not break backward compatibility with old eups versions
         print >> fd, """FILE = version
 PRODUCT = %s
 CHAIN = %s
@@ -957,6 +959,7 @@ but no other interpretation is applied
 
                         args = (args[0], otherArgs)
                         currentRequested = False
+
                     try:
                         product = Eups.getProduct(args[0], args[1], eupsPathDirs)
                     except RuntimeError, e:
@@ -1039,11 +1042,23 @@ class Action(object):
 
         _args = self.args; args = []
         i = -1
+
+        requestedFlavor = None; requestedBuildType = None; noRecursion = False
         while i < len(_args) - 1:
             i += 1
-            if _args[i] == "-f":    # a flavor specification -- ignore
-                i += 1               # skip next argument (the flavor)
+
+            if re.search(r"^-", _args[i]):
+                if _args[i] == "-f":    # a flavor specification
+                    requestedFlavor = _args[i + 1]
+                    i += 1              # skip the argument
+                elif _args[i] == "-j":  # setup just this product
+                    noRecursion = True
+                elif _args[i] == "-q":  # e.g. -q build
+                    requestedBuildType = _args[i + 1]
+                    i += 1              # skip the argument
+
                 continue
+
             args += [_args[i]]
 
         productName = args[0]
@@ -1072,7 +1087,7 @@ class Action(object):
                 else:
                     vers = logicalVersion
 
-        productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth)
+        productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion)
         if not productOK and fwd:
             if optional:                # setup the pre-existing version (if any)
                 try:
@@ -2272,10 +2287,11 @@ class Eups(object):
         if len(args) > 1 and args[0] == "-f":
             args.pop(0);  flavor = args.pop(0)
 
-        if len(args) > 1 and args[0] == "-Z":
+        if len(args) > 1 and (args[0] == "-Z" or args[0] == "-z"):
             args.pop(0);  eupsPathDir = args.pop(0)
 
-        assert not args
+        if args:
+            raise RuntimeError, ("Unexpected arguments: %s" % args)
 
         if isSpecialVersion(versionName, setup=False):
             q = Quiet(self)
@@ -2423,7 +2439,13 @@ match fails.
         return self._finishFinding(vinfo, productName, versionName, eupsPathDir)
 
     def _finishFinding(self, vinfo, productName, versionName, eupsPathDir):
-        productDir = vinfo["productDir"]
+        try:
+            productDir = vinfo["productDir"]
+        except KeyError:
+            if self.verbose:
+                print >> sys.stderr, "%s/%s doesn't specify a PRODUCT_DIR; setting to /dev/null" % \
+                      (productName, versionName)
+            productDir = None
 
         if not _isRealFilename(productDir) or productDir == "/dev/null":
             productDir = None
@@ -2440,7 +2462,14 @@ match fails.
         #
         ups_db = self.getUpsDB(eupsPathDir)
 
-        tablefile = vinfo["table_file"]
+        try:
+            tablefile = vinfo["table_file"]
+        except KeyError:
+            if self.verbose:
+                print >> sys.stderr, "%s/%s doesn't specify a tablefile; setting to /dev/null" % \
+                      (productName, versionName)
+            tablefile = None
+            
         if tablefile is None:
             tablefile = "none"
 
@@ -2463,6 +2492,7 @@ match fails.
         else:
             if _isRealFilename(tablefile):
                 print >> sys.stderr, "You must specify UPS_DIR if you specify tablefile == %s" % tablefile
+            ups_dir = "/dev/null"
 
         if _isRealFilename(tablefile):
             if not os.path.isabs(tablefile):
