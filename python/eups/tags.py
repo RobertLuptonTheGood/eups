@@ -12,7 +12,7 @@ class Tags(object):
     """
     a manager of a set of known tag names.  Tags are organized into 
     groups; however, the same name may not be allowed in more than one 
-    group.  
+    group.  Two groups are handled by default: global and user.  
 
     @author  Raymond Plante
     """
@@ -41,8 +41,9 @@ class Tags(object):
         be a string or of type Tag.  In either case, the tag must be 
         registered with this Tags instance.
 
-        @param tag : the item to check.  this can be a string or of type Tag
-        @return bool :
+        @param tag :   the item to check.  This can be a string or of 
+                         type Tag
+        @return bool 
         """
         return (self.groupFor(tag) is not None)
 
@@ -159,8 +160,8 @@ class Tags(object):
         save the registered tag names to a cache file.
 
         @param group : the group to save
-        @param file :  the file to save tags to.  If null, use the configured 
-                          location. 
+        @param file :  the file to save tags to.  If null, use the 
+                          configured location. 
         """
         if group not in self.bygrp.keys():
             raise RuntimeError("Group not supported: " + group)
@@ -178,10 +179,11 @@ class Tags(object):
 
     def loadFromEupsPath(self, eupsPath, verbosity=0):
         """
-        load tag names of all groups cached in the given eups product stacks. 
-        @param eupsPath   the list product root directories (product stacks) 
-                            given either as a list of strings or a single 
-                            colon-delimited string.
+        load tag names of all groups cached in the given eups product 
+        stacks. 
+        @param eupsPath   the list product root directories (product 
+                            stacks) given either as a list of strings 
+                            or a single colon-delimited string.
         """
         if isinstance(eupsPath, str):
             eupsPath = eupsPath.split(':')
@@ -234,8 +236,8 @@ class Tags(object):
         That is, find the user tag file in the given directory and load its 
         contents.
         @param userPersistDir   the directory containing the standard file 
-                                   (as given by persistFilename()) containing 
-                                   the user tags.
+                                   (as given by persistFilename()) 
+                                   containing the user tags.
         """
         if not os.path.isdir(userPersistDir):
             raise IOError("Tag cache not an existing directory: " + 
