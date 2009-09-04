@@ -61,14 +61,14 @@ class ProductNotFound(EupsException):
         """
         message = msg
         if message is None:
-            message = "Product " + name
+            message = "Product " + str(name)
             if version is not None:
-                message += " %s" % version
+                message += " %s" % str(version)
             if flavors:
                 message += " for %s" % str(flavors)
             message += " not found"
             if stack is not None:
-                message += " in %s" % stack
+                message += " in %s" % str(stack)
         EupsException.__init__(self, message)
         self.name = name
         self.version = version
