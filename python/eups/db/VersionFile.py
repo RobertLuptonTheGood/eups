@@ -116,7 +116,7 @@ class VersionFile(object):
         create a Product instance for the given flavor.  If the product has 
         not be declared for the flavor, a  ProductNotFound exception is raised.
 
-        @param string flavor : the desired flavor for the Product.  
+        @param flavor   : the desired flavor for the Product.  
         @return Product : a Product instance representing the product data
         """
         if not self.info.has_key(flavor):
@@ -176,7 +176,9 @@ class VersionFile(object):
         already exists, it will be modified.
 
         @param flavor :     the name of the platform flavor to be adding.
-        @param installdir : the installation directory for the new version being added.  If None, this package as no install directory.
+        @param installdir : the installation directory for the new version 
+                              being added.  If None, this package as no 
+                              install directory.
         @param tablefile :  the path to the table file for this version.  If 
                               this is relative, then it is assumed to be 
                               relative to the upsdir; if upsdir is None,
