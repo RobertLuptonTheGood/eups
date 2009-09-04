@@ -91,7 +91,7 @@ class TagsTestCase(unittest.TestCase):
         for tag in "stable current beta".split():
             self.assert_(tag in names, tag+" not found amoung loaded names")
         
-        
+__all__ = "TagsTestCase".split()        
 
 if __name__ == "__main__":
     unittest.main()
