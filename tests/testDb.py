@@ -6,6 +6,7 @@ Tests for eups.db
 import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
+import shutil
 import unittest
 import time
 from testCommon import testEupsStack
@@ -246,7 +247,12 @@ from eups.db import Database
 class DatabaseTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.db = Database(os.path.join(testEupsStack, "ups_db"))
+        self.dbpath = os.path.join(testEupsStack, "ups_db")
+        self.db = Database(self.dbpath)
+
+        self.pycur = os.path.join(self.dbpath,"python","current.chain")
+        if os.path.isfile(self.pycur+".bak"):
+            os.rename(self.pycur+".bak", self.pycur)
 
     def testFindProductNames(self):
         prods = self.db.findProductNames()
@@ -358,6 +364,9 @@ class DatabaseTestCase(unittest.TestCase):
         self.assert_(not self.db.isDeclared("doxygen", "1.5.9", "Linux"))
 
     def testAssignTag(self):
+        if not os.path.exists(self.pycur+".bak"):
+            shutil.copyfile(self.pycur, self.pycur+".bak")
+
         vers = self.db.getTaggedVersion("current", "python", "Linux")
         self.assertEquals(vers, "2.5.2")
         self.assertRaises(ProductNotFound, 
@@ -416,6 +425,7 @@ class DatabaseTestCase(unittest.TestCase):
             if os.path.exists(tfile):  os.remove(tfile)
             raise
 
+        os.rename(self.pycur+".bak", self.pycur)
 
     def testDeclare(self):
         pdir = self.db._productDir("base")
