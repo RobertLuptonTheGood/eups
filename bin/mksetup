@@ -21,6 +21,7 @@ ups_db = os.path.join(prefix, "ups_db")
 
 bindir = os.path.join("$EUPS_DIR","bin")
 setup = os.path.join('$EUPS_DIR',"bin","eups_setup");
+pydir = os.path.join("$EUPS_DIR","python")
 
 # Keep only one copy of each directory in sys.argv[1], but make sure that sys.argv[2] is present
 unique_path="""
@@ -52,7 +53,7 @@ print >> fd, """
 if ("$?EUPS_DIR" == "1" ) then
    setenv PATH `echo $PATH | perl -pe "s|:%(bindir)s||g"`
    if ("$?PYTHONPATH" == "1" ) then
-      setenv PYTHONPATH `echo $PYTHONPATH | perl -pe "s|:%(bindir)s||g"`
+      setenv PYTHONPATH `echo $PYTHONPATH | perl -pe "s|:%(pydir)s||g"`
    endif
 endif
 
@@ -74,16 +75,17 @@ unsetenv PRODUCTS
 
 setenv PATH ${PATH}:%(bindir)s
 if ("$?PYTHONPATH" == "1" ) then
-   setenv PYTHONPATH ${PYTHONPATH}:%(bindir)s
+   setenv PYTHONPATH ${PYTHONPATH}:%(pydir)s
 else
-   setenv PYTHONPATH %(bindir)s
+   setenv PYTHONPATH %(pydir)s
 endif
 
 alias setup 'eval `%(setup)s \\!*`'
 alias unsetup 'eval `%(setup)s --unsetup \\!*`'
 
-""" % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup,  "unique_eups_path" : unique_eups_path }
+""" % {"bindir" : bindir, "eupsdir" : eupsdir, "pydir": pydir, \
+       "prefix" : prefix, "setup" : setup,                     \
+       "unique_eups_path" : unique_eups_path }
 
 for s in setup_aliases.keys():
     print >> fd, "alias %s %s" % (setup_aliases[s], s)
@@ -100,7 +102,7 @@ except IOError, e:
 print >> fd, """
 if [ "$EUPS_DIR" != "" ]; then
    PATH=`echo $PATH | perl -pe "s|:%(bindir)s||g"`
-   PYTHONPATH=`echo $PYTHONPATH | perl -pe "s|:%(bindir)s||g"`
+   PYTHONPATH=`echo $PYTHONPATH | perl -pe "s|:%(pydir)s||g"`
 fi
 
 export EUPS_DIR=%(eupsdir)s
@@ -115,15 +117,15 @@ unset PRODUCTS
 
 export PATH="$PATH:%(bindir)s"
 if [ X"$PYTHONPATH" != X"" ]; then
-    export PYTHONPATH="$PYTHONPATH:%(bindir)s"
+    export PYTHONPATH="$PYTHONPATH:%(pydir)s"
 else
-    export PYTHONPATH="%(bindir)s"
+    export PYTHONPATH="%(pydir)s"
 fi
 
 function setup   { eval `%(setup)s           "$@"`; }; export -f setup
 function unsetup { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup""" \
-    % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-       "setup" : setup,  "unique_path" : unique_path}
+    % {"bindir" : bindir, "eupsdir" : eupsdir, "pydir": pydir, \
+       "prefix" : prefix, "setup" : setup,  "unique_path" : unique_path}
 
 for s in setup_aliases.keys():
     print >> fd, "alias %s=%s" % (setup_aliases[s], s)

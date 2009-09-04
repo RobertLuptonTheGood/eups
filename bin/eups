@@ -4,7 +4,8 @@
 #
 import os, re, sys, traceback
 import pdb
-import eups, eups.server
+import eups
+import eups.server as eupsServer
 import eups.distrib.builder as eupsDistribBuilder
 from eups.distrib import Distribution, DistributionSet, DistribFactory
 import eups.Getopt as eupsGetopt
@@ -1182,6 +1183,10 @@ else:
         sys.exit(4)
     except Exception, e:
         print >> sys.stderr, "Sorry! Implementation Error: ", str(e)
+        if verbose > 0:
+            print 
+            traceback.print_exc()
+            print
         sys.exit(3)
 
 sys.exit(0)

@@ -1319,7 +1319,7 @@ echo "$as_me: WARNING: Ignoring \$EUPS_DIR = $OLD_EUPS_DIR" >&2;}
     fi
 fi;
 
-MAKE_SUBDIRS="bin etc ups"
+MAKE_SUBDIRS="python bin etc ups"
 # Check whether --enable-docs or --disable-docs was given.
 if test "${enable_docs+set}" = set; then
   enableval="$enable_docs"

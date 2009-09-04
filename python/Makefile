@@ -4,15 +4,17 @@
 ###############################################################################
 
 SHELL = /bin/sh
+PYFILES=eups
 
 all :;
 
 install :
-	@ ./mksetup $(EUPS_DIR) $(EUPS_PATH) $(SETUP_ALIASES)
-	cp Makefile mksetup setups.*sh eups eups_setup $(EUPS_DIR)/bin
+	cp -r $(PYFILES) $(EUPS_DIR)/python
+	@ echo Building .pyc files
+	@ python -c "import compileall; compileall.compile_dir('$(EUPS_DIR)/python')"
 
 TAGS :
-	etags eups eups_setup 
+	etags *.py
 
 clean :
 	- /bin/rm -f *~ core TAGS
