@@ -10,7 +10,7 @@ import unittest
 import time
 from testCommon import testEupsStack
 
-from eups.product import Product
+from eups.Product import Product
 
 class ProductTestCase(unittest.TestCase):
     """test the Product container class"""
