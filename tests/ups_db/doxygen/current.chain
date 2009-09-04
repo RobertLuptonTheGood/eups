@@ -1,0 +1,10 @@
+FILE = version
+PRODUCT = doxygen
+CHAIN = current
+#***************************************
+
+#Group:
+   FLAVOR = Linux
+   VERSION = 1.5.7.1
+   QUALIFIERS = ""
+#End:
