@@ -2920,7 +2920,7 @@ match fails.
         table = product.table
 
         try:
-            actions = table.actions(self.flavor, setupType=setupType)
+            actions = table.actions(setupFlavor, setupType=setupType)
         except RuntimeError, e:
             print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
             return False, product.version, e
