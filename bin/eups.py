@@ -315,7 +315,7 @@ def isSpecialVersion(versionName, setup=True):
 def checkVersionName(versionName):
     """Check that versionName is valid (e.g. not "= 3.3.4"; cf. ticket #728)"""
 
-    if re.search(r"^\s*=\s+\S+", versionName):
+    if versionName and re.search(r"^\s*=\s+\S+", versionName):
         raise RuntimeError, ("Saw version \"%s\"; did you mean to write =%s?" % (versionName, versionName))
 
 class CurrentChain(object):
@@ -1538,7 +1538,7 @@ class Product(object):
         using the eups parameters"""
         self.Eups = Eups
 
-        if not flavor:
+        if Eups and not flavor:
             flavor = self.Eups.flavor
 
         self.name = productName         # product's name
@@ -3384,6 +3384,9 @@ match fails.
         try:
             product = self.getProduct(productName, versionName, eupsPathDir)
         except RuntimeError, e:
+            if not versionName:
+                raise
+            
             product = None
             print >> sys.stderr, e
 
