@@ -925,6 +925,8 @@ def listProducts(Eups, productName=None, versionName=None,
         
     productTags = {}                    # list of tags indexed by product
 
+    oinfo = None                        # previous value of "info"; used to suppress repetitions due to e.g.
+                                        # listing directories when there's a NULL and Linux declaration
     for pi in productList:
         name, version, db = pi.name, pi.version, pi.db # for convenience
         info = ""
@@ -1021,7 +1023,9 @@ def listProducts(Eups, productName=None, versionName=None,
                 info += "\t" + " ".join(extra)
 
         if info:
-            print info
+            if info != oinfo:
+                print info
+                oinfo = info
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
