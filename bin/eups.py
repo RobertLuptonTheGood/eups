@@ -836,6 +836,7 @@ but no other interpretation is applied
                 try:
                     cmd = {
                         "addalias" : Action.addAlias,
+                        "declareoptions" : Action.declareOptions,
                         "envappend" : Action.envAppend,
                         "envprepend" : Action.envPrepend,
                         "envremove" : Action.envRemove,
@@ -862,6 +863,8 @@ but no other interpretation is applied
             if cmd == Action.prodDir or cmd == Action.setupEnv:
                 pass                 # the actions are always executed
             elif cmd == Action.addAlias:
+                pass
+            elif cmd == Action.declareOptions:
                 pass
             elif cmd == Action.setupOptional or cmd == Action.setupRequired:
                 if cmd == Action.setupRequired:
@@ -983,6 +986,29 @@ but no other interpretation is applied
 
         return deps
 
+    def getDeclareOptions(self):
+        """Return a dictionary of any declareOptions commands in the table file
+
+        E.g. declareOptions(flavor=NULL,   name = foo) => {'flavor': 'NULL', 'name': 'foo'}
+        """
+
+        opts = {}
+        for logical, block in self._actions:
+            if logical:
+                for a in block:
+                    if a.cmd == Action.declareOptions:
+                        # Get all the args merged together into a list k0 v0 k1 v1 k2 v2 ...
+                        args = []
+                        for opt in a.args:
+                            args += re.split(r"\s*=\s*", opt)
+
+                        args = [a for a in args if a]
+                        for i in range(0, len(args) - 1, 2):
+                            k, v = args[i], args[i + 1]
+                            opts[k] = v
+
+        return opts
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Action(object):
@@ -990,6 +1016,7 @@ class Action(object):
 
     # Possible actions; the comments apply to the field that _read adds to an Action: (cmd, args, extra)
     addAlias = "addAlias"
+    declareOptions = "declareOptions"
     envAppend = "envAppend"             # not used
     envPrepend = "envPrepend"           # extra: bool append
     envRemove = "envRemove"             # not supported
@@ -1022,6 +1049,8 @@ class Action(object):
                 return
 
             self.execute_setupRequired(Eups, recursionDepth, fwd)
+        elif self.cmd == Action.declareOptions:
+            pass                        # used at declare time
         elif self.cmd == Action.envPrepend:
             self.execute_envPrepend(Eups, fwd)
         elif self.cmd == Action.envSet:
@@ -1948,10 +1977,12 @@ class Eups(object):
                     reason, verb = "doesn't exist", "build"
                 else:
                     reason, verb = "is out of date", "rebuild"
-                print >> sys.stderr, "Product cache in %s %s; I'm %sing it for you" % \
-                      (self.getUpsDB(eupsPathDir), reason, verb)
+                print >> sys.stderr, "Product cache in %s%s %s; I'll %s it" % \
+                      (self.getUpsDB(eupsPathDir),
+                       (" for flavor %s" % flavor if flavor else ""), reason, verb)
+                #import pdb; pdb.set_trace()
                 
-            self.buildCache(eupsPathDir)
+            self.buildCache(eupsPathDir, flavor)
             return
 
         lock = self.lockDB(eupsPathDir)
@@ -2603,49 +2634,57 @@ match fails.
 
         return product
 
-    def buildCache(self, eupsPathDir=None):
+    def buildCache(self, eupsPathDir=None, flavor=None):
         """Build the persistent version cache"""
 
-        if not eupsPathDir:
-            for pb in self.path:
-                self.buildCache(pb)
-            return
+        try:
+            realFlavor = self.flavor
 
-        if self.verbose:
-            print >> sys.stderr, "Building cache for %s" % eupsPathDir
+            if flavor:
+                self.flavor = flavor
 
-        #
-        # We want an entry even if nothing's declared, otherwise we'll
-        # check everytime
-        #
-        if not self.versions.has_key(eupsPathDir):
-            self.versions[eupsPathDir] = {}
+            if not eupsPathDir:
+                for pb in self.path:
+                    self.buildCache(pb, flavor)
+                return
 
-        if not self.versions[eupsPathDir].has_key(self.flavor):
-            self.versions[eupsPathDir][self.flavor] = {}
+            if self.verbose:
+                print >> sys.stderr, "Building cache for %s flavor %s" % (eupsPathDir, self.flavor)
 
-        re_version = re.compile(r"^(.*).version$")
-        for dirpath, dirnames, filenames in os.walk(self.getUpsDB(eupsPathDir)):
-            productName = os.path.basename(dirpath)
+            #
+            # We want an entry even if nothing's declared, otherwise we'll
+            # check everytime
+            #
+            if not self.versions.has_key(eupsPathDir):
+                self.versions[eupsPathDir] = {}
 
-            if filenames and self.verbose > 2:
-                print >> sys.stderr, "   %s" % productName
+            if not self.versions[eupsPathDir].has_key(flavor):
+                self.versions[eupsPathDir][self.flavor] = {}
 
-            for file in filenames:
-                mat = re.search(re_version, file)
-                if mat:
-                    version = mat.group(1)
+            re_version = re.compile(r"^(.*).version$")
+            for dirpath, dirnames, filenames in os.walk(self.getUpsDB(eupsPathDir)):
+                productName = os.path.basename(dirpath)
 
-                    try:
-                        self.getProduct(productName, version, eupsPathDir)
-                    except RuntimeError, e:
-                        # We only checked for the existance of the file, but when we tried to get the product
-                        # we checked for a valid flavor. Don't want to tell the user about those failures
-                        if re.search(r"for flavor %s$" % self.flavor, e.__str__()):
-                            continue
-                        print >> sys.stderr, e
+                if filenames and self.verbose > 2:
+                    print >> sys.stderr, "   %s" % productName
 
-        self.writeDB(eupsPathDir, force=True)
+                for file in filenames:
+                    mat = re.search(re_version, file)
+                    if mat:
+                        version = mat.group(1)
+
+                        try:
+                            self.getProduct(productName, version, eupsPathDir)
+                        except RuntimeError, e:
+                            # We only checked for the existance of the file, but when we tried to get the product
+                            # we checked for a valid flavor. Don't want to tell the user about those failures
+                            if re.search(r"for flavor %s$" % self.flavor, e.__str__()):
+                                continue
+                            print >> sys.stderr, e
+
+            self.writeDB(eupsPathDir, force=True)
+        finally:
+            self.flavor = realFlavor
 
     def isSetup(self, product, versionName=None, eupsPathDir=None):
         """Is specified Product already setup?"""
@@ -3063,6 +3102,8 @@ match fails.
         if re.search(r"[^a-zA-Z_0-9]", productName):
             raise RuntimeError, ("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
 
+        #import pdb; pdb.set_trace()
+
         if productDir and not productName:
             productName = guessProduct(os.path.join(productDir, "ups"))
 
@@ -3175,6 +3216,15 @@ match fails.
                                      (productName, full_tablefile))
         else:
             full_tablefile = None
+        #
+        # Are there any declaration options in the table file?
+        #
+        declareOptions = Table(full_tablefile).getDeclareOptions()
+
+        try:
+            self.flavor = declareOptions["flavor"]
+        except KeyError:
+            pass
         #
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
