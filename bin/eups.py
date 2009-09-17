@@ -1978,9 +1978,14 @@ class Eups(object):
                     reason, verb = "doesn't exist", "build"
                 else:
                     reason, verb = "is out of date", "rebuild"
+
+                    if flavor:
+                        flavorStr = " for flavor %s" % flavor
+                    else:
+                        flavorStr = ""
+                    
                 print >> sys.stderr, "Product cache in %s%s %s; I'll %s it" % \
-                      (self.getUpsDB(eupsPathDir),
-                       (" for flavor %s" % flavor if flavor else ""), reason, verb)
+                    (self.getUpsDB(eupsPathDir), flavorStr, reason, verb)
                 #import pdb; pdb.set_trace()
                 
             self.buildCache(eupsPathDir, flavor)
