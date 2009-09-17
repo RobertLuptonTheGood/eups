@@ -1922,17 +1922,18 @@ class Eups(object):
     def unlinkDB(self, eupsPathDir):
         """Delete a persistentDB"""
         
-        persistentDB = self.getPersistentDB(eupsPathDir)
+        for flavor in Flavor().getFallbackFlavors(self.flavor):
+            persistentDB = self.getPersistentDB(eupsPathDir, flavor)
 
-        if not os.path.exists(persistentDB):
-            return
+            if not os.path.exists(persistentDB):
+                continue
 
-        lock = self.lockDB(eupsPathDir)
+            lock = self.lockDB(eupsPathDir)
 
-        if self.noaction:
-            print >> sys.stderr, "rm %s" % persistentDB
-        else:
-            os.unlink(persistentDB)
+            if self.noaction:
+                print >> sys.stderr, "rm %s" % persistentDB
+            else:
+                os.unlink(persistentDB)
 
     def getCacheInfo(self, eupsPathDir, flavor=None):
         """Return information about a cached DB"""
@@ -2014,33 +2015,36 @@ class Eups(object):
             if not self.versions.has_key(db):
                 self.versions[db] = {}
 
-            for flavor in versions[db].keys():
-                if flavor == "version":
-                    cacheVersion = versions[db][flavor]
+            for fl in versions[db].keys():
+                if fl == "version":
+                    cacheVersion = versions[db][fl]
 
                     if cacheVersion != Eups.cacheVersion:
                         raise RuntimeError, \
                               ("Saw cache version %s (expected %s) in %s; please run \"eups admin buildCache\"" % 
                                (cacheVersion, Eups.cacheVersion, eupsPathDir))
 
-                    self.versions[db][flavor] = cacheVersion
+                    self.versions[db][fl] = cacheVersion
 
                     continue
 
-                if not self.versions[db].has_key(flavor):
-                    self.versions[db][flavor] = {}
+                if flavor and flavor != fl:
+                    continue
 
-                for p in versions[db][flavor].keys():
-                    if not self.versions[db][flavor].has_key(p):
-                        self.versions[db][flavor][p] = {}
+                if not self.versions[db].has_key(fl):
+                    self.versions[db][fl] = {}
 
-                        for v in versions[db][flavor][p]:
-                            self.versions[db][flavor][p][v] = versions[db][flavor][p][v]
+                for p in versions[db][fl].keys():
+                    if not self.versions[db][fl].has_key(p):
+                        self.versions[db][fl][p] = {}
+
+                        for v in versions[db][fl][p]:
+                            self.versions[db][fl][p][v] = versions[db][fl][p][v]
                             #
                             # Convert old-style caches
                             #
                             if True:
-                                prod = self.versions[db][flavor][p][v]
+                                prod = self.versions[db][fl][p][v]
 
                                 if isinstance(prod._current, bool): # old style _current, pre #523 changes
                                     tmp = prod._current
@@ -2112,7 +2116,7 @@ class Eups(object):
         if not self.readCache:
             self.readCache = True
             for db in self.path:
-                self.readDB(db)
+                self.readDB(db, self.flavor)
 
         if not self.versions:
             return
@@ -2544,7 +2548,7 @@ match fails.
 
                     tablefile = "???"
                 else:
-                    if self.verbose >= 1 + self.quiet:
+                    if not self.quiet and self.verbose >= 1:
                         print >> sys.stderr, "\tUsing %s" % tablefile
 
         return versionName, eupsPathDir, productDir, tablefile
