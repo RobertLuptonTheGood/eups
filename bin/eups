@@ -659,7 +659,7 @@ def main(cmd, opts):
         if opts.argv:
             versionName = opts.argv.pop(0)
 
-        if dependencies and not versionName:
+        if dependencies and not versionName and not current:
             print >> sys.stderr, "You must specify a version when you ask for dependencies"
             sys.exit(1);
 

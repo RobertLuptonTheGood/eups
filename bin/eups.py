@@ -1479,7 +1479,7 @@ Group:
                     if os.path.isfile(value) or os.path.isdir(value):
                         if os.path.commonprefix([eupsPathDir, value]) == eupsPathDir:
                             self.info[fq][k] = re.sub(r"^%s/" % eupsPathDir, "", value)
-                            debug(self.info[fq][k])
+                            debug("Stripping eupsPathDir", self.info[fq][k])
                             if k == "table_file":
                                 self.info[fq][k] = re.sub(r"^ups_db/", "", self.info[fq][k])
                                 self.info[fq]["ups_dir"] = "$UPS_DB";
@@ -2518,7 +2518,7 @@ match fails.
                 if not os.path.isdir(ups_dir):
                     dir = os.path.join(eupsPathDir, ups_dir)
                     if os.path.isdir(dir):
-                        debug(dir)
+                        debug("setting ups_dir to", dir)
                         ups_dir = dir
         else:
             if _isRealFilename(tablefile):
@@ -2530,7 +2530,7 @@ match fails.
                 tablefile = os.path.join(ups_dir, vinfo["table_file"])
             
             if not os.path.exists(tablefile):
-                if self.verbose >= 1 + self.quiet:
+                if self.verbose >= 2 + self.quiet:
                     print >> sys.stderr, \
                           "Product %s %s has non-existent tablefile %s" % (productName, versionName, tablefile)
                 #
