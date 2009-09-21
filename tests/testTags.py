@@ -25,6 +25,13 @@ class TagsTestCase(unittest.TestCase):
         self.assertEquals(tags[0], "stable")
         self.assertEquals(tags[1], "user:rlp")
 
+    def testInit(self):
+        t = Tags("setup newest")
+        tags = t.getTagNames()
+        self.assertEquals(len(tags), 2)
+        self.assertEquals(tags[0], "newest")
+        self.assertEquals(tags[1], "setup")
+
     def testCmp(self):
         stable = self.tags.getTag("stable")
         self.assertEquals(stable, "stable")
@@ -60,6 +67,11 @@ class TagsTestCase(unittest.TestCase):
         dir = os.path.join(testEupsStack, "ups_db")
         file = os.path.join(dir, Tags.persistFilename("user"))
         if os.path.exists(file):  os.remove(file)
+
+        self.assertEqual(len(self.tags.getTagNames()), 2)
+        self.tags.loadUserTags(dir)
+        self.assertEqual(len(self.tags.getTagNames()), 2)
+        self.assert_(not os.path.exists(file))
 
         try: 
             self.tags.saveUserTags(dir)

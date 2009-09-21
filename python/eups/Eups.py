@@ -6,15 +6,31 @@ import filecmp
 import fnmatch
 import tempfile
 
-from stack import ProductStack
-from db import Database
+from stack      import ProductStack
+from db         import Database
+from tags       import Tags, Tag, TagNotRecognized
 from exceptions import ProductNotFound
-from table import Table
+from table      import Table
+from Product    import Product
 import utils 
-from utils import Flavor, Quiet
+import hooks
+from utils      import Flavor, Quiet
 
 class Eups(object):
-    """Control eups"""
+    """
+    An application interface to EUPS functionality.
+
+    This class allows one to:
+      o  query about versions of products known to EUPS
+      o  declare new versions of products, making them known to EUPS
+      o  set up the environment needed for using selected products
+      o  assign tags (such as "stable" or "beta") to versions of products
+
+    This class also maintains state about the user's preferences, including:
+      o  the software stacks to be managed by EUPS (i.e. EUPS_PATH)
+      o  behavioral preferences such as verbosity, over-riding safe-guards 
+         (the "force" option), etc.
+    """
 
     # static variable:  the name of the EUPS database directory inside a EUPS-
     #  managed software stack
@@ -23,7 +39,7 @@ class Eups(object):
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=False, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
-                 keep=False, max_depth=-1, preferredTag="current",
+                 keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
                  userDataDir=None
                  ):
@@ -48,7 +64,7 @@ class Eups(object):
         self.shell = shell
 
         if not flavor:
-            flavor = getFlavor()
+            flavor = utils.determineFlavor()
         self.flavor = flavor
 
         if not path:
@@ -97,7 +113,7 @@ class Eups(object):
             
         self.root = root
 
-        self.setCurrentType(currentType)
+        self._version_cmp = hooks.version_cmp
         self.quiet = quiet
         self.keep = keep
         self.alreadySetupProducts = {}  # used by setup() to remember what's setup
@@ -116,16 +132,19 @@ class Eups(object):
         # determine the user data directory.  This is a place to store 
         # user preferences and caches of product information.
         # 
-        # if not userDataDir:
-        #     if os.environ.has_key("EUPS_USERDATA"):
-        #         userDataDir = os.environ["EUPS_USERDATA"]
-        #     else:
-        #         userDataDir = os.path.join(os.environ["HOME"], ".eups")
-        # if not os.path.exists(userDataDir):
-        #     os.makedirs(userDataDir)
+        if not userDataDir:
+            if os.environ.has_key("EUPS_USERDATA"):
+                userDataDir = os.environ["EUPS_USERDATA"]
+            else:
+                userDataDir = os.path.join(os.environ["HOME"], ".eups")
+        if not os.path.exists(userDataDir):
+            if not self.quiet:
+                print >> sys.stderr, \
+                    "Creating User data directory: " + userDataDir
+            os.makedirs(userDataDir)
         if not os.path.isdir(userDataDir):
-            raise RuntimeError("User data directory not found (as a directory): " +
-                               userDataDir)
+           raise RuntimeError("User data directory not found (as a directory): "
+                              + userDataDir)
         self.userDataDir = userDataDir
 
         #
@@ -138,21 +157,28 @@ class Eups(object):
 
             # the product cache.  If cache is non-existent or out of date,
             # the product info will be refreshed from the database
-            cacheDir = p
             dbpath = self.getUpsDB(p)
+            cacheDir = dbpath
             if not utils.isDbWritable(p):
                 # use a user-writable alternate location for the cache
                 cacheDir = self._makeUserCacheDir(p)
             self.versions[p] = ProductStack.fromCache(dbpath, neededFlavors, 
-                                                      self.userDataDir, cacheDir,
-                                                      updateCache=True, autosave=False)
+                                                      self.userDataDir, 
+                                                      cacheDir,
+                                                      updateCache=True, 
+                                                      autosave=False,
+                                                      verbose=self.verbose)
 
         # 
         # load up the recognized tags.  
         # 
-        self.tags = Tags()
-        tags.loadFromEupsPath(self.path)
-        tags.loadUserTags(userDataDir)
+        self.tags = Tags("newest setup")
+        self.tags.loadFromEupsPath(self.path)
+        self.tags.loadUserTags(userDataDir)
+
+        if preferredTags is None:
+            preferredTags = "stable current newest".split()
+        self.setPreferredTags(preferredTags)
 
         #
         # Find locally-setup products in the environment
@@ -172,15 +198,42 @@ class Eups(object):
         set a list of tags to prefer when selecting products.  The 
         list order indicates the order of preference with the most 
         preferred tag being first.
-        @param tags   the tags as a list or a space-delimited string
+        @param tags   the tags as a list or a space-delimited string.
+                        Unrecognized tag names will be ignored.
         """
+        self._kindlySetPreferredTags(tags, True)
+
+    def _kindlySetPreferredTags(self, tags, strict=False):
         if isinstance(tags, str):
             tags = tags.split()
         if not isinstance(tags, list):
             raise TypeError("Eups.setPreferredTags(): arg not a list")
+
+        notokay = filter(lambda t: not self.tags.isRecognized(t), tags)
+        if notokay:
+            if strict:
+                raise TagNotRecognized(str(notokay), 
+                                       msg="Unsupported tag(s): " + 
+                                           ", ".join(notokay))
+            elif not self.quiet:
+                print >> sys.stderr, \
+                    "Ignoring unsupported tags:", ", ".join(notokay)
+
         tags = filter(self.tags.isRecognized, tags)
-        if len(tags) > 0:
+        if len(tags) == 0:
+            if not self.quiet:
+                print >> sys.stderr, \
+                    "Warning: No recognized tags; not updating preferred list"
+        else:
             self.preferredTags = tags
+
+    def getPreferredTags(self):
+        """
+        Return the list of  tags to prefer when selecting products.  The 
+        list order indicates the order of preference with the most 
+        preferred tag being first.
+        """
+        return list(self.preferredTags)
 
     def clearLocks(self):
         """Clear all lock files"""
@@ -275,7 +328,6 @@ class Eups(object):
                                 following forms:
                                  *  an explicit version 
                                  *  a version expression (e.g. ">=3.3")
-                                 *  a string tag name
                                  *  a Tag instance 
                                  *  null, in which case, the (most) preferred 
                                       version will be returned.
@@ -296,16 +348,17 @@ class Eups(object):
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
+        if isinstance(eupsPathDirs, str):
+            eupsPathDirs = [eupsPathDirs]
 
         if isinstance(version, str):
-            if version == "setup":
-                return findSetupProduct(name)
-
             if self.isLegalRelativeVersion(version):  # raises exception if bad syntax used
-                return _findPreferredProductByExpr(name, version, eupsPathDirs, flavor, noCache)
+                return self._findPreferredProductByExpr(name, version, 
+                                                        eupsPathDirs, flavor, 
+                                                        noCache)
 
-            if self.tags.isRecognized(version):
-                version = self.tags.getTag(version)
+#            if self.tags.isRecognized(version):
+#                version = self.tags.getTag(version)
 
         if isinstance(version, Tag):
             # search for a tagged version
@@ -338,11 +391,49 @@ class Eups(object):
 
         return None
 
+    def findTaggedProduct(self, name, tag, eupsPathDirs=None, flavor=None,
+                          noCache=False):
+        """
+        return a version of a product that has a given tag assigned to it.  
+        By default, the cache will be searched when available; otherwise, 
+        the product database will be searched.  Return None if a match was 
+        not found.
+        @param name          the name of the desired product
+        @param tag           the desired tag.  This can either be string 
+                                giving the tag name or a Tag instance.  
+        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
+                                have a ups_db sub-directory.)  If None (def.),
+                                configured EUPS_PATH directories will be 
+                                searched.
+        @param flavor        the desired flavor.  If None (default), the 
+                                default flavor will be searched for.
+        @param noCache       if true, the software inventory cache should not 
+                                be used to find products; otherwise, it will 
+                                be used to the extent it is available.  
+        @throws TagNotRecongized  if the given tag is not valid
+        """
+        if not flavor:
+            flavor = self.flavor
+        if eupsPathDirs is None:
+            eupsPathDirs = self.path
+        if isinstance(eupsPathDirs, str):
+            eupsPathDirs = [eupsPathDirs]
+
+        tag = self.tags.getTag(tag)  # may raise TagNotRecongized
+        return self._findTaggedProduct(name, tag, eupsPathDirs, flavor, noCache)
+
     def _findTaggedProduct(self, name, tag, eupsPathDirs, flavor, noCache=False):
         # find the first product assigned a given tag.
 
         if tag.name == "newest":
             return self._findNewestProduct(name, eupsPathDirs, flavor)
+
+        if tag.name == "setup":
+            out = self.findSetupProduct(name)
+            if out is not None and out.flavor != flavor:
+                # not the requested flavor
+                out = None
+            return out
 
         for root in eupsPathDirs:
             if noCache or not self.versions.has_key(root) or not self.versions[root]:
@@ -365,7 +456,8 @@ class Eups(object):
             else:
                 # consult the cache
                 try: 
-                    return self.versions[root].getTaggedProduct(name, tag.name, flavor)
+                    return self.versions[root].getTaggedProduct(name, flavor, 
+                                                                tag.name)
                 except ProductNotFound:
                     pass
 
@@ -392,10 +484,11 @@ class Eups(object):
                     continue
 
                 # is newest version in this stack newer than minimum version?
-                if minver and _version_cmp(latest.version, minver) < 0:
+                if minver and self._version_cmp(latest.version, minver) < 0:
                     continue
 
-                if out == None or _version_cmp(latest.version, out.version) > 0:
+                if out == None or self._version_cmp(latest.version, 
+                                                    out.version) > 0:
                     # newest one in this stack is newest one seen
                     out = latest
 
@@ -403,15 +496,16 @@ class Eups(object):
                 # consult the cache
                 try: 
                     vers = self.versions[root].getVersions(name, flavor)
-                    vers.sort(_version_cmp)
-                    if len(products) == 0:
+                    vers.sort(self._version_cmp)
+                    if len(vers) == 0:
                         continue
 
                     # is newest version in this stack newer than minimum version?
-                    if minver and _version_cmp(vers[-1], minver) < 0:
+                    if minver and self._version_cmp(vers[-1], minver) < 0:
                         continue
 
-                    if out == None or _version_cmp(vers[-1], out.version) > 0:
+                    if out == None or self._version_cmp(vers[-1], 
+                                                        out.version) > 0:
                         # newest one in this stack is newest one seen
                         out = self.versions[root].getProduct(name, vers[-1], flavor)
 
@@ -420,11 +514,12 @@ class Eups(object):
 
         return out
 
-    def _findPreferredProductByExpr(self, name, expr, eupsPathDirs, flavor):
-        return _selectPreferredProduct(self._findProductsByExpr(name, expr, 
-                                                                eupsPathDirs, flavor))
+    def _findPreferredProductByExpr(self, name, expr, eupsPathDirs, flavor, 
+                                    noCache):
+        return self._selectPreferredProduct(
+            self._findProductsByExpr(name, expr, eupsPathDirs, flavor, noCache))
 
-    def _findProductsByExpr(self, name, expr, eupsPathDirs, flavor):
+    def _findProductsByExpr(self, name, expr, eupsPathDirs, flavor, noCache):
         # find the products that satisfy the given expression
         out = []
         outver = []
@@ -451,7 +546,7 @@ class Eups(object):
                 try: 
                     vers = self.versions[root].getVersions(name, flavor)
                     vers = filter(lambda z: self.version_match(z, expr), vers)
-                    if len(products) == 0:
+                    if len(vers) == 0:
                         continue
                     for ver in vers:
                         if ver not in outver:
@@ -462,46 +557,46 @@ class Eups(object):
 
         return out
 
-    def findPreferredProduct(self, name, eupsPathDirs, flavor, noCache):
-        """
-        Find the version of a product that is most preferred or None,
-        if no preferred version exists.  
-
-        @param name          the name of the desired product
-        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
-                                have a ups_db sub-directory.)  If None (def.),
-                                configured EUPS_PATH directories will be 
-                                searched.
-        @param flavor        the desired flavor.  If None (default), the 
-                                default flavor will be searched for.
-        @param noCache       if true, the software inventory cache should not be 
-                                used to find products; otherwise, it will be used
-                                to the extent it is available.  
-        """
-        if not flavor:
-            flavor = self.flavor
-        if eupsPathDirs is None:
-            eupsPathDirs = self.path
-
-        # find all versions of product
-        prods = []
-        for root in eupsPathDirs:
-            if noCache or not self.versions.has_key(root) or not self.versions[root]:
-                # go directly to the EUPS database
-                dbpath = self.getUpsDB(root)
-                if not os.path.exists(dbpath):
-                    if self.verbose:
-                        print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
-                    continue
-
-                prods.extend(Database(dbpath).findProducts(name, flavor=flavor))
-
-            else:
-                # consult the cache
-                prods.extend(map(lambda v: self.versions[root].getProduct(name,v,flavor), 
-                                 self.versions[root].getVersions()))
-
-        return self._selectPreferredProduct(prods, self.perferredTags)
+#    def findPreferredProduct(self, name, eupsPathDirs, flavor, noCache):
+#        """
+#        Find the version of a product that is most preferred or None,
+#        if no preferred version exists.  
+#
+#        @param name          the name of the desired product
+#        @param eupsPathDirs  the EUPS path directories to search.  (Each 
+#                                should have a ups_db sub-directory.)  If 
+#                                None (def.), configured EUPS_PATH 
+#                                directories will be searched.
+#        @param flavor        the desired flavor.  If None (default), the 
+#                                default flavor will be searched for.
+#        @param noCache       if true, the software inventory cache should not be 
+#                                used to find products; otherwise, it will be used
+#                                to the extent it is available.  
+#        """
+#        if not flavor:
+#            flavor = self.flavor
+#        if eupsPathDirs is None:
+#            eupsPathDirs = self.path
+#
+#        # find all versions of product
+#        prods = []
+#        for root in eupsPathDirs:
+#            if noCache or not self.versions.has_key(root) or not self.versions[root]:
+#                # go directly to the EUPS database
+#                dbpath = self.getUpsDB(root)
+#                if not os.path.exists(dbpath):
+#                    if self.verbose:
+#                        print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
+#                    continue
+#
+#                prods.extend(Database(dbpath).findProducts(name, flavor=flavor))
+#
+#            else:
+#                # consult the cache
+#                prods.extend(map(lambda v: self.versions[root].getProduct(name,v,flavor), 
+#                                 self.versions[root].getVersions()))
+#
+#        return self._selectPreferredProduct(prods, self.perferredTags)
 
     def _selectPreferredProduct(self, products, preferredTags=None):
         # return the product in a list that is most preferred.
@@ -514,52 +609,67 @@ class Eups(object):
             preferredTags = self.preferredTags
 
         for tag in preferredTags:
+            tag = self.tags.getTag(tag)  # should not fail
             if tag.name == "newest":
                 # find the latest version; first order the versions
                 vers = map(lambda p: p.version, products)
-                vers.sort(_version_cmp)
+                vers.sort(self._version_cmp)
 
                 # select the product with the latest version
                 if len(vers) > 0:
-                    return filter(lambda p: p.version == vers[-1], products)[0]
+                    for p in products:
+                        if p.version == vers[-1]:
+                            return p
+            elif tag.name == "setup":
+                for p in products:
+                    if self.isSetup(p.name, p.version, p.stackRoot()):
+                        return p
             else:
-                tagged = filter(lambda p: p.isTagged(tag), products)
-                if len(tagged) > 0:
-                    return tagged[0]
+                for p in products:
+                    if p.isTagged(tag):
+                        return p
                 
         return None
 
-
-                
-
-        
-
     def findPreferredProduct(self, name, eupsPathDirs=None, flavor=None, 
-                             versions=None):
+                             preferred=None, noCache=False):
         """
         return the most preferred version of a product.  The versions parameter
         gives a list of versions to look for in preferred order; the first one
         found will be returned.  Each version will be search for in all of the 
         directories given in eupsPathDirs.
         @param name           the name of the desired product
-        @param versions       a list of preferred versions.  Each item
-                                may be an explict version, a tag name, or 
+        @param eupsPathDirs  the EUPS path directories to search.  (Each 
+                                should have a ups_db sub-directory.)  If 
+                                None (def.), configured EUPS_PATH 
+                                directories will be searched.
+        @param flavor        the desired flavor.  If None (default), the 
+                                default flavor will be searched for.
+        @param preferred     a list of preferred versions.  Each item
+                                may be an explicit version, a tag name, or 
                                 Tag instance.  The first version found will 
                                 be returned.
+        @param noCache       if true, the software inventory cache should not 
+                                be used to find products; otherwise, it will 
+                                be used to the extent it is available.  
         """
         if not flavor:
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
 
-        if versions is None:
-            versions = self.preferredTags
+        if preferred is None:
+            preferred = self.preferredTags
+        if not preferred and not self.quiet:
+            print >> sys.stderr, "Warning: no preferred tags are set"
 
         found = None
-        for vers in versions:
-            found = self.findProduct(name, vers, eupsPathDirs, flavor)
+        for vers in preferred:
+            vers = self.tags.getTag(vers)
+            found = self.findProduct(name, vers, eupsPathDirs, flavor, noCache)
             if found:
-                return found
+                break
+        return found
 
     def getUpsDB(self, eupsPathDir):
         """Return the ups database directory given a directory from self.path"""
@@ -660,9 +770,11 @@ class Eups(object):
                                 used to find products; otherwise, it will be used
                                 to the extent it is available.  
         """
-        out = self.findFlavor(productName, versionName, eupsPathDirs, noCache=noCache)
+        out = self.findProduct(productName, versionName, eupsPathDirs, 
+                               noCache=noCache)
         if out is None:
             raise ProductNotFound(productName, versionName, self.flavor)
+        return out
 
     def isSetup(self, product, versionName=None, eupsPathDir=None):
         """
@@ -706,40 +818,13 @@ class Eups(object):
     _bad_relop_re = re.compile(r"^\s*=\s+\S+")
 
     def isLegalRelativeVersion(self, versionName):
-        if _relop_re.search(versionName):
+        if self._relop_re.search(versionName):
             return True
-        elif _bad_relop_re.match(versionName):
-            raise RuntimeError("Bad expr syntax: %s; did you mean '=='?" % versionName)
+        elif self._bad_relop_re.match(versionName):
+            raise RuntimeError("Bad expr syntax: %s; did you mean '=='?" % 
+                               versionName)
         else:
             return False
-
-    def _version_cmp(self, v1, v2):
-        """Compare two version strings
-
-    The strings are split on [._] and each component is compared, numerically
-    or as strings as the case may be.  If the first component begins with a non-numerical
-    string, the other must start the same way to be declared a match.
-
-    If one version is a substring of the other, the longer is taken to be the greater
-
-    If the version string includes a '-' (say VV-EE) the version will be fully sorted on VV,
-    and then on EE iff the two VV parts are different.  VV sorts to the RIGHT of VV-EE --
-    e.g. 1.10.0-rc2 comes to the LEFT of 1.10.0
-
-    Additionally, you can specify another modifier +FF; in this case VV sorts to the LEFT of VV+FF
-    e.g. 1.10.0+hack1 sorts to the RIGHT of 1.10.0
-
-    As an alternative appealing to cvs users, you can replace -EE by mEE or +FF by pFF, but in
-    this case EE and FF must be integers
-    """
-
-        try:
-            return versionCallback.apply(v1, v2, version_cmp)
-        except ValueError:
-            return None
-        except Exception, e:
-            print >> sys.stderr, "Detected error running versionCallback: %s" % e
-            return None
 
     def version_match(self, vname, expr):
         """Return vname if it matches the logical expression expr"""
@@ -1089,20 +1174,42 @@ class Eups(object):
         # convert tag name to a Tag instance; may raise TagNotRecognized
         tag = self.tags.getTag(tag)
 
-        if versionName or not eupsPathDir or isinstance(eupsPathDir, list):
-            # find the appropriate product
-            prod = self.findProduct(productName, versionName, eupsPathDir, self.flavor)
+        msg = None
+        if versionName:
+            # user asked for a specific version
+            prod = self.findProduct(productName, versionName, eupsPathDir, 
+                                    self.flavor)
             if prod is None:
-                raise ProductNotFound(productName, versionName, self.flavor)
-            if versionName and versionName != prod.version and self.quiet > 0:
-                msg = "Tag %s not assigned to %s %s" % (productName, versionName)
-                if eupsPathDir:
-                    msg += " in " + str(eupsPathDir)
-                print >> sys.stderr, msg
-                return
+                raise ProductNotFound(productName, versionName, self.flavor,
+                                      eupsPathDir)
             dbpath = prod.db
+            eupsPathDir = prod.stackRoot()
+            if tag.name not in prod.tags:
+                msg = "Tag %s not assigned to product %s" % \
+                    (tag.name, productName)
+                if eupsPathDir:
+                    msg += " within %s" % str(eupsPathDir)
+
+        elif not eupsPathDir or isinstance(eupsPathDir, list):
+            prod = self.findProduct(productName, tag, eupsPathDir, self.flavor)
+            if prod is None:
+                # This product is not assigned to this product.  Is it 
+                # because the product doesn't exist?
+                prod = self.findProduct(productName, versionName)
+                if prod is None:
+                    raise ProductNotFound(productName, versionName, self.flavor)
+                msg = "Tag %s not assigned to product %s within %s" % \
+                    (tag.name, productName, str(eupsPathDir))
+
+            dbpath = prod.db
+            eupsPathDir = prod.stackRoot()
         else:
-            dbpath = os.join(eupsPathDir, self.ups_db)
+            dbpath = self.getUpsDir(eupsPathDir)
+
+        if msg is not None:
+            if not self.quiet:
+                print >> sys.stderr, msg
+            return
 
         if tag.isGlobal() and not utils.isDbWritable(dbpath):
             raise RuntimeError(
@@ -1116,10 +1223,10 @@ class Eups(object):
                     (productName, versionName)
 
         # update the cache
-        if self.versions.has_key(root) and self.versions[root]:
-            if self.versions[root].unassignTag(str(tag), productName, versionName, self.flavor):
+        if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
+            if self.versions[eupsPathDir].unassignTag(str(tag), productName, self.flavor):
                 try:
-                    self.versions[root].save(self.flavor)
+                    self.versions[eupsPathDir].save(self.flavor)
                 except RuntimeError, e:
                     if self.quiet < 1:
                         print >> sys.stderr, "Warning: " + str(e)
@@ -1128,7 +1235,7 @@ class Eups(object):
                     (productName, versionName)
                 
 
-    def declare(self, productName, versionName, productDir, eupsPathDir=None, tablefile=None, 
+    def declare(self, productName, versionName, productDir=None, eupsPathDir=None, tablefile=None, 
                 tag=None, declareCurrent=None):
         """ 
         Declare a product.  That is, make this product known to EUPS.  
@@ -1156,6 +1263,29 @@ class Eups(object):
         setting tag="current".  If declareCurrent is None and tag is
         boolean, this method assumes the boolean value is intended for 
         declareCurrent.  
+
+        @param productName   the name of the product to declare
+        @param versionName   the version to declare.
+        @param productDir    the directory where the product is installed.
+                               If set to "none", there is no installation
+                               directory (and tablefile must be specified).
+                               If None, an attempt to determine the 
+                               installation directory (from eupsPathDir) is 
+                               made.
+        @param eupsPathDir   the EUPS product stack to install the product 
+                               into.  If None, then the first writable stack
+                               in EUPS_PATH will be installed into.
+        @param tablefile     the path to the table file for this product.  If
+                               "none", the product has no table file.  If None,
+                               it is looked for under productDir/ups.
+        @param tag           the tag to assign to this product.  If the 
+                               specified product is already registered with
+                               the same product directory and table file,
+                               then use of this input will simple assign this
+                               tag to the variable.  (See also above note about 
+                               backward compatibility.)
+        @param declareCurrent  DEPRECATED, if True and tag=None, it is 
+                               equivalent to tag="current".  
         """
         if re.search(r"[^a-zA-Z_0-9]", productName):
             raise RuntimeError, ("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
@@ -1198,13 +1328,6 @@ class Eups(object):
             print >> sys.stderr, "Failed to find productDir for %s %s; assuming \"%s\"" % \
                   (productName, versionName, productDir)
 
-        if utils.isRealFilename(productDir) and not os.path.isdir(productDir):
-            raise RuntimeError, \
-                  ("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
-
-        if tablefile is None:
-            tablefile = "%s.table" % productName
-
         if utils.isRealFilename(productDir):
             if os.environ.has_key("HOME"):
                 productDir = re.sub(r"^~", os.environ["HOME"], productDir)
@@ -1212,6 +1335,13 @@ class Eups(object):
                 productDir = os.path.join(os.getcwd(), productDir)
             productDir = os.path.normpath(productDir)
             assert productDir
+
+            if not os.path.isdir(productDir):
+                raise RuntimeError, \
+                  ("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
+
+        if tablefile is None:
+            tablefile = "%s.table" % productName
 
         if not eupsPathDir:             # look for proper home on self.path
             for d in self.path:
@@ -1283,7 +1413,7 @@ class Eups(object):
         prod = self.findProduct(productName, versionName, eupsPathDir)
         if prod is not None and not self.force:
             _version, _eupsPathDir, _productDir, _tablefile = \
-                      prod.version, prod.stackDir(), prod.dir, prod.table
+                      prod.version, prod.stackRoot(), prod.dir, prod.table
 
             assert _version == versionName
             assert eupsPathDir == _eupsPathDir
@@ -1348,6 +1478,7 @@ class Eups(object):
 
         # now really declare the product.  This will also update the tags
         dbpath = self.getUpsDB(eupsPathDir)
+        if tag:  tag = [tag]
         product = Product(productName, versionName, self.flavor, productDir, 
                           tablefile, tag, dbpath)
 
@@ -1382,6 +1513,18 @@ class Eups(object):
         setting tag="current".  If undeclareCurrent is None and tag is
         boolean, this method assumes the boolean value is intended for 
         undeclareCurrent.  
+
+        @param productName   the name of the product to undeclare
+        @param versionName   the version to undeclare; this can be None if 
+                               there is only one version declared; otherwise
+                               a RuntimeError is raised.  
+        @param eupsPathDir   the product stack to undeclare the product from.
+                               ProductNotFound is raised if the product 
+                               is not installed into this stack.  
+        @param tag           if not None, only unassign this tag; product
+                                will not be undeclared.  
+        @param undeclareCurrent  DEPRECATED; if True, and tag is None, this
+                                is equivalent to tag="current".  
         """
         # this is for backward compatibility
         if isinstance(tag, bool) or (tag is None and undeclareCurrent):
@@ -1389,11 +1532,12 @@ class Eups(object):
             if not self.quiet:
                 print >> sys.stderr, "Eups.undeclare(): undeclareCurrent param is deprecated; use tag param."
 
-            return unassignTag(productName, versionName, eupsPathDir)
+        if tag:
+            return self.unassignTag(tag, productName, versionName, eupsPathDir)
 
         product = None
         if not versionName:
-            productList = self.findProducts(productName, eupsPathDir=eupsPathDir) 
+            productList = self.findProducts(productName, eupsPathDirs=eupsPathDir) 
             if len(productList) == 0:
                 raise ProductNotFound(productName, eupsPathDir=eupsPathDir)
 
@@ -1407,7 +1551,7 @@ class Eups(object):
             
         # this raises ProductNotFound if not found
         product = self.getProduct(productName, versionName, eupsPathDir)
-        eupsPathDir = os.path.dirname(product.db)
+        eupsPathDir = product.stackRoot()
 
         if not utils.isDbWritable(product.db):
             raise RuntimeError("You do not have permission to undeclare products from %s" % eupsPathDir)
@@ -1425,122 +1569,130 @@ class Eups(object):
         if self.noaction:
             return True
 
+        dbpath = self.getUpsDB(eupsPathDir)
         if not Database(dbpath).undeclare(product):
             # this should not happen
             raise ProductNotFound(product.name, product.version, product.flavor, product.db)
             
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
-            self.versions[eupsPathDir].removeProduct(product)
+            self.versions[eupsPathDir].removeProduct(product.name, 
+                                                     product.flavor,
+                                                     product.version)
             try:
-                self.versions[eupsPathDir].save(self.flavor)
+                self.versions[eupsPathDir].save(product.flavor)
             except RuntimeError, e:
                 if self.quiet < 1:
                     print >> sys.stderr, "Warning: " + str(e)
 
         return True
 
-    def listProducts(self, productName=None, productVersion=None,
-                     tags=None, current=None, setup=False):
+    def findProducts(self, name=None, version=None, tags=None,
+                     eupsPathDirs=None, flavors=None):
         """
         Return a list of Product objects for products we know about
         with given restrictions. 
 
-        The returned list will be restrict by the name, version,
+        The returned list will be restricted by the name, version,
         and/or tag assignment using the productName, productVersion,
         and tags parameters, respectively.  productName and 
         productVersion can have shell wildcards (like *); in this 
         case, they will be matched in a shell globbing-like way 
         (using fnmatch).  
-
-        current and setup are provided for backward compatibility, but
-        are deprecated.  
+        @param name          the name or name pattern for the products of
+                               interest
+        @param version       the version or version patter for the products
+                               of interest
+        @param tags          a list of tag names; if provided, the list of 
+                               returned products will be restricted to those
+                               assigned at least one of these tags.  This can
+                               be one of the following:
+                                 o  a single tag name string
+                                 o  a list of tag name strings
+                                 o  a single Tag instance
+                                 o  a single Tags instance
+        @param eupsPathDirs  search these products stacks for the products;
+                               if None, search EUPS_PATH.
+        @param flavors       restrict products to these flavors; if None, 
+                               the current flavor and all fallback flavors
+                               will be searched.  
         """
+        if flavors is None:
+            flavors = Flavor().getFallbackFlavors(self.flavor, True)
 
-        productList = []
-        #
-        # Maybe they wanted Setup or some sort of Current?
-        #
-        if productVersion == Setup():
-            setup = True
-        elif isSpecialVersion(productVersion, setup=False):
-            current = productVersion
+        if eupsPathDirs is None:
+            eupsPathDirs = self.path
+        if not isinstance(eupsPathDirs, list):
+            eupsPathDirs = [eupsPathDirs]
 
-        if current or setup:
-            productVersion = None
-        #
-        # Find all products on path (cached in self.versions, of course)
-        #
-        for db in self.path:
-            for flavor in Flavor().getFallbackFlavors(self.flavor, True):
-                if not self.versions.has_key(db) or not self.versions[db].has_key(flavor):
+        if tags is not None:
+            if isinstance(tags, Tags):
+                tags = Tags.getTagNames()
+            elif isinstance(tags, Tag):
+                tags = [tags.name]
+            if not isinstance(tags, list):
+                tags = [tags]
+            bad = []
+            for t in tags:
+                if not self.tags.isRecognized(t):
+                    bad.append(t)
+            if len(bad) > 0:
+                raise TagNotReconized(str(bad))
+
+        tagset = _TagSet(tags)
+        out = []
+        newest = None
+
+        for dir in eupsPathDirs:
+            if not self.versions.has_key(dir):
+                continue
+            stack = self.versions[dir]
+            haveflavors = stack.getFlavors()
+            for flavor in flavors:
+                if flavor not in haveflavors:
                     continue
+                prodnames = stack.getProductNames(flavor)
+                if name:
+                    prodnames = fnmatch.filter(prodnames, name)
+                prodnames.sort()
 
-                for name in self.versions[db][flavor].keys():
-                    if productName and not fnmatch.fnmatchcase(name, productName):
-                        continue
+                for pname in prodnames:
+                    if tags and "newest" in tags:
+                        newest = self.findTaggedProduct(pname, "newest", dir,
+                                                        flavor)
 
-                    for version in self.versions[db][flavor][name].keys():
-                        if productVersion and not fnmatch.fnmatchcase(version, productVersion):
-                            continue
+                    vers = stack.getVersions(pname, flavor)
+                    if version:
+                        vers = fnmatch.filter(vers, version)
+                    vers.sort(self._version_cmp)
 
-                        product = self.versions[db][flavor][name][version]
-                        product.Eups = self     # don't use the cached Eups
+                    # only include newest if it passes the version constraint
+                    if newest is not None and newest.version not in vers:
+                        newest = None
 
-                        isCurrent = product.checkCurrent(currentType=current)
-                        isSetup = self.isSetup(product)
+                    for ver in vers:
+                        prod = stack.getProduct(pname, ver, flavor)
+                        if tags:
+                            if newest and newest.version == ver:
+                                # we'll add this on the end so as not to 
+                                # double-list it
+                                continue
 
-                        if current and current != isCurrent:
-                            continue
+                            if tagset.intersects(prod.tags):
+                                out.append(prod)
 
-                        if setup and not isSetup:
-                            continue
+                            elif "setup" in tags and \
+                               self.isSetup(prod.name, prod.version, dir):
+                                out.append(prod)
+                                
+                        else:
+                            out.append(prod)
+                                
+                    if newest:
+                        out.append(newest)
+                        newest = None
 
-                        productList.append(ProductInformation(name,
-                                                              version, db, product.dir, isCurrent, isSetup, flavor))
-        #
-        # Add in LOCAL: setups
-        #
-        for lproductName in self.localVersions.keys():
-            product = self.Product(lproductName, noInit=True)
-
-            if not setup and (productName and productName != lproductName): # always print local setups of productName
-                continue
-
-            try:
-                product.initFromDirectory(self.localVersions[product.name])
-            except RuntimeError, e:
-                if not self.quiet:
-                    print >> sys.stderr, ("Problem with product %s found in environment: %s" % (lproductName, e))
-                continue
-
-            if productName and not fnmatch.fnmatchcase(product.name, productName):
-                continue
-            if productVersion and not fnmatch.fnmatchcase(product.version, productVersion):
-                continue
-
-            thisCurrent = current
-            if current:
-                isCurrent = product.checkCurrent()
-                if current != isCurrent:
-                    if productName == lproductName and current != Current():
-                        thisCurrent = Current(" ") # they may have setup -r . --tag=XXX
-                    else:
-                        continue
-
-            productList.append(ProductInformation(product.name,
-                                                  product.version, product.db, product.dir, thisCurrent, True, flavor))
-        #
-        # And sort them for the end user
-        #
-        def sort_versions(a, b):
-            if a.name == b.name:
-                return version_cmp(a.version, b.version)
-            else:
-                return cmp(a.name, b.name)
-            
-        productList.sort(sort_versions)
-
-        return productList
+        return out
+                
 
     def dependencies_from_table(self, tablefile, eupsPathDirs=None, setupType=None):
         """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
@@ -1838,8 +1990,47 @@ class Eups(object):
         tag = self.tags.getTag(currentType)
         self.unassignTag(tag, product, eupsPathDir=eupsPathDir)
 
+    def listProducts(self, productName=None, productVersion=None,
+                     current=False, setup=False):
+        """
+        Return a list of Product objects for products we know about
+        with given restrictions. 
+
+        This method is DEPRECATED; use findProducts() instead. 
+
+        The returned list will be restricted by the name, version,
+        and/or tag assignment using the productName, productVersion,
+        and tags parameters, respectively.  productName and 
+        productVersion can have shell wildcards (like *); in this 
+        case, they will be matched in a shell globbing-like way 
+        (using fnmatch).  
+
+        current and setup are provided for backward compatibility, but
+        are deprecated.  
+        """
+        if not self.quiet:
+            print >> sys.stderr, "Note: Eups.listProducts() is deprecated; use Eups.findProducts() instead."
+
+        if current or setup:
+            tags = []
+            if current:  tags.append("current")
+            if setup:  tags.append("setup")
+
+        return self.findProducts(productName, productVersion, tags)
+
 
 
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 
+class _TagSet(object):
+    def __init__(self, tags):
+        self.lu = {}
+        if tags:
+            for tag in tags:
+                self.lu[tag] = True
+    def intersects(self, tags):
+        for tag in tags:
+            if self.lu.has_key(tag):
+                return True
+        return False

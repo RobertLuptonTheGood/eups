@@ -23,7 +23,7 @@ class Tags(object):
     # the group string name indicating the user tag group
     user = "_u"
 
-    def __init__(self, groups=None):
+    def __init__(self, globals=None, groups=None):
 
         # a lookup of recognized tag names.  These are separated into groups 
         # of which two are generally used:
@@ -34,6 +34,12 @@ class Tags(object):
         if groups:
             for group in filter(lambda z: z!='user' and z!='global', groups):
                 self.bygrp[group] = []
+
+        if isinstance(globals, str):
+            globals = globals.split()
+        if globals:
+            for tag in globals:
+                self.registerTag(tag)
 
     def isRecognized(self, tag):
         """
@@ -243,6 +249,10 @@ class Tags(object):
             raise IOError("Tag cache not an existing directory: " + 
                           userPersistDir)
         file = os.path.join(userPersistDir, self.persistFilename("user"))
+        if not os.path.exists(file):
+            # that's okay: no user tags cached
+            return
+
         self.load(self.user, file)
 
     def saveUserTags(self, userPersistDir):

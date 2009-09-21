@@ -477,6 +477,12 @@ class Database(object):
         proddirs = map(lambda d: os.path.join(self.dbpath, d), 
                        self.findProductNames())
         for prod in proddirs:
+            # check the directory mod-time: this will catch recent removal
+            # of files from the directory
+            if os.stat(prod).st_mtime > timestamp:
+                return True
+
+            # do we need to do this if we've checked parent directory?
             for file in os.listdir(prod):
                 mat = versionFileRe.match(file)
                 if not mat:  mat = tagFileRe.match(file)

@@ -235,6 +235,26 @@ class ProductStackTestCase(unittest.TestCase):
         for flav in expected:
             self.assert_(flav in flavors)
 
+    def testAddFlavor(self):
+        flavors = self.stack.getFlavors()
+        self.assertEquals(len(flavors), 1)
+        self.assertEquals(flavors[0], "Darwin")
+        self.stack.addFlavor("Darwin")
+
+        flavors = self.stack.getFlavors()
+        self.assertEquals(len(flavors), 1)
+        self.assertEquals(flavors[0], "Darwin")
+        self.assert_(self.stack.lookup["Darwin"])
+
+        self.stack.addFlavor("Linux")
+        flavors = self.stack.getFlavors()
+        self.assertEquals(len(flavors), 2)
+        expected = "Darwin Linux".split()
+        for flav in expected:
+            self.assert_(flav in flavors)
+        self.assertEquals(len(self.stack.getProductNames("Linux")), 0)
+        self.assert_(not self.stack.lookup["Linux"])
+
     def testTags(self):
         self.assertEquals(len(self.stack.getTags()), 0)
 
@@ -273,6 +293,27 @@ class ProductStackTestCase(unittest.TestCase):
         tags = self.stack.getTags()
         self.assertEquals(len(tags), 1)
         self.assertEquals(tags[0], "current")
+
+    def testSaveEmptyFlavor(self):
+        self.stack.clearCache("Linux")
+        cache = os.path.join(self.dbpath, 
+                             ProductStack.persistFilename("Linux"))
+        self.assert_(not os.path.exists(cache))
+
+        try: 
+            self.stack.save("Linux")
+            self.assert_(os.path.exists(cache))
+            self.stack.reload("Linux")
+            flavors = self.stack.getFlavors()
+            self.assertEquals(len(flavors), 2)
+            expected = "Darwin Linux".split()
+            for flav in expected:
+                self.assert_(flav in flavors)
+            self.assertEquals(len(self.stack.getProductNames("Linux")), 0)
+
+        finally:
+            if os.path.exists(cache):
+                os.remove(cache)
 
     def testSave(self):
         self.assert_(self.stack.saveNeeded())

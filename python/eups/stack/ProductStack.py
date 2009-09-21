@@ -1,4 +1,4 @@
-import re, os, cPickle
+import re, os, cPickle, sys
 from eups import Product
 from ProductFamily import ProductFamily
 from eups.exceptions import ProductNotFound, UnderSpecifiedProduct
@@ -276,9 +276,13 @@ class ProductStack(object):
                 dir = self.dbpath
             file = os.path.join(dir, persistFilename(flavor))
 
+        if not self.lookup.has_key(flavor):
+            self.lookup[flavor] = {}
+        flavorData = self.lookup[flavor]
+
         self._lock(file)
         fd = open(file, "w")
-        cPickle.dump(self.lookup[flavor], fd)
+        cPickle.dump(flavorData, fd)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
         self._unlock(file)
@@ -302,6 +306,22 @@ class ProductStack(object):
                 out[flavor][product] = \
                     self.lookup[flavor][product].export(self.db, flavor)
         return out
+
+    def addFlavor(self, flavor): 
+        """
+        register a flavor without products.  
+
+        This makes a flavor recognized even though no products have been 
+        registered for this flavor.  It is typical for an Eups instance to 
+        want to load product information for more than one flavor as back-up
+        to the native flavor.  It is helpful, then to provide an empty lookup
+        in this ProductStack, so that the Eups instance doesn't need 
+        continually filter its desired flavors against the ones we actually 
+        have products for.  In particular, it allows info an empty flavor to be 
+        cached just like normal flavor.  
+        """
+        if not self.lookup.has_key(flavor):
+            self.lookup[flavor] = {}
 
     def addProduct(self, product):
         """
@@ -453,7 +473,7 @@ class ProductStack(object):
 
         notfound = True
         if not isinstance(flavors, list):
-            flavors = [flavor]
+            flavors = [flavors]
         for flavor in flavors:
             try:
                 self.lookup[flavor][product].assignTag(tag, version)
@@ -685,7 +705,7 @@ class ProductStack(object):
 
     # @staticmethod   # requires python 2.4
     def fromCache(dbpath, flavors, userTagPersistDir=None, prodPersistDir=None, 
-                  updateCache=True, autosave=True):
+                  updateCache=True, autosave=True, verbose=False):
         """
         return a ProductStack that has all products loaded in from the available 
         caches.  If they are out of date (or non-existent), this will refresh
@@ -711,13 +731,17 @@ class ProductStack(object):
 
         cacheOkay = True
         for flav in flavors:
-            if not out.cacheIsUpToDate():
+            if not out.cacheIsUpToDate(flav):
                 cacheOkay = False
+                if verbose:
+                  print >> sys.stderr, \
+                   "Regenerating missing or out-of-date cache cache for %s in\n   %s" % (flav, dbpath)
                 break
         if cacheOkay:
             out.reload(flavors)
         else:
             out.refreshFromDatabase()
+            out._flavorsUpdated(flavors)
             if updateCache:  out.save()
 
         return out

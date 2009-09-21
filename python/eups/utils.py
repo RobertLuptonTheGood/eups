@@ -1,7 +1,7 @@
 """
 Utility functions used across EUPS classes.
 """
-import time
+import time, os, sys, glob, re
 
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
@@ -105,7 +105,7 @@ def isDbWritable(dbpath):
       o  set or update global tags
       o  update the product cache
     """
-    return os.access(dbpath.access(os.F_OK|os.R_OK|os.W_OK))
+    return os.access(dbpath, (os.F_OK|os.R_OK|os.W_OK))
 
 def findWritableDb(pathdirs):
     """return the first directory in the eups path that the user can install 
@@ -292,11 +292,13 @@ class Flavor(object):
 
             self.setFallbackFlavors(None)
         
-    def setFallbackFlavors(self, flavor=None, fallbackList=["NULL", "Generic"]):
+    def setFallbackFlavors(self, flavor=None, fallbackList=None):
         """
         Set a list of alternative flavors to be used if a product can't 
         be found with the given flavor
         """
+        if fallbackList is None:
+            fallbackList = ["Generic"]
         Flavor._fallbackFlavors[flavor] = fallbackList
 
     def getFallbackFlavors(self, flavor=None, includeMe=False):
@@ -331,4 +333,60 @@ class Quiet(object):
 
     def __del__(self):
         self.Eups.quiet -= 1
+
+class ConfigProperty(object):
+    """
+    This class emulates a properties used in configuration files.  It 
+    represents a set of defined property names that are accessible as 
+    attributes.  The names of the attributes are locked in at construction
+    time.  If an attribute value is itself contains a ConfigProperty, that
+    value cannot be over-written.  If one attempts to either over-write a
+    ConfigProperty instance or set a non-existent attribute, an 
+    AttributeError will not be raised; instead, an error message is 
+    written and the operation is otherwise ignored.  
+    """
+    def __init__(self, attrnames, parentName=None, errstrm=sys.stderr):
+        """
+        define up the properties as attributes.
+        @param attrnames    a list of property names to define as attributes
+        @param parentName   a dot-delimited name of the parent property; if 
+                               None (default), the property is assumed to 
+                               have no parent.
+        @param errstrm      a file stream to write error messages to.
+        """
+        object.__setattr__(self,'_parent', parentName)
+        object.__setattr__(self,'_err', errstrm)
+        for attr in attrnames:
+            object.__setattr__(self, attr, None)
+
+    def __setattr__(self, name, value):
+        if not self.__dict__.has_key(name):
+            self._writePropName(name)
+            print >> self._err, ": No such property name defined"
+            return
+        if isinstance(getattr(self, name), ConfigProperty):
+            self._writePropName(name)
+            print >> self._err, \
+                ": Cannot over-write property with sub-properties"
+            return
+        object.__setattr__(self, name, value)
+
+    def _writePropName(self, name):
+        if self._parent:
+            self._err.write(self._parent)
+            self._err.write('.')
+        self._err.write(name)
+
+    def properties(self):
+        out = self.__dict__.fromkeys(filter(lambda a: not a.startswith('_'), 
+                                            self.__dict__.keys()))
+        for k in out.keys():
+            if isinstance(self.__dict__[k], ConfigProperty):
+                out[k] = self.__dict__[k]._props()
+            else:
+                out[k] = self.__dict__[k]
+        return out
+
+    def __str__(self):
+        return str(self._props())
 

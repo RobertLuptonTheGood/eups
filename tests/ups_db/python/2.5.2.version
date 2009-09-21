@@ -8,7 +8,7 @@ Group:
    QUALIFIERS = ""
    DECLARER = Raymond L. Plante
    DECLARED = 2009/03/21 20:41:59 CDT
-   PROD_DIR = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/python/2.5.2
+   PROD_DIR = Linux/external/python/2.5.2
    UPS_DIR = ups
-   TABLE_FILE = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/python/2.5.2/ups/python.table
+   TABLE_FILE = python.table
 End:
