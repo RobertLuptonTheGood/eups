@@ -4,7 +4,7 @@ from ChainFile import ChainFile
 from eups.utils import isRealFilename
 from eups.Product import Product
 from eups.exceptions import UnderSpecifiedProduct, ProductNotFound
-from eups.exceptions import TablefileNotFound
+from eups.exceptions import TableError
 
 versionFileExt = "version"
 versionFileTmpl = "%s." + versionFileExt
@@ -294,13 +294,14 @@ class Database(object):
                       str(product.flavor))
             )
 
-        tablefile = product.table
+        tablefile = product.tablefile
         if not tablefile:
-            tablefile = os.path.join("ups", "%s.table" % product.name)
-            if not product.dir or not isRealFilename(product.dir) or \
-               not os.path.exists(os.path.join(product.dir,tablefile)):
-                raise TableFileNotFound(msg="Unable to located a table file " +
-                                        "in default location: " + tablefile)
+            tablefile = product.tableFileName()
+            if not tablefile or not os.path.exists(tablefile):
+                raise TableFileNotFound(product.name, product.version, 
+                                        product.flavor, 
+                                        msg="Unable to located a table file " +
+                                            "in default location: " + tablefile)
 
         # set the basic product information
         pdir = self._productDir(product.name)

@@ -110,9 +110,11 @@ class UnderSpecifiedProduct(EupsException):
         self.name = productName
         self.version = version
         self.flavor = flavor
-        
-class TablefileNotFound(EupsException):
+
+class TableError(EupsException):
     """
+    A parent exception for problems accessing a product's table.
+
     This exception includes the following public parameters, any of which 
     may be None:
        tablefile  the path to the missing tablefile
@@ -122,6 +124,60 @@ class TablefileNotFound(EupsException):
     """
 
     def __init__(self, tablefile=None, productName=None, version=None, 
+                 flavor=None, problem=None, msg=None):
+        """
+        @param productName  the product name
+        @param version      the version.  
+        @param flavor       the platform flavor of interest.  
+        @param problem      a terse description of the problem.  What gets
+                               printed will combine this with the product 
+                               information (unless msg is given).
+        @param msg          the full descriptive message.  If None, A default 
+                               based on problem and citing the product 
+                               information will be generated.
+        """
+        if problem is None:
+            if msg:
+                problem = msg
+            else:
+                problem = "Unspecified table problem"
+
+        self.tablefile = tablefile
+        self.name = productName
+        self.version = version
+        self.flavor = flavor
+        self.problem = problem
+
+        EupsException.__init__(self, self._makeDefaultMessage(msg))
+
+    def _makeDefaultMessage(self, msg):
+        out = msg
+        if out is None:
+            out = self.problem
+            if self.name is not None:
+                out += " for %s" % str(self.name)
+            if self.version is not None:
+                out += " %s" % str(self.version)
+            if self.flavor is not None:
+                out += " (%s)" % str(self.flavor)
+            if self.tablefile is not None:
+                out += ": %s" % str(self.tablefile)
+        return out
+
+        
+class TableFileNotFound(TableError):
+    """
+    a TableError indicating that a table file could not be found on disk.
+
+    This exception includes the following public parameters, any of which 
+    may be None:
+       tablefile  the path to the missing tablefile
+       name       the product name
+       version    the version name
+       flavor     the platform flavor
+    """
+    
+    def __init__(self, tablefile=None, productName=None, version=None, 
                  flavor=None, msg=None):
         """
         @param productName  the product name
@@ -130,21 +186,30 @@ class TablefileNotFound(EupsException):
         @param msg          the descriptive message.  If None, A default will 
                                be generated.
         """
-        message = msg
-        if message is None:
-            message = "Table file not found"
-            if productName is not None:
-                message += " for %s" % str(productName)
-            if version is not None:
-                message += " %s" % str(version)
-            if flavor is not None:
-                message += " (%s)" % str(flavor)
-            if tablefile is not None:
-                message += ": %s" % str(tablefile)
+        TableError.__init__(self, tablefile, productName, version, flavor, 
+                            "Table file not found", msg)
 
-        EupsException.__init__(self, message)
+class BadTableContent(TableError):
+    """
+    a TableError indicating an error occurred while parsing a table file.
 
-        self.tablefile = tablefile
-        self.name = productName
-        self.version = version
-        self.flavor = flavor
+    This exception includes the following public parameters, any of which 
+    may be None:
+       tablefile  the path to the missing tablefile
+       name       the product name
+       version    the version name
+       flavor     the platform flavor
+    """
+    
+    def __init__(self, tablefile=None, productName=None, version=None, 
+                 flavor=None, msg=None):
+        """
+        @param productName  the product name
+        @param version      the version.  
+        @param flavor       the platform flavor of interest.  
+        @param msg          the descriptive message.  If None, A default will 
+                               be generated.
+        """
+        TableError.__init__(self, tablefile, productName, version, flavor, 
+                            "Table parsing error", msg)
+

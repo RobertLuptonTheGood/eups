@@ -8,17 +8,27 @@ import os
 import re, sys
 import pdb
 
+from exceptions import BadTableContent
+from Parser import Parser
+import utils
+
 class Table(object):
     """A class that represents a eups table file"""
 
     def __init__(self, tableFile):
-        """Parse a tablefile"""
+        """
+        Parse a tablefile
+        @throws TableError       if an IOError occurs while reading the table file
+        @throws BadTableContent  if the table file parser encounters unparseable 
+                                   content.  Note that BadTableContent is a subclass
+                                   of TableError.
+        """
 
         self.file = tableFile
         self.old = False
         self._actions = []
 
-        if _isRealFilename(tableFile):
+        if utils.isRealFilename(tableFile):
             self._read(tableFile)
 
     def _rewrite(self, contents):
@@ -51,8 +61,8 @@ but no other interpretation is applied
                 self.old = True
 
                 if mat.group(1).lower() != "table":
-                    raise RuntimeError, \
-                          ("Expected \"File = Table\"; saw \"%s\" at %s:%d" % (line, self.versionFile, lineNo))
+                    msg = "Expected \"File = Table\"; saw \"%s\" at %s:%d" % (line, self.versionFile, lineNo)
+                    raise BadTableContent(self.file, msg=msg)
                 continue
             elif self.old:
                 if re.search(r"^Product\s*=\s*(\w+)", line, re.IGNORECASE):
@@ -71,15 +81,16 @@ but no other interpretation is applied
             mat = re.search(r"^Action\s*=\s*([\w+.]+)", line, re.IGNORECASE)
             if mat:
                 if not re.search(r"setup", mat.group(1), re.IGNORECASE):
-                    raise RuntimeError, ("Unsupported action \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo))
+                    msg = "Unsupported action \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo)
+                    raise BadTableContent(self.file, msg=msg)
                 continue
 
             mat = re.search(r"^Qualifiers\s*=\s*\"([^\"]*)\"", line, re.IGNORECASE)
             if mat:
                 if mat.group(1):
                     if False:
-                        raise RuntimeError, \
-                              ("Unsupported qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo))
+                        msg = "Unsupported qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo)
+                        raise BadTableContent(self.file, msg=msg)
                     else:
                         print >> sys.stderr, "Ignoring qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo)
                 continue
@@ -199,7 +210,7 @@ but no other interpretation is applied
         try:
             fd = file(tableFile)
         except IOError, e:
-            raise RuntimeError, e
+            raise TableError(tablefile, str(e))
 
         contents = fd.readlines()
         contents = self._rewrite(contents)
@@ -285,10 +296,16 @@ but no other interpretation is applied
                     extra = False       # append?
 
                 if len(args) < 2 or len(args) > 3:
-                    raise RuntimeError, ("%s expected 2 (or 3) arguments, saw %s at %s:%d" % (cmd, " ".join(args), self.file, lineNo))
+                    msg = "%s expected 2 (or 3) arguments, saw %s at %s:%d" % \
+                        (cmd, " ".join(args), self.file, lineNo)
+                    raise BadTableContent(self.file, msg=msg)
+
             elif cmd == Action.envSet:
                 if len(args) < 2:
-                    raise RuntimeError, ("%s expected 2 arguments, saw %s at %s:%d" % (cmd, " ".join(args), self.file, lineNo))
+                    msg = "%s expected 2 arguments, saw %s at %s:%d" % \
+                        (cmd, " ".join(args), self.file, lineNo)
+                    raise BadTableContent(self.file, msg=msg)
+
                 else:
                     args = [args[0], " ".join(args[1:])]
             elif cmd == Action.envRemove or cmd == Action.envUnset or cmd == Action.sourceRequired:
@@ -313,7 +330,7 @@ but no other interpretation is applied
             return actions
 
         for logical, block in self._actions:
-            parser = eupsParser.Parser(logical)
+            parser = Parser(logical)
             parser.define("flavor", flavor)
             if setupType:
                 parser.define("type", setupType)
@@ -324,7 +341,8 @@ but no other interpretation is applied
         if actions:
             return actions
         else:
-            raise RuntimeError, ("Table %s has no entry for flavor %s" % (self.file, flavor))
+            msg = "Table %s has no entry for flavor %s" % (self.file, flavor)
+            raise BadTableContent(self.file, msg=msg)
 
     def __str__(self):
         s = ""
@@ -336,56 +354,62 @@ but no other interpretation is applied
 
         return s
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None):
-        """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
+    _versionre = re.compile(r"(.*)\s+\[([^\]]+)\]\s*")
 
-        N.b. the dependencies are not calculated recursively unless recursive is True"""
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None):
+        """
+        Return the product dependencies as specified in this table as a list 
+        of (Product, optional) tuples
+
+        @param Eups            an Eups instance to use to locate packages
+        @param eupsPathDirs    the product stacks to restrict searches to
+        @param recursive       if True, this function will be called 
+                                  recursively on each of the dependency 
+                                  products in this table.
+        """
 
         if recursive and not isinstance(recursive, bool):
             recursiveDict = recursive
         else:
             recursiveDict = {}          # dictionary of products we've analysed
+        prodkey = lambda p: "%s-%s" % (p.name, p.version)
 
         deps = []
         for a in self.actions(Eups.flavor, setupType=setupType):
             if a.cmd == Action.setupRequired:
-                try:
-                    args = a.args[:]
-                    if len(args) == 1:
-                        args = (args[0], Current())
-                        currentRequested = True
+                productName = a.args[0]
+                if len(a.args) > 1:
+                    versionArg = " ".join(args[1:])
+                else:
+                    versionArg = None
+                
+                mat = re.search(versionre, versionArg)
+                if mat:
+                    exactVersion, logicalVersion = mat.groups()
+                    if Eups.exact_version:
+                        versionArg = exactVersion
                     else:
-                        otherArgs = " ".join(args[1:])
-
-                        mat = re.search(r"(.*)\s+\[([^\]]+)\]\s*", otherArgs)
-                        if mat:
-                            exactVersion, logicalVersion = mat.groups()
-                            if Eups.exact_version:
-                                otherArgs = exactVersion
-                            else:
-                                otherArgs = logicalVersion
+                        versionArg = logicalVersion
 
                         args = (args[0], otherArgs)
-                        currentRequested = False
-                    try:
-                        product = Eups.getProduct(args[0], args[1], eupsPathDirs)
-                    except RuntimeError, e:
-                        product = Product(Eups, args[0], args[1], noInit=True)
-                        pass
 
-                    val = [product, a.extra, currentRequested]
+                try:
+                    product = Eups.getProduct(productName, versionArg)
+
+                    val = [product, a.extra]
                     if recursive:
                         val += [recursionDepth]
                     deps += [val]
 
-                    if recursive and not recursiveDict.has_key(product.key()):
-                        recursiveDict[product.key()] = 1
-                        deps += product.dependencies(eupsPathDirs, recursiveDict, recursionDepth+1)
+                    if recursive and not recursiveDict.has_key(prodkey(product)):
+                        recursiveDict[prodkey(product)] = 1
+                        deptable = product.getTable()
+                        if deptable:
+                            deps += deptable.dependencies(eupsPathDirs, recursiveDict, recursionDepth+1)
                         
-                except RuntimeError, e:
+                except ProductNotFound, e:
                     if a.extra:         # product is optional
                         continue
-
                     raise
 
         return deps
@@ -393,7 +417,12 @@ but no other interpretation is applied
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Action(object):
-    """An action in a table file"""
+    """
+    An action in a table file
+
+    Action instances are typically created internally by a Table constructor 
+    via a Parser.
+    """
 
     # Possible actions; the comments apply to the field that _read adds to an Action: (cmd, args, extra)
     addAlias = "addAlias"
@@ -409,6 +438,15 @@ class Action(object):
     sourceRequired = "sourceRequired"   # not supported
 
     def __init__(self, cmd, args, extra):
+        """
+        Create the Action.  
+        @param cmd      the name of the command (as it appears in the table file
+                          command line)
+        @param args     the list of arguments passed to the command as 
+                          instantiated in a table file.
+        @param extra    extra, command-specific data passed by the parser to 
+                          control the execution of the command.  
+        """
         self.cmd = cmd
         try:
             i = args.index("-f")
@@ -617,16 +655,6 @@ class Action(object):
                 
         return pp
 
-def _isRealFilename(filename):
-    """Return True iff \"filename\" is a real filename, not a placeholder.  It need not exist"""
-
-    if filename is None:
-        return False
-    elif filename in ("none", "???"):
-        return False
-    else:
-        return True
-    
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Expand a table file

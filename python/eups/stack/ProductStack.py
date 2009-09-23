@@ -208,6 +208,7 @@ class ProductStack(object):
             out = self.lookup[flavor][name].getProduct(version)
             out.flavor = flavor
             out.db = self.dbpath
+            out._prodStack = self
             return out
         except KeyError:
             raise ProductNotFound(name, version, flavor)
@@ -347,7 +348,8 @@ class ProductStack(object):
             self.lookup[flavor][product.name] = ProductFamily(product.name)
         self.lookup[flavor][product.name].addVersion(product.version,
                                                      product.dir,
-                                                     product.table)
+                                                     product.tablefile,
+                                                     product._table)
         for tag in product.tags:
             self.lookup[flavor][product.name].assignTag(tag, product.version)
 
@@ -554,6 +556,27 @@ class ProductStack(object):
             else:
                 self.save(flavors)
         return updated
+
+    def loadTableFor(self, productName, version, flavor, table=None):
+        """
+        cache the parsed contents of the table file for a given product.
+        If table is not None,
+        it will be taken as the Table instance representing the already 
+        parsed contents; otherwise, the table will be loaded from the 
+        table file path.  
+
+        @param productName  the name of the desired product
+        @param version      the version of the product to load
+        @param flavor       the product's flavor
+        @param table        an instance of Table to accept as the loaded
+                               contents
+        """
+        try:
+            self.lookup[flavor][name].loadTableFor(version, table)
+            self._flavorsUpdated(flavor)
+        except KeyError:
+            raise ProductNotFound(name, version, flavor)
+
 
     def _lockfilepath(self, file):
         return file + ".lock"

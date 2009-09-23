@@ -210,7 +210,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(p.version, prod.version)
         self.assertEquals(p.flavor, prod.flavor)
         self.assertEquals(p.dir, prod.dir)
-        self.assertEquals(p.table, prod.table)
+        self.assertEquals(p.tablefile, prod.tablefile)
         self.assertEquals(p.db, os.path.join(testEupsStack, "ups_db"))
         self.assertEquals(len(p.tags), 0)
 
@@ -340,7 +340,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(p.version, "1.2")
         self.assertEquals(p.flavor, "Darwin")
         self.assertEquals(p.dir, "/opt/sw/Darwin/fw/1.2")
-        self.assertEquals(p.table, "none")
+        self.assertEquals(p.tablefile, "none")
         self.assertEquals(p.db, self.dbpath)
         
 

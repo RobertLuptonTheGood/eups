@@ -41,8 +41,24 @@ class Eups(object):
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
-                 userDataDir=None
+                 userDataDir=None, validSetupTypes=None
                  ):
+        """
+        @param path             the colon-delimited list of product stack 
+                                  directories to find products in.
+        @param root             used during setup(), this is the directory to 
+                                  find the top-level target product.  Its 
+                                  dependencies can be found in any of the 
+                                  directories in path.  
+        @param userDataDir      the directory where per-user information is 
+                                  cached.  If None, this defaults to ~/.eups.
+        @param validSetupTypes  the names to recognize as valid setupTypes.  
+                                  This list can be given either as a 
+                                  space-delimited string or a python list of 
+                                  strings (each being a separate name).  If 
+                                  None, the list will be set according to the
+                                  user's configuration.
+        """
                  
         self.verbose = verbose
 
@@ -110,13 +126,27 @@ class Eups(object):
             if not os.path.isabs(root):
                 root = os.path.join(os.getcwd(), root)
             root = os.path.normpath(root)
-            
+
+        # the stack to find a top-level product to setup;  if it has 
+        # dependencies, these can be found in any of the EUPS_PATH 
+        # directories
         self.root = root
 
         self._version_cmp = hooks.version_cmp
         self.quiet = quiet
         self.keep = keep
-        self.alreadySetupProducts = {}  # used by setup() to remember what's setup
+
+        # set the valid setup types
+        if isinstance(validSetupTypes, str):
+            validSetupTypes = validSetupTypes.split()
+        self._validSetupTypes = validSetupTypes
+        if self._validSetupTypes is None:
+            self._validSetupTypes = hooks.getValidSetupTypes()
+
+        # a look-up of the products that have been setup since the life 
+        # of this instance.  Used by setup().
+        self.alreadySetupProducts = {}
+
         self.noaction = noaction
         self.force = force
         self.ignore_versions = ignore_versions
@@ -138,7 +168,7 @@ class Eups(object):
             else:
                 userDataDir = os.path.join(os.environ["HOME"], ".eups")
         if not os.path.exists(userDataDir):
-            if not self.quiet:
+            if self.quiet <= 0:
                 print >> sys.stderr, \
                     "Creating User data directory: " + userDataDir
             os.makedirs(userDataDir)
@@ -189,7 +219,7 @@ class Eups(object):
         for product in self.getSetupProducts():
             try:
                 if re.search(r"^LOCAL:", product.version):
-                    self.localVersions[product.name] = os.environ[product.envarDirName()]
+                    self.localVersions[product.name] = os.environ[self._envarDirName(product.name)]
             except TypeError:
                 pass
 
@@ -215,13 +245,13 @@ class Eups(object):
                 raise TagNotRecognized(str(notokay), 
                                        msg="Unsupported tag(s): " + 
                                            ", ".join(notokay))
-            elif not self.quiet:
+            elif self.quiet <= 0:
                 print >> sys.stderr, \
                     "Ignoring unsupported tags:", ", ".join(notokay)
 
         tags = filter(self.tags.isRecognized, tags)
         if len(tags) == 0:
-            if not self.quiet:
+            if self.quiet <= 0:
                 print >> sys.stderr, \
                     "Warning: No recognized tags; not updating preferred list"
         else:
@@ -660,7 +690,7 @@ class Eups(object):
 
         if preferred is None:
             preferred = self.preferredTags
-        if not preferred and not self.quiet:
+        if not preferred and self.quiet <= 0:
             print >> sys.stderr, "Warning: no preferred tags are set"
 
         found = None
@@ -693,12 +723,12 @@ class Eups(object):
 
             try:
                 product = self.findSetupProduct(requestedProductName)
-                if not product and not self.quiet:
+                if not product and self.quiet <= 0:
                     print >> sys.stderr, "Product %s is not setup" % requestedProductName
                 continue
 
             except RuntimeError, e:
-                if not self.quiet:
+                if self.quiet <= 0:
                     print >> sys.stderr, e
                 continue
 
@@ -708,7 +738,8 @@ class Eups(object):
 
     def findSetupProduct(self, productName):
         """
-        return a Product instance for a currently setup product.
+        return a Product instance for a currently setup product.  None is 
+        returned if a product with the given name is not currently setup.
         """
         versionName, eupsPathDir, productDir, tablefile, flavor = \
             self.findSetupVersion(productName)
@@ -883,30 +914,52 @@ class Eups(object):
         elif (op == ">="):
             return cmp >= 0
         else:
-            print >> sys.stderr, "Unknown operator %s used with %s, %s--- complain to RHL", (op, v1, v2)
+            print >> sys.stderr, "Unknown operator %s used with %s, %s", (op, v1, v2)
 
-    #
-    # Here is the externally visible API
-    #
+    def _isValidSetupType(self, setupType):
+        return setupType in self.validSetupTypes
+
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
               setupToplevel=True, noRecursion=False, setupType=None):
-        """The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
+        """
+        Update the environment to use (or stop using) a specified product.
+
+        @param productName      the name of the product desired
+        @param versionName      the version of the product desired.  This is 
+                                  can either be a actual version name or an
+                                  instance of Tag.  
+        @param fwd              if False, the product will be unset; otherwise
+                                  it will be setup.
+        @param recursionDepth   the number of dependency levels this setup 
+                                  command represents.  If the requested product
+                                  is being setup because it is required by 
+                                  another product, this value should > 0.  
+                                  Normally, this parameter is only used 
+                                  internally, not by external applications.
+        @param setupToplevel    
+        @param noRecursion      if True, dependency products should not be 
+                                  setup.
+        @param setupType        
+
+        The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
         eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
         #
         # Look for product directory
         #
-        setupFlavor = self.flavor            # we may end up using e.g. "Generic"
+        setupFlavor = self.flavor         # we may end up using e.g. "Generic"
 
         product = None
         if isinstance(productName, Product): # it's already a full Product
-            product = productName; productName = product.name
+            raise RuntimeError("Product type passed to setup")
+            # product = productName
+            # productName = product.name
+
         elif not fwd:
+            # on unsetup, get the product to unsetup
             product = self.findSetupProduct(productName)
-            if productList:
-                product = productList[0]
-            else:
+            if not product:
                 msg = "I can't unsetup %s as it isn't setup" % productName
-                if self.verbose > 1 and not self.quiet:
+                if self.verbose > 1 and self.quiet <= 0:
                     print >> sys.stderr, msg
 
                 if not self.force:
@@ -914,58 +967,59 @@ class Eups(object):
                 #
                 # Fake enough to be able to unset the environment variables
                 #
-                product = Product(productName)
-                product.table = "none"
+                product = Product(productName, None)
+                product.tablefile = "none"
 
-            if versionName and self.tags.isRecognized(versionName):
+            if isinstance(versionName, Tag):
                 # resolve a tag to a version
-                p = self._findTaggedProduct(product, versionName)
+                tag = self.tags.getTag(versionName) # may raise TagNotRecognized
+                p = self._findTaggedProduct(product, tag)
                 if p and p.version:
                     versionName = p.version
 
-            if not self.version_match(product.version, versionName):
-                if not self.quiet:
+            if not product.version:  
+                product.version = versionName
+            elif not self.version_match(product.version, versionName):
+                if self.quiet <= 0:
                     print >> sys.stderr, \
                         "You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
                         (product.name, versionName, product.version, product.version)
-        else:
+
+        else:  # on setup (fwd = True)
+
+            # get the product to setup
             if self.root and recursionDepth == 0:
                 product = self.findProduct(product, versionName, self.root)
             else:
                 product = self.findProduct(productName, versionName)
+                if not product and self.alreadySetupProducts.has_key(productName):
+
+                    # We couldn't find it, but maybe it's already setup 
+                    # locally?   That'd be OK
+                    product = self.alreadySetupProducts[productName]
+                    if not self.keep and product.version != versionName:
+                        product = None
+
                 if not product:
-                    if False and self.verbose:
-                        print >> sys.stderr, e
 
-                    #
-                    # We couldn't find it, but maybe it's already setup locally? That'd be OK
-                    #
-                    if self.keep and self.alreadySetupProducts.has_key(productName):
-                        product = self.alreadySetupProducts[productName]
-                    else:
-                        #
-                        # It's not there.  Try a set of other flavors that might fit the bill
-                        #
-                        for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
-                            if flavor == fallbackFlavor:
-                                continue
+                    # It's not there.  Try a set of other flavors that might 
+                    # fit the bill
+                    for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
+                        product = self.findProduct(productName, versionName, flavor=fallbackFlavor)
 
-                            product = self.findProduct(productName, versionName, flavor=fallbackFlavor)
+                        if product:        
+                            setupFlavor = fallbackFlavor
+                            if self.verbose > 2:
+                                print >> sys.stderr, "Using flavor %s for %s %s" % \
+                                    (setupFlavor, productName, versionName)
+                            break
 
-                            if product:        
-                                setupFlavor = fallbackFlavor
-                                if self.verbose > 2:
-                                    print >> sys.stderr, "Using flavor %s for %s %s" % \
-                                        (setupFlavor, productName, versionName)
-                                break
+                    if not product:
+                        return False, versionName, ProductNotFound(productName, versionName)
 
-                        if not product:
-                            return False, versionName, ProductNotFound(productName, versionName)
-
-        if setupType and not self.tags.isRecognized(setupType):
+        if setupType and not self._isValidSetupType(setupType):
             raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % \
-                                 (setupType, "\" \"".join(self.tags.getTagNames())))
-
+                                 (setupType, "\" \"".validSetupTypes))
 
         #
         # We have all that we need to know about the product to proceed
@@ -980,20 +1034,13 @@ class Eups(object):
                     self.alreadySetupProducts[p.name] = p
                 del q
 
-        table = product.table
-        if not isinstance(table, Table):
-            # product.table should be a path string
-            table = Table(table)
-
-        try:
-            actions = table.actions(self.flavor, setupType=setupType)
-        except ProductNotFound, e:
-            print >> sys.stderr, str(e)
-            return False, product.version, e
-        except RuntimeError, e:
-            # is this needed?
-            print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
-            return False, product.version, e
+        table = product.getTable()
+        if table:
+            try:
+                actions = table.actions(self.flavor, setupType=setupType)
+            except TableError, e:
+                print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
+                return False, product.version, e
 
         #
         # Ready to go
@@ -1018,9 +1065,8 @@ class Eups(object):
             #
             # Are we already setup?
             #
-            try:
-                sprod = self.findSetupProduct(product.name)
-            except RuntimeError, e:
+            sprod = self.findSetupProduct(product.name)
+            if sprod is None:
                 sversionName = None
 
             if product.version and sprod.version:
@@ -1030,53 +1076,39 @@ class Eups(object):
                     elif self.force:   # force means do it!; so do it.
                         pass
                     else:
+                        # already setup and no need to go further
                         if self.verbose > 1:
                             print >> sys.stderr, "            %s %s is already setup; skipping" % \
                                   (len(indent)*" " + product.name, product.version)
                             
                         return True, product.version, None
                 else:
-                    if recursionDepth > 0: # top level shouldn't whine
-                        pversionName = product.version
 
-                        if self.keep:
-                            verb = "requesting"
-                        else:
-                            verb = "setting up"
+                    # the currently setup version is different from what was requested
+                    if recursionDepth > 0 and not self.keep: 
 
-                        msg = "%s %s is setup, and you are now %s %s" % \
-                              (product.name, sprod.version, verb, pversionName)
+                        # Warn the user that we're switching versions (top level shouldn't whine)
+                        msg = "%s %s is currently setup; over-riding with %s" % \
+                              (product.name, sprod.version, product.version)
 
                         if self.quiet <= 0 and self.verbose > 0 and not (self.keep and setup_msgs.has_key(msg)):
                             print >> sys.stderr, "            %s%s" % (recursionDepth*" ", msg)
                         setup_msgs[msg] = 1
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
+
+                # we're not suppose switch versions once a product is setup (self.keep); 
+                # enforce this now
+                #
+                # Developers' Note:  In previous versions, the self.keep would allow the requested 
+                # product to over-ride an already setup version if the requested version was later.
+                # This behavior has been changed: self.keep always keeps a previously setup version
+                #
                 keptProduct = self.alreadySetupProducts[product.name]
-
-                resetup = True          # do I need to re-setup this product?
-                if self.isSetup(keptProduct):
-                    resetup = False
-                    
-                if self._version_cmp(product.version, keptProduct.version) > 0:
-                    keptProduct = product                     
-                    self.alreadySetupProducts[product.name] = product # keep this one instead
-                    resetup = True
-
-                if resetup:
-                    #
-                    # We need to resetup the product, but be careful. We can't just call
-                    # setup recursively as that'll just blow the call stack; but we do
-                    # want keep to be active for dependent products.  Hence the two
-                    # calls to setup
-                    #
-                    self.setup(keptProduct, recursionDepth=-9999, noRecursion=True)
-                    self.setup(keptProduct, recursionDepth=recursionDepth, setupToplevel=False)
-
-                if keptProduct.version != product.version and self.keep and \
+                if keptProduct.version != product.version and \
                        ((self.quiet <= 0 and self.verbose > 0) or self.verbose > 2):
-                    msg = "%s %s is already setup; keeping" % \
-                          (keptProduct.name, keptProduct.version)
+                    msg = "Though %s %s is requested/needed, version %s will remain setup" % \
+                          (product.name, product.version, keptProduct.version)
 
                     if not setup_msgs.has_key(msg):
                         if not self.verbose:
@@ -1091,22 +1123,21 @@ class Eups(object):
             self.unsetupSetupProduct(product)
             del q
 
-            self.setEnv(product.envarDirName(), product.dir)
-            self.setEnv(product.envarSetupName(),
+            self.setEnv(self._envarDirName(product.name), product.dir)
+            self.setEnv(self._envarSetupName(product.name),
                         "%s %s -f %s -Z %s" % (product.name, product.version, setupFlavor, product.db))
             #
             # Remember that we've set this up in case we want to keep it later
             #
-            if not self.alreadySetupProducts.has_key(product.name):
-                self.alreadySetupProducts[product.name] = product
+            self.alreadySetupProducts[product.name] = product
         elif fwd:
             assert not setupToplevel
         else:
             if product.dir in self.localVersions.keys():
                 del self.localVersions[product.dir]
 
-            self.unsetEnv(product.envarDirName())
-            self.unsetEnv(product.envarSetupName())
+            self.unsetEnv(self._envarDirName(product.name))
+            self.unsetEnv(self._envarSetupName(product.name))
         #
         # Process table file
         #
@@ -1115,7 +1146,7 @@ class Eups(object):
 
         if recursionDepth == 0:            # we can cleanup
             if fwd:
-                del self.alreadySetupProducts
+                # del self.alreadySetupProducts
                 del self._msgs["setup"]
 
         return True, product.version, None
@@ -1207,7 +1238,7 @@ class Eups(object):
             dbpath = self.getUpsDir(eupsPathDir)
 
         if msg is not None:
-            if not self.quiet:
+            if self.quiet <= 0:
                 print >> sys.stderr, msg
             return
 
@@ -1293,7 +1324,7 @@ class Eups(object):
         # this is for backward compatibility
         if isinstance(tag, bool) or (tag is None and declareCurrent):
             tag = "current"
-            if not self.quiet:
+            if self.quiet <= 0:
                 print >> sys.stderr, "Eups.declare(): declareCurrent param is deprecated; use tag param."
 
         if productDir and not productName:
@@ -1305,7 +1336,7 @@ class Eups(object):
                 if not productDir:
                     productDir = info.dir
                 if not tablefile:
-                    tablefile = info.table # we'll check the other fields later
+                    tablefile = info.tablefile # we'll check the other fields later
                 if not productDir:
                     productDir = "none"
 
@@ -1413,7 +1444,7 @@ class Eups(object):
         prod = self.findProduct(productName, versionName, eupsPathDir)
         if prod is not None and not self.force:
             _version, _eupsPathDir, _productDir, _tablefile = \
-                      prod.version, prod.stackRoot(), prod.dir, prod.table
+                      prod.version, prod.stackRoot(), prod.dir, prod.tablefile
 
             assert _version == versionName
             assert eupsPathDir == _eupsPathDir
@@ -1529,7 +1560,7 @@ class Eups(object):
         # this is for backward compatibility
         if isinstance(tag, bool) or (tag is None and undeclareCurrent):
             tag = "current"
-            if not self.quiet:
+            if self.quiet <= 0:
                 print >> sys.stderr, "Eups.undeclare(): undeclareCurrent param is deprecated; use tag param."
 
         if tag:
@@ -1590,7 +1621,8 @@ class Eups(object):
                      eupsPathDirs=None, flavors=None):
         """
         Return a list of Product objects for products we know about
-        with given restrictions. 
+        with given restrictions.  This will include currently setup 
+        products which may not be currently declared.  
 
         The returned list will be restricted by the name, version,
         and/or tag assignment using the productName, productVersion,
@@ -1619,11 +1651,6 @@ class Eups(object):
         if flavors is None:
             flavors = Flavor().getFallbackFlavors(self.flavor, True)
 
-        if eupsPathDirs is None:
-            eupsPathDirs = self.path
-        if not isinstance(eupsPathDirs, list):
-            eupsPathDirs = [eupsPathDirs]
-
         if tags is not None:
             if isinstance(tags, Tags):
                 tags = Tags.getTagNames()
@@ -1638,28 +1665,66 @@ class Eups(object):
             if len(bad) > 0:
                 raise TagNotReconized(str(bad))
 
+        prodkey = lambda p: "%s:%s:%s:%s" % (p.name,p.flavor,p.db,p.version)
         tagset = _TagSet(tags)
         out = []
         newest = None
 
+        # first get all the currently setup products.  We will integrate these
+        # into the list
+        setup = {}
+        if not tags or "setup" in tags:
+            prods = self.getSetupProducts()
+            for prod in prods:
+                if name and not fnmatch.fnmatch(prod.name, name):
+                    continue
+                if version and (not prod.version or \
+                                not fnmatch.fnmatch(prod.version, version)):
+                    continue
+                if not prod.flavors or prod.flavor not in flavors:
+                    continue
+
+                # If we haven't limited the stack paths, accept a product
+                # in any stack.
+                if eupsPathDirs and (not prod.db or \
+                                     prod.stackRoot() not in eupsPathDirs):
+                    continue
+                setup[prodkey(prod)] = prod
+
+
+        # now look for products in the cache.  By default, we'll search
+        # the stacks in the EUPS_PATH.  
+        if eupsPathDirs is None:
+            eupsPathDirs = self.path
+        if not isinstance(eupsPathDirs, list):
+            eupsPathDirs = [eupsPathDirs]
+
+        # start by iterating through each stack path
         for dir in eupsPathDirs:
             if not self.versions.has_key(dir):
                 continue
             stack = self.versions[dir]
+
+            # iterate through the flavors of interest
             haveflavors = stack.getFlavors()
             for flavor in flavors:
                 if flavor not in haveflavors:
                     continue
+
+                # match the product name
                 prodnames = stack.getProductNames(flavor)
                 if name:
                     prodnames = fnmatch.filter(prodnames, name)
                 prodnames.sort()
 
                 for pname in prodnames:
+
+                    # peel off newest version if specifically desired 
                     if tags and "newest" in tags:
                         newest = self.findTaggedProduct(pname, "newest", dir,
                                                         flavor)
 
+                    # select out matched versions
                     vers = stack.getVersions(pname, flavor)
                     if version:
                         vers = fnmatch.filter(vers, version)
@@ -1671,6 +1736,8 @@ class Eups(object):
 
                     for ver in vers:
                         prod = stack.getProduct(pname, ver, flavor)
+
+                        # match against the desired tags
                         if tags:
                             if newest and newest.version == ver:
                                 # we'll add this on the end so as not to 
@@ -1686,10 +1753,26 @@ class Eups(object):
                                 
                         else:
                             out.append(prod)
-                                
+
+                        # remove this product from the setup list if it is 
+                        # setup:
+                        key = prodkey(prod)
+                        if setup.has_key(key):  del setup[key]
+                            
+
+                    # add newest if we have/want it
                     if newest:
                         out.append(newest)
+                        key = prodkey(newest)
+                        if setup.has_key(key):  del setup[key]
                         newest = None
+
+                    # append any matched setup products having current
+                    # name, flavor and stack directory
+                    for key in filter(lambda k: k.startswith("%s:%s:%s" % (pname,flavor,dir)), setup.keys()):
+                        out.append(setup[key])
+                        del setup[key]
+                                                             
 
         return out
                 
@@ -1700,9 +1783,9 @@ class Eups(object):
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
         if utils.isRealFilename(tablefile):
-            for (product, optional, currentRequested) in \
+            for (product, optional) in \
                     Table(tablefile).dependencies(self, eupsPathDirs, setupType=setupType):
-                dependencies += [(product, optional, currentRequested)]
+                dependencies += [(product, optional)]
 
         return dependencies
 
@@ -1970,7 +2053,7 @@ class Eups(object):
         """Declare a product current.
         DEPRECATED: use assignTag()
         """
-        if not self.quiet:
+        if self.quiet <= 0:
             print >> sys.stderr, "Warning: Eups.declareCurrent() DEPRECATED; use assignTag()"
 
         # this will raise an exception if "current" is not allowed
@@ -1981,7 +2064,7 @@ class Eups(object):
         """Remove the CurrentChain for productName/versionName from the live current chain (of type currentType)
         DEPRECATED: use assignTag()
         """
-        if not self.quiet:
+        if self.quiet <= 0:
             print >> sys.stderr, "Warning: Eups.remvoeCurrent() DEPRECATED; use unassignTag()"
 
         # this will raise an exception if "current" is not allowed
@@ -2008,7 +2091,7 @@ class Eups(object):
         current and setup are provided for backward compatibility, but
         are deprecated.  
         """
-        if not self.quiet:
+        if self.quiet <= 0:
             print >> sys.stderr, "Note: Eups.listProducts() is deprecated; use Eups.findProducts() instead."
 
         if current or setup:

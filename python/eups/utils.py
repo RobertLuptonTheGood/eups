@@ -86,7 +86,6 @@ def isRealFilename(filename):
     It need not exist.  The following names are considered placeholders:
     ["none", "???"].
     """
-
     if filename is None:
         return False
     elif filename in ("none", "???"):

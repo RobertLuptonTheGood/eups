@@ -7,6 +7,9 @@ from testTags import *
 from testProduct import *
 from testDb import *
 from testStack import *
+from testVersionCompare import *
+from testTable import *
+from testEups import *
 
 if __name__ == "__main__":
     unittest.main()

@@ -94,7 +94,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "1.2")
         self.assertEquals(prod.dir, "DarwinX86/fw/1.2")
         self.assertEquals(prod.flavor, "Darwin")
-        self.assertEquals(prod.table, "DarwinX86/fw/1.2/ups/fw.table")
+        self.assertEquals(prod.tablefile, "DarwinX86/fw/1.2/ups/fw.table")
         self.assertEquals(len(prod.tags), 0)
         self.assert_(prod.db is None)
 
@@ -105,7 +105,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "1.2")
         self.assertEquals(prod.dir, "/opt/sw/Linux/fw/1.2")
         self.assertEquals(prod.flavor, "Linux:rhel")
-        self.assertEquals(prod.table, "/opt/sw/Linux/fw/1.2/ups/fw.table")
+        self.assertEquals(prod.tablefile, "/opt/sw/Linux/fw/1.2/ups/fw.table")
         self.assertEquals(len(prod.tags), 0)
         self.assert_(prod.db is None)
 
@@ -319,7 +319,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
         self.assertEquals(prod.dir, 
                 "/lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9")
-        self.assertEquals(prod.table, "/lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9/ups/doxygen.table")
+        self.assertEquals(prod.tablefile, "/lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9/ups/doxygen.table")
         self.assertEquals(len(prod.tags), 0)
 
         prod = self.db.findProduct("doxygen", "1.5.7.1", "Linux")
@@ -330,7 +330,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
         self.assertEquals(prod.dir, 
                 "/home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1")
-        self.assertEquals(prod.table, "/home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1/ups/doxygen.table")
+        self.assertEquals(prod.tablefile, "/home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1/ups/doxygen.table")
         self.assertEquals(len(prod.tags), 1)
         self.assertEquals(prod.tags[0], "current")
 
@@ -450,7 +450,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.assertEquals(prods[0].version, "1.0")
             self.assertEquals(prods[0].flavor, "Linux")
             self.assertEquals(prods[0].dir, baseidir)
-            self.assertEquals(prods[0].table, 
+            self.assertEquals(prods[0].tablefile, 
                               os.path.join(baseidir, "ups/base.table"))
             self.assertEquals(len(prods[0].tags), 1)
             self.assertEquals(prods[0].tags[0], "current")

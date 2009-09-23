@@ -404,6 +404,11 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prods[0].version, "2.5.2")
         del q
 
+    def testSetup(self):
+        # test getSetupProducts(), findSetupProduct(), findProducts(), 
+        # listProducts(), findSetupVersion()
+        pass
+
 
 __all__ = "EupsTestCase".split()        
 

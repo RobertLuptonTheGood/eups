@@ -1,5 +1,7 @@
-from eups import Product
-from eups.exceptions import ProductNotFound
+from eups import utils
+from eups.Product import Product
+from eups.exceptions import ProductNotFound, TableFileNotFound
+from eups.table import Table
 
 class ProductFamily(object):
     """
@@ -13,11 +15,12 @@ class ProductFamily(object):
         """
 
         # the product name
-        self.name = name;
+        self.name = name
 
         # a lookup for version-specific information where the keys are the 
         # version names and the values are tuples containing the installation 
-        # directory and the dependencies table
+        # directory, the dependencies table, and a corresponding instance of
+        # Table (which may be None).
         self.versions = {}
 
         # a lookup of tag assignments where each key is a tag name and its 
@@ -44,10 +47,13 @@ class ProductFamily(object):
             versdata = self.versions[version]
             tags = map(lambda item: item[0], 
                        filter(lambda x: x[1]==version, self.tags.items()))
-            return Product(self.name, version, flavor, 
-                           versdata[0],    # the install directory
-                           versdata[1],    # the table file
-                           tags, dbpath)
+            out = Product(self.name, version, flavor, 
+                          versdata[0],    # the install directory
+                          versdata[1],    # the table file
+                          tags, dbpath)
+            if versdata[2]:
+                out._table = versdata[2]
+            return out
                            
         except KeyError:
             raise ProductNotFound(self.name, version)
@@ -64,7 +70,7 @@ class ProductFamily(object):
         return true if the give tag is currently assigned to a version
         of this product.
         """
-        return self.tags.has_key(tag);
+        return self.tags.has_key(tag)
 
     def getTaggedProduct(self, tag, dbpath=None, flavor=None):
         """
@@ -106,9 +112,10 @@ class ProductFamily(object):
         for vers in versions.keys():
             prod = versions[vers]
             if prod.name == self.name:
-                self.addVersion(prod.version, prod.dir, prod.table)
+                self.addVersion(prod.version, prod.dir, prod.tablefile, 
+                                prod._table)
 
-    def addVersion(self, version, installdir, table=None):
+    def addVersion(self, version, installdir, tablefile=None, table=None):
         """
         register an installed version.  If the version already exists, it 
         will be overwritten.
@@ -116,14 +123,17 @@ class ProductFamily(object):
         @param version :      the name of the version to add
         @param installdir :   the installation directory where the product 
                                   is installed.
-        @param table :        the dependency table for this version.  If None,
-                                  no table is applicable
+        @param tablefile :    the path to the dependency table for this 
+                                  version.  If None, no path is applicable
+        @param table :        the dependency table as a Table instance.  If
+                                  None, the loading of the Table instance is 
+                                  deferred.  
         """
         if not version:
             msg = "Missing version name while registering new version " + \
                 "for product %s: %s"
             raise RuntimeError(msg % (self.name, version))
-        self.versions[version] = (installdir, table)
+        self.versions[version] = (installdir, tablefile, table)
 
     def hasVersion(self, version):
         """
@@ -161,7 +171,7 @@ class ProductFamily(object):
         If None, it will not get recorded.  
         """
         if not self.hasVersion(version):
-            raise ProductNotFound(self.name, version);
+            raise ProductNotFound(self.name, version)
         self.tags[tag] = version
 
     def unassignTag(self, tag, file=None):
@@ -179,6 +189,26 @@ class ProductFamily(object):
         else:
             return False
 
+    def loadTableFor(self, version, table=None):
+        """
+        cache the parsed contents of the table file.  If table is not None,
+        it will be taken as the Table instance representing the already 
+        parsed contents; otherwise, the table will be loaded from the 
+        table file path.  
 
-
+        @param version   the version of the product to load
+        @param table     an instance of Table to accept as the loaded
+                            contents
+        """
+        try:
+            verdata = self.version[version]
+            if not table:
+                if not utils.isRealFilename(verdata[1]):
+                    return
+                if not os.path.exists(verdata[1]):
+                    raise TableFileNotFound(verdata[1], self.name, version)
+                table = Table(verdata[1])
+            verdata[2] = table
+        except KeyError:
+            raise ProductNotFound(self.name, version)
 
