@@ -334,6 +334,20 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(len(prod.tags), 1)
         self.assertEquals(prod.tags[0], "current")
 
+        # test autonormalization of product install directories.
+        # The install directory (PROD_DIR) for this python is given 
+        # as a relative directory
+        prod = self.db.findProduct("python", "2.5.2", "Linux")
+        self.assert_(prod is not None)
+        self.assertEquals(prod.name, "python")
+        self.assertEquals(prod.version, "2.5.2")
+        self.assertEquals(prod.flavor, "Linux")
+        self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
+        expect_pdir = os.path.join(testEupsStack, "Linux/python/2.5.2")
+        self.assertEquals(prod.dir, expect_pdir)
+        expect_tfile = os.path.join(expect_pdir, "ups", "python.table")
+        self.assertEquals(prod.tablefile, expect_tfile)
+
     def testFindProducts(self):
         prods = self.db.findProducts("doxygen")
         self.assertEquals(len(prods), 2)

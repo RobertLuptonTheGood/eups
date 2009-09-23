@@ -4,7 +4,7 @@ from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename
 
 var_prod_dir_re = re.compile("\$PROD_DIR")
-var_ups_db_re = re.compile("\$UPS_DB")
+var_ups_dir_re = re.compile("\$UPS_DIR")
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 if who:
     who += " (%s)" % os.getlogin()
@@ -111,12 +111,22 @@ class VersionFile(object):
         if readFile and os.path.exists(self.file):
             self._read(self.file, verbosity)
 
-    def makeProduct(self, flavor):
+    def makeProduct(self, flavor, eupsPathDir=None, dbpath=None):
         """
         create a Product instance for the given flavor.  If the product has 
         not be declared for the flavor, a  ProductNotFound exception is raised.
 
-        @param flavor   : the desired flavor for the Product.  
+        @param flavor      : the desired flavor for the Product.  
+        @param eupsPathDir : the product stack path to assume that product is 
+                             installed under.  If the product install directory
+                             is a relative path (product.dir), this eupsPathDir 
+                             will be prepended in the output.  If None, no 
+                             alterations of the product install directory will 
+                             be done.
+        @param dbpath      : the product database directory to store into 
+                             the output product.db attribute.  If None, it will 
+                             default to eupsPathDir/ups_db; if eupsPathDir is 
+                             None, the product.db field will not be set.
         @return Product : a Product instance representing the product data
         """
         if not self.info.has_key(flavor):
@@ -126,13 +136,15 @@ class VersionFile(object):
         install = table = None
         if info.has_key("productDir"):
             install = info["productDir"]
+            if eupsPathDir:
+                install = os.path.join(eupsPathDir, install)
 
         if info.has_key("table_file"):
             table = info["table_file"]
 
         if info.has_key("ups_dir"):
-            # substitute out $UPS_DB
-            table = var_ups_db_re.sub(info["ups_dir"], table)
+            # substitute out $UPS_DIR
+            table = var_ups_dir_re.sub(info["ups_dir"], table)
 
         if not os.path.isabs(table) and not table.startswith("$PROD_DIR") and \
            info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
@@ -145,7 +157,11 @@ class VersionFile(object):
             # substitute out $PROD_DIR
             table = var_prod_dir_re.sub(install, table)
 
-        return Product(self.name, self.version, flavor, install, table)
+        if eupsPathDir and not dbpath:
+            dbpath = os.path.join(eupsPathDir, "ups_db")
+
+        return Product(self.name, self.version, flavor, install, table, 
+                       db=dbpath)
         
 
     def makeProducts(self):
@@ -441,7 +457,7 @@ Group:
                             if k == "table_file":
                                 info[k] = \
                                     re.sub(r"^ups_db/", "", self.info[fq][k])
-                                info["ups_dir"] = "$UPS_DB";
+                                info["ups_dir"] = "$UPS_DIR";
 
             for field in self._fields:
                 if field == "PROD_DIR":

@@ -8,7 +8,7 @@ Group:
    QUALIFIERS = ""
    DECLARER = Raymond L. Plante
    DECLARED = 2009/03/21 20:41:59 CDT
-   PROD_DIR = Linux/external/python/2.5.2
+   PROD_DIR = Linux/python/2.5.2
    UPS_DIR = ups
    TABLE_FILE = python.table
 End:

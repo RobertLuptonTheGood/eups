@@ -37,7 +37,7 @@ class Eups(object):
     ups_db = "ups_db"
 
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
-                 shell=None, verbose=False, quiet=0,
+                 shell=None, verbose=0, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
@@ -323,7 +323,7 @@ class Eups(object):
                 versionName = vers
 
         try:
-            productDir = environ[self._envarDirName()]
+            productDir = environ[self._envarDirName(productName)]
         except KeyError:
             pass
             
@@ -344,7 +344,7 @@ class Eups(object):
 
     def _envarDirName(self, productName):
         # Return the name of the product directory's environment variable
-        return self.name.upper() + "_DIR"
+        return productName.upper() + "_DIR"
 
 
     def findProduct(self, name, version=None, eupsPathDirs=None, flavor=None,
@@ -722,9 +722,9 @@ class Eups(object):
                 continue
 
             try:
-                product = self.findSetupProduct(requestedProductName)
+                product = self.findSetupProduct(productName)
                 if not product and self.quiet <= 0:
-                    print >> sys.stderr, "Product %s is not setup" % requestedProductName
+                    print >> sys.stderr, "Product %s is not setup" % productName
                 continue
 
             except RuntimeError, e:
@@ -861,14 +861,14 @@ class Eups(object):
         """Return vname if it matches the logical expression expr"""
 
         expr0 = expr
-        expr = filter(lambda x: not re.search(r"^\s*$", x), re.split(r"\s*(%s|\|\||\s)\s*" % Eups._relop_re, expr))
+        expr = filter(lambda x: not re.search(r"^\s*$", x), re.split(r"\s*(%s|\|\||\s)\s*" % self._relop_re.pattern, expr0))
 
         oring = True;                       # We are ||ing primitives
         i = -1
         while i < len(expr) - 1:
             i += 1
 
-            if re.search(Eups._relop_re, expr[i]):
+            if self._relop_re.search(expr[i]):
                 op = expr[i]; i += 1
                 v = expr[i]
             elif re.search(r"^[-+.:/\w]+$", expr[i]):
@@ -922,7 +922,13 @@ class Eups(object):
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
               setupToplevel=True, noRecursion=False, setupType=None):
         """
-        Update the environment to use (or stop using) a specified product.
+        Update the environment to use (or stop using) a specified product.  
+
+        The environment is updated by updating environment variables in 
+        os.environ as well as an internal list of shell command aliases.
+        (The app.setup() wrapper function is responsible for generating
+        the actual commands that should be run by the shell to update
+        the shell environment.)
 
         @param productName      the name of the product desired
         @param versionName      the version of the product desired.  This is 
@@ -936,13 +942,16 @@ class Eups(object):
                                   another product, this value should > 0.  
                                   Normally, this parameter is only used 
                                   internally, not by external applications.
-        @param setupToplevel    
+        @param setupToplevel    if False, this request is being called to 
+                                  setup a dependency product.  This is primarily
+                                  for internal use; application use will 
+                                  normally leave this to its default value of
+                                  True.
         @param noRecursion      if True, dependency products should not be 
-                                  setup.
-        @param setupType        
+                                  setup.  The default is False.
+        @param setupType        (internal use?)
+        """
 
-        The workhorse for setup.  Return (success?, version) and modify self.{environ,aliases} as needed;
-        eups.setup() generates the commands that we need to issue to propagate these changes to your shell"""
         #
         # Look for product directory
         #
@@ -979,7 +988,7 @@ class Eups(object):
 
             if not product.version:  
                 product.version = versionName
-            elif not self.version_match(product.version, versionName):
+            elif versionName and not self.version_match(product.version, versionName):
                 if self.quiet <= 0:
                     print >> sys.stderr, \
                         "You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
@@ -1069,7 +1078,7 @@ class Eups(object):
             if sprod is None:
                 sversionName = None
 
-            if product.version and sprod.version:
+            if sprod and sprod.version and product.version:
                 if product.version == sprod.version or productDir == sprod.dir: # already setup
                     if recursionDepth == 0: # top level should be resetup if that's what they asked for
                         pass

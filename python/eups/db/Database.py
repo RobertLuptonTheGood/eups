@@ -22,15 +22,25 @@ class Database(object):
     @author Raymond Plante
     """
 
-    def __init__(self, dbpath):
+    def __init__(self, dbpath, defStackRoot=None):
         """
         create an instance of a database.
-        @param dbpath    the full path to the directory (usually called 
-                            "ups_db") containing a EUPS software database.
+        @param dbpath        the full path to the directory (usually called 
+                                "ups_db") containing a EUPS software database.
+        @param defStackRoot  the default path for product stack root directory.
+                                When product install directories are specified
+                                with relative paths, they will be assumed to be
+                                relative to this root directory.  If None, 
+                                it defaults to the parent directory of dbpath.
+                                Specify an empty string ("") is the default is 
+                                a bad assumption.
         """
 
         # path to the database directory (ups_db)
         self.dbpath = dbpath
+        if defStackRoot is None:
+            defStackRoot = os.path.dirname(self.dbpath)
+        self.defStackRoot = defStackRoot
 
     def _productDir(self, productName):
         return os.path.join(self.dbpath, productName)
@@ -73,8 +83,8 @@ class Database(object):
         verdata = VersionFile(vfile, name, version)
         product = None
         try:
-            product = verdata.makeProduct(flavor)
-            product.db = self.dbpath
+            product = verdata.makeProduct(flavor, self.defStackRoot, 
+                                          self.dbpath)
             product.tags = self.findTags(name, version, flavor)
         except ProductNotFound:
             return None
