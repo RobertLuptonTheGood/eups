@@ -141,10 +141,8 @@ class VersionFile(object):
 
         if info.has_key("table_file"):
             table = info["table_file"]
-            if not isRealFilename(table):
-                table = None
 
-        if table:
+        if isRealFilename(table):
             if info.has_key("ups_dir"):
                 # substitute out $UPS_DIR
                 table = var_ups_dir_re.sub(info["ups_dir"], table)
