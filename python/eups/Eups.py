@@ -2107,8 +2107,8 @@ class Eups(object):
         if self.quiet <= 0:
             print >> sys.stderr, "Note: Eups.listProducts() is deprecated; use Eups.findProducts() instead."
 
+        tags = []
         if current or setup:
-            tags = []
             if current:  tags.append("current")
             if setup:  tags.append("setup")
 
