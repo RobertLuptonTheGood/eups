@@ -1,0 +1,3 @@
+if (flavor == DarwinX86) {  
+    setEnv(FOO, 1)
+}

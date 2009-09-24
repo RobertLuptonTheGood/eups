@@ -372,7 +372,7 @@ class Eups(object):
                                 to the extent it is available.  
         """
         if not version:
-            return self.findPreferredProduct(name, eupsPathDirs, flavor)
+            return self.findPreferredProduct(name, eupsPathDirs, flavor, noCache=noCache)
 
         if not flavor:
             flavor = self.flavor
@@ -736,13 +736,13 @@ class Eups(object):
 
         return productList
 
-    def findSetupProduct(self, productName):
+    def findSetupProduct(self, productName, environ=None):
         """
         return a Product instance for a currently setup product.  None is 
         returned if a product with the given name is not currently setup.
         """
         versionName, eupsPathDir, productDir, tablefile, flavor = \
-            self.findSetupVersion(productName)
+            self.findSetupVersion(productName, environ)
         if versionName is None:
             return None
         return Product(productName, versionName, flavor, productDir,
@@ -849,13 +849,14 @@ class Eups(object):
     _bad_relop_re = re.compile(r"^\s*=\s+\S+")
 
     def isLegalRelativeVersion(self, versionName):
+        if versionName is None:
+            return False
         if self._relop_re.search(versionName):
             return True
-        elif self._bad_relop_re.match(versionName):
+        if self._bad_relop_re.match(versionName):
             raise RuntimeError("Bad expr syntax: %s; did you mean '=='?" % 
                                versionName)
-        else:
-            return False
+        return False
 
     def version_match(self, vname, expr):
         """Return vname if it matches the logical expression expr"""

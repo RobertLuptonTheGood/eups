@@ -1,0 +1,2 @@
+envPrepend(PATH, ${PRODUCT_DIR}/bin)
+envPrepend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)

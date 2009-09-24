@@ -96,6 +96,19 @@ class ProductFamilyTestCase(unittest.TestCase):
         self.assertEquals(len(fam.getVersions()), 1)
         self.assert_(fam.hasVersion("3.1"))
 
+    def testLoadTable(self):
+        tablefile = os.path.join(testEupsStack,"mwi.table")
+        self.fam.addVersion("3.1", "/opt/LInux/magnum/3.1", tablefile)
+        prod = self.fam.getProduct("3.1")
+        self.assert_(prod.tablefile is not None)
+        self.assert_(os.path.exists(prod.tablefile))
+        self.assert_(prod._table is None)
+        self.fam.loadTableFor("3.1")
+        prod = self.fam.getProduct("3.1")
+        self.assert_(prod._table is not None)
+        
+        
+
 from eups.stack import ProductStack
 from eups import ProductNotFound, UnderSpecifiedProduct
 
@@ -347,6 +360,17 @@ class ProductStackTestCase(unittest.TestCase):
         self.stack.clearCache()
         self.assertEquals(len(ProductStack.findCachedFlavors(self.dbpath)),0)
         self.assert_(not os.path.exists(cache))
+
+    def testLoadTable(self):
+        tablefile = os.path.join(testEupsStack,"mwi.table")
+        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", 
+                       tablefile)
+        self.stack.addProduct(prod)
+
+        self.stack.loadTableFor(prod.name, prod.version, prod.flavor)
+        prod = self.stack.getProduct("afw", "1.2", "Darwin")
+        self.assert_(prod._table is not None)
+
 
 __all__ = "ProductFamilyTestCase ProductStackTestCase".split()
 

@@ -572,10 +572,15 @@ class ProductStack(object):
                                contents
         """
         try:
-            self.lookup[flavor][name].loadTableFor(version, table)
+            if not table:
+                # get a fully parsed, resolved table
+                prod = self.getProduct(productName, version, flavor)
+                table = prod.getTable()
+
+            self.lookup[flavor][productName].loadTableFor(version, table)
             self._flavorsUpdated(flavor)
         except KeyError:
-            raise ProductNotFound(name, version, flavor)
+            raise ProductNotFound(productName, version, flavor)
 
 
     def _lockfilepath(self, file):

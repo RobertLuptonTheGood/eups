@@ -210,7 +210,8 @@ class Database(object):
             out[vers] = {}
             for f in flavs:
                 if f in declared:
-                    out[vers][f] = vfile.makeProduct(f)
+                    out[vers][f] = vfile.makeProduct(f, self.defStackRoot, 
+                                                     self.dbpath)
 
         if len(out.keys()) == 0:
             return []

@@ -160,20 +160,28 @@ but no other interpretation is applied
                 for i in range(len(a.args)):
                     value = a.args[i]
 
-                    value = re.sub(r"\${PRODUCTS}", product.db, value)
+                    root = product.stackRoot()
+                    if root:
+                        value = re.sub(r"\${PRODUCTS}", root, value)
+                    elif re.search(r"\${PRODUCTS}", value):
+                        print >> sys.stderr, "Unable to expand PRODUCTS in %s" % self.file
 
                     if re.search(r"\${PRODUCT_DIR}", value):
                         if product.dir:
                             value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
-                        else:
+                        elif re.search(r"\${PRODUCT_DIR}", value):
                             print >> sys.stderr, "Unable to expand PRODUCT_DIR in %s" % self.file
 
-                    value = re.sub(r"\${PRODUCT_FLAVOR}", product.Eups.flavor, value)
+                    if product.flavor:
+                        value = re.sub(r"\${PRODUCT_FLAVOR}", product.flavor, value)
+                    elif re.search(r"\${PRODUCT_FLAVOR}", value):
+                        print >> sys.stderr, "Unable to expand PRODUCT_FLAVOR in %s" % self.file
+
                     value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
                     if re.search(r"\${PRODUCT_VERSION}", value):
                         if product.version:
                             value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
-                        else:
+                        elif re.search(r"\${PRODUCT_VERSION}", value):
                             print >> sys.stderr, "Unable to expand PRODUCT_VERSION in %s" % self.file
 
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
@@ -338,11 +346,10 @@ but no other interpretation is applied
             if parser.eval():
                 actions += block
 
-        if actions:
-            return actions
-        else:
+        if len(actions) == 0 and False:
             msg = "Table %s has no entry for flavor %s" % (self.file, flavor)
-            raise BadTableContent(self.file, msg=msg)
+            print >> sys.stderr, msg
+        return actions
 
     def __str__(self):
         s = ""
@@ -498,9 +505,10 @@ class Action(object):
         if len(args) > 1:
             vers = " ".join(args[1:])
         else:
-            vers = Current()
+            vers = None
 
-        if not isSpecialVersion(vers):  # see if we have a version of the form "logical [exact]"
+        if vers:  
+            # see if a version of the form "logical [exact]"
             mat = re.search(r"(\S*)\s*\[([^\]]+)\]\s*", vers)
             if mat:
                 exactVersion, logicalVersion = mat.groups()
@@ -524,17 +532,18 @@ class Action(object):
         if not productOK and fwd:
             if optional:                # setup the pre-existing version (if any)
                 try:
-                    product = Eups.Product(productName, noInit=True).initFromSetupVersion(Eups.oldEnviron)
-                    q = Quiet(Eups)
-                    productOK, vers, reason = Eups.setup(productName, product.version, fwd, recursionDepth)
-                    del q
-                    if productOK:
-                        if Eups.verbose > 0:
-                            print >> sys.stderr, "            %sKept previously setup %s %s" % \
-                                  (recursionDepth*" ", product.name, product.version)
-                    else:
-                        #debug(reason)
-                        pass
+                    product = Eups.findSetupProduct(productName, Eups.oldEnviron)
+                    if product:
+                        q = utils.Quiet(Eups)
+                        productOK, vers, reason = Eups.setup(productName, product.version, fwd, recursionDepth)
+                        del q
+                        if productOK:
+                            if Eups.verbose > 0:
+                                print >> sys.stderr, "            %sKept previously setup %s %s" % \
+                                    (recursionDepth*" ", product.name, product.version)
+                        else:
+                            #utils.debug(reason)
+                            pass
                 except RuntimeError, e:
                     pass
             else:
@@ -741,7 +750,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
 
         if not version:
             try:
-                product = Eups.Product(productName, noInit=True).initFromSetupVersion()
+                product = Eups.findSetupProduct(productName)
                 version = product.version
             except RuntimeError, e:
                 print >> sys.stderr, e

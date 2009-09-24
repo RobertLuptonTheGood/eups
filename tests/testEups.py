@@ -407,7 +407,18 @@ class EupsTestCase(unittest.TestCase):
     def testSetup(self):
         # test getSetupProducts(), findSetupProduct(), findProducts(), 
         # listProducts(), findSetupVersion()
-        pass
+
+        self.eups.setup("python")
+        self.assert_(os.environ.has_key("PYTHON_DIR"))
+        self.assert_(os.environ.has_key("SETUP_PYTHON"))
+        self.assert_(os.environ.has_key("TCLTK_DIR"))
+        self.assert_(os.environ.has_key("SETUP_TCLTK"))
+
+        self.eups.unsetup("python")
+        self.assert_(not os.environ.has_key("PYTHON_DIR"))
+        self.assert_(not os.environ.has_key("SETUP_PYTHON"))
+        self.assert_(not os.environ.has_key("TCLTK_DIR"))
+        self.assert_(not os.environ.has_key("SETUP_TCLTK"))
 
 
 __all__ = "EupsTestCase".split()        

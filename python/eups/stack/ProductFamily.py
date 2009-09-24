@@ -1,3 +1,4 @@
+import os
 from eups import utils
 from eups.Product import Product
 from eups.exceptions import ProductNotFound, TableFileNotFound
@@ -201,14 +202,15 @@ class ProductFamily(object):
                             contents
         """
         try:
-            verdata = self.version[version]
+            verdata = self.versions[version]
             if not table:
                 if not utils.isRealFilename(verdata[1]):
                     return
                 if not os.path.exists(verdata[1]):
                     raise TableFileNotFound(verdata[1], self.name, version)
-                table = Table(verdata[1])
-            verdata[2] = table
+                prod = self.getProduct(version)
+                table = Table(verdata[1]).expandEupsVariables(prod)
+            self.versions[version] = (verdata[0], verdata[1], table)
         except KeyError:
             raise ProductNotFound(self.name, version)
 
