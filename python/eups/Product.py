@@ -143,10 +143,15 @@ class Product(object):
         return self._table
 
     def persist(self, fd):
-        cPickle.dump(self, fd, protocol=2);
+        out = (self.name, self.version, self.flavor, self.dir, self.tablefile,
+               self.tags, self.db, self._table)
+        cPickle.dump(out, fd, protocol=2);
 
     # @staticmethod   # requires python 2.4
     def unpersist(fd):
         """return a Product instance restored from a file persistence"""
-        return cPickle.load(fd);
+        p = cPickle.load(fd);
+        out = Product(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
+        out._table = p[7]
+        return out
     unpersist = staticmethod(unpersist)  # should work as of python 2.2

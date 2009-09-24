@@ -8,7 +8,7 @@ Group:
    QUALIFIERS = ""
    DECLARER = Raymond L. Plante
    DECLARED = 2009/03/25 02:29:21 CDT
-   PROD_DIR = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/cfitsio/3006.2
+   PROD_DIR = Linux/cfitsio/3006.2
    UPS_DIR = ups
-   TABLE_FILE = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/cfitsio/3006.2/ups/cfitsio.table
+   TABLE_FILE = cfitsio.table
 End:

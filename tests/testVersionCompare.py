@@ -10,7 +10,7 @@ import unittest
 import time
 from testCommon import testEupsStack
 
-from eups.NewVersionCompare import VersionCompare, NewVersionCompare
+from eups.VersionCompare import VersionCompare
 from eups import utils
 
 class VersionCompareTestCase(unittest.TestCase):

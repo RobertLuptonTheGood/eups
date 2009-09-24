@@ -389,3 +389,17 @@ class ConfigProperty(object):
     def __str__(self):
         return str(self._props())
 
+def canPickle():
+    """
+    run a pickling test to see if python is late enough to allow EUPS to
+    cache product info.
+    """
+    try:
+        import cPickle
+        cPickle.dump(None, None, protocol=2)
+    except TypeError:
+        return False
+    except ImportError:
+        return False
+
+    return True

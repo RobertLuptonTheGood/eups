@@ -34,7 +34,7 @@ class TableTestCase2(unittest.TestCase):
     def setUp(self):
         self.tablefile = os.path.join(testEupsStack, "tablesyntax.table")
         self.table = Table(self.tablefile)
-        self.eups = Eups()
+        self.eups = Eups(flavor="Linux")
 
     def tearDown(self):
         if os.environ.has_key("FOO"):

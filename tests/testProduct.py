@@ -3,7 +3,7 @@
 Tests for eups.product
 """
 
-import pdb                              # we may want to say pdb.set_trace()
+#import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import unittest

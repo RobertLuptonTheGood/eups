@@ -1,4 +1,5 @@
 import re, os, cPickle, sys
+from eups import utils
 from eups import Product
 from ProductFamily import ProductFamily
 from eups.exceptions import ProductNotFound, UnderSpecifiedProduct
@@ -117,6 +118,9 @@ class ProductStack(object):
         if self.userTagDir is not None and self.autosave and \
            not os.path.exists(self.userTagDir):
             raise IOError("Directory not found: " + self.userTagDir)
+
+        # True if python is new enough to pickle the cache data
+        self.canCache = utils.canPickle()
 
 
     def getDbPath(self):
