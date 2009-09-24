@@ -141,21 +141,24 @@ class VersionFile(object):
 
         if info.has_key("table_file"):
             table = info["table_file"]
+            if not utils.isRealFilename(table):
+                table = None
 
-        if info.has_key("ups_dir"):
-            # substitute out $UPS_DIR
-            table = var_ups_dir_re.sub(info["ups_dir"], table)
+        if table:
+            if info.has_key("ups_dir"):
+                # substitute out $UPS_DIR
+                table = var_ups_dir_re.sub(info["ups_dir"], table)
 
-        if not os.path.isabs(table) and not table.startswith("$PROD_DIR") and \
-           info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
-            table = os.path.join(info["ups_dir"], table)
-        if not os.path.isabs(table) and not table.startswith("$PROD_DIR") and \
-           install is not None and isRealFilename(install):
-            table = os.path.join(install, table)
+            if not os.path.isabs(table) and not table.startswith("$PROD_DIR") \
+               and info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
+                table = os.path.join(info["ups_dir"], table)
+            if not os.path.isabs(table) and not table.startswith("$PROD_DIR") \
+               and install is not None and isRealFilename(install):
+                table = os.path.join(install, table)
 
-        if install:
-            # substitute out $PROD_DIR
-            table = var_prod_dir_re.sub(install, table)
+            if install:
+                # substitute out $PROD_DIR
+                table = var_prod_dir_re.sub(install, table)
 
         if eupsPathDir and not dbpath:
             dbpath = os.path.join(eupsPathDir, "ups_db")
