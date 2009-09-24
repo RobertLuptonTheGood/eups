@@ -141,7 +141,7 @@ class VersionFile(object):
 
         if info.has_key("table_file"):
             table = info["table_file"]
-            if not utils.isRealFilename(table):
+            if not isRealFilename(table):
                 table = None
 
         if table:
