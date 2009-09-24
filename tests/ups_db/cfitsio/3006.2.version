@@ -10,5 +10,5 @@ Group:
    DECLARED = 2009/03/25 02:29:21 CDT
    PROD_DIR = Linux/cfitsio/3006.2
    UPS_DIR = ups
-   TABLE_FILE = cfitsio.table
+   TABLE_FILE = none
 End:
