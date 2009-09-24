@@ -900,7 +900,7 @@ but no other interpretation is applied
         if block:
             self._actions += [(logical, block)]
 
-    def actions(self, flavor, setupType=None):
+    def actions(self, flavor, setupType=None, verbose=0):
         """Return a list of actions for the specified flavor"""
 
         actions = []
@@ -916,10 +916,15 @@ but no other interpretation is applied
             if parser.eval():
                 actions += block
 
-        if actions:
-            return actions
-        else:
-            raise RuntimeError, ("Table %s has no entry for flavor %s" % (self.file, flavor))
+        if not actions and verbose > 1:
+            if setupType:
+                setupTypeMsg = ", type %s" % setupType
+            else:
+                setupTypeMsg = ""
+            
+            print >> sys.stderr, "Table %s has no actions for flavor %s%s" % (self.file, flavor, setupTypeMsg)
+
+        return actions
 
     def __str__(self):
         s = ""
@@ -2968,7 +2973,10 @@ match fails.
         table = product.table
 
         try:
-            actions = table.actions(setupFlavor, setupType=setupType)
+            verbose = self.verbose
+            if not fwd:
+                verbose -= 1
+            actions = table.actions(setupFlavor, setupType=setupType, verbose=verbose)
         except RuntimeError, e:
             print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
             return False, product.version, e

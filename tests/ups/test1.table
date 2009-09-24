@@ -16,7 +16,7 @@ if( FLAVOR == Xoo || (1 != 1 && FLAVOR == Foo) || FlAVoR == Goo) {
    envSet(MMM, 1)
 }
 
-if (FLAVOR == Foo && BUILD) {
+if (FLAVOR == Foo && TYPE == build) {
    setEnv(BBB, 1)
 }
 
