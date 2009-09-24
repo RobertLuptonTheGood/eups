@@ -8,7 +8,7 @@ import os
 import re, sys
 import pdb
 
-from exceptions import BadTableContent
+from exceptions import BadTableContent, TableFileNotFound
 from Parser import Parser
 import utils
 
@@ -529,6 +529,7 @@ class Action(object):
                     vers = logicalVersion
 
         productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth)
+            
         if not productOK and fwd:
             if optional:                # setup the pre-existing version (if any)
                 try:

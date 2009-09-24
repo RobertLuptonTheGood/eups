@@ -1051,6 +1051,8 @@ class Eups(object):
             except TableError, e:
                 print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
                 return False, product.version, e
+        else:
+            actions = []
 
         #
         # Ready to go
@@ -1148,6 +1150,7 @@ class Eups(object):
 
             self.unsetEnv(self._envarDirName(product.name))
             self.unsetEnv(self._envarSetupName(product.name))
+
         #
         # Process table file
         #
