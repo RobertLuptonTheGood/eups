@@ -160,6 +160,16 @@ class Distribution(object):
 
         idstring = " %s %s for %s" % \
             (manifest.product, manifest.version, flavor)
+        #
+        # Is it already declared with this tag?
+        #
+        try:
+            self.Eups.findVersion(manifest.product, manifest.version)
+            if self.verbose > 0:
+                "%s is already declared %s" % (manifest.product, manifest.version)
+            return
+        except RuntimeError, e: # We didn't find the version, so we'll have to install it
+            pass
 
         products = manifest.getProducts()
         if self.verbose >= 0 and len(products) == 0:
