@@ -736,8 +736,12 @@ but no other interpretation is applied
     def expandEupsVariables(self, product):
         """Expand eups-related variables such as $PRODUCT_DIR"""
 
-        for action in self._actions:
-            for a in action[1]:
+        for logical, block in self._actions:
+            if not eupsParser.Parser(logical).eval():
+                pass
+                #continue
+
+            for a in block:
                 for i in range(len(a.args)):
                     value = a.args[i]
 
@@ -1984,14 +1988,13 @@ class Eups(object):
                 else:
                     reason, verb = "is out of date", "rebuild"
 
-                    if flavor:
-                        flavorStr = " for flavor %s" % flavor
-                    else:
-                        flavorStr = ""
+                if flavor:
+                    flavorStr = " for flavor %s" % flavor
+                else:
+                    flavorStr = ""
                     
                 print >> sys.stderr, "Product cache in %s%s %s; I'll %s it" % \
                     (self.getUpsDB(eupsPathDir), flavorStr, reason, verb)
-                #import pdb; pdb.set_trace()
                 
             self.buildCache(eupsPathDir, flavor)
             return
@@ -3118,8 +3121,6 @@ match fails.
 
         if re.search(r"[^a-zA-Z_0-9]", productName):
             raise RuntimeError, ("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
-
-        #import pdb; pdb.set_trace()
 
         if productDir and not productName:
             productName = guessProduct(os.path.join(productDir, "ups"))
