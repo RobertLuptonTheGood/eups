@@ -2262,17 +2262,27 @@ class Eups(object):
             cfile = os.path.join(ups_db, productName, currentType.filename())
             if os.path.exists(cfile):
                 try:
-                    versionName = CurrentChain(cfile).info[self.flavor]["version"]
+                    for flavor in [self.flavor] + Flavor().getFallbackFlavors(self.flavor):
+                        try:
+                            versionName = CurrentChain(cfile).info[flavor]["version"]
 
-                    vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
-                    if os.path.exists(vfile):
-                        vers = VersionFile(vfile)
-                        if vers.info.has_key(self.flavor):
-                            vinfo = vers.info[self.flavor]
-                            return eupsPathDir, versionName, vinfo, currentType
+                            vfile = os.path.join(ups_db, productName, "%s.version" % versionName)
+                            if os.path.exists(vfile):
+                                vers = VersionFile(vfile)
+                                if vers.info.has_key(flavor):
+                                    vinfo = vers.info[flavor]
 
-                    raise RuntimeError, ("Unable to find current version %s of %s for flavor %s" %
-                                         (versionName, productName, self.flavor))
+                                    if flavor != self.flavor and self.verbose > 1:
+                                        print >> sys.stderr, "Product %s version %s is current for flavor %s" % \
+                                              (productName, versionName, flavor)
+
+                                    return eupsPathDir, versionName, vinfo, currentType
+
+                            raise RuntimeError, ("Unable to find current version %s of %s for flavor %s" %
+                                                 (versionName, productName, self.flavor))
+
+                        except KeyError:
+                            continue    # not current for this flavor
                 except KeyError:
                     pass                # not current in this eupsPathDir
 
@@ -3441,7 +3451,10 @@ match fails.
 
         if not versionName:
             productList = self.listProducts(productName)
-            versionList = map(lambda el: el.version, productList)
+            versionList = []
+            for v in map(lambda el: el.version, productList): # make sure version names are unique
+                if not versionList.count(v):
+                    versionList.append(v)
             
             if len(versionList) == 1:
                 versionName = versionList[0]
