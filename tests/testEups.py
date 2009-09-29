@@ -6,6 +6,7 @@ Tests for eups.Eups
 import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
+import shutil
 import unittest
 import time
 from testCommon import testEupsStack
@@ -46,6 +47,10 @@ class EupsTestCase(unittest.TestCase):
                     os.rmdir(os.path.join(dir,file))
             os.rmdir(newprod)
                     
+        pdir = os.path.join(testEupsStack, "Linux", "newprod")
+        pdir20 = os.path.join(pdir, "2.0")
+        if os.path.exists(pdir20):
+            shutil.rmtree(pdir20)
 
     def testInit(self):
         self.assertEquals(len(self.eups.path), 1)
@@ -419,6 +424,26 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(not os.environ.has_key("SETUP_PYTHON"))
         self.assert_(not os.environ.has_key("TCLTK_DIR"))
         self.assert_(not os.environ.has_key("SETUP_TCLTK"))
+
+    def testRemove(self):
+        pdir = os.path.join(testEupsStack, "Linux", "newprod")
+        pdir10 = os.path.join(pdir, "1.0")
+        pdir20 = os.path.join(pdir, "2.0")
+        shutil.copytree(pdir10, pdir20)
+        self.assert_(os.path.isdir(pdir20))
+
+        self.eups.declare("newprod", "2.0", pdir20)
+        self.assert_(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")))
+#        self.eups.verbose=1
+#        self.eups.remove("newprod", "2.0", False, interactive=True)
+        self.eups.remove("newprod", "2.0", False)
+        self.assert_(not os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")),
+                     "Failed to undeclare newprod")
+        self.assert_(not os.path.exists(pdir20), "Failed to remove newprod")
+
+        # need to test for recursion
+
+        
 
 
 __all__ = "EupsTestCase".split()        

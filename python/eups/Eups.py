@@ -12,6 +12,7 @@ from tags       import Tags, Tag, TagNotRecognized
 from exceptions import ProductNotFound
 from table      import Table
 from Product    import Product
+from Uses       import Uses
 import utils 
 import hooks
 from utils      import Flavor, Quiet
@@ -1790,8 +1791,8 @@ class Eups(object):
         return out
                 
 
-    def dependencies_from_table(self, tablefile, eupsPathDirs=None, setupType=None):
-        """Return self's dependencies as a list of (Product, optional, currentRequested) tuples
+    def dependencies_from_table(self, table, eupsPathDirs=None, setupType=None):
+        """Return self's dependencies as a list of (Product, optional) tuples
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
@@ -1830,7 +1831,7 @@ class Eups(object):
         productsToRemove = self._remove(productName, versionName, recursive, checkRecursive,
                                         topProduct, topVersion, userInfo)
 
-        productsToRemove = list(set(productsToRemove)) # remove duplicates
+        productsToRemove = _set(productsToRemove) # remove duplicates
         #
         # Actually wreak destruction. Don't do this in _remove as we're relying on the static userInfo
         #
@@ -1841,8 +1842,8 @@ class Eups(object):
         for product in productsToRemove:
             dir = product.dir
             if False and not dir:
-                raise RuntimeError, \
-                      ("Product %s with version %s doesn't seem to exist" % (product.name, product.version))
+                raise ProductNotFound("Product %s with version %s doesn't seem to exist" % 
+                                      (product.name, product.version))
             #
             # Don't ask about the same product twice
             #
@@ -1870,7 +1871,7 @@ class Eups(object):
                 if yn == "n":
                     continue
 
-            if not self.undeclare(product.name, product.version, undeclareCurrent=None):
+            if not self.undeclare(product.name, product.version):
                 raise RuntimeError, ("Not removing %s %s" % (product.name, product.version))
 
             if removedDirs.has_key(dir): # file is already removed
@@ -1890,17 +1891,15 @@ class Eups(object):
     def _remove(self, productName, versionName, recursive, checkRecursive, topProduct, topVersion, userInfo):
         """The workhorse for remove"""
 
-        try:
-            product = Product(self, productName, versionName)
-        except RuntimeError, e:
-            raise RuntimeError, ("product %s %s doesn't seem to exist" % (productName, versionName))
-
-        deps = [(product, False, False)]
+        product = self.getProduct(productName, versionName)  # can raise ProductNotFound
+        deps = [(product, False)]
         if recursive:
-            deps += product.dependencies()
+            tbl = product.getTable()
+            if tbl:
+                deps += tbl.dependencies(self)
 
         productsToRemove = []
-        for product, o, currentRequested in deps:
+        for product, o in deps:
             if checkRecursive:
                 usedBy = filter(lambda el: el[0] != topProduct or el[1] != topVersion,
                                 userInfo.users(product.name, product.version))
@@ -1948,7 +1947,8 @@ class Eups(object):
 
         self.exact_version = True
 
-        productList = self.listProducts(None)
+        # start with every known product
+        productList = self.findProducts()
 
         if not productList:
             return []
@@ -1958,17 +1958,20 @@ class Eups(object):
         for pi in productList:          # for every known product
             try:
                 q = Quiet(self)
-                deps = Product(self, pi.name, pi.version).dependencies() # lookup top-level dependencies
+                prod = self.getProduct(pi.name, pi.version)
+                tbl = prod.getTable()
+                if tbl:
+                    deps = tbl.dependencies(tbl)
                 del q
-            except RuntimeError, e:
-                print >> sys.stderr, ("%s %s: %s" % (pi.name, pi.version, e))
+            except ProductNotFound, e:
+                print >> sys.stderr, str(e)
                 continue
 
-            for pd, od, currentRequested in deps:
+            for pd, od in deps:
                 if pi.name == pd.name and pi.version == pd.version:
                     continue
 
-                useInfo._remember(pi.name, pi.version, (pd.name, pd.version, od, currentRequested))
+                useInfo._remember(pi.name, pi.version, (pd.name, pd.version, od))
 
         useInfo._invert(depth)
         #
@@ -2130,3 +2133,14 @@ class _TagSet(object):
             if self.lu.has_key(tag):
                 return True
         return False
+
+def _set(iterable):
+    """
+    return the unique members of a given list.  This is used in lieu of 
+    a python set to support python 2.3 and earlier.
+    """
+    out = []
+    for i in iterable:
+        if i not in out:
+            out.append(i)
+    return out
