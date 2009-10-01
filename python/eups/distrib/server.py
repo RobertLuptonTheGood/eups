@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- python -*-
-#
-# services for communicating with a remote package server
-#
+"""
+classes for communicating with a remote package server
+"""
 import sys, os, re, atexit, shutil
 import fnmatch
 import tempfile
 import urllib2
 import eups
+import eups.utils as utils
+
+from eups.exceptions import EupsException
 
 serverConfigFilename = "config.txt"
 BASH = "/bin/bash"    # see end of this module where we look for bash
@@ -25,8 +28,8 @@ class DistribServer(object):
         getFile()
         listFiles()
     The default implementations of the other functions pull their information 
-    (e.g. manifests, tagged releases) via the ones above; however, the other 
-    functions may be overridden as well for finer control.  See function 
+    (e.g. manifests, product tag assignments) via the ones above; however, the 
+    other functions may be overridden as well for finer control.  See function 
     documentation for more details.  See also ConfigurableDistribServer
     for an example of specializing.
 
@@ -46,10 +49,20 @@ class DistribServer(object):
         @param log           the destination for status messages (default:
                                sys.stderr)
         """
+        # the root (URL) of the distribution server
         self.base = packageBase
+
+        # a numeric measure of how chatty this instance should be
         self.verbose = verbosity
+
+        # a file object to send messages to
         self.log = log
 
+        # a cache of tag assignment lists.  The lookup is by tag name and then
+        # product name.  
+        self.tagged = {}
+
+        # configuration data
         if config is None:  config = {}
         self.config = config
         self._initConfig_()
@@ -84,17 +97,29 @@ class DistribServer(object):
                     (product, version, flavor)
                 raise RemoteFileNotFound(msg, e)
 
+    def getTagNames(self, flavor=None, noaction=False):
+        """
+        return the names of the tags supported by this server as a list.
+
+        This implementation will discover what files of the form *.list 
+        are available on the server, where * is a tag name.  The flavor 
+        parameter is ignored.
+        """
+        return map(lambda x: x[:-5], 
+                   filter(lambda f: f.endswith(".list"), 
+                          self.listFiles("", noaction)))
+
     def getTaggedProductList(self, tag="current", flavor=None, noaction=False):
-        """request the product list for a particular tagged release (default: 
+        """request the product list for a particular tag name (default: 
         "current") and return it as TaggedProductList instance.
 
-        This implementation calls getTaggedProductListAsFile() to get the 
-        list file from the server and then parses it via the TaggedProductList
-        class.  It is not necessary to override this unless you want to 
-        use a different TaggedProductList implementation.
+        This implementation downloads a single product list file on a per-tag
+        basis (the flavor parameter is ignored), and the results are parsed 
+        into a TaggedProductList instance and cached internally for subsequent
+        calls to this function.  It is not necessary to override this unless 
+        you want to use a different TaggedProductList implementation.
 
-        @param tag         a logical name for a release of a collection of 
-                             products
+        @param tag         a logical name assigned to versions of products
         @param flavor      the flavor of the platform of interest.  If None
                              (default) or "generic", then a platform-generic
                              list is desired.  An implementation may choose
@@ -106,20 +131,26 @@ class DistribServer(object):
                              be generated.
         @param noaction    if True, simulate the retrieval
         """
+        if self.tagged.has_key(tag) and self.tagged[tag]:
+            return self.tagged[tag]
+
         if noaction:
             if flavor is None:  flavor = "generic"
             return TaggedProductList(tag, flavor, self.verbose-1, self.log)
         else:
             try:
                 file = self.getFile("", flavor, tag, "list", noaction=noaction)
-                return TaggedProductList.fromFile(file, tag, 
-                                                  verbosity=self.verbose-1,
-                                                  log=self.log)
+                self.tagged[tag] = \
+                    TaggedProductList.fromFile(file, tag, 
+                                               verbosity=self.verbose-1,
+                                               log=self.log)
+                return self.tagged[tag]
+
             except RemoteFileNotFound, e:
                 if flavor is None:
                     flavor = "a generic platform"
                 
-                msg = 'Product release "%s" for %s not found on server' % (tag, flavor)
+                msg = 'Product tag "%s" for %s not found on server' % (tag, flavor)
                 raise RemoteFileNotFound(msg, e)
 
     def getTaggedProductInfo(self, product, flavor, tag=None):
@@ -170,10 +201,10 @@ class DistribServer(object):
         values.  
 
         The following calls may return equivalent results:
-           distrib.listAvailableProducts(flavor=flavor, tag=tag)
-           distrib.getTaggedProductList(tag, flavor)
+           distribServer.listAvailableProducts(flavor=flavor, tag=tag)
+           distribServer.getTaggedProductList(tag, flavor)
         If they differ, it will be in that the getTaggedProductList() results
-        contains additional information for one or more records.  
+        contains additional information for one or more products.  
 
         This implementation will end up reading every manifest file available
         on the server.  Sub-classes should do something more efficient.
@@ -181,7 +212,7 @@ class DistribServer(object):
         @param product     the desired product name
         @param version     the desired version of the product
         @param flavor      the flavor of the target platform
-        @param tag         an optional name for a release of the product
+        @param tag         an optional name for a tag assigned to the product
         """
 
         out = []
@@ -217,7 +248,7 @@ class DistribServer(object):
         the values of the other inputs.  
 
         This implementation simply looks for the path directly below the 
-        base URL.
+        base URL.  The flavor paramter is ignored.  
 
         @param path        the path on the remote server to the desired file
         @param flavor      the flavor of the target platform
@@ -298,7 +329,7 @@ class DistribServer(object):
 
         # make sure we can write to destination
         parent = os.path.dirname(filename)
-        if not os.path.isdir(parent):
+        if parent and not os.path.isdir(parent):
             os.makedirs(parent)
 
         trx.cacheToFile(filename, noaction=noaction)
@@ -390,14 +421,22 @@ class DistribServer(object):
             del self.config[name]
         return out
 
-    def clearConfigCache(self, Eups=None, verbosity=None):
-        if Eups is None:  Eups = eups.Eups()
+    def clearConfigCache(self, eupsenv=None, verbosity=None):
+        """
+        clear the local server configuration cache for this server.
+        @param eupsenv     the Eups instance to use to locate the cache.  If 
+                             None, a default one will be created.
+        @param verbosity   the level of verbosity.  If None, the default
+                             verbosity set for this instance will be assumed.
+        """
+        if eupsenv is None:  eupsenv = eups.Eups()
         if verbosity is None: verbosity = self.verbose
-        ServerConf.clearConfigCache(Eups, [self.base], verbosity, self.log)
+        ServerConf.clearConfigCache(eupsenv, [self.base], verbosity, self.log)
 
 
 class ConfigurableDistribServer(DistribServer):
-    """a distribution server that forms locations based on templated strings.
+    """
+    a distribution server that forms locations based on templated strings.
     """
 
     def _initConfig_(self):
@@ -585,6 +624,76 @@ class ConfigurableDistribServer(DistribServer):
             print >> self.log, "Looking on server for", src
         return self.cacheFile(filename, src, noaction)
 
+    def getTagNames(self, flavor=None, noaction=False):
+        """
+        return the names of the tags supported by this server as a list.
+
+        This implementation three possible ways of retrieving this 
+        information; each is tried in order until success:
+          1) if the configuration parameter AVAILABLE_TAGS is set, it
+               is assumed to contain a space-delimited list of tag names.
+          2) if the AVAILABLE_TAGS_URL config parameter is set, it will 
+               be used as a template to create a URL that returns a plain
+               text file (MIME type: text/plain) in which each line gives
+               a space-delimited list of available tag names.  
+          3) if the TAGLIST_DIR config parameter is set, it will be used
+               as a template to create a path to a directory on the 
+               server containing all tag list files.  A file listing is 
+               obtained by calling self.listFiles(path, None, None).  
+               Each returned filename parsed according to the regular 
+               expression provided in the TAGLIST_FILE_RE config parameter 
+               (default: r"(?P<tag>[^\.]+)\.list$") to extract a tag name 
+               (bylooking for a named group, "tag").  
+        """
+        out = self.getConfigProperty("AVAILABLE_TAGS")
+        if out is not None:
+            return out.split()
+
+        out = []
+        data = { "base":    self.base,
+                 "flavor":  flavor     }
+        tmpl = self.getConfigProperty("AVAILABLE_TAGS_URL")
+        if tmpl is not None:
+            src = tmpl % data
+            file = self.makeTempFile("tagnames_")
+            commre = re.compile(r'\s*#')
+            try:
+                file = self.cacheFile(file, src, noaction)
+                fd = open(file)
+                try:
+                    for line in fd:
+                        line = commre.split(line)[0].strip()
+                        out.extend(line.split())
+                finally:
+                    fd.close()
+                return out
+
+            except TransporterError:
+                pass
+
+        filere = self.getConfigProperty("TAGLIST_FILE_RE", 
+                                        r"^(?P<tag>[^\.]+)\.list$")
+        filere = re.compile(filere)
+        src = self.getConfigProperty("TAGLIST_DIR", "") % data
+
+        try:
+            files = self.listFiles(src, None, None, noaction)
+        except RemoteFileNotFound, e:
+            print >> self.log, e
+            files = []
+        except ServerNotResponding, e:
+            print >> self.log, e
+            files = []
+
+        for file in files:
+            m = filere.search(file)
+            if m is None: continue
+            m = m.groupdict()
+            if m.has_key("tag") and m["tag"]:
+                out.append(m["tag"])
+
+        return out
+
     def listAvailableProducts(self, product=None, version=None, flavor=None,
                               tag=None, noaction=False):
         """return a list of available products on the server.  Each item 
@@ -593,8 +702,8 @@ class ConfigurableDistribServer(DistribServer):
         values.  
 
         The following calls may return equivalent results:
-           distrib.listAvailableProducts(flavor=flavor, tag=tag)
-           distrib.getTaggedProductList(tag, flavor)
+           distribServer.listAvailableProducts(flavor=flavor, tag=tag)
+           distribServer.getTaggedProductList(tag, flavor)
         If they differ, it will be in that the getTaggedProductList() results
         contains additional information for one or more records.  
 
@@ -614,13 +723,13 @@ class ConfigurableDistribServer(DistribServer):
                Each returned filename is parsed according to the regular 
                expression provided in the MANIFEST_FILE_RE config 
                parameter to extract the product data.  This expression
-               use named groups to extract parameters named "product",
+               uses named groups to extract parameters named "product",
                "version", and "flavor".
 
         @param product     the desired product name
         @param version     the desired version of the product
         @param flavor      the flavor of the target platform
-        @param tag         an optional name for a release of the product
+        @param tag         an optional name for a tag assigned to the product
         @param noaction    if True, simulate the retrieval
         """
         if flavor is not None and tag is not None:
@@ -694,14 +803,14 @@ class ConfigurableDistribServer(DistribServer):
 
 
 
-class ServerError(Exception):
+class ServerError(EupsException):
     """an exception representing a problem communicating with a server"""
     def __init__(self, message, exc=None):
         """create a server error exception
         @param message    the reason for the error
         @param exc        a caught exception representing underlying symptom
         """
-        self.msg = message
+        EupsException.__init__(self, message)
         self.exc = exc
     def __str__(self):
         out = self.msg
@@ -924,7 +1033,7 @@ class SshTransporter(Transporter):
 
         try:
             system("scp -q %s %s 2>/dev/null" % (self.remfile, filename), 
-                   noaction)
+                   noaction, self.verbose)
         except IOError, e:
             if e.errno == 2:
                 raise RemoteFileNotFound("%s: file not found" % self.loc)
@@ -952,7 +1061,7 @@ class SshTransporter(Transporter):
             raise OSError("remote file has dangerous location name: " + self.loc)
 
         (remmach, file) = self.remfile.split(':', 1)
-        cmd = 'ssh %s python -c "\'import os; print filter(lambda x: not x.startswith(\\".\\"), filter(os.path.isfile, os.listdir(\\"%s\\")))\'"' % (remmach, file)
+        cmd = """ssh %s python -c "'import os; print filter(lambda x: not x.startswith("'"."'"), filter(lambda f: os.path.isfile(os.path.join("'"%s"'",f)), os.listdir("'"%s"'")))'" """ % (remmach, file, file)
 
         if self.verbose > 0:
             if noaction:
@@ -967,9 +1076,11 @@ class SshTransporter(Transporter):
                 pd = os.popen(cmd)
                 pylist = pd.readline().strip()
             finally:
-                stat = pd.close() >> 8
-            if stat > 0:
-                raise OSError("ssh command failed with exit status %d" % stat)
+                stat = pd.close()
+            if stat is not None:
+                stat = stat >> 8
+                if stat > 0:
+                  raise OSError("ssh command failed with exit status %d" % stat)
 
             exec "out=" + pylist
             return out
@@ -1027,7 +1138,8 @@ class LocalTransporter(Transporter):
                 print >> self.log, "simulated listing of", self.loc
                 return []
         else:
-            return filter(os.path.isfile, os.listdir(self.loc))
+            return filter(lambda f: os.path.isfile(os.path.join(self.loc,f)), 
+                          os.listdir(self.loc))
 
 
 class TransporterFactory(object):
@@ -1081,7 +1193,10 @@ makeTransporter = defaultMakeTransporter
 
 
 class TaggedProductList(object):
-    """a listing of all products that make up a tagged release"""
+    """
+    a listing of all versions of products that has been assigned a particular
+    tag.  
+    """
 
     def __init__(self, tag, defFlavor="generic", verbosity=0, log=sys.stderr):
         """create an empty collection of products with a given name
@@ -1103,7 +1218,7 @@ class TaggedProductList(object):
         self.fmtversion = "1.0"
 
     def addProduct(self, product, version, flavor=None, info=None):
-        """add a product to this tagged release"""
+        """add a product to this tagged set of products"""
         if flavor is None:
             flavor = self.flavor
 
@@ -1290,7 +1405,7 @@ class Manifest(object):
         self.fmtversion = "1.0"
         self.Eups = Eups
         if self.Eups is None:
-            self.Eups = eups._ClassEups()
+            self.Eups = eups.Eups()
 
         self.product = product
         self.version = version
@@ -1415,7 +1530,7 @@ EUPS distribution manifest for %s (%s). Version %s
 # pkg           flavor       version    tablefile                 installation_directory         installID
 #---------------------------------------------------------------------------------------------------------""" % \
                     (product, version, self.fmtversion, self.Eups.who,
-                     eups.ctimeTZ(), eups.version())
+                     utils.ctimeTZ(), utils.version())
 
             for p in self.products:
                 if p.isOpt and noOptional:
@@ -1454,15 +1569,15 @@ class ServerConf(object):
     """
 
     def __init__(self, packageBase, save=False, configFile=None, 
-                 override=None, Eups=None, verbosity=0, log=sys.stderr):
+                 override=None, eupsenv=None, verbosity=0, log=sys.stderr):
         self.base = packageBase
         self.data = {}
         self.verbose = verbosity
         self.log = log
 
-        if Eups is None:
-            Eups = eups._ClassEups()
-        self.eups = Eups
+        if eupsenv is None:
+            eupsenv = eups.Eups()
+        self.eups = eupsenv
 
         if configFile and not os.path.exists(configFile):
             raise RuntimeError("config file not found: " + configFile)
@@ -1679,7 +1794,7 @@ class ServerConf(object):
         return importClass(classname)
 
     # @staticmethod   # requires python 2.4
-    def makeServer(packageBase, save=True, eups=None, override=None,
+    def makeServer(packageBase, save=True, eupsenv=None, override=None,
                    verbosity=0, log=sys.stderr):
         """create a DistribServer class for a give package base
         @param packageBase    the base URL for the server
@@ -1695,14 +1810,14 @@ class ServerConf(object):
         @param log            the destination for status messages (default:
                                 sys.stderr)
         """
-        conf = ServerConf(packageBase, save, Eups=eups, override=override,
+        conf = ServerConf(packageBase, save, eupsenv=eupsenv, override=override,
                           verbosity=verbosity, log=log)
         return conf.createDistribServer(verbosity=verbosity, log=log)
 
     makeServer = staticmethod(makeServer)  # should work as of python 2.2
 
 def makeTempFile(prefix):
-    (fd, filename) = tempfile.mkstemp("", prefix, eups.eupsTmpdir("distrib"))
+    (fd, filename) = tempfile.mkstemp("", prefix, utils.createTempDir("distrib"))
     os.close(fd);
     atexit.register(os.unlink, filename)
     return filename
@@ -1728,6 +1843,9 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
 
     @param cmd           the shell commands to run stored in a single string.
     @param noaction      if True, just print the command
+    @param verbosity     the amount of status messages to print.  If > 0,
+                             the requested command will be printed.
+    @param log           a file object to send the messages to.
     @exception OSError   if a non-zero exit code is returned by the shell
     """
     if not os.environ.has_key('EUPS_DIR'):

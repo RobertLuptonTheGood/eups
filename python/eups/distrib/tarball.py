@@ -7,7 +7,7 @@
 import sys, os, re
 import eups
 import Distrib as eupsDistrib
-import eups.server as eupsServer
+import server as eupsServer
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to encapsulate tarball-based product distribution

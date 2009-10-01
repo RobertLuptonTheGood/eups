@@ -6,7 +6,7 @@
 #
 import sys, os, re
 import eups
-import eups.server as eupsServer
+import server as eupsServer
 
 from Distrib import Distrib
 import tarball

@@ -1,7 +1,7 @@
 """
 Utility functions used across EUPS classes.
 """
-import time, os, sys, glob, re
+import time, os, sys, glob, re, tempfile
 
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
@@ -403,3 +403,32 @@ def canPickle():
         return False
 
     return True
+
+def createTempDir(path):
+    """
+    Create and return a temporary directory ending in some path.  
+
+    Typically this path will be created under /tmp; however, this base
+    directory is controlled by the python module, tempfile.
+
+    @param path  the path to create a temporary directory for. 
+    """
+    tmpdir = os.path.dirname(tempfile.NamedTemporaryFile().name) # directory that tempfile's using
+    path = re.sub(r"^/", "", path)      # os.path.join won't work if path is an absolute path
+
+    path = os.path.join(tmpdir, "eups", path)
+    #
+    # We need to create this path, and set all directory permissions to 777
+    # It'd be better to use a eups group, but this may be hard for some installations
+    #
+    if not os.path.isdir(path):
+        dir = "/"
+        for d in filter(lambda el: el, path.split(os.path.sep)):
+            dir = os.path.join(dir, d)
+            
+            if not os.path.isdir(dir):
+                os.mkdir(dir)
+                os.chmod(dir, 0777)
+
+    return path
+

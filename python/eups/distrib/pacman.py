@@ -7,7 +7,7 @@
 import sys, os, re, atexit, shutil
 import eups
 import Distrib as eupsDistrib
-import eups.server as eupsServer
+import server as eupsServer
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to encapsulate Pacman-based product distribution

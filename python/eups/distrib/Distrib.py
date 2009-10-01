@@ -6,8 +6,8 @@
 #
 import sys, os, re, atexit, shutil
 import eups
-import eups.server
-from eups.server import RemoteFileNotFound, Manifest, TaggedProductList
+import server
+from server import RemoteFileNotFound, Manifest, TaggedProductList
 from eups.Parser import Parser as VersionEvaluator
 
 class Distrib(object):

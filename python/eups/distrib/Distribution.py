@@ -6,8 +6,8 @@
 #
 import sys, os, re, atexit, shutil
 import eups
-import eups.server 
-from eups.server import ServerConf, Manifest, TaggedProductList, RemoteFileNotFound
+import server 
+from server import ServerConf, Manifest, TaggedProductList, RemoteFileNotFound
 from DistribFactory import DistribFactory
 from Distrib import DefaultDistrib, findInstallableRoot
 
@@ -617,6 +617,14 @@ class Distribution(object):
         if self.distServer is None:
             raise RuntimeError("No distribution server set")
         return self.distServer.listAvailableProducts(product, version, self.flavor, tag)
+
+    def listTagNames(self):
+        """
+        return a list of tag names supported by the server.
+        """
+        if self.distServer is None:
+            raise RuntimeError("No distribution server set")
+        return self.distServer.getTagNames()
 
     def create(self, serverRoot, distribTypeName, product, version, tag=None, 
                nodepend=False, options=None, manifest=None, distributionSet=None, packageId=None):
