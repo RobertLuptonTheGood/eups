@@ -107,6 +107,12 @@ class LsstDistribServerTestCase(unittest.TestCase):
         self.assertEquals(info[0], "cfitsio")
         self.assertEquals(info[2], "3006.2")
 
+    def testGetTagNamesFor(self):
+        tags = self.ds.getTagNamesFor("cfitsio", "3006.2")
+        self.assertEquals(len(tags), 1)
+        self.assertEquals(tags[0], "current")
+
+
 
 __all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase".split()        
 
