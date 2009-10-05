@@ -133,7 +133,7 @@ class Eups(object):
         # directories
         self.root = root
 
-        self._version_cmp = hooks.version_cmp
+        self.version_cmp = hooks.version_cmp
         self.quiet = quiet
         self.keep = keep
 
@@ -515,10 +515,10 @@ class Eups(object):
                     continue
 
                 # is newest version in this stack newer than minimum version?
-                if minver and self._version_cmp(latest.version, minver) < 0:
+                if minver and self.version_cmp(latest.version, minver) < 0:
                     continue
 
-                if out == None or self._version_cmp(latest.version, 
+                if out == None or self.version_cmp(latest.version, 
                                                     out.version) > 0:
                     # newest one in this stack is newest one seen
                     out = latest
@@ -527,15 +527,15 @@ class Eups(object):
                 # consult the cache
                 try: 
                     vers = self.versions[root].getVersions(name, flavor)
-                    vers.sort(self._version_cmp)
+                    vers.sort(self.version_cmp)
                     if len(vers) == 0:
                         continue
 
                     # is newest version in this stack newer than minimum version?
-                    if minver and self._version_cmp(vers[-1], minver) < 0:
+                    if minver and self.version_cmp(vers[-1], minver) < 0:
                         continue
 
-                    if out == None or self._version_cmp(vers[-1], 
+                    if out == None or self.version_cmp(vers[-1], 
                                                         out.version) > 0:
                         # newest one in this stack is newest one seen
                         out = self.versions[root].getProduct(name, vers[-1], flavor)
@@ -644,7 +644,7 @@ class Eups(object):
             if tag.name == "newest":
                 # find the latest version; first order the versions
                 vers = map(lambda p: p.version, products)
-                vers.sort(self._version_cmp)
+                vers.sort(self.version_cmp)
 
                 # select the product with the latest version
                 if len(vers) > 0:
@@ -898,9 +898,9 @@ class Eups(object):
     Compare two version strings, using the specified operator (< <= == >= >), returning
     true if the condition is satisfied
 
-    Uses _version_cmp to define sort order """
+    Uses version_cmp to define sort order """
 
-        cmp = self._version_cmp(v1, v2)
+        cmp = self.version_cmp(v1, v2)
 
         if cmp is None:                 # no sort order is defined
             return False
@@ -957,7 +957,7 @@ class Eups(object):
         #
         # Look for product directory
         #
-        setupFlavor = self.flavor         # we may end up using e.g. "Generic"
+        setupFlavor = self.flavor         # we may end up using e.g. "generic"
 
         product = None
         if isinstance(productName, Product): # it's already a full Product
@@ -1742,7 +1742,7 @@ class Eups(object):
                     vers = stack.getVersions(pname, flavor)
                     if version:
                         vers = fnmatch.filter(vers, version)
-                    vers.sort(self._version_cmp)
+                    vers.sort(self.version_cmp)
 
                     # only include newest if it passes the version constraint
                     if newest is not None and newest.version not in vers:

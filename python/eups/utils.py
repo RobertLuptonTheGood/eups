@@ -297,7 +297,7 @@ class Flavor(object):
         be found with the given flavor
         """
         if fallbackList is None:
-            fallbackList = ["Generic"]
+            fallbackList = ["generic"]
         Flavor._fallbackFlavors[flavor] = fallbackList
 
     def getFallbackFlavors(self, flavor=None, includeMe=False):

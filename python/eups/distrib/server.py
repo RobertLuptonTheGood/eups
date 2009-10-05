@@ -88,7 +88,8 @@ class DistribServer(object):
             try:
                 file = self.getFileForProduct("", product, version, flavor, 
                                               "manifest", noaction=noaction)
-                return Manifest.fromFile(file)
+                return Manifest.fromFile(file, 
+                              self.getConfigProperty("RECURSE_OVER_MANIFEST"))
             except RuntimeError, e:
                 raise RuntimeError("Trouble reading manifest for %s %s (%s): %s"
                                    % (product, version, flavor, e))
@@ -108,6 +109,31 @@ class DistribServer(object):
         return map(lambda x: x[:-5], 
                    filter(lambda f: f.endswith(".list"), 
                           self.listFiles("", noaction)))
+
+    def getTagNamesFor(self, product, version, flavor="generic", 
+                       tags=None, noaction=False):
+        """
+        return as a list of strings all of the tag names assigned to 
+        the given product by the server.
+        @param product     the name of the product
+        @param version     the product's version
+        @param flavor      the platform flavor (default: generic)
+        @param tags        if set, the returned list will be the intersection
+                             of the tags assigned by the server with this list.
+                             By providing this, one can remove the need to 
+                             query the server for its list of supported tags.  
+        """
+        if tags is None:
+            tags = self.getTagNames()
+        if isinstance(tags, str):
+            tags = tags.split()
+
+        out = []
+        for tag in tags:
+            info = self.getTaggedProductInfo(product, flavor, tag)
+            if info[2] == version:
+                out.append(tag)
+        return out
 
     def getTaggedProductList(self, tag="current", flavor=None, noaction=False):
         """request the product list for a particular tag name (default: 
@@ -219,7 +245,10 @@ class DistribServer(object):
         if flavor is not None and tag is not None:
             try:
                 for val in self.getTaggedProductList(tag, flavor).getProducts():
-                    out += [(val[0], val[2], val[1])]
+                    if product and product != val[0]:
+                        continue
+                    if flavor == val[1]:
+                        out += [(val[0], val[2], val[1])]
             except ServerNotResponding, e:
                 print >> self.log, e
         else:
@@ -1366,7 +1395,7 @@ class Dependency(object):
     """
 
     def __init__(self, product, version, flavor, tablefile, instDir, distId,
-                 isOptional=False, extra=None):
+                 isOptional=False, shouldRecurse=False, extra=None):
         self.product = product
         if not isinstance(version, str):
             if isinstance(version, type):
@@ -1379,6 +1408,7 @@ class Dependency(object):
         self.instDir = instDir
         self.distId = distId
         self.isOpt = isOptional
+        self.shouldRecurse = shouldRecurse
         self.extra = extra
         if self.extra is None:  self.extra = []
 
@@ -1397,18 +1427,19 @@ class Manifest(object):
     """a list of product dependencies that must be installed in order to 
     install a particular product."""
 
-    def __init__(self, product=None, version=None, Eups=None, 
+    def __init__(self, product=None, version=None, eupsenv=None, 
                  verbosity=0, log=sys.stderr):
         self.products = []
         self.verbose = verbosity
         self.log = log
         self.fmtversion = "1.0"
-        self.Eups = Eups
-        if self.Eups is None:
-            self.Eups = eups.Eups()
+        self.eups = eupsenv
+        if self.eups is None:
+            self.eups = eups.Eups()
 
         self.product = product
         self.version = version
+        self.shouldRecurse = False
 
     def getDependency(self, product, version=None, flavor=None, which=-1):
         """Return the last product dependency in this manifest that matches
@@ -1434,9 +1465,10 @@ class Manifest(object):
         return out[which]
 
     def addDependency(self, product, version, flavor, tablefile,
-                      instDir, distId, isOptional=False, extra=None):
+                      instDir, distId, isOptional=False, shouldRecurse=False, 
+                      extra=None):
         self.addDepInst(Dependency(product, version, flavor, tablefile, instDir, 
-                                   distId, isOptional, extra))
+                                   distId, isOptional, shouldRecurse, extra))
 
     def addDepInst(self, dep):
         """add a dependency in the form of a dependency object"""
@@ -1467,8 +1499,11 @@ class Manifest(object):
             for i in range(n):
                 self.products.append(self.products.pop(0))
 
-    def read(self, file, setproduct=True):
+    def read(self, file, setproduct=True, shouldRecurse=None):
         """load the dependencies listed in a file"""
+
+        if shouldRecurse is None:
+            shouldRecurse = False
 
         fd = open(file)
     
@@ -1488,6 +1523,10 @@ class Manifest(object):
         if setproduct or self.version is None:
             self.version = manifest_product_version
 
+        FALSE = "FALSE"
+        TRUE = "TRUE"
+        REQ = "REQUIRED"
+        OPT = "OPTIONAL"
         for line in fd:
             line = line.split("\n")[0]
             if re.search(r"^\s*(#.*)?$", line):
@@ -1495,8 +1534,35 @@ class Manifest(object):
 
             try:
                 info = re.findall(r"\S+", line)
-                self.addDependency(info[0], info[2], info[1], 
-                                   info[3], info[4], info[5], info[6:])
+
+                # make sure we have at least 5 elements
+                info[4]
+
+                # set a default for the distrib ID
+                if len(info) < 6:
+                    info.append(None)
+                elif info[5] == "search":
+                    info[5] = None
+
+                # set a whether this is optional or required
+                if len(info) < 7:
+                    info.append(False)
+                elif OPT.startswith(info[6]):
+                    info[6] = True
+                else:
+                    info[6] = False
+
+                if len(info) < 8:
+                    info.append(shouldRecurse)
+                elif TRUE.startswith(info[7]):
+                    info[7] = True
+                elif FALSE.startswith(info[7]):
+                    info[7] = False
+                else:
+                    info[7] = shouldRecurse
+
+                self.addDependency(info[0], info[2], info[1], info[3], 
+                                   info[4], info[5], info[6], info[7], info[8:])
             except Exception, e:
                 raise RuntimeError("Failed to parse line: (%s): %s" % 
                                    (str(e), line))
@@ -1555,10 +1621,22 @@ EUPS distribution manifest for %s (%s). Version %s
                 ofd.close()
 
     # @staticmethod   # requires python 2.4
-    def fromFile(filename, Eups=None, verbosity=0, log=sys.stderr):
-        """create a Manifest instance from the given manifest file"""
-        out = Manifest(Eups=Eups)
-        out.read(filename, setproduct=True)
+    def fromFile(filename, eupsenv=None, shouldRecurse=None, 
+                 verbosity=0, log=sys.stderr):
+        """
+        create a Manifest instance from the given manifest file
+        @param filename       the file to read the manifest from
+        @param eupsenv        the eups environment to assume
+        @param shouldRecurse  if True, it is recommended by that the installer
+                                 recursively look for the dependencies for 
+                                 each of the products in the manifest.  If
+                                 False, the manifest should be assumed to be
+                                 complete; no recursive searches are necessary.
+                                 If None (default), the default value will be
+                                 retained (usually False).
+        """
+        out = Manifest(eupsenv=eupsenv)
+        out.read(filename, setproduct=True, shouldRecurse=shouldRecurse)
         return out
 
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
@@ -1570,6 +1648,20 @@ class ServerConf(object):
 
     def __init__(self, packageBase, save=False, configFile=None, 
                  override=None, eupsenv=None, verbosity=0, log=sys.stderr):
+        """
+        create the factory based on the server's configuration.  
+        @param packageBase    the base URL of the server
+        @param save           if True, the configuration will be cached on 
+                                local disk.
+        @param configFile     the server configuration file for the server
+        @param override       a dictionary of configuration parameters that
+                                should override those in the configuration 
+                                file
+        @param eupsenv        an Eups instance representing the Eups environment
+        @param verbosity      an integer measure the number of messages 
+                                that should be printed.
+        @param log            a file descriptor where messages are written.
+        """
         self.base = packageBase
         self.data = {}
         self.verbose = verbosity
@@ -1628,7 +1720,8 @@ class ServerConf(object):
                         pass
 
                 if not os.path.exists(configFile):
-                    raise RuntimeError, ("Failed to find or cache config file: " + configFile)
+                    raise RuntimeError("Failed to find or cache config file: " +
+                                       configFile)
 
                 self.data = self.readConfFile(configFile);
 
@@ -1639,7 +1732,7 @@ class ServerConf(object):
                     'assuming "vanilla" server'                
                 
         if override is not None:
-            for key in self.override.keys():
+            for key in override.keys():
                 self.data[key] = override[key]
 
     def cachedConfigFile(self, packageBase):

@@ -4,7 +4,7 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for Pacman
 #
-import sys, os, re
+import sys, os, re, copy
 import eups
 import server as eupsServer
 
@@ -50,11 +50,13 @@ class DistribFactory:
     registered classes override the previous ones.  
     """
 
-    def __init__(self, Eups, distServ):
+    def __init__(self, Eups, distServ=None):
         """create a factory
         @param Eups       the eups controller instance in use
         @param distServ   the DistribServer object to use to configure 
-                            this factory
+                            this factory.  If None, it will be necessary
+                            to add one later via resetDistribServer() 
+                            before creating Distribs.
         """
         self.classes = []
         self.lookup = {}
@@ -63,6 +65,21 @@ class DistribFactory:
 
         self._registerDefaultDistribs()
         self._registerCustomDistribs()
+
+    def clone(self):
+        """
+        create a copy of this factory.  The clone will share this instance's
+        copy of the DistribServer and Eups objects.
+        """
+        out = copy.copy(self)
+        out.classes = self.classes[:]
+        out.lookup = self.lookup.copy()
+
+    def supportsName(self, name): 
+        """
+        return True if a class is available by the given name
+        """
+        return self.lookup.has_key(name)
 
     def register(self, distribClass, name=None):
         """register a Distrib class.  An attempt to register an object that 
@@ -76,12 +93,20 @@ class DistribFactory:
                                  If None, the internal default name for the 
                                  class will be used as the look-up name.
         """
-        if not issubclass(distribClass, eupsDistrib.Distrib):
-            raise TypeError("registrant not a subclass of eupsDistrib.Distrib")
+        if not issubclass(distribClass, Distrib):
+            raise TypeError("registrant not a subclass of eups.distrib.Distrib")
 
         if name is None:  name = distribClass.NAME
         self.lookup[name] = distribClass
         self.classes.append(distribClass)
+
+    def resetDistribServer(self, distServer):
+        """
+        reassigne the DistribServer that will be passed to the Distrib
+        classes created by this factory.
+        """
+        self.distServer = distServer
+        self._registerCustomDistribs()
 
     def _registerDefaultDistribs(self):
         self.register(tarball.Distrib)
@@ -89,7 +114,8 @@ class DistribFactory:
         self.register(builder.Distrib)
 
     def _registerCustomDistribs(self):
-        self.registerServerDistribs(self.distServer)
+        if self.distServer:
+            self.registerServerDistribs(self.distServer)
 
     def registerServerDistribs(self, distServer):
         self.distServer = distServer
@@ -114,21 +140,23 @@ class DistribFactory:
                       options=None, verbosity=0, log=sys.stderr):
         """create a Distrib instance for a given distribution identifier
         @param distId    a distribution identifier (as received via a manifest)
-        @param verbosity     if > 0, print status messages; the higher the 
-                               number, the more messages that are printed
-                               (default=0).
         @param flavor     the platform type to assume.  The default is the 
-                               flavor associated with our Eups instance.
+                            flavor associated with our Eups instance.
         @param tag        the logical name of the release of packages to assume
                             (default: "current")
-        @param log        the destination for status messages (default:
-                               sys.stderr)
         @param options    a dictionary of named options that are used to fine-
                             tune the behavior of this Distrib class.  See 
                             discussion above for a description of the options
                             supported by this implementation; sub-classes may
                             support different ones.
+        @param verbosity  if > 0, print status messages; the higher the 
+                            number, the more messages that are printed
+                            (default=0).
+        @param log        the destination for status messages (default:
+                            sys.stderr)
         """
+        if not self.distServer:
+            raise RuntimeError("No DistribServer set; use DistribFactory.resetDistribServer()")
         if flavor is None:  flavor = self.Eups.flavor
         use = self.classes[:]
         use.reverse()
@@ -157,6 +185,8 @@ class DistribFactory:
                             supported by this implementation; sub-classes may
                             support different ones.
         """
+        if not self.distServer:
+            raise RuntimeError("No DistribServer set; use DistribFactory.resetDistribServer()")
         if flavor is None:  flavor = self.Eups.flavor
         cls = self.lookup[name]
         return cls(self.Eups, self.distServer, flavor, tag, options, 

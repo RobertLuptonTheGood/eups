@@ -112,9 +112,177 @@ class LsstDistribServerTestCase(unittest.TestCase):
         self.assertEquals(len(tags), 1)
         self.assertEquals(tags[0], "current")
 
+from eups.distrib.Repository import Repository
+from eups.Eups import Eups
+from eups.tags import Tag
+
+class LsstRepositoryTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.pkgroot = pkgroot
+        self.eups = Eups()
+        self.opts = { "serverconf": 
+                      { "DISTRIB_SERVER_CLASS": "eups.distrib.server.ConfigurableDistribServer",
+                        "DISTRIB_CLASS": "eups.distrib.Distrib.DefaultDistrib" }
+                      }
+        self.repos = Repository(self.eups, self.pkgroot, options=self.opts)
+
+    def tearDown(self):
+        pass
+
+    def testInit(self):
+        self.assert_(self.repos.distServer, DistribServer)
+
+    def testIsWritable(self):
+        self.assert_(not self.repos.isWritable())
+
+    def testGetManifest(self):
+        man = self.repos.getManifest("doxygen", "1.5.9", "generic")
+        self.assert_(man is not None)
+
+    def testListPackages(self):
+        pkgs = self.repos.listPackages()
+        self.assert_(pkgs is not None)
+        self.assert_(isinstance(pkgs, list))
+        self.assert_(len(pkgs) > 300)
+
+    def testGetSupportedTags(self):
+        tags = self.repos.getSupportedTags()
+        self.assertEquals(len(tags), 2)
+        self.assert_("current" in tags)
+        self.assert_("active" in tags)
+
+    def testFindPackage(self):
+        pkg = self.repos.findPackage("doxygen")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.4")
+        self.assertEquals(pkg[2], "generic")
+
+        pkg = self.repos.findPackage("doxygen", "1.5.9")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+
+        pkg = self.repos.findPackage("doxygen", "1.5.0")
+        self.assert_(pkg is None)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.9", "Linux")
+        self.assert_(pkg is None)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.9", "generic")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+
+        tag = Tag("newest")
+        pkg = self.repos.findPackage("doxygen", tag)
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+
+from eups.distrib.Repositories import Repositories
+
+class LsstRepositoriesTestCase(unittest.TestCase):
+    def setUp(self):
+        self.localroot = os.path.join(testEupsStack, "testserver", "s2")
+        self.lsstroot = pkgroot
+        self.eups = Eups()
+        self.opts = { "serverconf": 
+                      { "DISTRIB_SERVER_CLASS": "eups.distrib.server.ConfigurableDistribServer",
+                        "DISTRIB_CLASS": "eups.distrib.Distrib.DefaultDistrib" }
+                      }
+
+    def tearDown(self):
+        pass
+
+    def testFindPackage1(self):
+        self.repos = Repositories([self.localroot, self.lsstroot],
+                                  eupsenv=self.eups, options=self.opts)
+        self.assertEquals(len(self.repos.pkgroots), 2)
+
+        pkg = self.repos.findPackage("doxygen")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+        self.assertEquals(pkg[3], self.lsstroot)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.9")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+        self.assertEquals(pkg[3], self.lsstroot)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.8")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.8")
+        self.assertEquals(pkg[2], "generic")
+        self.assertEquals(pkg[3], self.localroot)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.0")
+        self.assert_(pkg is None)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.9", "Linux")
+        self.assert_(pkg is None)
+
+        pkg = self.repos.findPackage("doxygen", "1.5.9", "generic")
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+        self.assertEquals(pkg[3], self.lsstroot)
+
+        tag = Tag("newest")
+        pkg = self.repos.findPackage("doxygen", tag)
+        self.assert_(pkg is not None)
+        self.assertEquals(pkg[0], "doxygen")
+        self.assertEquals(pkg[1], "1.5.9")
+        self.assertEquals(pkg[2], "generic")
+        self.assertEquals(pkg[3], self.lsstroot)
+
+    def testListPackages(self):
+        self.repos = Repositories([self.localroot, self.lsstroot],
+                                  eupsenv=self.eups, options=self.opts)
+        self.assertEquals(len(self.repos.pkgroots), 2)
+
+        pkgs = self.repos.listPackages()
+        self.assert_(pkgs is not None)
+        self.assert_(isinstance(pkgs, list))
+        self.assertEquals(len(pkgs), 2)           # the # of repositories
+        self.assertEquals(len(pkgs[0]), 2)        # (pkgroot, pkg-list)
+        self.assertEquals(len(pkgs[1]), 2)        # (pkgroot, pkg-list)
+        self.assertEquals(len(pkgs[0][1]), 1)     # # of products per repos.
+        self.assertEquals(len(pkgs[0][1][0]), 3)  # # of attrs per product
+        self.assertEquals(pkgs[0][1][0][0], "doxygen")
+        self.assertEquals(pkgs[0][1][0][1], "1.5.8")
+        self.assertEquals(pkgs[0][1][0][2], "generic")
+        self.assert_(len(pkgs[1][1]) > 300)       # # of products per repos.
+
+        pkgs = self.repos.listPackages("doxygen")
+        pkgs = self.repos.listPackages("doxygen")
+        self.assert_(pkgs is not None)
+        self.assert_(isinstance(pkgs, list))
+        self.assertEquals(len(pkgs), 2)
+        self.assertEquals(len(pkgs[0][1]), 1)     # # of products per repos.
+        self.assertEquals(pkgs[0][1][0][0], "doxygen")
+        self.assertEquals(pkgs[0][1][0][1], "1.5.8")
+        self.assertEquals(pkgs[0][1][0][2], "generic")
+        self.assertEquals(len(pkgs[1][1]), 5)     # # of products per repos.
+        self.assertEquals(pkgs[1][1][0][0], "doxygen")
+        self.assertEquals(pkgs[1][1][0][1], "1.5.4")
+        self.assertEquals(pkgs[1][1][1][1], "1.5.7.1")
+        self.assertEquals(pkgs[1][1][4][1], "1.5.9")
+        self.assertEquals(pkgs[1][1][2][1], "1.5.8")
+        self.assertEquals(pkgs[1][1][3][1], "1.5.8+1")
 
 
-__all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase".split()        
+__all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase LsstRepositoryTestCase LsstRepositoriesTestCase".split()        
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
