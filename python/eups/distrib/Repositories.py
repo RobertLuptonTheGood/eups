@@ -5,6 +5,7 @@ distribution packages can be received and installed.
 import sys, os, re, atexit, shutil
 
 import eups.utils as utils
+import server
 from eups           import Eups, Tag, TagNotRecognized, ProductNotFound
 from Repository     import Repository 
 from eups.utils     import Flavor, Quiet
@@ -20,7 +21,8 @@ class Repositories(object):
     """
 
     def __init__(self, pkgroots, options=None, eupsenv=None, installFlavor=None, 
-                 distribClasses=None, noclean=False, override=None):
+                 distribClasses=None, noclean=False, override=None, 
+                 verbosity=None, log=sys.stderr):
         """
         @param pkgroots   the base URLs for the distribution repositories.  This
                             can either be a list or a pipe-delimited ("|") 
@@ -40,6 +42,11 @@ class Repositories(object):
         @param override   a dictionary of server configuration parameters that
                             should override the configuration received from 
                             each server.  
+        @param verbosity  if > 0, print status messages; the higher the 
+                            number, the more messages that are printed
+                            (default is the value of eupsenv.verbose).
+        @param log        the destination for status messages (default:
+                            sys.stderr)
         """
         if isinstance(pkgroots, str):
             pkgroots = map(lambda p: p.strip(), pkgroots.split("|"))
@@ -50,6 +57,11 @@ class Repositories(object):
         self.eups = eupsenv
         if not self.eups:
             self.eups = Eups()
+
+        self.verbose = verbosity
+        if self.verbose is None:
+            self.verbose = self.eups.verbose
+        self.log = log
 
         if not distribClasses:
             distribClasses = {}
@@ -240,8 +252,8 @@ class Repositories(object):
 
         return None
 
-    def install(self, product, version=None, updateTags=True, 
-                nodepend=False, options=None, manifest=None):
+    def install(self, product, version=None, updateTags=True, nodepend=False, 
+                options=None, manifest=None, searchDep=None):
         """
         Install a product and all its dependencies.
         @param product     the name of the product to install
@@ -264,10 +276,16 @@ class Repositories(object):
         @param manifest    use this manifest (a local file) as the manifest for 
                             the requested product instead of downloading manifest
                             from the server.
-        @param searchDep   If False (default), ignore distribution identifiers
-                            in the manifest file for the product's dependencies
-                            and alway search for the package in the server 
-                            path.  
+        @param searchDep   if False, install will be prevented from recursively
+                            looking for dependencies of dependencies listed in
+                            manifests.  In this case, it is assumed that a 
+                            manifest contains all necessary dependencies.  If 
+                            True, the distribution identifiers in the manifest
+                            file are ignored and the dependencies will always
+                            be recursively searched for.  If None,
+                            the choice to recurse is left up to the server 
+                            where the manifest comes from (which usually 
+                            defaults to False).
         """
         pkg = self.findPackage(product, version)
         if not pkg:
@@ -276,8 +294,8 @@ class Repositories(object):
                         (product, version))
 
         (product, version, flavor, pkgroot) = pkg
-        opts = self._mergeOptions(options)
-#        productRoot = utils.findWritableDb(self.Eups.path)
+#        opts = self._mergeOptions(options)
+#        productRoot = utils.findWritableDb(self.eups.path)
         productRoot = self.getInstallRoot()
         if productRoot is None:
             raise RuntimeError("Unable to find writable place to install in EUPS_PATH")
@@ -292,12 +310,12 @@ class Repositories(object):
 
         self._tagProbAlert = 0
         self._recursiveInstall(0, man, product, version, flavor, pkgroot, 
-                               productRoot, updateTags, noDepends, opts)
+                               productRoot, updateTags, options, nodepend)
         
     def _recursiveInstall(self, recursionLevel, manifest, product, version, 
                           flavor, pkgroot, productRoot, updateTags=False, 
-                          opts=None, recurse=False, setups=None, installed=None, 
-                          tag=None, ances=None):
+                          opts=None, nodepend=False, searchDep=None, 
+                          setups=None, installed=None, tag=None, ances=None):
                           
         if installed is None:
             installed = []
@@ -314,7 +332,7 @@ class Repositories(object):
         
         idstring = prodid(manifest.product, manifest.version, flavor)
 
-        if noDepends and self.verbose > 0:
+        if nodepend and self.verbose > 0:
             print >> self.log, \
                 "Skipping dependencies for %s %s" % (product, version)
 
@@ -340,7 +358,7 @@ class Repositories(object):
                     continue
             ances.append(pver)
 
-            if noDepends and prod.product != product and prod.version != version:
+            if nodepend and prod.product != product and prod.version != version:
                 continue
 
             if pver in installed:
@@ -348,8 +366,8 @@ class Repositories(object):
                 continue
 
             thisinstalled = self.eups.findProduct(prod.product, prod.version, 
-                                                  instflavor)
-            if not thisinstalled:
+                                                  flavor=instflavor)
+            if thisinstalled:
                 if self.verbose >= 0:
                     print >> self.log, \
                         "Required product %s %s is already installed" % \
@@ -357,7 +375,10 @@ class Repositories(object):
 
             else:
 
-                if (recurse or not prod.distId or prod.shouldRecurse) and \
+                recurse = searchDep
+                if recurse is None:  
+                    recurse = not prod.distId or prod.shouldRecurse
+                if recurse and \
                    prod.product != product and prod.version != version:
 
                     # This is not the top-level product for the current manifest.
@@ -387,7 +408,7 @@ class Repositories(object):
 
                 if not thisinstalled:
                     self._doInstall(pkgroot, prod, productRoot, 
-                                    instflavor, opts, tag)
+                                    instflavor, opts, setups, tag)
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups 
@@ -402,14 +423,15 @@ class Repositories(object):
 
         return True
 
-    def _doInstall(pkgroot, prod, productRoot, instflavor, opts, tag):
+    def _doInstall(self, pkgroot, prod, productRoot, instflavor, opts, 
+                   setups, tag):
 
         builddir = self.makeBuildDirFor(productRoot, prod.product,
-                                        prod.version, instflavor)
+                                        prod.version, opts, instflavor)
 
         # write the distID to the build directory to aid 
         # clean-up if it fails
-        self._recordDistID(prod.distId, builddir)
+        self._recordDistID(prod.distId, builddir, pkgroot)
 
         distrib = self.repos[pkgroot].getDistribFor(prod.distId, opts, 
                                                     instflavor, tag)
@@ -422,7 +444,7 @@ class Repositories(object):
                                    prod.product, prod.version,
                                    productRoot, prod.instDir, setups,
                                    builddir)
-        except eupsServer.RemoteFileNotFound, e:
+        except server.RemoteFileNotFound, e:
             if self.verbose >= 0:
                 print >> self.log, "Failed to install %s %s: %s" % \
                     (prod.product, prod.version, str(e))
@@ -447,19 +469,20 @@ class Repositories(object):
         
         # write the distID to the installdir/ups directory to aid 
         # clean-up
-        self._recordDistID(prod.distId, root)
+        self._recordDistID(prod.distId, root, pkgroot)
 
         # clean up the build directory
         if self.noclean:
             if self.verbose:
-                print >> sys.stderr, "Not removing the build directory %s; you can cleanup manually with \"eups distrib clean\"" % (self.getBuildDirFor(self.getInstallRoot(), prod.product, prod.version))
+                print >> sys.stderr, "Not removing the build directory %s; you can cleanup manually with \"eups distrib clean\"" % (self.getBuildDirFor(self.getInstallRoot(), prod.product, prod.version, opts))
         else:
-            self.clean(prod.product, prod.version)
+            self.clean(prod.product, prod.version, options=opts)
 
     def _updateServerTags(self, pkgroot, prod, productRoot):
 
         tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version,
                                                   prod.flavor)
+        self.eups.supportServerTags(tags, pkgroot)
         for tag in tags:
             try:
                 self.eups.assignTag(tag, prod.product, prod.version, productRoot)
@@ -507,12 +530,11 @@ class Repositories(object):
 
         return (distId, pkgroot)
             
-    def _ensureDeclare(self, pkgroot, mprod, flavor, 
-                       rootdir=None, productRoot=None):
+    def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot):
         
         flavor = self.eups.flavor
 
-        prod = self.eups.findProduct(mprod.product, mprod.version, flavor)
+        prod = self.eups.findProduct(mprod.product, mprod.version, flavor=flavor)
         if prod:
             return
 
@@ -524,7 +546,7 @@ class Repositories(object):
             raise RuntimeError(msg)
 
         # make sure we have a table file if we need it
-        upsdir = os.path.join(root, "ups")
+        upsdir = os.path.join(rootdir, "ups")
         tablefile = os.path.join(upsdir, "%s.table" % mprod.product)
 
         if not os.path.exists(tablefile):
@@ -557,8 +579,78 @@ class Repositories(object):
         """
         return findInstallableRoot(self.eups)
 
-    def clean(self, product, version, flavor=None, installDir=None, 
-              uninstall=False):
+    def getBuildDirFor(self, productRoot, product, version, options=None, 
+                       flavor=None):
+        """return a recommended directory to use to build a given product.
+        In this implementation, the returned path will usually be of the form
+        <productRoot>/<buildDir>/<flavor>/<product>-<root> where buildDir is, 
+        by default, "EupsBuildDir".  buildDir can be overridden at construction
+        time by passing a "buildDir" option.  If the value of this option
+        is an absolute path, then the returned path will be of the form
+        <buildDir>/<flavor>/<product>-<root>.
+
+        @param productRoot    the root directory where products are installed
+        @param product        the name of the product being built
+        @param version        the product's version 
+        @param flavor         the product flavor.  If None, assume the current 
+                                default flavor
+        """
+        buildRoot = "EupsBuildDir"
+        if options and options.has_key('buildDir'):  
+            buildRoot = self.options['buildDir']
+        if not flavor:  flavor = self.eups.flavor
+
+        pdir = "%s-%s" % (product, version)
+        if os.path.isabs(buildRoot):
+            return os.path.join(buildRoot, flavor, pdir)
+        return os.path.join(productRoot, buildRoot, flavor, pdir)
+
+    def makeBuildDirFor(self, productRoot, product, version, options=None, 
+                        flavor=None):
+        """create a directory for building the given product.  This calls
+        getBuildDirFor(), ensures that the directory exists, and returns 
+        the path.  
+        @param productRoot    the root directory where products are installed
+        @param product        the name of the product being built
+        @param version        the product's version 
+        @param flavor         the product flavor.  If None, assume the current 
+                                default flavor
+        @exception OSError  if the directory creation fails
+        """
+        dir = self.getBuildDirFor(productRoot, product, version, options, flavor)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        return dir
+
+    def cleanBuildDirFor(self, productRoot, product, version, options=None,
+                         force=False, flavor=None):
+        """Clean out the build directory used to build a product.  This 
+        implementation calls getBuildDirFor() to get the full path of the 
+        directory used; then, if it exists, the directory is removed.  As 
+        precaution, this implementation will only remove the directory if
+        it appears to be below the product root, unless force=True.
+
+        @param productRoot    the root directory where products are installed
+        @param product        the name of the built product
+        @param version        the product's version 
+        @param force          override the removal restrictions
+        @param flavor         the product flavor.  If None, assume the current 
+                                default flavor
+        """
+        dir = self.getBuildDirFor(productRoot, product, version, options, flavor)
+        if os.path.exists(dir):
+            if force or (len(productRoot) > 0 and dir.startswith(productRoot) 
+                         and len(dir) > len(productRoot)+1):
+                if self.verbose > 1: 
+                    print >> self.log, "removing", dir
+                server.system("rm -rf " + dir,
+                                  verbosity=self.verbose-1, log=self.log)
+            elif self.verbose > 0:
+                print >> self.log, "%s: not under root (%s); won't delete unless forced (use --force)" % (dir, productRoot)
+
+
+    def clean(self, product, version, flavor=None, options=None, 
+              installDir=None, uninstall=False):
         """clean up the remaining remants of the failed installation of 
         a distribution.  
         @param product      the name of the product to clean up after
@@ -566,6 +658,8 @@ class Repositories(object):
         @param flavor       the flavor for the product to assume.  This affects
                                where we look for partially installed packages.
                                None (the default) means the default flavor.
+        @param options      extra options for fine-tuning the distrib-specific
+                               cleaning as a dictionary
         @param installDir   the directory where the product should be installed
                                If None, a default location based on the above
                                parameters will be assumed.
@@ -574,9 +668,11 @@ class Repositories(object):
         """
         handlePartialInstalls = True
         productRoot = self.getInstallRoot()
+        if not flavor:  flavor = self.eups.flavor
 
         # check the build directory
-        buildDir = self.getBuildDirFor(productRoot, product, version, flavor)
+        buildDir = self.getBuildDirFor(productRoot, product, version, 
+                                       options, flavor)
         if self.verbose > 0:
             print >> self.log, "Looking for build directory:", buildDir
 
@@ -590,7 +686,8 @@ class Repositories(object):
                             "build directory via ", distId
                     self.distribClean(product, version, pkgroot, distId, flavor)
 
-            self.cleanBuildDirFor(productRoot, product, version, flavor)
+            self.cleanBuildDirFor(productRoot, product, version, options, 
+                                  flavor=flavor)
 
         # now look for a partially installed (but not yet eups-declared) package
         if handlePartialInstalls:
@@ -624,7 +721,7 @@ class Repositories(object):
                     if self.verbose > 0:
                         print >> self.log, "Removing installation dir:", \
                             installDir[0]
-                    eupsServer.system("/bin/rm -rf %s" % installDir)
+                    server.system("/bin/rm -rf %s" % installDir)
                         
         # now see what's been installed
         if uninstall and flavor == self.eups.flavor:
@@ -649,7 +746,8 @@ class Repositories(object):
                 self.eups.remove(product, version, False)
 
 
-    def distribClean(self, product, version, pkgroot, distId, flavor=None):
+    def distribClean(self, product, version, pkgroot, distId, flavor=None, 
+                     options=None):
         """attempt to do a distrib-specific clean-up based on a distribID.
         @param product      the name of the product to clean up after
         @param version      the version of the product
@@ -657,11 +755,12 @@ class Repositories(object):
                                where we look for partially installed packages.
                                None (the default) means the default flavor.
         @param distId       the distribution ID used to install the package.
+        @param options      extra options for fine-tuning the distrib-specific
+                               cleaning as a dictionary
         """
         repos = self.repos[pkgroot]
-        distrib = repos.createDistribFor(distId, self.options, flavor)
+        distrib = repos.createDistribFor(distId, options, flavor)
         location = distrib.parseDistID(distId)
         productRoot = self.getInstallRoot()
         return distrib.cleanPackage(product, version, productRoot, location)
-
 

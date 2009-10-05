@@ -209,7 +209,9 @@ class Eups(object):
 
         if preferredTags is None:
             preferredTags = "stable current newest".split()
-        self.setPreferredTags(preferredTags)
+        q = Quiet(self)
+        self._kindlySetPreferredTags(preferredTags)
+        del q
 
         #
         # Find locally-setup products in the environment
@@ -252,7 +254,7 @@ class Eups(object):
 
         tags = filter(self.tags.isRecognized, tags)
         if len(tags) == 0:
-            if self.quiet <= 0:
+            if self.quiet <= 0 or self.verbose > 1:
                 print >> sys.stderr, \
                     "Warning: No recognized tags; not updating preferred list"
         else:
@@ -1345,7 +1347,7 @@ class Eups(object):
             productName = utils.guessProduct(os.path.join(productDir, "ups"))
 
         if tag and (not productDir or productDir == "/dev/null" or not tablefile):
-            info = self.findProduct(productName, versionName, self.flavor, eupsPathDir)
+            info = self.findProduct(productName, versionName, eupsPathDir, self.flavor)
             if info is not None:
                 if not productDir:
                     productDir = info.dir
@@ -1803,7 +1805,7 @@ class Eups(object):
 
         return dependencies
 
-    def remove(self, productName, versionName, recursive, checkRecursive=False, interactive=False, userInfo=None):
+    def remove(self, productName, versionName, recursive=False, checkRecursive=False, interactive=False, userInfo=None):
         """Undeclare and remove a product.  If recursive is true also remove everything that
         this product depends on; if checkRecursive is True, you won't be able to remove any
         product that's in use elsewhere unless force is also True.
@@ -2117,7 +2119,26 @@ class Eups(object):
 
         return self.findProducts(productName, productVersion, tags)
 
+    def supportServerTags(self, tags, pkgroot, persist=True):
+        """
+        support the list of tags provided by a server
+        @param tags     the list of tags either as a python list or a space-
+                          delimited string.   
+        @param pkgroot  the base URL for the repository they come from.  This
+                          will control where the tag names are persisted.
+        @param persist  If True (default), the tag names will be cached
+                          to disk. 
+        """
+        if isinstance(tags, str):
+            tags = tags.split()
+        for tag in tags:
+            if isinstance(tag, Tag):
+                tag = tag.name
+            self.tags.registerTag(tag)
 
+        # persist
+
+        
 
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"

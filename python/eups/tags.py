@@ -91,7 +91,7 @@ class Tags(object):
         """
         group = self.groupFor(tag)
         if group is None:
-            raise TagNotRecognized(str(name))
+            raise TagNotRecognized(str(tag))
 
         if isinstance(tag, Tag):
             return tag
@@ -106,13 +106,15 @@ class Tags(object):
                        will be registered as a global tag. 
         @throws TagNameConflict  if the name has already been registered.
         """
-        found = self.groupFor(name)
-        if found:
-            raise TagNameConflict(name, found)
-
         if group is None:
             group = self.global_
-        self.bygrp[group].append(name)
+
+        found = self.groupFor(name)
+        if found and found != group:
+            raise TagNameConflict(name, found)
+
+        if not found:
+            self.bygrp[group].append(name)
 
     def registerUserTag(self, name):
         """

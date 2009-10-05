@@ -348,7 +348,7 @@ class Repository(object):
         """
         if self.distServer is None:
             raise RuntimeError("No distribution server set")
-        if not isinstance(options, dict):
+        if options is not None and not isinstance(options, dict):
             raise ValueError("Repository.getDistribFor(): options not a " +
                              "dictionary")
         if not flavor:
@@ -357,7 +357,7 @@ class Repository(object):
         opts = self._mergeOptions(options)
 
         return self.distFactory.createDistrib(distId, flavor, tag, opts,
-                                              self.versbose, self.log)
+                                              self.verbose, self.log)
 
     def isWritable(self):
         """
