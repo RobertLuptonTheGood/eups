@@ -98,12 +98,21 @@ class Repositories(object):
 #                                           override=override,
 #                                           verbosity=self.eups.verbose)
 #
-            dist = Repository(self.eups, pkgroot, options=options, 
-                              flavor=installFlavor, distFactory=df, 
-                              verbosity=self.eups.verbose)
+            try:
+                dist = Repository(self.eups, pkgroot, options=options, 
+                                  flavor=installFlavor, distFactory=df, 
+                                  verbosity=self.eups.verbose)
 
-            self.pkgroots += [pkgroot]
-            self.repos[pkgroot] = dist
+                self.pkgroots += [pkgroot]
+                self.repos[pkgroot] = dist
+
+            except ImportError, e:
+                if self.verbose >= 0:
+                    print >> self.log, "Unable to use server:", pkgroot
+                    print >> self.log, "  %s; Are you missing a plug-in?" % e
+
+        if len(self.pkgroots) == 0 and self.verbose >= 0:
+            print >> self.log, "No usable package repositories loaded"
 
         # a cache of the union of tag names supported by the repositories
         self._supportedTags = None
