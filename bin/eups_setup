@@ -119,6 +119,8 @@ if opts.argv:
 
     if not inexact_version:
         exact_version = True # if they specify a version, that's what they want
+        if verbose:
+            print >> sys.stderr, "Assuming --exact as you specified a version by name (consider --inexact)"
 else:
     if inexact_version and verbose:
         print >> sys.stderr, "--inexact has no effect unless you request a specific version"

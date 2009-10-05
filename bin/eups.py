@@ -1082,6 +1082,7 @@ class Action(object):
         i = -1
 
         requestedFlavor = None; requestedBuildType = None; noRecursion = False
+        ignoredOpts = []                # used in warning message
         while i < len(_args) - 1:
             i += 1
 
@@ -1094,6 +1095,8 @@ class Action(object):
                 elif _args[i] == "-q":  # e.g. -q build
                     requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
+                else:
+                    ignoredOpts.append(_args[i])
 
                 continue
 
@@ -1105,6 +1108,10 @@ class Action(object):
         else:
             vers = Current()
 
+        if ignoredOpts:
+            if Eups.verbose > 0:
+                print >> sys.stderr, "Ignoring options %s for %s %s" % (" ".join(ignoredOpts), productName, vers)
+                
         if not isSpecialVersion(vers):  # see if we have a version of the form "logical [exact]"
             mat = re.search(r"(\S*)\s*\[([^\]]+)\]\s*", vers)
             if mat:
