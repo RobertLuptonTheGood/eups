@@ -274,7 +274,7 @@ If you use svn, things are a bit harder as svn provides no real
 equivalent to a tagname. Simpilar functionality can be achieved using \code{\$HeadURL\$}
 and requiring that all tags be in a directory \code{tags}
 or \code{TAGS} within the svn repository.\footnote{
-  and saying \code{svn propset keywords HeadURL}}
+  and saying \code{svn propset svn:keywords HeadURL}}
 The real \code{eups\_product\_version} attempts to correctly handle both cvs
 and svn users.
 
