@@ -331,7 +331,7 @@ class ProductStackTestCase(unittest.TestCase):
     def testSave(self):
         self.assert_(self.stack.saveNeeded())
 
-        self.stack.clearCache("Linux Linux64 Darwin DarwinX86".split())
+        self.stack.clearCache("Linux Linux64 Darwin DarwinX86 generic".split())
         self.assertEquals(len(ProductStack.findCachedFlavors(self.dbpath)),0)
 
         cache = os.path.join(self.dbpath, 
@@ -371,8 +371,38 @@ class ProductStackTestCase(unittest.TestCase):
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
         self.assert_(prod._table is not None)
 
+class CacheTestCase(unittest.TestCase):
 
-__all__ = "ProductFamilyTestCase ProductStackTestCase".split()
+    def setUp(self):
+        self.dbpath = os.path.join(testEupsStack, "ups_db")
+        self.cache = os.path.join(self.dbpath, 
+                                  ProductStack.persistFilename("Linux"))
+        if os.path.exists(self.cache):
+            os.remove(self.cache)
+
+    def tearDown(self):
+        if os.path.exists(self.cache):
+            os.remove(self.cache)
+
+    def testRegen(self):
+        ps = ProductStack.fromCache(self.dbpath, "Linux", autosave=True, 
+                                    updateCache=True, verbose=False)
+        self.assert_(not ps.hasProduct("afw"))
+        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", "none")
+        ps.addProduct(prod)
+        ps.reload("Linux")
+        self.assert_(ps.hasProduct("afw"))
+        del ps
+        ps = ProductStack.fromCache(self.dbpath, "Linux", autosave=False, 
+                                    updateCache=True, verbose=False)
+        self.assert_(not ps.hasProduct("afw"))
+
+        
+
+    
+
+
+__all__ = "ProductFamilyTestCase ProductStackTestCase CacheTestCase".split()
 
 if __name__ == "__main__":
     unittest.main()
