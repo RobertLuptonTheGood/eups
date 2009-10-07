@@ -8,7 +8,7 @@ import os
 import sys
 import unittest
 import time
-import re
+import re, shutil
 import cStringIO as StringIO
 from testCommon import testEupsStack
 
@@ -47,6 +47,11 @@ class CmdTestCase(unittest.TestCase):
                     os.rmdir(os.path.join(dir,file))
             os.rmdir(newprod)
                     
+        pdir = os.path.join(testEupsStack, "Linux", "newprod")
+        pdir20 = os.path.join(pdir, "2.0")
+        if os.path.exists(pdir20):
+            shutil.rmtree(pdir20)
+
     def testInit(self):
         cmd = eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
         
@@ -263,7 +268,24 @@ tcltk                 8.5a4     \tcurrent
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod", Tag("current"))
         self.assert_(prod is None, "Failed to undeclare product")
+
+    def testRemove(self):
+        pdir = os.path.join(testEupsStack, "Linux", "newprod")
+        pdir10 = os.path.join(pdir, "1.0")
+        pdir20 = os.path.join(pdir, "2.0")
+        shutil.copytree(pdir10, pdir20)
+        self.assert_(os.path.isdir(pdir20))
+
+        eups.Eups().declare("newprod", "2.0", pdir20)
+        self.assert_(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")))
         
+        cmd = eups.cmd.EupsCmd(args="remove newprod 2.0".split(), toolname=prog)
+        cmd.run()
+        self.assertEquals(self.err.getvalue(), "")
+        self.assertEquals(self.out.getvalue(), "")
+        prod = eups.Eups().findProduct("newprod", "2.0")
+        self.assert_(prod is None)
+        self.assert_(not os.path.isdir(pdir20))
 
 class Stdout(object):
 

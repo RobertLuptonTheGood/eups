@@ -11,7 +11,7 @@ import unittest
 import time
 from testCommon import testEupsStack
 
-from eups import TagNotRecognized, Product, ProductNotFound
+from eups import TagNotRecognized, Product, ProductNotFound, EupsException
 from eups.Eups import Eups
 from eups.stack import ProductStack
 from eups.utils import Quiet
@@ -180,7 +180,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "2.5.2")
         self.assertEquals(prod.flavor,  "Linux")
 
-        self.assertRaises(RuntimeError, self.eups.findProduct, 
+        self.assertRaises(EupsException, self.eups.findProduct, 
                           "python", "= 2.5.2")
 
         # look for a setup version
@@ -280,7 +280,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prod.tags), 0)
 
         # test redeclare w/change of product dir
-        self.assertRaises(RuntimeError, self.eups.declare, 
+        self.assertRaises(EupsException, self.eups.declare, 
                           "newprod", "1.1", pdir10, None, table, tag="beta")
         self.eups.force = True
         self.eups.declare("newprod", "1.1", pdir10, None, table, tag="beta")
@@ -291,7 +291,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.tags[0], "beta")
 
         # test ambiguous undeclare
-        self.assertRaises(RuntimeError, self.eups.undeclare, "newprod")
+        self.assertRaises(EupsException, self.eups.undeclare, "newprod")
 
         # test tagging via declare (install dir determined on fly)
         self.eups.declare("newprod", "1.0", tag="current")

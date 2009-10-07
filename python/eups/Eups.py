@@ -1429,7 +1429,6 @@ class Eups(object):
         #
         # Check that tablefile exists
         #
-        assert tablefile
         if not tablefileIsFd and utils.isRealFilename(tablefile):
             if utils.isRealFilename(productDir):
                 if ups_dir:
@@ -1488,6 +1487,11 @@ class Eups(object):
             elif _productDir and _tablefile:
                 # there's no difference with what's already declared
                 dodeclare = False
+
+        # Last bit of tablefile path tweaking...
+        if not tablefile.startswith('$') and not os.path.isabs(tablefile) and \
+           full_tablefile:
+            tablefile = full_tablefile
 
         #
         # Arguments are checked; we're ready to go

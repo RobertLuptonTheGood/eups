@@ -128,7 +128,7 @@ Common"""
 
         ecmd = makeEupsCmd(self.cmd, self.clargs, self.prog)
         if ecmd is None:
-            self.err("Unrecognized command: %s" % cmd)
+            self.err("Unrecognized command: %s" % ecmd)
             return 10
 
         return ecmd.run()
@@ -997,6 +997,65 @@ version currently declared.
 
         return 0
 
+
+class RemoveCmd(EupsCmd):
+
+    usage = "%prog remove [-h|--help] [options] product version"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Completely remove a product.  In particular, remove its root directory
+where it is installed.
+"""
+
+    def addOptions(self):
+        # these are specific to this command
+        self.clo.add_option("-i", "--interactive", dest="interactive", 
+                            action="store_true",
+           help="Prompt user before actually removing products (default if -R)")
+        self.clo.add_option("--noInteractive", dest="interactive", 
+                            action="store_false",
+           help="Don't prompt user before actually removing products")
+        self.clo.add_option("-N", "--noCheck", dest="noCheck", 
+                            action="store_true", default=False,
+           help="Don't check whether recursively removed products are needed")
+        self.clo.add_option("-R", "--recursive", dest="recursive", 
+                            action="store_true", default=False,
+         help="Recursively also remove everything that this product depends on")
+        
+        # these options are used to configure the Eups instance
+        self.addCommonOptions()
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+    def execute(self):
+        if len(self.args) == 0:
+            self.err("Please specify a product name and version")
+            return 2
+        if len(self.args) < 2:
+            self.err("Please also specify a product version")
+            return 2
+        product = self.args[0]
+        version = self.args[1]
+
+
+        myeups = self.createEups()
+        try:
+            myeups.remove(product, version, self.opts.recursive,
+                          checkRecursive=not self.opts.noCheck, 
+                          interactive=self.opts.interactive)
+        except eups.EupsException, e:
+            self.err(str(e))
+            return 1
+
+        return 0
+
+
+
 # TODO: admin, distrib, remove
         
         
@@ -1064,4 +1123,5 @@ register("expandbuild",  ExpandbuildCmd)
 register("expandtable",  ExpandtableCmd)
 register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
+register("remove",       RemoveCmd)
 
