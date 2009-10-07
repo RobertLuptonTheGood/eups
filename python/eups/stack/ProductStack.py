@@ -767,11 +767,27 @@ class ProductStack(object):
                 cacheOkay = False
                 if verbose:
                   print >> sys.stderr, \
-                   "Regenerating missing or out-of-date cache cache for %s in\n   %s" % (flav, dbpath)
+                   "Regenerating missing or out-of-date cache for %s in\n   %s" % (flav, dbpath)
                 break
         if cacheOkay:
             out.reload(flavors)
-        else:
+
+            # do a final consistency check; do we have the same products
+            dbnames = Database(dbpath).findProductNames()
+            dbnames.sort()
+            dbnames = " ".join(dbnames)
+
+            cachenames = out.getProductNames()
+            cachenames.sort()
+            cachenames = " ".join(cachenames)
+
+            if dbnames != cachenames:
+                cacheOkay = False
+                if verbose:
+                  print >> sys.stderr, \
+                   "Regenerating out-of-date cache for %s in\n   %s" % (flav, dbpath)
+
+        if not cacheOkay:
             out.refreshFromDatabase()
             out._flavorsUpdated(flavors)
             if updateCache:  out.save()
