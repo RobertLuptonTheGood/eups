@@ -2,6 +2,7 @@
 the Uses class -- a class for tracking product dependencies (used by the remove() 
 function).  
 """
+import re
 
 #
 # Cache for the Uses tree
@@ -32,14 +33,14 @@ class Uses(object):
         if depth <= 0 or not self._depends_on.has_key(k):
             return
         
-        for p, v, o, c in self._depends_on[k]:
+        for p, v, o in self._depends_on[k]:
             o = o or optional
 
             key = self._getKey(p, v)
             if not self._setup_by.has_key(key):
                 self._setup_by[key] = []
 
-            self._setup_by[key] += [(productName, versionName, (v, o, c, depth))]
+            self._setup_by[key] += [(productName, versionName, (v, o, depth))]
 
             self._do_invert(productName, versionName, self._getKey(p, v), depth - 1, o)
 
@@ -74,7 +75,7 @@ class Uses(object):
             dmin = {}
             for val in self._setup_by[k]:
                 p, pv, requestedInfo = val
-                d = requestedInfo[3]    # depth
+                d = requestedInfo[-1]    # depth is the last item
 
                 key = "%s-%s" % (p, pv)
                 if not dmin.has_key(key) or d < dmin[key]:

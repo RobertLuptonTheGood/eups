@@ -9,7 +9,7 @@ import tempfile
 from stack      import ProductStack
 from db         import Database
 from tags       import Tags, Tag, TagNotRecognized
-from exceptions import ProductNotFound
+from exceptions import ProductNotFound, EupsException
 from table      import Table
 from Product    import Product
 from Uses       import Uses
@@ -67,7 +67,7 @@ class Eups(object):
             try:
                 shell = os.environ["SHELL"]
             except KeyError:
-                raise RuntimeError, "I cannot guess what shell you're running as $SHELL isn't set"
+                raise EupsException("I cannot guess what shell you're running as $SHELL isn't set")
 
             if re.search(r"(^|/)(bash|ksh|sh)$", shell):
                 shell = "sh"
@@ -76,7 +76,7 @@ class Eups(object):
             elif re.search(r"(^|/)(zsh)$", shell):
                 shell = "zsh"
             else:
-                raise RuntimeError, ("Unknown shell type %s" % shell)    
+                raise EupsException("Unknown shell type %s" % shell)    
 
         self.shell = shell
 
@@ -110,9 +110,9 @@ class Eups(object):
 
         if not self.path and not root:
             if dbz:
-                raise RuntimeError, ("No element of EUPS_PATH matches \"%s\"" % dbz)
+                raise EupsException("No element of EUPS_PATH matches \"%s\"" % dbz)
             else:
-                raise RuntimeError, ("No EUPS_PATH is defined")
+                raise EupsException("No EUPS_PATH is defined")
 
         self.oldEnviron = os.environ.copy() # the initial version of the environment
 
@@ -174,8 +174,8 @@ class Eups(object):
                     "Creating User data directory: " + userDataDir
             os.makedirs(userDataDir)
         if not os.path.isdir(userDataDir):
-           raise RuntimeError("User data directory not found (as a directory): "
-                              + userDataDir)
+            raise EupsException("User data directory not found (as a directory): " + userDataDir)
+                                
         self.userDataDir = userDataDir
 
         #
@@ -184,7 +184,8 @@ class Eups(object):
         #
         self.versions = {}
         neededFlavors = Flavor().getFallbackFlavors(self.flavor, True)
-        for p in self.path:
+        if readCache:
+          for p in self.path:
 
             # the product cache.  If cache is non-existent or out of date,
             # the product info will be refreshed from the database
@@ -730,7 +731,7 @@ class Eups(object):
                     print >> sys.stderr, "Product %s is not setup" % productName
                 continue
 
-            except RuntimeError, e:
+            except EupsException, e:
                 if self.quiet <= 0:
                     print >> sys.stderr, e
                 continue
@@ -843,7 +844,7 @@ class Eups(object):
         if prod is not None:
             try:
                 self.setup(prod, fwd=False)
-            except RuntimeError, e:
+            except EupsException, e:
                 print >> sys.stderr, \
                     "Unable to unsetup %s %s: %s" % (prod.name, prod.version, e)
 
@@ -857,8 +858,8 @@ class Eups(object):
         if self._relop_re.search(versionName):
             return True
         if self._bad_relop_re.match(versionName):
-            raise RuntimeError("Bad expr syntax: %s; did you mean '=='?" % 
-                               versionName)
+            raise EupsException("Bad expr syntax: %s; did you mean '=='?" % 
+                                versionName)
         return False
 
     def version_match(self, vname, expr):
@@ -1031,8 +1032,8 @@ class Eups(object):
                         return False, versionName, ProductNotFound(productName, versionName)
 
         if setupType and not self._isValidSetupType(setupType):
-            raise RuntimeError, ("Unknown type %s; expected one of \"%s\"" % \
-                                 (setupType, "\" \"".validSetupTypes))
+            raise EupsException("Unknown type %s; expected one of \"%s\"" % \
+                                (setupType, "\" \"".validSetupTypes))
 
         #
         # We have all that we need to know about the product to proceed
@@ -1190,7 +1191,7 @@ class Eups(object):
         root = product.stackRoot()
 
         if tag.isGlobal() and not utils.isDbWritable(product.db):
-            raise RuntimeError(
+            raise EupsException(
                 "You don't have permission to assign a global tag %s in %s" %
                 (str(tag), product.db))
 
@@ -1259,7 +1260,7 @@ class Eups(object):
             return
 
         if tag.isGlobal() and not utils.isDbWritable(dbpath):
-            raise RuntimeError(
+            raise EupsException(
                 "You don't have permission to unassign a global tag %s in %s" %
                 (str(tag), product.db))
 
@@ -1335,7 +1336,7 @@ class Eups(object):
                                equivalent to tag="current".  
         """
         if re.search(r"[^a-zA-Z_0-9]", productName):
-            raise RuntimeError, ("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
+            raise EupsException("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
 
         # this is for backward compatibility
         if isinstance(tag, bool) or (tag is None and declareCurrent):
@@ -1367,8 +1368,7 @@ class Eups(object):
                     break
 
         if not productDir:
-            raise RuntimeError, \
-                  ("Please specify a productDir for %s %s (maybe \"none\")" % (productName, versionName))
+            raise EupsException("Please specify a productDir for %s %s (maybe \"none\")" % (productName, versionName))
 
         if productDir == "/dev/null":   # Oh dear, we failed to find it
             productDir = "none"
@@ -1384,8 +1384,7 @@ class Eups(object):
             assert productDir
 
             if not os.path.isdir(productDir):
-                raise RuntimeError, \
-                  ("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
+                raise EupsException("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
 
         if tablefile is None:
             tablefile = "%s.table" % productName
@@ -1404,7 +1403,7 @@ class Eups(object):
             eupsPathDir = None
 
         if not eupsPathDir: 
-            raise RuntimeError(
+            raise EupsException(
                 "Unable to find writable stack in EUPS_PATH to declare %s %s" % 
                 (productName, versionName))
 
@@ -1437,7 +1436,7 @@ class Eups(object):
                     try:
                         full_tablefile = os.path.join(ups_dir, tablefile)
                     except Exception, e:
-                        raise RuntimeError, ("Unable to generate full tablefilename: %s" % e)
+                        raise EupsException("Unable to generate full tablefilename: %s" % e)
                     
                     if not os.path.isfile(full_tablefile) and not os.path.isabs(full_tablefile):
                         full_tablefile = os.path.join(productDir, full_tablefile)
@@ -1448,7 +1447,7 @@ class Eups(object):
                 full_tablefile = os.path.join(productDir, ups_dir, tablefile)
 
             if not os.path.isfile(full_tablefile):
-                raise RuntimeError, ("I'm unable to declare %s as tablefile %s does not exist" %
+                raise EupsException("I'm unable to declare %s as tablefile %s does not exist" %
                                      (productName, full_tablefile))
         else:
             full_tablefile = None
@@ -1483,7 +1482,7 @@ class Eups(object):
                 info = ""
                 if self.verbose:
                     info = " (%s)" % " ".join(differences)
-                raise RuntimeError, ("Redeclaring %s %s%s; specify force to proceed" %
+                raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
                                      (productName, versionName, info))
 
             elif _productDir and _tablefile:
@@ -1564,7 +1563,7 @@ class Eups(object):
         @param productName   the name of the product to undeclare
         @param versionName   the version to undeclare; this can be None if 
                                there is only one version declared; otherwise
-                               a RuntimeError is raised.  
+                               an EupsException is raised.  
         @param eupsPathDir   the product stack to undeclare the product from.
                                ProductNotFound is raised if the product 
                                is not installed into this stack.  
@@ -1590,7 +1589,7 @@ class Eups(object):
 
             elif len(productList) > 1:
                 versionList = map(lambda el: el.version, productList)
-                raise RuntimeError, ("Product %s has versions \"%s\"; please choose one and try again" %
+                raise EupsException("Product %s has versions \"%s\"; please choose one and try again" %
                                      (productName, "\" \"".join(versionList)))
 
             else:
@@ -1601,14 +1600,13 @@ class Eups(object):
         eupsPathDir = product.stackRoot()
 
         if not utils.isDbWritable(product.db):
-            raise RuntimeError("You do not have permission to undeclare products from %s" % eupsPathDir)
+            raise EupsException("You do not have permission to undeclare products from %s" % eupsPathDir)
             
         if self.isSetup(product):
             if self.force:
                 print >> sys.stderr, "Product %s %s is currently setup; proceeding" % (productName, versionName)
             else:
-                raise RuntimeError, \
-                      ("Product %s %s is already setup; specify force to proceed" % (productName, versionName))
+                raise EupsException("Product %s %s is already setup; specify force to proceed" % (productName, versionName))
 
         if self.verbose or self.noaction:
             print >> sys.stderr, "Removing %s %s from version list for %s" % \
@@ -1648,7 +1646,7 @@ class Eups(object):
         (using fnmatch).  
         @param name          the name or name pattern for the products of
                                interest
-        @param version       the version or version patter for the products
+        @param version       the version or version pattern for the products
                                of interest
         @param tags          a list of tag names; if provided, the list of 
                                returned products will be restricted to those
@@ -1874,7 +1872,7 @@ class Eups(object):
                     continue
 
             if not self.undeclare(product.name, product.version):
-                raise RuntimeError, ("Not removing %s %s" % (product.name, product.version))
+                raise EupsException("Not removing %s %s" % (product.name, product.version))
 
             if removedDirs.has_key(dir): # file is already removed
                 continue
@@ -1923,7 +1921,7 @@ class Eups(object):
                     if self.force:
                         print >> sys.stderr, "%s; removing anyway" % (msg)
                     else:
-                        raise RuntimeError, ("%s; specify force to remove" % (msg))
+                        raise EupsException("%s; specify force to remove" % (msg))
 
             if recursive:
                 productsToRemove += self._remove(product.name, product.version, (product.name != productName),
@@ -1936,7 +1934,8 @@ class Eups(object):
 
     def uses(self, productName=None, versionName=None, depth=9999):
         """Return a list of all products which depend on the specified product in the form of a list of tuples
-        (productName, productVersion, (versionNeeded, optional))
+        (productName, productVersion, (versionNeeded, optional, tags)) 
+        (where tags is a list of tag names).  
 
         depth tells you how indirect the setup is (depth==1 => product is setup in table file,
         2 => we set up another product with product in its table file, etc.)
@@ -1945,9 +1944,7 @@ class Eups(object):
         a Uses object is returned which may be used to perform further uses searches efficiently
     """
         if not productName and versionName:
-            raise RuntimeError, ("You may not specify a version \"%s\" but not a product" % versionName)
-
-        self.exact_version = True
+            raise EupsException("You may not specify a version \"%s\" but not a product" % versionName)
 
         # start with every known product
         productList = self.findProducts()
@@ -1958,16 +1955,10 @@ class Eups(object):
         useInfo = Uses()
 
         for pi in productList:          # for every known product
-            try:
-                q = Quiet(self)
-                prod = self.getProduct(pi.name, pi.version)
-                tbl = prod.getTable()
-                if tbl:
-                    deps = tbl.dependencies(tbl)
-                del q
-            except ProductNotFound, e:
-                print >> sys.stderr, str(e)
+            tbl = pi.getTable()
+            if not tbl:
                 continue
+            deps = tbl.dependencies(self)
 
             for pd, od in deps:
                 if pi.name == pd.name and pi.version == pd.version:
@@ -2050,9 +2041,8 @@ class Eups(object):
         out = self.findPreferredProduct(productName, path, self.flavor, preferred)
 
         if not out:
-            raise RuntimeError, \
-                  ("Unable to locate a preferred version of %s for flavor %s" %
-                   (productName, self.flavor))
+            raise RuntimeError("Unable to locate a preferred version of %s for flavor %s" % (productName, self.flavor))
+
         return out
 
     def findFullySpecifiedVersion(self, productName, versionName, flavor, eupsPathDir):

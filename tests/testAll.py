@@ -9,6 +9,7 @@ from testDb import *
 from testStack import *
 from testTable import *
 from testEups import *
+from testCmd import *
 
 if __name__ == "__main__":
     unittest.main()

@@ -8,7 +8,7 @@ import os
 import re, sys
 import pdb
 
-from exceptions import BadTableContent, TableFileNotFound
+from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
 from Parser import Parser
 import utils
 
@@ -386,11 +386,11 @@ but no other interpretation is applied
             if a.cmd == Action.setupRequired:
                 productName = a.args[0]
                 if len(a.args) > 1:
-                    versionArg = " ".join(args[1:])
+                    versionArg = " ".join(a.args[1:])
                 else:
                     versionArg = None
                 
-                mat = re.search(versionre, versionArg)
+                mat = re.search(self._versionre, versionArg)
                 if mat:
                     exactVersion, logicalVersion = mat.groups()
                     if Eups.exact_version:
@@ -412,7 +412,7 @@ but no other interpretation is applied
                         recursiveDict[prodkey(product)] = 1
                         deptable = product.getTable()
                         if deptable:
-                            deps += deptable.dependencies(eupsPathDirs, recursiveDict, recursionDepth+1)
+                            deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict, recursionDepth+1)
                         
                 except ProductNotFound, e:
                     if a.extra:         # product is optional

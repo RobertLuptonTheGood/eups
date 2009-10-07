@@ -8,4 +8,7 @@ import utils
 from utils      import version, Quiet
 from utils      import determineFlavor as flavor
 
+from app        import *
+
+
 

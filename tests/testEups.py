@@ -62,7 +62,7 @@ class EupsTestCase(unittest.TestCase):
 
         flavors = self.eups.versions[testEupsStack].getFlavors()
         self.assertEquals(len(flavors), 3)
-        for flav in "Linux64 Linux Generic".split():
+        for flav in "Linux64 Linux generic".split():
             self.assert_(flav in flavors)
 
         # 2 default tags: newest, setup
@@ -77,7 +77,7 @@ class EupsTestCase(unittest.TestCase):
             self.assert_(tag in self.eups.preferredTags)
 
         # There should have been some cache files created
-        flavors.append("Generic")
+        flavors.append("generic")
         for flav in flavors:
             cache = os.path.join(self.dbpath, 
                                  ProductStack.persistFilename(flav))
