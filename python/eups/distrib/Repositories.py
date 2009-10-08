@@ -6,7 +6,8 @@ import sys, os, re, atexit, shutil
 
 import eups.utils as utils
 import server
-from eups           import Eups, Tag, TagNotRecognized, ProductNotFound
+from eups           import Eups, Tag, Tags, TagNotRecognized
+from eups           import ProductNotFound, EupsException
 from Repository     import Repository 
 from eups.utils     import Flavor, Quiet
 from Distrib        import findInstallableRoot
@@ -50,7 +51,7 @@ class Repositories(object):
         if isinstance(pkgroots, str):
             pkgroots = map(lambda p: p.strip(), pkgroots.split("|"))
         if len(pkgroots) == 0:
-            raise RuntimeError("No package servers to query; set -r or $EUPS_PKGROOT")
+            raise EupsException("No package servers to query; set -r or $EUPS_PKGROOT")
 
         # the Eups environment
         self.eups = eupsenv
@@ -113,9 +114,8 @@ class Repositories(object):
         # a cache of the union of tag names supported by the repositories
         self._supportedTags = None
 
-        # used by install() to control repeated reports about unrecognized 
-        # tags
-        self._tagProbAlert = 0
+        # used by install() to control repeated error messages
+        self._msgs = {}
 
     def listPackages(self, productName=None, versionName=None, flavor=None):
         """Return a list of tuples (pkgroot, package-list)"""
@@ -264,9 +264,9 @@ class Repositories(object):
 
         return None
 
-    def install(self, product, version=None, updateTags=True, nodepend=False, 
-                noclean=False, noeups=False, options=None, manifest=None, 
-                searchDep=None):
+    def install(self, product, version=None, updateTags=True, alsoTag=None,
+                nodepend=False, noclean=False, noeups=False, options=None, 
+                manifest=None, searchDep=None):
         """
         Install a product and all its dependencies.
         @param product     the name of the product to install
@@ -279,6 +279,10 @@ class Repositories(object):
                             to match those recommended on the server (even if
                             a product is already installed); if False, tags 
                             will not be changed.
+        @param alsoTag     A list of tags to assign to all installed products
+                            (in addition to server tags).  This can either be
+                            a space-delimited list, a list of string names,
+                            a Tag instance, or a list of Tag instances.
         @param nodepend    if True, the product dependencies will not be 
                             installed
         @param noclean     If False (default), the build directory will get
@@ -311,6 +315,12 @@ class Repositories(object):
                             where the manifest comes from (which usually 
                             defaults to False).
         """
+        if alsoTag is not None:
+            if isinstance(alsoTag, str):
+                alsoTag = map(lambda t: Tag(t, Tags.user), alsoTag.split())
+            elif isinstance(alsoTag, Tag):
+                alsoTag = [alsoTag]
+
         pkg = self.findPackage(product, version)
         if not pkg:
             raise ProductNotFound(product, version,
@@ -322,26 +332,27 @@ class Repositories(object):
 #        productRoot = utils.findWritableDb(self.eups.path)
         productRoot = self.getInstallRoot()
         if productRoot is None:
-            raise RuntimeError("Unable to find writable place to install in EUPS_PATH")
+            raise EupsException("Unable to find writable place to install in EUPS_PATH")
 
         if manifest is not None:
             if not manifest or os.path.exists(manifest):
-                raise RuntimeError("%s: user-provided manifest not found")
+                raise EupsException("%s: user-provided manifest not found" %
+                                    manifest)
             man = Manifest.fromFile(manifest, self.eups, 
                                     verbosity=self.eups.verbose-1)
         else:
             man = self.repos[pkgroot].getManifest(product, version, flavor)
 
-        self._tagProbAlert = 0
+        self._msgs = {}
         self._recursiveInstall(0, man, product, version, flavor, pkgroot, 
-                               productRoot, updateTags, options, nodepend, 
-                               noclean, noeups)
+                               productRoot, updateTags, alsoTag, options, 
+                               nodepend, noclean, noeups)
         
     def _recursiveInstall(self, recursionLevel, manifest, product, version, 
                           flavor, pkgroot, productRoot, updateTags=False, 
-                          opts=None, nodepend=False, noclean=False, 
-                          noeups=False, searchDep=None, setups=None, 
-                          installed=None, tag=None, ances=None):
+                          alsoTag=None, opts=None, nodepend=False, 
+                          noclean=False, noeups=False, searchDep=None, 
+                          setups=None, installed=None, tag=None, ances=None):
                           
         if installed is None:
             installed = []
@@ -352,6 +363,9 @@ class Repositories(object):
         instflavor = flavor
         if instflavor == "generic":
             instflavor = self.eups.flavor
+
+        if alsoTag is None:
+            alsoTag = []
 
         # a function for creating an id string for a product
         prodid = lambda p, v, f: " %s %s for %s" % (p, v, f)
@@ -424,9 +438,9 @@ class Repositories(object):
                                                    prod.product, prod.version, 
                                                    prod.flavor, pkg[3], 
                                                    productRoot, updateTags, 
-                                                   opts, norecurse, noclean,
-                                                   noeups, setups, installed, 
-                                                   tag, ances)
+                                                   alsoTag, opts, norecurse, 
+                                                   noclean, noeups, setups, 
+                                                   installed, tag, ances)
                         if not thisinstalled and self.verbose > 0:
                             print >> self.log, \
                                 "Warning: recursive install failed for", \
@@ -447,6 +461,16 @@ class Repositories(object):
             # ...update the tags
             if updateTags:
                 self._updateServerTags(pkgroot, prod, productRoot)
+            if alsoTag:
+                for tag in alsoTag:
+                    try:
+                        self.eups.assignTag(tag, prod.product, prod.version,
+                                            productRoot)
+                    except Exception, e:
+                        msg = str(e)
+                        if not self._msgs.has_key(msg):
+                            print >> self.log, msg
+                        self._msgs[msg] = 1
 
             # ...note that this package is now installed
             installed.append(pver)
@@ -530,10 +554,10 @@ class Repositories(object):
             try:
                 self.eups.assignTag(tag, prod.product, prod.version, productRoot)
             except TagNotRecognized, e:
-                if self.verbose > self._tagProbAlert:
-                    print >> self.log, "Failed to recognize server tag:", tag
-                if self._tagProbAlert <= 0:
-                    self._tagProbAlert += 1
+                msg = str(e)
+                if not self._msgs.has_key(msg):
+                    print >> self.log, msg
+                self._msgs[msg] = 1
 
     def _recordDistID(self, pkgroot, distId, installDir):
         ups = os.path.join(installDir, "ups")
@@ -611,7 +635,7 @@ class Repositories(object):
                                                       version, flavor,
                                                       filename=tablefile)
                 if not os.path.exists(tablefile):
-                    raise RuntimeError("Failed to find table file %s" % tablefile)
+                    raise EupsException("Failed to find table file %s" % tablefile)
 
         self.eups.declare(mprod.product, mprod.version, rootdir, 
                           eupsPathDir=productRoot, tablefile=tablefile)
@@ -770,14 +794,11 @@ class Repositories(object):
         if uninstall and flavor == self.eups.flavor:
             info = None
             distidfile = None
-            try:
-                info = self.eups.listProducts(product, version)[0]
-            except IndexError, e:
-                pass
+            info = self.eups.findProduct(product, version)
             if info:
                 # clean up anything associated with the successfully 
                 # installed package
-                distidfile = os.path.join(info.productDir, "ups", "distID.txt")
+                distidfile = os.path.join(info.dir, "ups", "distID.txt")
                 if os.path.isfile(distidfile):
                     distId = self._readDistIDFile(distidfile)
                     if distId:

@@ -14,9 +14,12 @@ from testCommon import testEupsStack
 from eups.distrib.server import Transporter, LocalTransporter
 from eups.distrib.server import RemoteFileNotFound
 from eups.distrib.server import ConfigurableDistribServer
+import eups, eups.cmd
 
 # the package server root:
 pkgroot = "http://dev.lsstcorp.org/dmspkgs"
+bootroot = "http://dev.lsstcorp.org/dmspkgs/bootstrap"
+prog = "eups"
 
 from eups.distrib.server import DistribServer 
 
@@ -281,10 +284,78 @@ class LsstRepositoriesTestCase(unittest.TestCase):
         self.assertEquals(pkgs[1][1][2][1], "1.5.8")
         self.assertEquals(pkgs[1][1][3][1], "1.5.8+1")
 
+class LsstCmdTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.localroot = os.path.join(testEupsStack, "testserver", "s2")
+        self.lsstroot = bootroot
+        os.environ["EUPS_PATH"] = testEupsStack
+        self.flavor = eups.flavor()
+
+    def tearDown(self):
+        lssteups = [ os.path.join(testEupsStack,"ups_db","lssteups"), 
+                     os.path.join(testEupsStack,"EupsBuildDir",
+                                  self.flavor,"lssteups-1.1"), 
+                     os.path.join(testEupsStack,self.flavor,"lssteups") ]
+        for pdir in lssteups:
+            if os.path.exists(pdir):
+                for dir,subdirs,files in os.walk(pdir, False):
+                    for file in files:
+                        os.remove(os.path.join(dir,file))
+                        for file in subdirs:
+                            os.rmdir(os.path.join(dir,file))
+                os.rmdir(pdir)
+
+
+    def testInstall(self):
+        prod = Eups().findProduct("lssteups")
+        self.assert_(prod is None)
+
+        cmd = "distrib install lssteups 1.1 -q -r " + self.lsstroot
+        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+
+        prod = Eups().findProduct("lssteups")
+        self.assert_(prod is not None)
+        self.assertEquals(prod.version, "1.1")
+        self.assert_(prod.dir.endswith("lssteups/1.1"))
+        self.assert_(os.path.exists(prod.dir))
+        pdir = prod.dir
+
+        cmd = "remove lssteups 1.1"
+        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+
+        prod = Eups().findProduct("lssteups")
+        self.assert_(prod is None)
+        
+        cmd = "distrib install lssteups 1.1 --noclean -q -r " + self.lsstroot
+        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+
+        prod = Eups().findProduct("lssteups")
+        self.assert_(prod is not None)
+        bdir = os.path.join(testEupsStack,"EupsBuildDir",self.flavor,"lssteups-1.1")
+        self.assert_(os.path.exists(bdir), "%s does not exist" % bdir)
+
+        cmd = "distrib clean lssteups 1.1 -r " + self.lsstroot
+        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+        self.assert_(not os.path.exists(bdir), "%s still exists" % bdir)
+
+        cmd = "distrib clean lssteups 1.1 -q -R -r " + self.lsstroot
+        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+        self.assert_(not os.path.exists(bdir), "%s still exists" % bdir)
+
+        prod = Eups().findProduct("lssteups")
+        self.assert_(prod is None)
+        self.assert_(not os.path.exists(pdir))
+        
 
 __all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase LsstRepositoryTestCase LsstRepositoriesTestCase".split()        
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        pkgroot = sys.argv[1]
+        pkgroot = bootroot = sys.argv[1]
     unittest.main()

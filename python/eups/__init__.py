@@ -1,5 +1,5 @@
 from exceptions import *
-from tags       import Tag, TagNotRecognized
+from tags       import Tags, Tag, TagNotRecognized
 from Product    import Product
 from Eups       import Eups
 

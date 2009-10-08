@@ -1106,8 +1106,6 @@ class AdminCmd(EupsCmd):
         return 0
 
 
-# TODO: distrib
-        
 class DistribCmd(EupsCmd):
 
     usage = "%prog distrib [list|install|clean|create] [-h|--help] [options] ..."
@@ -1236,10 +1234,10 @@ class DistribListCmd(EupsCmd):
 
         myeups = eups.Eups(readCache=False)
 
-        repos = distrib.Repositories(pkgroots, options, myeups, 
-                                     verbosity=self.opts.verbose)
-
         try:
+            repos = distrib.Repositories(pkgroots, options, myeups, 
+                                         verbosity=self.opts.verbose)
+
             data = repos.listPackages(product, version, self.opts.flavor)
         except eups.EupsException, e:
             self.err(str(e))
@@ -1294,9 +1292,9 @@ tag will be installed.
                         help="Just install product, but not its dependencies")
         self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
                        help="Use this manifest file for the requested product")
-        self.clo.add_option("-d", "--declareAs", dest="tagAs", action="store",
+        self.clo.add_option("-d", "--declareAs", dest="tagAs", action="append",
                             metavar="TAG",
-                        help="tag all newly installed products with this TAG")
+                            help="tag all newly installed products with this user TAG (repeat as needed)")
         self.clo.add_option("-g", "--groupAccess", dest="groupperm", 
                             action="store", metavar="GROUP",
                             help="Give specified group r/w access to all newly installed packages")
@@ -1345,7 +1343,7 @@ tag will be installed.
         if len(self.args) < 1:
            self.err("please specify at least a product name")
            print >> self._errstrm, self.clo.get_usage()
-           return 3
+           return 5
 
         product = self.args[0]
         if len(self.args) > 1:
@@ -1371,6 +1369,35 @@ tag will be installed.
 
         myeups = self.createEups()
 
+        if self.opts.tag:
+            try:
+                tag = myeups.tags.getTag(self.opts.tag)
+                prefs = myeups.getPreferredTags()
+                myeups.setPreferredTags([self.opts.tag] + prefs)
+                if not version:  version = tag
+            except eups.TagNotRecognized, e:
+                self.err(str(e))
+                return 4
+
+        if self.opts.tagAs:
+            unrecognized = []
+            nonuser = []
+            for tag in self.opts.tagAs:
+                try:
+                    tag = myeups.tags.getTag(tag)
+                    if not tag.isUser():
+                        nonuser.append(tag.name)
+                except eups.TagNotRecognized, e:
+                    unrecognized.append(tag.name)
+
+            if nonuser:
+                self.err("Can only assign user tags; Non-user tags: " +
+                         ", ".join(nonuser))
+            if unrecognized:
+                self.err("Unrecognized user tags: " + ", ".join(unrecognized))
+            if nonuser or unrecognized:
+                return 4
+
         dopts = {}
         # handle extra options
         dopts = { 'config': {} }
@@ -1378,6 +1405,15 @@ tag will be installed.
         dopts['noaction']   = self.opts.noaction
         dopts['nobuild']   = self.opts.nobuild
         dopts['noclean']   = self.opts.noclean
+        if self.opts.serverOpts:
+            for opt in self.opts.serverOpts:
+                try:
+                    name, val = opt.split("=",1)
+                except ValueError:
+                    self.err("server option not of form NAME=VALUE: "+opt)
+                    return 3
+                dopts[name] = value
+
 
         if not self.opts.root:
             if not os.environ.has_key("EUPS_PKGROOT"):
@@ -1394,9 +1430,9 @@ tag will be installed.
                                          self.opts.flavor, 
                                          verbosity=self.opts.verbose, log=log)
             repos.install(product, version, self.opts.updateTags, 
-                          self.opts.nodepend, self.opts.noclean, 
-                          self.opts.noeups, dopts, self.opts.manifest,
-                          self.opts.searchDep)
+                          self.opts.tagAs, self.opts.nodepend, 
+                          self.opts.noclean, self.opts.noeups, dopts, 
+                          self.opts.manifest, self.opts.searchDep)
         except eups.EupsException, e:
             self.err(str(e))
             if log:  log.close()
@@ -1406,7 +1442,108 @@ tag will be installed.
         return 0
 
 
+class DistribCleanCmd(EupsCmd):
 
+    usage = "%prog distrib clean [-h|--help] [options] product version"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Clean out the remnants of a package installation for a given product.  
+This will remove the build directory as well as (if possible) a partially 
+installed product if they exist.  If the -R is provided, the installed 
+product will be fully removed, even if its installation was successful.
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        self.clo.add_option("-R", "--remove", dest="remove", 
+                            action="store_true", default=False, 
+                        help="Also remove the named product after cleaning")
+        self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store",
+                            metavar="DIR",
+                            help="Assume the build was done under DIR")
+        self.clo.add_option("-P", "--product-dir", dest="pdir", action="store",
+                            metavar="DIR",
+             help="Assume the DIR is the product's installation/root directory")
+        self.clo.add_option("-r", "--repository", dest="root", action="append",
+                            metavar="BASEURL",
+                      help="the base URL for a repository to access (repeat as needed).  Default: $EUPS_PKGROOT")
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
+        self.clo.add_option("-S", "--server-option", dest="serverOpts",
+                            action="append",
+                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses",
+                            action="append",
+                   help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
+                            action="append",
+                   help="register this Distrib class (repeat as needed)")
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("--root", dest="root", action="append",
+                            help="equivalent to --repository (deprecated)")
+
+    def execute(self):
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        if len(self.args) == 0:
+            self.err("Please specify a product name and version")
+            return 2
+        if len(self.args) < 2:
+            self.err("Please also specify a product version")
+            return 2
+        product = self.args[0]
+        version = self.args[1]
+
+        if not self.opts.root:
+            if not os.environ.has_key("EUPS_PKGROOT"):
+                self.err("No repositories specified; please set -r or EUPS_PKGROOT")
+                return 4
+            self.opts.root = os.environ["EUPS_PKGROOT"]
+
+        dopts = {}
+        if self.opts.serverOpts:
+            for opt in self.opts.serverOpts:
+                try:
+                    name, val = opt.split("=",1)
+                except ValueError:
+                    self.err("server option not of form NAME=VALUE: "+opt)
+                    return 3
+                dopts[name] = value
+
+        log = None
+        if self.opts.quiet:
+            log = open("/dev/null", "w")
+
+        myeups = self.createEups()
+
+        try:
+            repos = distrib.Repositories(self.opts.root, dopts, myeups, 
+                                         self.opts.flavor, 
+                                         verbosity=self.opts.verbose, log=log)
+            repos.clean(product, version, self.opts.flavor, dopts, 
+                        self.opts.pdir, self.opts.remove)
+
+        except eups.EupsException, e:
+            self.err(str(e))
+            if log:  log.close()
+            return 1
+
+        if log:  log.close()
+        return 0
+
+# TODO: distrib create
+        
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1472,6 +1609,6 @@ register("admin",        AdminCmd)
 register("distrib",    DistribCmd)
 register("distrib list",    DistribListCmd)
 register("distrib install", DistribInstallCmd)
-# register("distrib clean",   DistribCleanCmd)
+register("distrib clean",   DistribCleanCmd)
 # register("distrib create",  DistribCreateCmd)
 
