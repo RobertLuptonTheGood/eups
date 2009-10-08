@@ -10,4 +10,4 @@ The major classes are:
                        for the same flavor).  
 """
 from ProductFamily import ProductFamily
-from ProductStack import ProductStack
+from ProductStack import ProductStack, persistVersionName

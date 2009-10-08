@@ -58,57 +58,57 @@ class CmdTestCase(unittest.TestCase):
 
     def testQuiet(self):
         cmd = eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
-        cmd.run()
+        self.assertNotEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
 
     def testHelp(self):
         cmd = eups.cmd.EupsCmd(args="-h".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assert_(self.out.getvalue().startswith("Usage: eups "),
                      "Output starts with: '%s....'" % self.out.getvalue()[:16])
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="flavor -h".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assert_(self.out.getvalue().startswith("Usage: eups flavor"),
                      "Output starts with: '%s....'" % self.out.getvalue()[:16])
 
     def testVersion(self):
         cmd = eups.cmd.EupsCmd(args="-V".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assert_(self.out.getvalue().startswith("EUPS Version:"),
                      "Output starts with: '%s....'" % self.out.getvalue()[:16])
 
     def testFlavor(self):
         cmd = eups.cmd.EupsCmd(args="flavor".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assert_(len(self.out.getvalue()) > 0)
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="flavor -f Linux".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "Linux")
 
     def testPath(self):
         cmd = eups.cmd.EupsCmd(args="path".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), testEupsStack)
 
     def testPath(self):
         cmd = eups.cmd.EupsCmd(args="pkgroot".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), os.environ["EUPS_PKGROOT"])
 
     def testFlags(self):
         cmd = eups.cmd.EupsCmd(args="flags".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "You have no EUPS_FLAGS set")
                           
@@ -131,37 +131,37 @@ tcltk                 8.5a4     \tcurrent
         outnews = "\n".join(filter(lambda l: l.find('2.6') >= 0, outpy.split("\n"))).strip()
 
         cmd = eups.cmd.EupsCmd(args="list".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), outall)
                           
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list python".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), outpy)
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list -t current python".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), outcurr)
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list -t newest python".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), outnews)
 
     def testListBadTag(self):
         cmd = eups.cmd.EupsCmd(args="list tcltk -t goob".split(), 
                                toolname=prog)
-        cmd.run()
+        self.assertNotEqual(cmd.run(), 0)
         self.assert_(self.err.getvalue().find("list: Unsupported tag"))
 
     def testUses(self):
         cmd = eups.cmd.EupsCmd(args="uses tcltk".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         pyuser = re.compile(r"python\s+2.5.2\s+8.5a4")
         lines = self.out.getvalue().split("\n")
@@ -171,7 +171,7 @@ tcltk                 8.5a4     \tcurrent
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses tcltk -t newest".split(), 
                                toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         pyuser = re.compile(r"python\s+2.5.2\s+8.5a4")
         lines = self.out.getvalue().split("\n")
@@ -180,20 +180,20 @@ tcltk                 8.5a4     \tcurrent
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses python".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         lines = self.out.getvalue().split("\n")
         self.assertEquals(len(lines), 1)
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses".split(), toolname=prog)
-        cmd.run()
+        self.assertNotEqual(cmd.run(), 0)
         self.assert_(self.err.getvalue().find("Please specify a product name"))
 
     def testUsesBadTag(self):
         cmd = eups.cmd.EupsCmd(args="uses tcltk -t goob".split(), 
                                toolname=prog)
-        cmd.run()
+        self.assertNotEqual(cmd.run(), 0)
         self.assert_(self.err.getvalue().find("uses: Unsupported tag"))
 
     def testDeclare(self):
@@ -205,7 +205,7 @@ tcltk                 8.5a4     \tcurrent
 
         cmd = "declare newprod 1.0 -r %s -m %s" % (pdir10, table)
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
         
@@ -221,7 +221,7 @@ tcltk                 8.5a4     \tcurrent
         self._resetOut()
         cmd = "declare newprod 1.0 -t current"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
         
@@ -233,7 +233,7 @@ tcltk                 8.5a4     \tcurrent
         self._resetOut()
         cmd = "undeclare newprod 1.0"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
 
@@ -245,7 +245,7 @@ tcltk                 8.5a4     \tcurrent
         self._resetOut()
         cmd = "declare newprod 1.0 -r %s -m %s -t current" % (pdir10, table)
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
         
@@ -261,7 +261,7 @@ tcltk                 8.5a4     \tcurrent
         self._resetOut()
         cmd = "undeclare newprod 1.0"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
 
@@ -280,12 +280,36 @@ tcltk                 8.5a4     \tcurrent
         self.assert_(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")))
         
         cmd = eups.cmd.EupsCmd(args="remove newprod 2.0".split(), toolname=prog)
-        cmd.run()
+        self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
         prod = eups.Eups().findProduct("newprod", "2.0")
         self.assert_(prod is None)
         self.assert_(not os.path.isdir(pdir20))
+
+    def testDistribList(self):
+        cmd = eups.cmd.EupsCmd(args="distrib list".split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+        self.assertEquals(self.err.getvalue(), "")
+        out = self.out.getvalue()
+        self.assert_(len(out) > 0)
+        self.assert_(out.find("No matching products") < 0)
+        self.assert_(out.find("doxygen") >= 0)
+
+        self._resetOut()
+        cmd = eups.cmd.EupsCmd(args="distrib list -f Linux".split(), 
+                               toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+        self.assertEquals(self.err.getvalue(), "")
+        out = self.out.getvalue()
+        self.assert_(len(out) > 0)
+        self.assert_(out.find("No matching products") >= 0)
+
+    def testDistrib(self):
+        cmd = eups.cmd.EupsCmd(args="distrib".split(), toolname=prog)
+        self.assertNotEqual(cmd.run(), 0)
+        self.assertNotEquals(self.err.getvalue(), "")
+
 
 class Stdout(object):
 

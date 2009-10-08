@@ -11,7 +11,7 @@ from Repository     import Repository
 from eups.utils     import Flavor, Quiet
 from Distrib        import findInstallableRoot
 from DistribFactory import DistribFactory
-from server         import ServerConf, Manifest
+from server         import ServerConf, Manifest, ServerError
 
 class Repositories(object):
     """
@@ -20,9 +20,10 @@ class Repositories(object):
     This class evolved from DistributionSet in previous versions.
     """
 
-    def __init__(self, pkgroots, options=None, eupsenv=None, installFlavor=None, 
-                 distribClasses=None, noclean=False, override=None, 
+    def __init__(self, pkgroots, options=None, eupsenv=None,
+                 installFlavor=None, distribClasses=None, override=None, 
                  verbosity=None, log=sys.stderr):
+                 
         """
         @param pkgroots   the base URLs for the distribution repositories.  This
                             can either be a list or a pipe-delimited ("|") 
@@ -37,8 +38,6 @@ class Repositories(object):
         @param distribClasses  a dictionary by name of the Distrib classes 
                             to support.  This will augmented by those specified
                             by a server.  
-        @param noclean    if True, will not clean up build directories after 
-                            successful installs
         @param override   a dictionary of server configuration parameters that
                             should override the configuration received from 
                             each server.  
@@ -77,11 +76,7 @@ class Repositories(object):
         if not self.flavor:
             self.flavor = self.eups.flavor
 
-        # true if we should not clean up build directories after successful
-        # installs
-        self.noclean = noclean
-
-        df = DistribFactory(Eups)
+        df = DistribFactory(self.eups)
         for name in distribClasses.keys():
             # note: this will override the server's recommendation
             # if we want change this, use:
@@ -129,8 +124,15 @@ class Repositories(object):
         for pkgroot in self.pkgroots:
             # Note: each repository may have a cached list
             repos = self.repos[pkgroot]
-            out.append( (pkgroot, 
-                         repos.listPackages(productName, versionName, flavor)) )
+            try:
+                pkgs = repos.listPackages(productName, versionName, flavor)
+            except ServerError, e:
+                if self.quiet <= 0:
+                    print >> self.log, "Warning: Trouble contacting", pkgroot
+                    print >> self.log, str(e)
+                pkgs = []
+
+            out.append( (pkgroot, pkgs) )
 
         return out
 
@@ -263,7 +265,8 @@ class Repositories(object):
         return None
 
     def install(self, product, version=None, updateTags=True, nodepend=False, 
-                options=None, manifest=None, searchDep=None):
+                noclean=False, noeups=False, options=None, manifest=None, 
+                searchDep=None):
         """
         Install a product and all its dependencies.
         @param product     the name of the product to install
@@ -278,6 +281,17 @@ class Repositories(object):
                             will not be changed.
         @param nodepend    if True, the product dependencies will not be 
                             installed
+        @param noclean     If False (default), the build directory will get
+                            cleaned up after a successful install.  A True
+                            value prevents this.
+        @param noeups      if False (default), needed products that are already
+                            installed will be skipped over.  If True, an 
+                            attempt is made to install them anyway.  This 
+                            allows a product to be installed in the target
+                            install stack even if it is available in another
+                            stack managed by EUPS.  Note, however, that if a
+                            needed product is already installed into the target
+                            stack, the installation may fail.  Use with caution.
         @param options     a dictionary of named options that are used to fine-
                             tune the behavior of this Distrib class.  See 
                             discussion above for a description of the options
@@ -320,12 +334,14 @@ class Repositories(object):
 
         self._tagProbAlert = 0
         self._recursiveInstall(0, man, product, version, flavor, pkgroot, 
-                               productRoot, updateTags, options, nodepend)
+                               productRoot, updateTags, options, nodepend, 
+                               noclean, noeups)
         
     def _recursiveInstall(self, recursionLevel, manifest, product, version, 
                           flavor, pkgroot, productRoot, updateTags=False, 
-                          opts=None, nodepend=False, searchDep=None, 
-                          setups=None, installed=None, tag=None, ances=None):
+                          opts=None, nodepend=False, noclean=False, 
+                          noeups=False, searchDep=None, setups=None, 
+                          installed=None, tag=None, ances=None):
                           
         if installed is None:
             installed = []
@@ -375,8 +391,11 @@ class Repositories(object):
                 # we've installed this via the current install() call
                 continue
 
-            thisinstalled = self.eups.findProduct(prod.product, prod.version, 
-                                                  flavor=instflavor)
+            thisinstalled = None
+            if not noeups:
+                thisinstalled = self.eups.findProduct(prod.product, 
+                                                      prod.version, 
+                                                      flavor=instflavor)
             if thisinstalled:
                 if self.verbose >= 0:
                     print >> self.log, \
@@ -405,8 +424,9 @@ class Repositories(object):
                                                    prod.product, prod.version, 
                                                    prod.flavor, pkg[3], 
                                                    productRoot, updateTags, 
-                                                   opts, recurse, setups,
-                                                   installed, tag, ances)
+                                                   opts, norecurse, noclean,
+                                                   noeups, setups, installed, 
+                                                   tag, ances)
                         if not thisinstalled and self.verbose > 0:
                             print >> self.log, \
                                 "Warning: recursive install failed for", \
@@ -418,7 +438,7 @@ class Repositories(object):
 
                 if not thisinstalled:
                     self._doInstall(pkgroot, prod, productRoot, 
-                                    instflavor, opts, setups, tag)
+                                    instflavor, opts, noclean, setups, tag)
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups 
@@ -434,7 +454,20 @@ class Repositories(object):
         return True
 
     def _doInstall(self, pkgroot, prod, productRoot, instflavor, opts, 
-                   setups, tag):
+                   noclean, setups, tag):
+
+        if prod.instDir:
+            installdir = prod.instDir
+            if not os.path.isabs(installdir):
+                installdir = os.path.join(productRoot, installdir)
+            if os.path.exists(installdir):
+                print >> self.log, \
+                    "WARNING: Target installation directory exists:", installdir
+                print >> self.log, "        Was --noeups used?  If so and", \
+                    "the installation fails,"
+                print >> self.log, \
+                    '         try "eups distrib clean', prod.product, \
+                    prod.version, '" before retrying installation."' 
 
         builddir = self.makeBuildDirFor(productRoot, prod.product,
                                         prod.version, opts, instflavor)
@@ -482,7 +515,7 @@ class Repositories(object):
         self._recordDistID(prod.distId, root, pkgroot)
 
         # clean up the build directory
-        if self.noclean:
+        if noclean:
             if self.verbose:
                 print >> sys.stderr, "Not removing the build directory %s; you can cleanup manually with \"eups distrib clean\"" % (self.getBuildDirFor(self.getInstallRoot(), prod.product, prod.version, opts))
         else:

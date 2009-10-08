@@ -27,6 +27,7 @@ information on the distribution server, accessed via HTTP.  All of the
 above concrete implementations use these assumptions and thus inherit from 
 DefaultDistrib.
 """
-from Distribution import Distribution, DistributionSet
+from Repositories import Repositories
+from Repository import Repository
 from Distrib import Distrib, DefaultDistrib
 from DistribFactory import DistribFactory

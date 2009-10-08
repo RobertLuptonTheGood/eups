@@ -116,7 +116,7 @@ class Repository(object):
             out = {}
         if isinstance(override, dict):
             for key in override.keys():
-                out[key] = self.override[key]
+                out[key] = override[key]
             if len(out.keys()) == 0:
                 return None
         return out

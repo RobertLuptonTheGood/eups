@@ -5,7 +5,7 @@ how to add new commands.
 #######################################################################
 # 
 #  Adding new commands:
-#  1.  Add a new EupsCmd sub-class; see FlavorCmd and DeclareCmd as 
+#  1.  Add a new EupsCmd sub-class; see FlavorCmd and ListCmd as 
 #      examples
 #      a. provide a specialized usage template
 #      b. provide a specialized command description
@@ -23,6 +23,8 @@ import glob, re, os, pwd, shutil, sys, time
 import optparse
 import eups
 import utils
+import distrib
+from distrib.server import ServerConf
 
 _errstrm = sys.stderr
 _EupsCmdType = "cmd.EupsCmd'>"
@@ -77,7 +79,7 @@ Common"""
                             help="show command-line help and exit")
         self.clo.add_option("-v", "--verbose", dest="verbose", action="count", 
                             default=0, 
-          help="Print extra messages about progress (repeat for ever more chat")
+         help="Print extra messages about progress (repeat for ever more chat)")
         self.clo.add_option("-q", "--quiet", dest="quiet", 
                             action="store_true", default=False, 
                             help="Suppress messages to user (overrides -v)")
@@ -85,7 +87,7 @@ Common"""
                             action="store_true", default=False, 
                             help="Print eups version number")
 
-    def addCommonOptions(self):
+    def addEupsOptions(self):
         """
         set the common command line options
         """
@@ -128,7 +130,7 @@ Common"""
 
         ecmd = makeEupsCmd(self.cmd, self.clargs, self.prog)
         if ecmd is None:
-            self.err("Unrecognized command: %s" % ecmd)
+            self.err("Unrecognized command: %s" % self.cmd)
             return 10
 
         return ecmd.run()
@@ -178,8 +180,8 @@ Common"""
         if self.opts.quiet:
             self.opts.verbose = 0
 
-        if hasattr(self.opts, "flavor") and not self.opts.flavor:
-            self.opts.flavor = eups.flavor()
+#        if hasattr(self.opts, "flavor") and not self.opts.flavor:
+#            self.opts.flavor = eups.flavor()
 
         self.cmd = None
         if len(self.args) > 0:
@@ -254,6 +256,8 @@ is specified, the given flavor will be returned.
 
     def execute(self):
         if not self.opts.quiet:
+            if not self.opts.flavor:
+                self.opts.flavor = eups.flavor()
             print self.opts.flavor
         return 0
 
@@ -263,7 +267,7 @@ class ListCmd(EupsCmd):
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
-    noDescriptionFormatting = False
+    noDescriptionFormatting = True
 
     description = \
 """Print information about the products managaged by EUPS.
@@ -287,7 +291,7 @@ will also be printed.
         EupsCmd.addOptions(self)
 
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
         # these are specific to this command
         self.clo.add_option("-d", "--directory", dest="printdir", 
@@ -464,7 +468,7 @@ class PkgconfigCmd(EupsCmd):
         EupsCmd.addOptions(self)
 
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
     def execute(self):
         if self.opts.cflags == self.opts.libs:
@@ -606,7 +610,7 @@ class UsesCmd(EupsCmd):
         EupsCmd.addOptions(self)
 
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
         self.clo.add_option("-c", "--current", dest="current", 
                             action="store_true", default=False, 
@@ -667,7 +671,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
         EupsCmd.addOptions(self)
 
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
         self.clo.add_option("--cvsroot", dest="cvsroot", action="store", 
                          help="same as --cvs")
@@ -785,7 +789,7 @@ For example, the make target in a ups directory might contain the line:
         EupsCmd.addOptions(self)
 
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
     def execute(self):
         outdir = None
@@ -897,7 +901,7 @@ only wish to assign a tag, you should use the -t option but not include
                             help="assign TAG to the specified product")
         
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -968,7 +972,7 @@ version currently declared.
                             help="unassign TAG to the specified product")
         
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -1027,7 +1031,7 @@ where it is installed.
          help="Recursively also remove everything that this product depends on")
         
         # these options are used to configure the Eups instance
-        self.addCommonOptions()
+        self.addEupsOptions()
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -1055,11 +1059,351 @@ where it is installed.
         return 0
 
 
+class AdminCmd(EupsCmd):
 
-# TODO: admin, distrib, remove
-        
-        
+    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|clearServerCache] [-h|--help] [-r root]"
 
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""manage internal cache data
+"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-r", "--root", dest="root", action="store", 
+                      help="Location of manifests/buildfiles/tarballs (may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
+
+    def execute(self):
+        if len(self.args) < 1:
+            self.err("Please specify a distrib subcommand")
+            print >> self._errstrm, self.clo.get_usage()
+            return 2
+        subcmd = self.args[0]
+
+        if subcmd == "clearCache":
+            eups.clearCache()
+        elif subcmd == "buildCache":
+            eups.clearCache
+            eups.Eups(readCache=True)
+        elif subcmd == "listCache":
+            eups.listCache(verbose=self.opts.verbose)
+        elif subcmd == "clearLocks":
+            eups.Eups(readCache=False).clearLocks()
+        elif subcmd == "clearServerCache":
+            pkgroots = self.opts.root
+            if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
+                pkgroots = os.environ["EUPS_PKGROOT"]
+
+            myeups = eups.Eups(readCache=False)
+            # FIXME: this is not clearing caches in the user's .eups dir.
+            ServerConf.clearConfigCache(myeups, pkgroots, self.opts.verbose)
+
+        return 0
+
+
+# TODO: distrib
+        
+class DistribCmd(EupsCmd):
+
+    usage = "%prog distrib [list|install|clean|create] [-h|--help] [options] ..."
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = True
+
+    description = \
+"""Interact with package distribution servers either as a user installing 
+packages or as a provider maintaining a server.  
+
+An end-user uses the following sub-commands to install packages:
+   list      list the available packages from distribution servers
+   install   download and install a package
+   clean     clean up any leftover build files from an install (that failed)
+To use these, the user needs write-access to a product stack and database.
+
+A server provider uses:
+   create    create a distribution package from an installed product
+To create packages, one must have a write permission to a local server.
+
+Type "eups distrib [subcmd] -h" to get more info on a sub-command.  
+
+Common """
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
+        self.clo.disable_interspersed_args()
+
+    def run(self):
+        if len(self.args) > 0:
+            return self.execute()
+        return EupsCmd.run(self)
+
+    def execute(self):
+        if len(self.args) < 1:
+            self.err("Please specify a distrib subcommand")
+            print >> self._errstrm, self.clo.get_usage()
+            return 2
+        subcmd = self.args[0]
+
+        cmd = "%s %s" % (self.cmd, subcmd)
+        
+        ecmd = makeEupsCmd(cmd, self.clargs, self.prog)
+        if ecmd is None:
+            self.err("Unrecognized distrib subcommand: %s" % subcmd)
+            return 10
+
+        return ecmd.run()
+
+class DistribListCmd(EupsCmd):
+
+    usage = "%prog distrib list [-h|--help] [options] [product [version]]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""List available packages from the package distribution repositories.  
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        self.clo.add_option("-r", "--repository", dest="root", action="append",
+                            metavar="BASEURL",
+                      help="the base URL for a repository to access (repeat as needed).  Default: $EUPS_PKGROOT")
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", 
+                      help="Specifically list for this flavor")
+        self.clo.add_option("-S", "--server-option", dest="serverOpts",
+                            action="append",
+                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses",
+                            action="append",
+                   help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
+                            action="append",
+                   help="register this Distrib class (repeat as needed)")
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("--root", dest="root", action="append",
+                            help="equivalent to --repository (deprecated)")
+
+    def execute(self):
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        product = version = None
+        if len(self.args) > 0:
+            product = self.args[0]
+        if len(self.args) > 1:
+            version = self.args[1]
+
+        pkgroots = self.opts.root
+        if not pkgroots and os.environ.has_key("EUPS_PKGROOT"):
+            pkgroots = os.environ["EUPS_PKGROOT"]
+        if not pkgroots:
+            self.err("Please specify a repository with -r or $EUPS_PKGROOTS")
+            return 2
+
+        # FIXME: enable use of these options
+        if self.opts.serverClasses and not self.opts.quiet:
+            self.err("Warning: --server-class option currently disabled")
+        if self.opts.distribClasses and not self.opts.quiet:
+            self.err("Warning: --distrib-class option currently disabled")
+
+        options = None
+        if self.opts.serverOpts:
+            options = {}
+            for opt in self.opts.serverOpts:
+                try:
+                    name, val = opt.split("=",1)
+                except ValueError:
+                    self.err("server option not of form NAME=VALUE: "+opt)
+                    return 3
+                options[name] = value
+
+        myeups = eups.Eups(readCache=False)
+
+        repos = distrib.Repositories(pkgroots, options, myeups, 
+                                     verbosity=self.opts.verbose)
+
+        try:
+            data = repos.listPackages(product, version, self.opts.flavor)
+        except eups.EupsException, e:
+            self.err(str(e))
+            return 1
+
+        primary = "primary"
+        for i in xrange(len(data)):
+            pkgroot, pkgs = data[i]
+            if i == 1:  primary = "secondary"
+            if len(pkgs) > 0:
+                if len(data) > 1:
+                    print "Available products from %s server: %s" % \
+                        (primary, pkgroot)
+                for (name, ver, flav) in pkgs:
+                    print "  %-20s %-10s %s" % (name, flav, ver)
+            else:
+                print "No matching products available from %s server (%s)" % (primary, pkgroot)
+
+        return 0
+
+        
+class DistribInstallCmd(EupsCmd):
+
+    usage = "%prog distrib install [-h|--help] [options] product [version]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Install a product from a distribution package retrieved from a repository.
+If a version is not specified, the most version with the most preferred 
+tag will be installed.  
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        self.clo.add_option("-r", "--repository", dest="root", action="append",
+                            metavar="BASEURL",
+                      help="the base URL for a repository to access (repeat as needed).  Default: $EUPS_PKGROOT")
+        self.clo.add_option("-I", "--install-into", dest="installStack", 
+                            action="append", metavar="DIR",
+                            help="install into this product stack (Default: the first writable stack in $EUPS_PATH)")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
+                         help="preferentially install products with this TAG")
+        self.clo.add_option("-U", "--no-server-tags", dest="updateTags", 
+                            action="store_false", default=True, 
+                     help="Prevent automatic assignment of server/global tags")
+        self.clo.add_option("-j", "--nodepend", dest="nodepend", 
+                            action="store_true", default=False, 
+                        help="Just install product, but not its dependencies")
+        self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
+                       help="Use this manifest file for the requested product")
+        self.clo.add_option("-d", "--declareAs", dest="tagAs", action="store",
+                            metavar="TAG",
+                        help="tag all newly installed products with this TAG")
+        self.clo.add_option("-g", "--groupAccess", dest="groupperm", 
+                            action="store", metavar="GROUP",
+                            help="Give specified group r/w access to all newly installed packages")
+        self.clo.add_option("--nobuild", dest="nobuild", 
+                            action="store_true", default=False, 
+                    help="Don't attempt to build the product; just declare it")
+        self.clo.add_option("--noclean", dest="noclean", 
+                            action="store_true", default=False, 
+                 help="Don't clean up after successfully building the product")
+        self.clo.add_option("-N", "--noeups", dest="noeups", 
+                            action="store_true", default=False, 
+                help="Don't attempt to lookup product in eups (always install)")
+        self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store",
+                            metavar="DIR",
+                            help="Build products in this directory")
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
+        self.clo.add_option("-S", "--server-option", dest="serverOpts",
+                            action="append",
+                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses",
+                            action="append",
+                   help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
+                            action="append",
+                   help="register this Distrib class (repeat as needed)")
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("--root", dest="root", action="append",
+                            help="equivalent to --repository (deprecated)")
+        self.clo.add_option("--recurse", dest="searchDep", 
+                            action="store_true", default=False, 
+                 help="don't assume manifests completely specify dependencies")
+        self.clo.add_option("-C", "--current", dest="current", 
+                            action="store_true", default=False, 
+                        help="deprecated (use --tag or --no-server-tags)")
+
+    def execute(self):
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        if len(self.args) < 1:
+           self.err("please specify at least a product name")
+           print >> self._errstrm, self.clo.get_usage()
+           return 3
+
+        product = self.args[0]
+        if len(self.args) > 1:
+            version = self.args[1]
+        else:
+            version = None
+
+        if self.opts.installStack:
+            if not utils.isDbWritable(self.opts.installStack) and \
+               not utils.isDbWritable(os.path.join(self.opts.installStack,Eups.ups_db)):
+                self.err("Requested install stack not writable: " +
+                         self.opts.installStack)
+                return 2
+
+            # place install root at front of the path given to Eups
+            if self.opts.path is None:
+                if os.environ.has_key("EUPS_PATH"):
+                    self.opts.path = os.environ["EUPS_PATH"]
+            if self.opts.path is None:
+                self.opts.path = self.opts.installStack
+            else:
+                self.opts.path = "%s:%s" % (self.opts.installStack, self.opts.path)
+
+        myeups = self.createEups()
+
+        dopts = {}
+        # handle extra options
+        dopts = { 'config': {} }
+        dopts['noeups']     = self.opts.noeups
+        dopts['noaction']   = self.opts.noaction
+        dopts['nobuild']   = self.opts.nobuild
+        dopts['noclean']   = self.opts.noclean
+
+        if not self.opts.root:
+            if not os.environ.has_key("EUPS_PKGROOT"):
+                self.err("No repositories specified; please set -r or EUPS_PKGROOT")
+                return 3
+            self.opts.root = os.environ["EUPS_PKGROOT"]
+
+        log = None
+        if self.opts.quiet:
+            log = open("/dev/null", "w")
+
+        try:
+            repos = distrib.Repositories(self.opts.root, dopts, myeups, 
+                                         self.opts.flavor, 
+                                         verbosity=self.opts.verbose, log=log)
+            repos.install(product, version, self.opts.updateTags, 
+                          self.opts.nodepend, self.opts.noclean, 
+                          self.opts.noeups, dopts, self.opts.manifest,
+                          self.opts.searchDep)
+        except eups.EupsException, e:
+            self.err(str(e))
+            if log:  log.close()
+            return 1
+
+        if log:  log.close()
+        return 0
 
 
 
@@ -1124,4 +1468,10 @@ register("expandtable",  ExpandtableCmd)
 register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
 register("remove",       RemoveCmd)
+register("admin",        AdminCmd)
+register("distrib",    DistribCmd)
+register("distrib list",    DistribListCmd)
+register("distrib install", DistribInstallCmd)
+# register("distrib clean",   DistribCleanCmd)
+# register("distrib create",  DistribCreateCmd)
 

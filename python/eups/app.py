@@ -3,10 +3,12 @@ common high-level EUPS functions appropriate for calling from an application.
 """
 
 import re, os, sys, time
-from Eups import Eups
-from tags import TagNotRecognized
-from exceptions import ProductNotFound
-import utils, table, distrib.builder
+from Eups           import Eups
+from exceptions     import ProductNotFound
+from tags           import TagNotRecognized
+from stack          import ProductStack, persistVersionName as cacheVersion
+from distrib.server import ServerConf
+import utils, table, distrib.builder, hooks
 
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
@@ -359,3 +361,69 @@ def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
         eupsenv = Eups()
     return eupsenv.undeclare(productName, versionName, eupsPathDir, tag)
                              
+def clearCache(path=None, flavors=None):
+    """
+    remove the product cache for given stacks/databases and flavors
+    @param path     the stacks to clear caches for.  This can be given either
+                        as a python list or a colon-delimited string.  If 
+                        None (default), EUPS_PATH will be used.
+    @param flavors  the flavors to clear the cache for.  This can either 
+                        be a python list or space-delimited string.  If None,
+                        clear caches for all flavors.
+    """
+    if path is None:
+        path = os.environ["EUPS_PATH"]
+    if isinstance(path, str):
+        path = path.split(":")
+
+    if isinstance(flavors, str):
+        flavors = flavors.split()
+
+    for p in path:
+        dbpath = os.path.join(p, Eups.ups_db)
+
+        flavs = flavors
+        if flavs is None:
+            flavs = ProductStack.findCachedFlavors(dbpath)
+        if not flavs:
+            continue
+
+        # FIXME: this does not clear caches in user's .eups directory;
+        #        by default, it only clears current platform's flavors
+        ProductStack.fromCache(dbpath, flavs, autosave=False).clearCache()
+
+def listCache(path=None, verbose=0, flavor=None):
+    if path is None:
+        path = os.environ["EUPS_PATH"]
+    if isinstance(path, str):
+        path = path.split(":")
+
+    if not flavor:
+        flavor = utils.determineFlavor()
+
+    for p in path:
+        dbpath = os.path.join(p, Eups.ups_db)
+        cache = ProductStack.fromCache(dbpath, flavor, updateCache=False, 
+                                       autosave=False)
+                                       
+                                       
+
+        productNames = cache.getProductNames()
+        productNames.sort()
+
+        colon = ""
+        if verbose:
+            colon = ":"
+
+        print "%-30s (%d products) [cache verison %s]%s" % \
+            (p, len(productNames), cacheVersion, colon)
+
+        if not verbose:
+            continue
+
+        for productName in productNames:
+            versionNames = cache.getVersions(productName)
+            versionNames.sort(hooks.version_cmp)
+
+            print "  %-20s %s" % (productName, " ".join(versionNames))
+

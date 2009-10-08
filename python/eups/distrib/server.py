@@ -1816,6 +1816,8 @@ class ServerConf(object):
         """clear the cached configuration data for each of the server URLs
         provided, or all of them if none are provided
         """
+        # FIXME: this is not clearing caches in the user's .eups dir.
+
         for stack in eups.path:
             cache = os.path.join(eups.getUpsDB(stack), "_servers_")
             if not os.path.exists(cache):

@@ -624,7 +624,7 @@ class ProductStack(object):
                             of flavors.
         """
         if not flavors:
-            return self.clearCache(self.getFlavors(), cachedir)
+            flavors = self.getFlavors()
         if not isinstance(flavors, list):
             flavors = [flavors]
 
