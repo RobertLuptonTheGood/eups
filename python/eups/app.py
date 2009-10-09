@@ -5,7 +5,7 @@ common high-level EUPS functions appropriate for calling from an application.
 import re, os, sys, time
 from Eups           import Eups
 from exceptions     import ProductNotFound
-from tags           import TagNotRecognized
+from tags           import Tag, TagNotRecognized
 from stack          import ProductStack, persistVersionName as cacheVersion
 from distrib.server import ServerConf
 import utils, table, distrib.builder, hooks
@@ -427,3 +427,207 @@ def listCache(path=None, verbose=0, flavor=None):
 
             print "  %-20s %s" % (productName, " ".join(versionNames))
 
+def Current():
+    """
+    a deprecated means of specifying a preferred tag.  This will return
+    None, which is consistent with how it was typically once used as a 
+    value for a version parameter to a function.  Now, passing None to 
+    version means that the version assigned with the most preferred tag 
+    is desired.
+    """
+    print >> sys.stderr, "Note to Scripters: Use of Current() is deprecated", \
+        "(and ignored)."
+    return None
+
+def osetup(Eups, productName, version=None, fwd=True, setupType=None):
+    """
+    Identical to setup() but with a deprecated signature.
+    """
+    return setup(productName, version, None, setupType, Eups, fwd)
+
+def setup(productName, version=None, prefTags=None, productRoot=None, 
+          setupType=None, eupsenv=None, fwd=True):
+    """
+    Return a set of shell commands which, when sourced, will setup a product.  
+    (If fwd is false, unset it up.)
+
+    Note that if the first argument is found to be an instance of Eups,
+    this function will assume that the old setup() signature is expected
+    by the caller, and the parameters will be forwarded to osetup().
+
+    @param productName     the name of the desired product to setup.  
+    @param version         the desired version of the product.  This can 
+                             either a string giving an explicit version
+                             or a Tag instance.  
+    @param prefTags        the preferred tags, in order, for choosing 
+                             versions of product dependencies.  If set,
+                             the Eups instance will be temporarily altered 
+                             to prepend this list to the Eups' set of 
+                             preferred tags.  
+    @param productRoot     the root directory where the product is installed.
+                             If set, Eups will not consult its database for
+                             the product's location, but rather set it up as
+                             a "LOCAL" product.  
+    @param setupType       the setup type.  This will cause conditional
+                             sections of the table filebased on "type" 
+                             (e.g. "if (type == build) {...") to be 
+                             executed.  
+    @param eupsenv         the Eups instance to use to do the setup.  If 
+                             None, one will be created for it.
+    @param fwd             If False, actually do an unsetup.
+    """
+    if isinstance(productName, Eups):
+        # Note: this probably won't work if a mix of key-worded and 
+        # non-keyworded parameters are used.
+        if productName.quiet < 1:
+            print >> sys.stderr, "setup(): assuming deprecated function signature"
+        if productRoot is None:  productRoot = True
+        return osetup(productName, version, prefTags, productRoot, setupType)
+
+    if not eupsenv:
+        eupsenv = Eups(readCache=False)
+
+    if isinstance(prefTags, str):
+        prefTags = prefTags.split()
+    elif isinstance(prefTags, Tag):
+        prefTags = [prefTags]
+
+    oldPrefTags = None
+    if prefTags:
+        badtags = filter(eupsenv.tags.isRecognized, prefTags)
+        if badtags:
+            raise TagNotRecognized(msg="Unsupported tags: %s" % 
+                                       map(lambda t: str(t), badtags))
+        prefTags = map(lambda t: t.name, map(eupsenv.tags.getTag, prefTags))
+
+        # prepend the given tags to the preferred list.
+        oldPrefTags = eupsenv.getPreferredTags()
+        eupsenv.setPreferredTags(prefTags + oldPrefTags)
+
+    cmds = []
+
+    ok, version, reason = eupsenv.setup(productName, version, fwd, 
+                                        setupType=setupType, 
+                                        productRoot=productRoot)
+    if ok:
+        #
+        # Set new variables
+        #
+        for key in os.environ.keys():
+            val = os.environ[key]
+            try:
+                if val == eupsenv.oldEnviron[key]:
+                    continue
+            except KeyError:
+                pass
+
+            if val and not re.search(r"^['\"].*['\"]$", val) and \
+                   re.search(r"[\s<>|&;()]", val):   # quote characters that the shell cares about
+                val = "'%s'" % val
+
+            if eupsenv.shell == "sh" or eupsenv.shell == "zsh":
+                cmd = "export %s=%s" % (key, val)
+            elif eupsenv.shell == "csh":
+                cmd = "setenv %s %s" % (key, val)
+
+            if eupsenv.noaction:
+                if eupsenv.verbose < 2 and re.search(r"SETUP_", key):
+                    continue            # the SETUP_PRODUCT variables are an implementation detail
+
+                cmd = "echo \"%s\"" % cmd
+
+            cmds += [cmd]
+        #
+        # unset ones that have disappeared
+        #
+        for key in eupsenv.oldEnviron.keys():
+            if re.search(r"^EUPS_(DIR|PATH)$", key): # the world will break if we delete these
+                continue        
+
+            if os.environ.has_key(key):
+                continue
+
+            if eupsenv.shell == "sh" or eupsenv.shell == "zsh":
+                cmd = "unset %s" % (key)
+            elif eupsenv.shell == "csh":
+                cmd = "unsetenv %s" % (key)
+
+            if eupsenv.noaction:
+                if eupsenv.verbose < 2 and re.search(r"SETUP_", key):
+                    continue            # an implementation detail
+
+                cmd = "echo \"%s\"" % cmd
+
+            cmds += [cmd]
+        #
+        # Now handle aliases
+        #
+        for key in eupsenv.aliases.keys():
+            value = eupsenv.aliases[key]
+
+            try:
+                if value == eupsenv.oldAliases[key]:
+                    continue
+            except KeyError:
+                pass
+
+            if eupsenv.shell == "sh":
+                cmd = "function %s { %s ; }; export -f %s" % (key, value, key)
+            elif eupsenv.shell == "csh":
+                value = re.sub(r"\$@", r"\!*", value)
+                cmd = "alias %s \'%s\'" % (key, value)
+            elif eupsenv.shell == "zsh":
+                cmd = "%s() { %s ; }" % (key, value, key)
+
+            if eupsenv.noaction:
+                cmd = "echo \"%s\"" % re.sub(r"`", r"\`", cmd)
+
+            cmds += [cmd]
+        #
+        # and unset ones that used to be present, but are now gone
+        #
+        for key in eupsenv.oldAliases.keys():
+            if eupsenv.aliases.has_key(key):
+                continue
+
+            if eupsenv.shell == "sh" or eupsenv.shell == "zsh":
+                cmd = "unset %s" % (key)
+            elif eupsenv.shell == "csh":
+                cmd = "unalias %s" (key)
+
+            if eupsenv.noaction:
+                cmd = "echo \"%s\"" % cmd
+
+            cmds += [cmd]
+    elif fwd and version is None:
+        print >> sys.stderr, \
+            "Unable to find a preferred version of", productName
+        cmds += ["false"]               # as in /bin/false
+    else:
+        if fwd:
+            versionName = version
+
+            if eupsenv.isLegalRelativeVersion(versionName):
+                versionName = ""
+
+            if versionName:
+                versionName = " " + versionName
+        
+            print >> sys.stderr, "Failed to setup %s%s: %s" % (productName, versionName, reason)
+        else:
+            print >> sys.stderr, "Failed to unsetup %s: %s" % (productName, reason)
+
+        cmds += ["false"]               # as in /bin/false
+
+    if oldPrefTags is not None:
+        eupsenv.setPreferredTags(oldPrefTags)
+    return cmds
+
+def unsetup(productName, version=None, eupsenv=None):
+    """ 
+    Return a set of shell commands which, when sourced, will unsetup a product.
+    This is equivalent to setup(productName, version, fwd=False). 
+    """
+    return setup(productName, version, fwd=False)
+
+    

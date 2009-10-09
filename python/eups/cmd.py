@@ -1,6 +1,16 @@
 """
 functions for processing the eups command-line.  See in-line comments for 
 how to add new commands.
+
+To run an eups command from Python, try:
+
+    import sys
+    import eups.cmd
+
+    cmd = eups.cmd.EupsCmd()
+    status = cmd.run()
+
+The output of run() is a status code appropriate for passing to sys.exit().
 """
 #######################################################################
 # 
@@ -229,7 +239,8 @@ Common"""
             
         return eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force,
-                         verbose=opts.verbose, quiet=opts.quiet,
+                         ignore_versions=ignorever, exact_version=exactver,
+                         keep=keep, verbose=opts.verbose, quiet=opts.quiet,
                          noaction=opts.noaction)
         
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=

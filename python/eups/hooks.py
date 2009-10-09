@@ -15,10 +15,11 @@ setFallbackFlavors = utils.Flavor().setFallbackFlavors
 
 # various configuration properties settable by the user
 config = utils.ConfigProperty("Eups".split())
-config.Eups = utils.ConfigProperty("verbose userTags setupTypes".split(), "Eups")
+config.Eups = utils.ConfigProperty("verbose userTags setupTypes setupCmdName".split(), "Eups")
 config.Eups.verbose = 0
 config.Eups.userTags = ""
 config.Eups.setupTypes = "build"
+config.Eups.setupCmdName = "setup"
 
 def loadCustomization(customDir):
     """

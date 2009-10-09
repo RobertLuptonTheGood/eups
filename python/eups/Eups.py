@@ -128,9 +128,7 @@ class Eups(object):
                 root = os.path.join(os.getcwd(), root)
             root = os.path.normpath(root)
 
-        # the stack to find a top-level product to setup;  if it has 
-        # dependencies, these can be found in any of the EUPS_PATH 
-        # directories
+        # product directory to assume for a (local) setup request
         self.root = root
 
         self.version_cmp = hooks.version_cmp
@@ -375,7 +373,7 @@ class Eups(object):
                                 used to find products; otherwise, it will be used
                                 to the extent it is available.  
         """
-        if not version:
+        if not version or self.ignore_versions:
             return self.findPreferredProduct(name, eupsPathDirs, flavor, noCache=noCache)
 
         if not flavor:
@@ -925,7 +923,8 @@ class Eups(object):
         return setupType in self.validSetupTypes
 
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
-              setupToplevel=True, noRecursion=False, setupType=None):
+              setupToplevel=True, noRecursion=False, setupType=None,
+              productRoot=None):
         """
         Update the environment to use (or stop using) a specified product.  
 
@@ -954,8 +953,16 @@ class Eups(object):
                                   True.
         @param noRecursion      if True, dependency products should not be 
                                   setup.  The default is False.
-        @param setupType        (internal use?)
+        @param setupType        the setup type.  This will cause conditional
+                                  sections of the table filebased on "type" 
+                                  (e.g. "if (type == build) {...") to be 
+                                  executed.  
+        @param productRoot      the directory where the product is installed
+                                  to assume.  This is useful for products 
+                                  that are not currently declared.  
         """
+        if productRoot is None:
+            productRoot = self.root
 
         #
         # Look for product directory
@@ -1002,8 +1009,8 @@ class Eups(object):
         else:  # on setup (fwd = True)
 
             # get the product to setup
-            if self.root and recursionDepth == 0:
-                product = self.findProduct(product, versionName, self.root)
+            if productRoot:
+                product = Product.createLocal(productName, productRoot, self.flavor)
             else:
                 product = self.findProduct(productName, versionName)
                 if not product and self.alreadySetupProducts.has_key(productName):
@@ -1962,7 +1969,7 @@ class Eups(object):
             tbl = pi.getTable()
             if not tbl:
                 continue
-            deps = tbl.dependencies(self)
+            deps = tbl.dependencies(self, followExact=True)
 
             for pd, od in deps:
                 if pi.name == pd.name and pi.version == pd.version:

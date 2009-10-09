@@ -363,7 +363,7 @@ but no other interpretation is applied
 
     _versionre = re.compile(r"(.*)\s+\[([^\]]+)\]\s*")
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None, followExact=None):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional) tuples
@@ -373,7 +373,12 @@ but no other interpretation is applied
         @param recursive       if True, this function will be called 
                                   recursively on each of the dependency 
                                   products in this table.
+        @param followExact     follow the exact, as-built versions in the 
+                                  table file.  If None or not specified,
+                                  it defaults to Eups.exact_versions.  
         """
+        if followExact is None:
+            followExact = Eups.exact_version
 
         if recursive and not isinstance(recursive, bool):
             recursiveDict = recursive
@@ -386,19 +391,19 @@ but no other interpretation is applied
             if a.cmd == Action.setupRequired:
                 productName = a.args[0]
                 if len(a.args) > 1:
+                    # the rest contrains the version; parse it
                     versionArg = " ".join(a.args[1:])
+                    mat = re.search(self._versionre, versionArg)
+                    if mat:
+                        # contains both exact version and expression
+                        exactVersion, logicalVersion = mat.groups()
+                        if followExact:
+                            versionArg = exactVersion
+                        else:
+                            versionArg = logicalVersion
                 else:
+                    # no version information provide
                     versionArg = None
-                
-                mat = re.search(self._versionre, versionArg)
-                if mat:
-                    exactVersion, logicalVersion = mat.groups()
-                    if Eups.exact_version:
-                        versionArg = exactVersion
-                    else:
-                        versionArg = logicalVersion
-
-                        args = (args[0], otherArgs)
 
                 try:
                     product = Eups.getProduct(productName, versionArg)

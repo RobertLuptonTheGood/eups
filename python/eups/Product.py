@@ -39,11 +39,16 @@ class Product(object):
     attribute is None, a default name is returned based on the dir attribute.
     """
 
+    LocalVersionPrefix = "LOCAL:"
+
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
                  tags=None, db=None):
         self.name = name
         self.version = version
         self.dir = dir
+
+        if not self.dir and self.version.startswith(self.LocalVersionPrefix):
+            self.dir = self.version[len(self.LocalVersionPrefix):]
 
         if not table and dir and name:
             tablefile = os.path.join(dir,"ups",name+".table");
@@ -155,3 +160,15 @@ class Product(object):
         out._table = p[7]
         return out
     unpersist = staticmethod(unpersist)  # should work as of python 2.2
+
+    # this replaces from initFromDirectory()
+    # @staticmethod   # requires python 2.4
+    def createLocal(productName, productDir, flavor=None):
+        out = Product(productName, self.LocalVersionPrefix + productDir, 
+                      flavor, productDir)
+        out = "(none)"
+        out.tablefile = out.tableFileName()
+        return out
+    createLocal = staticmethod(createLocal)  # should work as of python 2.2
+
+
