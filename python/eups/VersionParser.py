@@ -2,7 +2,7 @@
 
 import os, re
 
-class Parser(object):
+class VersionParser(object):
     """Evaluate a logical expression, returning a Bool.  The grammar is:
 
         expr : term
@@ -23,7 +23,7 @@ class Parser(object):
                name
                ( expr )
 
-names are declared using Parser.define()
+names are declared using VersionParser.define()
         """
     def __init__(self, exprStr):
         exprStr = re.sub(r"['\"]([^'\"]+)['\"]", r"\1", exprStr)

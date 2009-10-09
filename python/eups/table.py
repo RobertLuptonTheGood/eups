@@ -9,7 +9,7 @@ import re, sys
 import pdb
 
 from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
-from Parser import Parser
+from VersionParser import VersionParser
 import utils
 
 class Table(object):
@@ -338,7 +338,7 @@ but no other interpretation is applied
             return actions
 
         for logical, block in self._actions:
-            parser = Parser(logical)
+            parser = VersionParser(logical)
             parser.define("flavor", flavor)
             if setupType:
                 parser.define("type", setupType)
@@ -432,8 +432,7 @@ class Action(object):
     """
     An action in a table file
 
-    Action instances are typically created internally by a Table constructor 
-    via a Parser.
+    Action instances are typically created internally by a Table constructor.
     """
 
     # Possible actions; the comments apply to the field that _read adds to an Action: (cmd, args, extra)
