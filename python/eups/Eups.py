@@ -510,7 +510,7 @@ class Eups(object):
                         print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                     continue
 
-                products = Database(dbpath).findProducts(name, flavor)
+                products = Database(dbpath).findProducts(name, flavors=flavor)
                 latest = self._selectPreferredProduct(products, [ Tag("newest") ])
                 if latest is None:
                     continue
@@ -564,7 +564,7 @@ class Eups(object):
                         print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                     continue
 
-                products = Database(dbpath).findProducts(name, flavor)
+                products = Database(dbpath).findProducts(name, flavors=flavor)
                 if len(products) == 0: 
                     continue
 
@@ -621,7 +621,7 @@ class Eups(object):
 #                        print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
 #                    continue
 #
-#                prods.extend(Database(dbpath).findProducts(name, flavor=flavor))
+#                prods.extend(Database(dbpath).findProducts(name, flavors=flavor))
 #
 #            else:
 #                # consult the cache
@@ -1148,7 +1148,7 @@ class Eups(object):
 
             self.setEnv(self._envarDirName(product.name), product.dir)
             self.setEnv(self._envarSetupName(product.name),
-                        "%s %s -f %s -Z %s" % (product.name, product.version, setupFlavor, product.db))
+                        "%s %s -f %s -Z %s" % (product.name, product.version, setupFlavor, product.stackRoot()))
             #
             # Remember that we've set this up in case we want to keep it later
             #

@@ -5,6 +5,22 @@
 import sys
 import eups.setupcmd
 
+allowedDebugOptions = ["raise"]
+
 setup = eups.setupcmd.EupsSetup()
-sys.exit(setup.run())
+
+debugOptions = setup.opts.debug.split(":")
+# allowRaise = "raise" in debug
+allowRaise = True
+
+if allowRaise:
+    sys.exit(setup.run())
+else:
+    try:
+        sys.exit(setup.run())
+
+    except Exception, e:
+        setup.err(str(e))
+        sys.exist(9)
+
 

@@ -456,7 +456,8 @@ class Repositories(object):
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups 
-            setups.append("setup --keep %s %s" % (prod.product, prod.version))
+            setups.append("setup --keep --type=build %s %s" % 
+                          (prod.product, prod.version))
 
             # ...update the tags
             if updateTags:

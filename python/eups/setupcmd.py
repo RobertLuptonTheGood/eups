@@ -131,9 +131,9 @@ product and all its dependencies into the environment so that it can be used.
         self.clo.add_option("-V", "--version", dest="version", 
                             action="store_true", default=False, 
                             help="Print eups version number")
-        self.clo.add_option("--debug", dest="debug", action="store_true", 
-                            default=False,
-                            help="turn on debugging behaviors")
+        self.clo.add_option("--debug", dest="debug", action="store", 
+                            default="",
+                 help="turn on specified debugging behaviors (allowed: raise)")
         self.clo.add_option("-n", "--noaction", dest="noaction", 
                             action="store_true", default=False,
                    help="Don\'t actually do anything (for debugging purposes)")
