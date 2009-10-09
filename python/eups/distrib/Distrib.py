@@ -8,7 +8,7 @@ import sys, os, re, atexit, shutil
 import eups
 import server
 from server import RemoteFileNotFound, Manifest, TaggedProductList
-from eups.Parser import Parser as VersionEvaluator
+from eups.VersionParser import VersionParser
 
 class Distrib(object):
     """A class to encapsulate product distribution
@@ -274,7 +274,7 @@ class Distrib(object):
         for dep in dependencies:
             prevVer = release.getProductVersion()
             if prevVer is None or \
-                    VersionEvaluator("%s < %s" % (prevVer, dep.version)).eval():
+                    VersionParser("%s < %s" % (prevVer, dep.version)).eval():
                 release.addProduct(dep.product, dep.version, flavor)
 
                 self._recurseProdDeps(release, dep.product, dep.version, flavor)
