@@ -6,6 +6,11 @@ import re, sys
 # options, supports long option names, allows aliases, allows options
 # to follow arguments, and sets the values of flag options to the
 # number of occurrences of the flag
+#
+# Note that this module is DEPRECATED; eups now uses the standard optparse
+# module which supports all of the above mentioned features.  See 
+# eups/cmd.py and eups/setupcmd.py for details.
+#
 
 class Getopt:
     def __init__(self, options, argv=sys.argv, aliases={}, msg = None, checkArgs=True, extras=None):
