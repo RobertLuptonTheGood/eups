@@ -494,9 +494,10 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
     oldPrefTags = None
     if prefTags:
-        badtags = filter(eupsenv.tags.isRecognized, prefTags)
+        badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), prefTags)
         if badtags:
-            raise TagNotRecognized(msg="Unsupported tags: %s" % 
+            raise TagNotRecognized(str(badtags),
+                                   msg="Unsupported tags: %s" % 
                                        map(lambda t: str(t), badtags))
         prefTags = map(lambda t: t.name, map(eupsenv.tags.getTag, prefTags))
 

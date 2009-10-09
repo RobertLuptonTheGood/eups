@@ -841,7 +841,7 @@ class Eups(object):
         prod = self.findSetupProduct(product.name)
         if prod is not None:
             try:
-                self.setup(prod, fwd=False)
+                self.setup(prod.name, fwd=False)
             except EupsException, e:
                 print >> sys.stderr, \
                     "Unable to unsetup %s %s: %s" % (prod.name, prod.version, e)
@@ -1093,7 +1093,7 @@ class Eups(object):
                 sversionName = None
 
             if sprod and sprod.version and product.version:
-                if product.version == sprod.version or productDir == sprod.dir: # already setup
+                if product.version == sprod.version or product.dir == sprod.dir: # already setup
                     if recursionDepth == 0: # top level should be resetup if that's what they asked for
                         pass
                     elif self.force:   # force means do it!; so do it.

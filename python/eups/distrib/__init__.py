@@ -29,5 +29,5 @@ DefaultDistrib.
 """
 from Repositories import Repositories
 from Repository import Repository
-from Distrib import Distrib, DefaultDistrib
+from Distrib import Distrib, DefaultDistrib, findInstallableRoot
 from DistribFactory import DistribFactory
