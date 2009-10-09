@@ -631,8 +631,9 @@ class Repositories(object):
                 else:
                     if not os.path.exists(upsdir):
                         os.makedirs(upsdir)
-                    repos.distServer.getFileForProduct(tablefile, product, 
-                                                       version, flavor,
+                    repos.distServer.getFileForProduct(mprod.tablefile,
+                                                       mprod.product, 
+                                                       mprod.version, flavor,
                                                        filename=tablefile)
                 if not os.path.exists(tablefile):
                     raise EupsException("Failed to find table file %s" % tablefile)
