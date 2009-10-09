@@ -623,17 +623,17 @@ class Repositories(object):
                 # retrieve the table file and install it
                 if rootdir == "/dev/null":
                     tablefile = \
-                        self.distServer.getFileForProduct(mprod.tablefile, 
-                                                          mprod.product, 
-                                                          mprod.version, 
-                                                          flavor)
+                        repos.distServer.getFileForProduct(mprod.tablefile, 
+                                                           mprod.product, 
+                                                           mprod.version, 
+                                                           flavor)
                     tablefile = open(tablefile, "r")
                 else:
                     if not os.path.exists(upsdir):
                         os.makedirs(upsdir)
-                    self.distServer.getFileForProduct(tablefile, product, 
-                                                      version, flavor,
-                                                      filename=tablefile)
+                    repos.distServer.getFileForProduct(tablefile, product, 
+                                                       version, flavor,
+                                                       filename=tablefile)
                 if not os.path.exists(tablefile):
                     raise EupsException("Failed to find table file %s" % tablefile)
 
