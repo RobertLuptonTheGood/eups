@@ -1,3 +1,8 @@
+2009-10-11 rhl
+	Fixed
+		eups declare -c prod version
+	for NULL (in general fallback flavors) products; ticket https://trac.sdss3.org/ticket/354
+
 2009-10-06  rhl
 
 	Fix some HeadURL issues so eups version works (setup version already did)

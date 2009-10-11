@@ -3144,31 +3144,35 @@ match fails.
 
         if not productDir or not tablefile:
             if declareCurrent:
-                try:
-                    if eupsPathDir:
-                        info = self.findFullySpecifiedVersion(productName, versionName, self.flavor, eupsPathDir)
-                    else:
-                        info = self.findVersion(productName, versionName)
+                for flavor in Flavor().getFallbackFlavors(self.flavor, True):
+                    try:
+                        if eupsPathDir:
+                            info = self.findFullySpecifiedVersion(productName, versionName, flavor, eupsPathDir)
+                        else:
+                            info = self.findVersion(productName, versionName, flavor=flavor)
 
-                    if not productDir:
-                        productDir = info[2]
-                    if not tablefile:
-                        tablefile = info[3] # we'll check the other fields later
+                        if not productDir:
+                            productDir = info[2]
+                        if not tablefile:
+                            tablefile = info[3] # we'll check the other fields later
 
-                    if not productDir:
-                        productDir = "none"
+                        if not productDir:
+                            productDir = "none"
 
-                except RuntimeError:
-                    pass
+                    except RuntimeError:
+                        pass
 
         if not productDir or productDir == "/dev/null":
             #
             # Look for productDir on self.path
             #
             for eupsProductDir in self.path:
-                _productDir = os.path.join(eupsProductDir, self.flavor, productName, versionName)
-                if os.path.isdir(_productDir):
-                    productDir = _productDir
+                for flavor in Flavor().getFallbackFlavors(self.flavor, True):
+                    _productDir = os.path.join(eupsProductDir, flavor, productName, versionName)
+                    if os.path.isdir(_productDir):
+                        productDir = _productDir
+                        break
+                if productDir:
                     break
 
         if not productDir:
