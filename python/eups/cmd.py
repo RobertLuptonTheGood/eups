@@ -34,6 +34,7 @@ import optparse
 import eups
 import utils
 import distrib
+import hooks
 from distrib.server import ServerConf
 
 _errstrm = sys.stderr
@@ -190,9 +191,9 @@ Common"""
             raise RuntimeError("Extension Error: verbose option ('-v') overridden")
         if self.opts.quiet:
             self.opts.verbose = 0
-
-#        if hasattr(self.opts, "flavor") and not self.opts.flavor:
-#            self.opts.flavor = eups.flavor()
+        elif hooks.config.Eups.verbose > self.opts.verbose:
+            # let the user's configuration mandate a minimum verbosity
+            self.opts.verbose = hooks.config.Eups.verbose
 
         self.cmd = None
         if len(self.args) > 0:

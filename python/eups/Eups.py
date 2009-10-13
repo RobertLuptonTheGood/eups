@@ -168,7 +168,7 @@ class Eups(object):
         if not userDataDir:
             if os.environ.has_key("EUPS_USERDATA"):
                 userDataDir = os.environ["EUPS_USERDATA"]
-            else:
+            elif os.environ.has_key("HOME"):
                 userDataDir = os.path.join(os.environ["HOME"], ".eups")
         if not os.path.exists(userDataDir):
             if self.quiet <= 0:

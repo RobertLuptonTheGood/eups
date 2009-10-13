@@ -2,6 +2,7 @@
 Utility functions used across EUPS classes.
 """
 import time, os, sys, glob, re, tempfile
+from cStringIO import StringIO
 
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
@@ -344,7 +345,7 @@ class ConfigProperty(object):
     AttributeError will not be raised; instead, an error message is 
     written and the operation is otherwise ignored.  
     """
-    def __init__(self, attrnames, parentName=None, errstrm=sys.stderr):
+    def __init__(self, attrnames, parentName=None):
         """
         define up the properties as attributes.
         @param attrnames    a list of property names to define as attributes
@@ -354,27 +355,41 @@ class ConfigProperty(object):
         @param errstrm      a file stream to write error messages to.
         """
         object.__setattr__(self,'_parent', parentName)
-        object.__setattr__(self,'_err', errstrm)
+        object.__setattr__(self,'_types', {})
         for attr in attrnames:
             object.__setattr__(self, attr, None)
 
+    def setType(self, name, typ):
+        if not self.__dict__.has_key(name):
+            raise AttributeError(self._errmsg(name, 
+                                              "No such property name defined"))
+        if not callable(typ):
+            raise ValueError(self._errmsg(name, "setType(): type not callable"))
+        object.__getattribute__(self,'_types')[name] = typ
+
     def __setattr__(self, name, value):
         if not self.__dict__.has_key(name):
-            self._writePropName(name)
-            print >> self._err, ": No such property name defined"
-            return
+            raise AttributeError(self._errmsg(name, 
+                                              "No such property name defined"))
         if isinstance(getattr(self, name), ConfigProperty):
-            self._writePropName(name)
-            print >> self._err, \
-                ": Cannot over-write property with sub-properties"
-            return
+            raise AttributeError(self._errmsg(name, 
+                            "Cannot over-write property with sub-properties"))
+        types = object.__getattribute__(self,'_types')
+        if types.has_key(name):
+            value = types[name](value)
         object.__setattr__(self, name, value)
 
-    def _writePropName(self, name):
+    def _errmsg(self, name, msg):
+        return "%s: %s" % (self._propName(name), msg)
+
+    def _propName(self, name, strm=None):
+        if strm is None:
+            strm = StringIO()
         if self._parent:
-            self._err.write(self._parent)
-            self._err.write('.')
-        self._err.write(name)
+            strm.write(self._parent)
+            strm.write('.')
+        strm.write(name)
+        return strm.getvalue()
 
     def properties(self):
         out = self.__dict__.fromkeys(filter(lambda a: not a.startswith('_'), 

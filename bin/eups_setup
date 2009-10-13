@@ -7,20 +7,28 @@ import eups.setupcmd
 
 allowedDebugOptions = ["raise"]
 
+# parse the command line
 setup = eups.setupcmd.EupsSetup()
 
+# set debugging features
 debugOptions = setup.opts.debug.split(":")
 # allowRaise = "raise" in debug
 allowRaise = True
 
+# load any local customizations
+verbosity = setup.opts.verbose
+if setup.opts.quiet:
+    verbosity = -1
+eups.hooks.loadCustomization(verbosity)
+
+# run the command
 if allowRaise:
     sys.exit(setup.run())
 else:
     try:
         sys.exit(setup.run())
-
     except Exception, e:
         setup.err(str(e))
-        sys.exist(9)
+        sys.exit(9)
 
 

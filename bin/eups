@@ -4,7 +4,31 @@
 #
 import sys
 import eups.cmd
+import eups.hooks
 
+allowedDebugOptions = ["raise"]
+
+# parse the command line
 cmd = eups.cmd.EupsCmd()
-sys.exit(cmd.run())
+
+# set debugging features
+debugOptions = cmd.opts.debug.split(":")
+# allowRaise = "raise" in debug
+allowRaise = True
+
+# load any local customizations
+verbosity = cmd.opts.verbose
+if cmd.opts.quiet:
+    verbosity = -1
+eups.hooks.loadCustomization(verbosity)
+
+# run the command
+if allowRaise:
+    sys.exit(cmd.run())
+else:
+    try:
+        sys.exit(setup.run())
+    except Exception, e:
+        cmd.err(str(e))
+        sys.exit(9)
 
