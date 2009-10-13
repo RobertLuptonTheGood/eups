@@ -6,10 +6,15 @@ all : doc;
 .PHONY : all doc install clean tidy
 
 eups.aux : eups.tex
-	latex $(LATEXFLAGS) eups.tex
+	@ if ! latex $(LATEXFLAGS) eups.tex; then \
+		echo "Could not build eups.aux (ignoring)"; \
+	fi
+		
 
 eups.dvi : eups.aux
-	latex $(LATEXFLAGS) eups.tex
+	@ if ! latex $(LATEXFLAGS) eups.tex; then \
+		echo "Could not build eups.dvi (ignoring)"; \
+	fi
 
 doc : eups.html eups.pdf;
 
@@ -31,10 +36,14 @@ eups.html : eups.aux
 	fi
 
 eups.pdf : eups.aux
-	pdflatex $(LATEXFLAGS) eups.tex
+	@ if ! pdflatex $(LATEXFLAGS) eups.tex; then \
+		echo "Could not build eups.pdf (ignoring)"; \
+	fi
 
 install : eups.pdf eups.html
-	cp Makefile *.tex eups.pdf eups.html $(EUPS_DIR)/doc
+	@ if ! cp Makefile *.tex eups.pdf eups.html $(EUPS_DIR)/doc; then \
+		echo "Not all documentation files copied (ignoring)"; \
+	fi
 
 tidy :
 	- /bin/rm -rf *~ core eups.{aux,dvi,log,toc}

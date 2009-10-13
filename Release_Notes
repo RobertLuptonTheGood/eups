@@ -1,3 +1,7 @@
+2009-10-12 gk
+	Changed the Makefile in doc so that the install never fails for documentation errors.
+	ticket https://trac.sdss3.org/ticket/325
+
 2009-10-11 rhl
 	Fixed
 		eups declare -c prod version
