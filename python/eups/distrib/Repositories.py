@@ -463,6 +463,10 @@ class Repositories(object):
             if updateTags:
                 self._updateServerTags(pkgroot, prod, productRoot)
             if alsoTag:
+                if self.verbose > 1:
+                    print >> self.log, \
+                        "Assigning User Tags to %s %s: %s" % \
+                        (prod.name, prod.version, ", ".join(str(alsoTag)))
                 for tag in alsoTag:
                     try:
                         self.eups.assignTag(tag, prod.product, prod.version,
@@ -546,19 +550,45 @@ class Repositories(object):
         else:
             self.clean(prod.product, prod.version, options=opts)
 
-    def _updateServerTags(self, pkgroot, prod, productRoot):
+    def _updateServerTags(self, pkgroot, prod, stackRoot):
 
         tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version,
                                                   prod.flavor)
         self.eups.supportServerTags(tags, pkgroot)
+
+        if self.verbose > 1:
+            print >> self.log, \
+                "Assigning Server Tags to %s %s: %s" % \
+                (prod.product, prod.version, ", ".join(str(tags)))
+
+        dprod = self.eups.findProduct(prod.product, prod.version,
+                                      prod.flavor, eupsPathDir=stackRoot)
+        if dprod is None:
+            if self.verbose >= 0 and not self.eups.quiet:
+                print >> self.log, \
+                  "Unable to server assign tags: Failed to find product %s %s"\
+                  (prod.product, prod.version)
+            return
+
         for tag in tags:
-            try:
-                self.eups.assignTag(tag, prod.product, prod.version, productRoot)
-            except TagNotRecognized, e:
-                msg = str(e)
-                if not self._msgs.has_key(msg):
-                    print >> self.log, msg
-                self._msgs[msg] = 1
+           if tag not in prod.tags:
+              if not self.eups.quiet:
+                 print >> self.log, "Assigning Server Tag %s to %s %s" % \
+                     (tag, dprod.name, dprod.version)
+              try:
+
+                 self.eups.assignTag(tag, prod.product, prod.version, stackRoot)
+
+              except TagNotRecognized, e:
+                 msg = str(e)
+                 if not self.eups.quiet and not self._msgs.has_key(msg):
+                     print >> self.log, msg
+                 self._msgs[msg] = 1
+              except ProductNotFound, e:
+                 msg = "Can't find %s %s" % (dprod.name, dprod.version)
+                 if not self.eups.quiet and not self._msgs.has_key(msg):
+                     print >> self.log, msg
+                 self._msgs[msg] = 1
 
     def _recordDistID(self, pkgroot, distId, installDir):
         ups = os.path.join(installDir, "ups")

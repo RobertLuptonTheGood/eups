@@ -188,7 +188,7 @@ class ProductStackTestCase(unittest.TestCase):
         if os.path.exists(cache):  os.remove(cache)
 
         stack = ProductStack(os.path.join(testEupsStack, "ups_db"), 
-                             prodPersistDir=os.environ["PWD"], autosave=True)
+                             os.environ["PWD"], autosave=True)
         self.assert_(not stack.saveNeeded())
         stack.addProduct(Product("fw", "1.2", "Darwin", 
                                  "/opt/sw/Darwin/fw/1.2", "none"))

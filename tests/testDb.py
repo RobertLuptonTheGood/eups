@@ -248,11 +248,23 @@ class DatabaseTestCase(unittest.TestCase):
 
     def setUp(self):
         self.dbpath = os.path.join(testEupsStack, "ups_db")
-        self.db = Database(self.dbpath)
+        self.userdb = os.path.join(testEupsStack, "user_ups_db")
+        if not os.path.exists(self.userdb):
+            os.makedirs(self.userdb)
+
+        self.db = Database(self.dbpath, self.userdb)
 
         self.pycur = os.path.join(self.dbpath,"python","current.chain")
         if os.path.isfile(self.pycur+".bak"):
             os.rename(self.pycur+".bak", self.pycur)
+
+    def tearDown(self):
+        if os.path.isfile(self.pycur+".bak"):
+            os.rename(self.pycur+".bak", self.pycur)
+
+        if os.path.exists(self.userdb) and self.userdb.endswith("user_ups_db"):
+            
+            os.system("rm -rf " + self.userdb)
 
     def testFindProductNames(self):
         prods = self.db.findProductNames()
@@ -376,6 +388,33 @@ class DatabaseTestCase(unittest.TestCase):
         self.assert_(not self.db.isDeclared("goober", "1.0"))
         self.assert_(not self.db.isDeclared("doxygen", "1.5.10"))
         self.assert_(not self.db.isDeclared("doxygen", "1.5.9", "Linux"))
+
+    def testUserTag(self):
+        vers = self.db.getTaggedVersion("user:my", "python", "Linux")
+        self.assert_(vers is None)
+
+        self.db.assignTag("user:my", "python", "2.5.2")
+        vers = self.db.getTaggedVersion("user:my", "python", "Linux")
+        self.assertEquals(vers, "2.5.2")
+        self.assert_(os.path.exists(os.path.join(self.userdb,
+                                                 "python","my.chain")))
+
+        tags = self.db.findTags("python", "2.5.2", "Linux")
+        self.assertEquals(len(tags), 2)
+        self.assertEquals(tags[0], "current")
+        self.assertEquals(tags[1], "user:my")
+
+        prods = self.db.findProducts("python", "2.5.2")
+        self.assertEquals(len(prods), 1)
+        self.assertEquals(len(prods[0].tags), 2)
+        self.assertEquals(tags[0], "current")
+        self.assertEquals(tags[1], "user:my")
+
+        self.db.unassignTag("user:my", "python")
+        vers = self.db.getTaggedVersion("user:my", "python", "Linux")
+        self.assert_(vers is None)
+        self.assert_(not os.path.exists(os.path.join(self.userdb,
+                                                     "python","my.chain")))
 
     def testAssignTag(self):
         if not os.path.exists(self.pycur+".bak"):

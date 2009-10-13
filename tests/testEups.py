@@ -21,6 +21,7 @@ class EupsTestCase(unittest.TestCase):
     def setUp(self):
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_FLAVOR"] = "Linux"
+        os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
         self.dbpath = os.path.join(testEupsStack, "ups_db")
         self.eups = Eups()
 
@@ -35,6 +36,10 @@ class EupsTestCase(unittest.TestCase):
             file = os.path.join(self.dbpath, ProductStack.persistFilename(flav))
             if os.path.exists(file):
                 os.remove(file)
+
+        usercachedir = os.path.join(testEupsStack,"_userdata_","_caches_")
+        if os.path.exists(usercachedir):
+            os.system("rm -rf " + usercachedir)
 
         if os.path.exists(self.betachain):  os.remove(self.betachain)
 
@@ -77,9 +82,9 @@ class EupsTestCase(unittest.TestCase):
             self.assert_(tag in self.eups.preferredTags)
 
         # There should have been some cache files created
-        flavors.append("generic")
+        # flavors.append("generic")
         for flav in flavors:
-            cache = os.path.join(self.dbpath, 
+            cache = os.path.join(self.eups._userStackCache(testEupsStack),
                                  ProductStack.persistFilename(flav))
             self.assert_(os.path.exists(cache), 
                          "Cache file for %s not written" % flav)

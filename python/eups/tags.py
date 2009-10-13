@@ -74,11 +74,17 @@ class Tags(object):
         """
         return the qualified names of all registered tags
         """
+        out = map(lambda z: str(z), self.getTags())
+        out.sort()
+        return out
+
+    def getTags(self):
+        """
+        return Tag instances for all registered tags
+        """
         out = []
         for group in self.bygrp.keys():
-            out.extend(map(lambda z: str(z), 
-                           map(lambda x: self.getTag(x), self.bygrp[group])))
-        out.sort()
+            out.extend(map(lambda x: self.getTag(x), self.bygrp[group]))
         return out
 
     def getTag(self, tag):
@@ -137,6 +143,8 @@ class Tags(object):
 
     # @staticmethod   # requires python 2.4
     def persistFilename(group):
+        if group == Tags.global_:  group = "global"
+        if group == Tags.user:     group = "user"
         return tagListFileTmpl % group
     persistFilename = staticmethod(persistFilename) #should work as'f python 2.2
 
@@ -188,7 +196,7 @@ class Tags(object):
     def loadFromEupsPath(self, eupsPath, verbosity=0):
         """
         load tag names of all groups cached in the given eups product 
-        stacks. 
+        stacks.  Return True if tags were found to be loaded.  
         @param eupsPath   the list product root directories (product 
                             stacks) given either as a list of strings 
                             or a single colon-delimited string.
@@ -198,6 +206,8 @@ class Tags(object):
         if not isinstance(eupsPath, list):
             raise TypeError("Tags.loadFromEupsPath(): eupsPath not a str/list:"
                             + str(eupsPath))
+
+        loaded = False
         for dir in eupsPath:
             if not os.path.exists(dir):
                 if verbosity > 1:
@@ -232,11 +242,14 @@ class Tags(object):
                     print >> sys.stderr, "Reading tags from", file
                 try:
                     self.load(group, file)
+                    loaded = True
                 except IOError, e:
                     if verbosity >= 0:
                         print >> sys.stderr, \
                             "Skipping troublesome tag file (%s): %s" % \
                             (str(e), file)
+
+        return loaded
 
     def loadUserTags(self, userPersistDir):
         """
@@ -253,21 +266,37 @@ class Tags(object):
         file = os.path.join(userPersistDir, self.persistFilename("user"))
         if not os.path.exists(file):
             # that's okay: no user tags cached
-            return
+            return False
 
         self.load(self.user, file)
+        return True
+
+    def saveGroup(self, group, dir):
+        """
+        save the user tags cached to a given directory.
+        The tag names are assumed to be persisted in 
+        Tags.persistFilename(group).
+        """
+        if group == self.global_:  group = "group"
+        if group == self.user:     group = "user"
+
+        if not os.path.isdir(dir):
+            raise IOError("Tag cache not an existing directory: " + dir)
+        file = os.path.join(dir, self.persistFilename(group))
+
+        if group == "global":
+            group = self.global_
+        if group == "user":
+            group = self.user
+        self.save(group, file)
 
     def saveUserTags(self, userPersistDir):
         """
-        load the user tags cached to a given directory.
+        save the user tags cached to a given directory.
         The tag names are assumed to be persisted in 
         Tags.persistFilename("user").
         """
-        if not os.path.isdir(userPersistDir):
-            raise IOError("Tag cache not an existing directory: " + 
-                          userPersistDir)
-        file = os.path.join(userPersistDir, self.persistFilename("user"))
-        self.save(self.user, file)
+        self.saveGroup("user", userPersistDir)
         
     def saveGlobalTags(self, persistDir):
         """
@@ -347,6 +376,41 @@ class Tag(object):
             return (self.name == that.name and self.group == that.group)
         else:
             return self.name == that
+
+    # @staticmethod   # requires python 2.4
+    def parse(name, defGroup=Tags.global_):
+        """
+        create a Tag instance from a fully specified tag name string.
+        
+        A substring prior to a colon is assumed to be the group name.  If
+        there is not group name, it is assumed to be of the group given by
+        defGroup (which defaults to global).  
+        """
+        parts = name.rsplit(':', 1)
+        if len(parts) == 1:
+            return Tag(name, defGroup)
+        else:
+            if parts[0] == "user":
+                parts[0] = Tags.user
+            elif parts[0] == "" or parts[0] == "global":
+                parts[0] = Tags.global_
+            return Tag(parts[1], parts[0])
+    parse = staticmethod(parse) #should work as'f python 2.2
+
+def UserTag(name):
+    """
+    Instantiate a user-defined tag.  This a Tag with the group equal to 
+    Tags.user.  
+    """
+    return Tag.parse(name, Tags.user)
+
+
+def GlobalTag(name):
+    """
+    Instantiate a global tag.  This a Tag with the group equal to 
+    Tags.global_.  
+    """
+    return Tag.parse(name, Tags.global_)
 
 
 class TagNotRecognized(EupsException):

@@ -1,7 +1,7 @@
 import os, sys, re
 from VersionFile import VersionFile
 from ChainFile import ChainFile
-from eups.utils import isRealFilename
+from eups.utils import isRealFilename, isDbWritable
 from eups.Product import Product
 from eups.exceptions import UnderSpecifiedProduct, ProductNotFound
 from eups.exceptions import TableError
@@ -22,11 +22,17 @@ class Database(object):
     @author Raymond Plante
     """
 
-    def __init__(self, dbpath, defStackRoot=None):
+    def __init__(self, dbpath, userTagRoot=None, defStackRoot=None):
         """
         create an instance of a database.
         @param dbpath        the full path to the directory (usually called 
                                 "ups_db") containing a EUPS software database.
+        @param userTagRoot   a full path to a user-writable directory where 
+                                user tag assignment may be recorded.  The 
+                                file/directory structure maintained will be 
+                                the same assumed by dbpath, though only 
+                                chain files will be consulted.  If None, 
+                                user tags will not be accessible or assignable.
         @param defStackRoot  the default path for product stack root directory.
                                 When product install directories are specified
                                 with relative paths, they will be assumed to be
@@ -42,8 +48,12 @@ class Database(object):
             defStackRoot = os.path.dirname(self.dbpath)
         self.defStackRoot = defStackRoot
 
-    def _productDir(self, productName):
-        return os.path.join(self.dbpath, productName)
+        # path to the user tag database for products in this database.  
+        self.usertagdb = userTagRoot
+
+    def _productDir(self, productName, dbdir=None):
+        if not dbdir:  dbdir = self.dbpath
+        return os.path.join(dbdir, productName)
 
     def _versionFile(self, productName, version):
         return self._versionFileInDir(self._productDir(productName), version)
@@ -65,6 +75,9 @@ class Database(object):
         if not os.path.exists(out):
             return None
         return out
+
+    def isWritable(self):
+        return eups.utils.isDbWritable(self.dbpath)
 
     def findProduct(self, name, version, flavor):
         """
@@ -101,7 +114,20 @@ class Database(object):
         if not os.path.exists(pdir):
             raise ProductNotFound(productName, version, flavor, self.dbpath)
 
-        tagFiles = filter(lambda x: not x.startswith('.'), os.listdir(pdir))
+        tags = self._findTagsInDir(pdir, productName, version, flavor)
+        if self.usertagdb:
+            udir = self._productDir(productName, self.usertagdb)
+            if os.path.isdir(udir):
+                tags.extend(map(lambda t: "user:"+t, 
+                                self._findTagsInDir(udir, productName, 
+                                                    version, flavor)))
+
+        return tags
+
+    def _findTagsInDir(self, dir, productName, version, flavor):
+        # look tag assignments via chain files in a given directory
+
+        tagFiles = filter(lambda x: not x.startswith('.'), os.listdir(dir))
         
         tags = []
         for file in tagFiles:
@@ -110,7 +136,7 @@ class Database(object):
                 continue
 
             tag = mat.group(1)
-            cf = ChainFile(os.path.join(pdir,file), productName, tag)
+            cf = ChainFile(os.path.join(dir,file), productName, tag)
             if cf.getVersion(flavor) == version:
                 tags.append(tag)
 
@@ -202,8 +228,11 @@ class Database(object):
 
         out = {}
         for vers in versions:
-            vfile = VersionFile(self._versionFile(name, vers),
-                                name, vers)
+            vfile = self._versionFile(name, vers)
+            if not os.path.exists(vfile):
+                continue
+            vfile = VersionFile(vfile, name, vers)
+                                
             flavs = flavors
             declared = vfile.getFlavors()
             if flavs is None:  flavs = declared
@@ -221,17 +250,11 @@ class Database(object):
           raise RuntimeError("programmer error: product directory disappeared")
 
         # add in the tags 
-        for file in os.listdir(pdir):
-            mat = tagFileRe.match(file)
-            if mat: 
-                tag = mat.group(1)
-                file = ChainFile(os.path.join(pdir,file), name, tag)
-                for flavor in file.getFlavors():
-                    vers = file.getVersion(flavor)
-                    try:
-                       out[vers][flavor].tags.append(tag)
-                    except KeyError:
-                       pass
+        for tag, vers, flavor in self.getTagAssignments(name):
+            try: 
+                out[vers][flavor].tags.append(tag)
+            except KeyError:
+                pass
 
 #  not sure why this doesn't work:
 #        out = reduce(lambda x,y: x.extend(y), 
@@ -245,6 +268,39 @@ class Database(object):
         for y in v[1:]:  x.extend(y)
         x.sort(_cmp_by_verflav)
         return x
+
+    def getTagAssignments(self, productName, glob=True, user=True):
+        """
+        return a list of tuples of the form (tag, version, flavor) listing
+        all of the tags assigned to the product.
+        @param productName     the name of the product
+        @param glob            if true (default), include the global tags
+        @param user            if true (default), include the user tags
+        """
+        out = []
+        loc = [None, None]
+        if glob:  loc[0] = self._productDir(productName) 
+        if user and self.usertagdb:  
+            loc[1] = self._productDir(productName, self.usertagdb) 
+
+        tgroup = ""
+        for i in xrange(len(loc)):
+            if not loc[i]: continue
+            if i > 0:  
+                tgroup = "user:"
+                if not os.path.exists(loc[i]):
+                    continue
+
+            for file in os.listdir(loc[i]):
+                mat = tagFileRe.match(file)
+                if mat: 
+                    tag = mat.group(1)
+                    file = ChainFile(os.path.join(loc[i],file), productName,tag)
+                    for flavor in file.getFlavors():
+                        vers = file.getVersion(flavor)
+                        out.append( (tgroup+tag, vers, flavor) )
+
+        return out
 
     def isDeclared(self, productName, version=None, flavor=None):
         """
@@ -385,6 +441,12 @@ class Database(object):
         if not os.path.exists(pdir):
             raise ProductNotFound(productName, stack=self.dbpath);
 
+        if tag.startswith("user:"):
+            if not self.usertagdb:
+                return None
+            tag = tag[len("user:"):]
+            pdir = self._productDir(productName, self.usertagdb)
+            
         tfile = self._tagFileInDir(pdir, tag)
         if not os.path.exists(tfile):
             return None
@@ -403,6 +465,9 @@ class Database(object):
         @param flavors :     the flavors of the product to be tagged.  
                                 If None, tag all available flavors.  
         """
+        if tag.startswith("user:") and not self.usertagdb:
+            raise RuntimeError("Unable to assign user tags (user db not available)")
+
         vf = VersionFile(self._versionFile(productName, version))
         declaredFlavors = vf.getFlavors()
         if len(declaredFlavors) == 0:
@@ -426,8 +491,16 @@ class Database(object):
             raise ProductNotFound(productName, version, 
                                msg="Requested flavors not declared for %s %s"
                                    % (productName, version))
+
+        if tag.startswith("user:"):
+            pdir = self._productDir(productName, self.usertagdb)
+            tag = tag[len("user:"):]
+            if not os.path.exists(pdir):
+                os.makedirs(pdir)
+        else:
+            pdir = self._productDir(productName)
         
-        tfile = self._tagFile(productName, tag)
+        tfile = self._tagFileInDir(pdir, tag)
         tagFile = ChainFile(tfile, productName, tag)
 
         tagFile.setVersion(version, flavors)
@@ -449,6 +522,13 @@ class Database(object):
                                  flavors.
         @return bool : False if tag was not assigned to any of the products.
         """
+        dbroot = self.dbpath
+        if tag.startswith("user:"):
+            if not self.usertagdb:
+                return False
+            dbroot = self.usertagdb
+            tag = tag[len("user:"):]
+
         if not productNames:
             raise RuntimeError("No products names given: " + str(productNames))
         if not isinstance(productNames, list):
@@ -458,7 +538,7 @@ class Database(object):
 
         unassigned = False
         for prod in productNames:
-            tfile = self._tagFile(prod, tag)
+            tfile = self._tagFileInDir(self._productDir(prod,dbroot), tag)
             if not os.path.exists(tfile):
                 continue
 
@@ -480,12 +560,16 @@ class Database(object):
 
         return unassigned
 
-    def isNewerThan(self, timestamp):
+    def isNewerThan(self, timestamp, dbrootdir=None):
         """
         return true if the state of this database is newer than a given time
         NOTE: file timestamps only have a resolution of 1 second!
         @param timestamp    the epoch time, as given by os.stat()
+        @param dbrootdir    directory where to look for file times.  If None,
+                               defaults to database root.  
         """
+        if not dbrootdir:
+            dbrootdir = self.dbpath
         proddirs = map(lambda d: os.path.join(self.dbpath, d), 
                        self.findProductNames())
         for prod in proddirs:

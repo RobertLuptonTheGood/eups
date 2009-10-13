@@ -75,6 +75,7 @@ Supported commands are:
         pkgroot [n]     Print the current eups pkgroot, or an element thereof
 	pkg-config	Return the options associated with product
 	remove          Remove an eups product from the system
+        tags            List information about supported and known tags
 	undeclare	Undeclare a product
         uses            List everything which depends on the specified product 
                         and version
@@ -1555,6 +1556,44 @@ product will be fully removed, even if its installation was successful.
 
 # TODO: distrib create
         
+class TagsCmd(EupsCmd):
+
+    usage = "%prog tags [-h|--help] [-t tag]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Print information about supported and preferred tags
+"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-t", "--tag", dest="tags", action="append", 
+             help="prepend these tags to the preferred list (repeat as needed)")
+
+    def execute(self):
+        myeups = eups.Eups(readCache=False)
+
+        badtags = []
+        if self.opts.tags:
+            tags = self.opts.tags
+            badtags = filter(lambda t: not myeups.tags.isRecognized(t), tags)
+            if badtags:
+                tags = filter(lambda t: t not in badtags, tags)
+            if tags:
+                oldtags = myeups.getPreferredTags()
+                myeups.setPreferredTags(tags + oldtags)
+
+        if not self.opts.quiet:
+            print "Supported Tags:", ", ".join(myeups.tags.getTagNames())
+            print "Preferred Tags:", ", ".join(myeups.getPreferredTags())
+
+        return 0
+
 
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -1617,9 +1656,10 @@ register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
 register("remove",       RemoveCmd)
 register("admin",        AdminCmd)
-register("distrib",    DistribCmd)
+register("distrib",      DistribCmd)
 register("distrib list",    DistribListCmd)
 register("distrib install", DistribInstallCmd)
 register("distrib clean",   DistribCleanCmd)
 # register("distrib create",  DistribCreateCmd)
+register("tags",         TagsCmd)
 

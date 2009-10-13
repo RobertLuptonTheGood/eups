@@ -15,7 +15,7 @@ persistVersionName = "1.2.0"
 
 # the prefix to a tag name that labels it as a user tag.  Anything else is 
 # considered a global tag.
-userPrefix = "user."     
+userPrefix = "user:"     
 
 dotre = re.compile(r'\.')
 who = os.getlogin()
@@ -32,7 +32,7 @@ class ProductStack(object):
     or defaults to the ups_db directory.  
 
     It also supports a notion of global versus user tags.  Tags that should 
-    be considered as user-specific should start with the prefix "user.".  
+    be considered as user-specific should start with the prefix "user:".  
     This will affect where tag information is persisted.  A user tag is
     persisted to a special user directory (set via the userTagPersistDir 
     constructor parameter).  A global tag is persisted along with the rest of 
@@ -54,13 +54,11 @@ class ProductStack(object):
     # static variable: name of file extension to use to persist data
     userTagFileExt = "pickleTag%s" % dotre.sub('_', persistVersionName)
 
-    def __init__(self, dbpath, userTagPersistDir=None, prodPersistDir=None, 
-                 autosave=True):
+    def __init__(self, dbpath, persistDir=None, autosave=True):
         """
         create the stack with a given database
         @param dbpath             the path to the ups_db directory
-        @param userTagPersistDir  the directory to persist user tag data to
-        @param prodPersistDir     the directory to persist to.  If None,
+        @param persistDir         the directory to this cache to.  If None,
                                      the dbpath value will be used as the 
                                      directory.
         @param autosave           if true (default), all updates will be 
@@ -98,10 +96,11 @@ class ProductStack(object):
 
         # the directory to persist this data to when save is called.  If None,
         # a default path will be dbpath.
-        self.persistDir = prodPersistDir
+        self.persistDir = persistDir
         if self.persistDir is not None and self.autosave and \
            not os.path.exists(self.persistDir):
-              raise IOError("Directory not found: " + self.persistDir)
+              os.makedirs(self.persistDir)
+              # raise IOError("Directory not found: " + self.persistDir)
 
         # user tag assignments stored a hierarchical dictionary.  The 
         # dimensions of the hierarchy (from left to right, general to 
@@ -111,13 +110,6 @@ class ProductStack(object):
         #   * product name
         # the values at the bottom are version names
         self.usertags = {}
-
-        # the directory to persist user tag data to when assigning tags
-        # If None, user tags will not be persisted
-        self.userTagDir = userTagPersistDir
-        if self.userTagDir is not None and self.autosave and \
-           not os.path.exists(self.userTagDir):
-            raise IOError("Directory not found: " + self.userTagDir)
 
         # True if python is new enough to pickle the cache data
         self.canCache = utils.canPickle()
@@ -225,7 +217,7 @@ class ProductStack(object):
     def save(self, flavors=None, dir=None):
         """
         persist the product information to disk.  If a cache file for a 
-        flavor is newere than when we loaded from it last, that flavor 
+        flavor is newer than when we loaded from it last, that flavor 
         will not be saved, and a RuntimeError will be raised.  Other flavors,
         will be saved, though.
         @param flavors  the flavors to persist.  This can be a single string 
@@ -459,12 +451,12 @@ class ProductStack(object):
     def assignTag(self, tag, product, version, flavors=None):
         """
         assign a tag to a given version of a product.  If tag does not 
-        start with "user." (indicating a global tag) but 
+        start with "user:" (indicating a global tag) but 
         the user does not have permission to write into the stack database, 
         an exception is raised.
 
         @param tag :     the tag name to be assigned.  If this name starts 
-                           with "user.", it will be considered a user prefix 
+                           with "user:", it will be considered a user prefix 
                            and thus the assignment will be cached to a 
                            the user-specific location.  
         @param product : the name of the product the tag is being assigned to 
@@ -483,8 +475,8 @@ class ProductStack(object):
         for flavor in flavors:
             try:
                 self.lookup[flavor][product].assignTag(tag, version)
-                if tag.startswith(userPrefix):
-                    self._setUserTag(flavor, tag, product, version)
+#                if tag.startswith(userPrefix):
+#                    self._setUserTag(flavor, tag, product, version)
                 notfound = False
             except KeyError:
                 pass
@@ -493,36 +485,36 @@ class ProductStack(object):
 
         self._flavorsUpdated(flavors)
         if self.autosave: 
-            if tag.startswith(userPrefix):
-                self._saveTag(tag, flavors)
-            else:
-                self.save(flavors)
+#           if tag.startswith(userPrefix):
+#                self._saveTag(tag, flavors)
+#            else:
+            self.save(flavors)
 
-    def _setUserTag(self, flavor, tag, product, version):
-        if not self.usertags.has_key(flavor):
-            self.usertags[flavor] = {}
-        if not self.usertags[flavor].has_key(tag):
-            self.usertags[flavor][tag] = {}
-        self.usertags[flavor][tag][product] = version
+#     def _setUserTag(self, flavor, tag, product, version):
+#         if not self.usertags.has_key(flavor):
+#             self.usertags[flavor] = {}
+#         if not self.usertags[flavor].has_key(tag):
+#             self.usertags[flavor][tag] = {}
+#         self.usertags[flavor][tag][product] = version
 
-    def _unsetUserTag(self, flavor, tag, product):
-        try:
-            del self.usertags[flavor][tag][product]
-        except KeyError:
-            pass
+#     def _unsetUserTag(self, flavor, tag, product):
+#         try:
+#             del self.usertags[flavor][tag][product]
+#         except KeyError:
+#             pass
 
-    def _saveTag(self, tag, flavors):
-        if self.userTagDir:
-            for flavor in flavors:
-                if self.usertags.has_key(flavor) and \
-                   self.usertags[flavor].has_key(tag):
-                    self._lock(file)
-                    file = "%s_%s.pickleTag%s" % (flavor, tag, userTagFileExt)
-                    file = os.path.join(self.userTagDir, file)
-                    fd = open(file, "w")
-                    cPickle.dump(self.usertags[flavor][tag], fd)
-                    fd.close()
-                    self._unlock(file)
+#     def _saveTag(self, tag, flavors):
+#         if self.userTagDir:
+#             for flavor in flavors:
+#                 if self.usertags.has_key(flavor) and \
+#                    self.usertags[flavor].has_key(tag):
+#                     self._lock(file)
+#                     file = "%s_%s.pickleTag%s" % (flavor, tag, userTagFileExt)
+#                     file = os.path.join(self.userTagDir, file)
+#                     fd = open(file, "w")
+#                     cPickle.dump(self.usertags[flavor][tag], fd)
+#                     fd.close()
+#                     self._unlock(file)
 
 
 
@@ -549,16 +541,16 @@ class ProductStack(object):
                 if (self.lookup[flavor][product].unassignTag(tag)):
                     updated = True
                     self._flavorsUpdated(flavor)
-                    if tag.startswith(userPrefix):
-                        self._unsetUserTag(flavor, tag, product)
+#                    if tag.startswith(userPrefix):
+#                        self._unsetUserTag(flavor, tag, product)
             except KeyError:
                 pass
 
         if updated and self.autosave: 
-            if tag.startswith(userPrefix):
-                self._saveTag(tag, flavors)
-            else:
-                self.save(flavors)
+#            if tag.startswith(userPrefix):
+#                self._saveTag(tag, flavors)
+#            else:
+            self.save(flavors)
         return updated
 
     def loadTableFor(self, productName, version, flavor, table=None):
@@ -597,14 +589,16 @@ class ProductStack(object):
         eups.lock.unlock(self._lockfilepath(file), who)
 
 
-    def cacheIsUpToDate(self, flavor):
+    def cacheIsUpToDate(self, flavor, cacheDir=None):
         """
         return True if there is a cache file on disk with product information
         for a given flavor which is newer than the information in the 
         product database.  False is returned if the file does not exist
         or otherwise appears out-of-date.
         """
-        cache = self._persistPath(flavor)
+        if not cacheDir:
+            cacheDir = self.dbpath
+        cache = self._persistPath(flavor, cacheDir)
         if not os.path.exists(cache):
             return False
 
@@ -622,6 +616,10 @@ class ProductStack(object):
         @param flavors    the platform flavors to clear caches for.  This value
                             can be a single flavor name (as a string) or a list 
                             of flavors.
+        @param cachedir   the directory where to find the cache.  If not 
+                            provided, it will default to the current persist
+                            directory or, if that is not set, to the database
+                            directory.  
         """
         if not flavors:
             flavors = self.getFlavors()
@@ -633,7 +631,7 @@ class ProductStack(object):
             if os.path.exists(file):
                 os.remove(file)
 
-    def reload(self, flavors=None, userTagPersistDir=None, prodPersistDir=None):
+    def reload(self, flavors=None, persistDir=None):
         """
         throw away all information on products and replace it with the data
         saved in the cache files.
@@ -641,41 +639,25 @@ class ProductStack(object):
         @param flavors            if not None, restrict reloading to the given
                                     flavors; other flavor data will remain
                                     unchanged.
-        @param userTagPersistDir  the directory to find cached user tag data.
+        @param persistDir         the directory to find cached product data.
                                     If None, the directory set at construction
-                                    time will be used.  (This will not change
-                                    where tag data is subsequently saved; the
-                                    construction-time set directory will still
-                                    be used.)  If the directory does not exist,
-                                    user tags will not be read in.
-        @param prodPersistDir     the directory to find cached product data.
-                                    If None, the directory set at construction
-                                    time will be used.  (This will not change
-                                    where tag data is subsequently saved; the
-                                    construction-time set directory will still
-                                    be used.)  If this tag does not exist, 
-                                    a RuntimeError is raised.
+                                    time will be used.  
         """
-        if userTagPersistDir is None:
-            userTagPersistDir = self.userTagDir
-        if not userTagPersistDir or not os.path.isdir(userTagPersistDir):
-            userTagPersistDir = None
-
-        if prodPersistDir is None:
-            prodPersistDir = self._persistDir()
-        if not prodPersistDir:
+        if persistDir is None:
+            persistDir = self._persistDir()
+        if not persistDir:
             raise RuntimeError("ProductStack.reload(): a cache directory "+
-                               "is needed: " + str(prodPersistDir))
-        if not os.path.isdir(prodPersistDir):
-            raise RuntimeError(prodPersistDir + ": not an existing directory")
+                               "is needed: " + str(persistDir))
+        if not os.path.isdir(persistDir):
+            raise RuntimeError(persistDir + ": not an existing directory")
 
         if flavors is None:
-            flavors = self.findCachedFlavors(prodPersistDir)
+            flavors = self.findCachedFlavors(persistDir)
         if not isinstance(flavors, list):
             flavors = [flavors]
 
         for flavor in flavors:
-            file = self._persistPath(flavor,prodPersistDir)
+            file = self._persistPath(flavor,persistDir)
             self._lock(file)
             self.modtimes[file] = os.stat(file).st_mtime
             fd = open(file)
@@ -685,7 +667,7 @@ class ProductStack(object):
 
             self.lookup[flavor] = lookup
 
-            # update with user tags
+
             
 
 
@@ -716,36 +698,59 @@ class ProductStack(object):
             for product in db.findProducts(prodname):
                 self.addProduct(product)
 
+    def _loadUserTags(self, persistDir=None):
+        if not persistDir:
+            persistDir = self.persistDir
+        if not persistDir or not os.path.exists(persistDir):
+            return
+
+        db = Database(self.dbpath, persistDir)
+        prodnames = db.findProductNames()
+        for pname in prodnames:
+            for tag, flavor, version in db.getTagAssignments(pname, glob=False):
+                self.assignTag(tag, pname, version, flavor)
+            
+
     # @staticmethod   # requires python 2.4
-    def fromDatabase(dbpath, userTagPersistDir=None, prodPersistDir=None, 
-                     autosave=True):
+    def fromDatabase(dbpath, persistDir=None, autosave=True):
         """
         return a ProductStack that has all products loaded in from an EUPS
         database
         @param dbpath   the full path to the database directory ("ups_db")
         @param userTagPersistDir  the directory to persist user tag data to
-        @param prodPersistDir     the directory to persist to.  If None,
+        @param persistDir     the directory to persist to.  If None,
                                      the dbpath value will be used as the 
                                      directory.
         @param autosave           if true (default), all updates will be 
                                      saved to disk.
         """
-        out = ProductStack(dbpath,userTagPersistDir,prodPersistDir,autosave)
+        out = ProductStack(dbpath, persistDir, autosave)
         out.refreshFromDatabase()
         return out
     fromDatabase = staticmethod(fromDatabase)    # works since python2.2
 
     # @staticmethod   # requires python 2.4
-    def fromCache(dbpath, flavors, userTagPersistDir=None, prodPersistDir=None, 
-                  updateCache=True, autosave=True, verbose=False):
+    def fromCache(dbpath, flavors, persistDir=None, updateCache=True, 
+                  autosave=True, verbose=False):
         """
-        return a ProductStack that has all products loaded in from the available 
-        caches.  If they are out of date (or non-existent), this will refresh
-        from the database.
+        return a ProductStack that has all products loaded in from the 
+        available caches.  If they are out of date (or non-existent), this 
+        will refresh from the database.
+
+        The specific algorithm is as follows.  persistDir is first checked
+        for an cache.  If it apears up-to-date, it will be read in.  This 
+        will be assumed to have all user tags included in the cache.  If 
+        no cache exists, then an up-to-date one will be looked for in dbpath.
+        If one does not exist, one will be created by loading all product
+        data from the dbpath database.  A 
+        ProductStack created from dbpath will not have user tags in it;
+        thus, these will be explicitly added to it.  Finally, regardless of 
+        where the stack was loaded from, if persistDir is set and updateCache
+        is True, the stack is pesisted into persistDir.
+
         @param dbpath   the full path to the database directory ("ups_db")
         @param flavors            the desired flavors
-        @param userTagPersistDir  the directory to persist user tag data to
-        @param prodPersistDir     the directory to persist to.  If None,
+        @param persistDir     the directory to persist to.  If None,
                                      the dbpath value will be used as the 
                                      directory.
         @param updateCache        if true (default), update the caches if any 
@@ -759,42 +764,57 @@ class ProductStack(object):
         if not isinstance(flavors, list):
             flavors = [flavors]
 
-        out = ProductStack(dbpath,userTagPersistDir,prodPersistDir,autosave)
+        out = ProductStack(dbpath, persistDir, False)
 
-        cacheOkay = True
-        for flav in flavors:
-            if not out.cacheIsUpToDate(flav):
-                cacheOkay = False
-                if verbose:
-                  print >> sys.stderr, \
-                   "Regenerating missing or out-of-date cache for %s in\n   %s" % (flav, dbpath)
-                break
-        if cacheOkay:
-            out.reload(flavors)
-
-            # do a final consistency check; do we have the same products
-            dbnames = Database(dbpath).findProductNames()
-            dbnames.sort()
-            dbnames = " ".join(dbnames)
-
-            cachenames = out.getProductNames()
-            cachenames.sort()
-            cachenames = " ".join(cachenames)
-
-            if dbnames != cachenames:
-                cacheOkay = False
-                if verbose:
-                  print >> sys.stderr, \
-                   "Regenerating out-of-date cache for %s in\n   %s" % (flav, dbpath)
+        cacheOkay = out._tryCache(dbpath, persistDir, flavors)
+        if not cacheOkay:
+            cacheOkay = out._tryCache(dbpath, dbpath, flavors)
+            if cacheOkay:
+                out._loadUserTags(persistDir)
 
         if not cacheOkay:
             out.refreshFromDatabase()
             out._flavorsUpdated(flavors)
             if updateCache:  out.save()
 
+        out.autosave = autosave
         return out
 
     fromCache = staticmethod(fromCache)    # works since python2.2
+
+    def _tryCache(self, dbpath, cacheDir, flavors, verbose=0):
+        if not cacheDir or not os.path.exists(cacheDir):
+            return False
+
+        cacheOkay = True
+        for flav in flavors:
+            if not self.cacheIsUpToDate(flav, cacheDir):
+                cacheOkay = False
+                if verbose:
+                  print >> sys.stderr, \
+                   "Regenerating missing or out-of-date cache for %s in\n   %s" % (flav, dbpath)
+                break
+
+        if cacheOkay:
+            self.reload(flavors, cacheDir)
+
+            # do a final consistency check; do we have the same products
+            dbnames = Database(dbpath).findProductNames()
+            dbnames.sort()
+            dbnames = " ".join(dbnames)
+
+            cachenames = self.getProductNames()
+            cachenames.sort()
+            cachenames = " ".join(cachenames)
+
+            if dbnames != cachenames:
+                cacheOkay = False
+                self.lookup = {}   # forget loaded data
+                if verbose:
+                  print >> sys.stderr, \
+                   "Regenerating out-of-date cache for %s in\n   %s" % (flav, dbpath)
+
+        return cacheOkay
 
 def _uniquify(lis):
     for i in xrange(len(lis)):

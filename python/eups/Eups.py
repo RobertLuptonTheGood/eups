@@ -42,7 +42,7 @@ class Eups(object):
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
-                 userDataDir=None, validSetupTypes=None
+                 userDataDir=None, asAdmin=False, validSetupTypes=None
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -53,6 +53,10 @@ class Eups(object):
                                   directories in path.  
         @param userDataDir      the directory where per-user information is 
                                   cached.  If None, this defaults to ~/.eups.
+        @param asAdmin          if True, product caches will be saved in the
+                                  database directories rather than under the 
+                                  user directory.  User tags will not be 
+                                  available for writable stacks in path.  
         @param validSetupTypes  the names to recognize as valid setupTypes.  
                                   This list can be given either as a 
                                   space-delimited string or a python list of 
@@ -173,8 +177,11 @@ class Eups(object):
             os.makedirs(userDataDir)
         if not os.path.isdir(userDataDir):
             raise EupsException("User data directory not found (as a directory): " + userDataDir)
+        if not utils.isDbWritable(userDataDir):
+            userDataDir = None
                                 
         self.userDataDir = userDataDir
+        self.asAdmin = asAdmin
 
         #
         # Get product information:  
@@ -189,12 +196,11 @@ class Eups(object):
             # the product info will be refreshed from the database
             dbpath = self.getUpsDB(p)
             cacheDir = dbpath
-            if not utils.isDbWritable(p):
+            if not self.asAdmin or not utils.isDbWritable(p):
                 # use a user-writable alternate location for the cache
                 cacheDir = self._makeUserCacheDir(p)
             self.versions[p] = ProductStack.fromCache(dbpath, neededFlavors, 
-                                                      self.userDataDir, 
-                                                      cacheDir,
+                                                      persistDir=cacheDir, 
                                                       updateCache=True, 
                                                       autosave=False,
                                                       verbose=self.verbose)
@@ -203,8 +209,10 @@ class Eups(object):
         # load up the recognized tags.  
         # 
         self.tags = Tags("newest setup")
-        self.tags.loadFromEupsPath(self.path)
-        self.tags.loadUserTags(userDataDir)
+        for tag in hooks.config.Eups.userTags.split():
+            self.tags.registerUserTag(tag)
+        self._loadServerTags()
+        self._loadUserTags()
 
         if preferredTags is None:
             preferredTags = "stable current newest".split()
@@ -224,6 +232,85 @@ class Eups(object):
                     self.localVersions[product.name] = os.environ[self._envarDirName(product.name)]
             except TypeError:
                 pass
+
+    def _userStackCache(self, eupsPathDir):
+        if not self.userDataDir:
+            return None
+        pathdir = os.path.basename(eupsPathDir) + str(hash(eupsPathDir))
+        return os.path.join(self.userDataDir,"_caches_",pathdir)
+
+    def _makeUserCacheDir(self, eupsPathDir):
+        cachedir = self._userStackCache(eupsPathDir)
+        if cachedir and not os.path.exists(cachedir):
+            os.makedirs(cachedir)
+        return cachedir
+
+    def _loadServerTags(self):
+        for path in self.path:
+            # start by looking for a cached list
+            if self.tags.loadFromEupsPath(path):
+                continue
+
+            # if no list cached, try asking the cached product stack
+            tags = Tags()
+            if self.versions.has_key(path):
+                for t in self.versions[path].getTags():
+                    t = Tag.parse(t)
+                    if not t.isUser() and not self.tags.isRecognized(t.name):
+                        tags.register(t.name, t.group)
+
+            else:
+                # consult the Database
+                db = Database(self.getUpsDB(path))
+                for pname in db.findProductNames():
+                    for tag, v, f in db.getTagAssignments(pname):
+                        t = Tag.part(tag)
+                        if not t.isUser() and self.tags.isRecognized(t.name):
+                            tags.register(t.name, t.group)
+
+            if self.asAdmin and utils.isDbWritable(p):
+                # cache the global tags
+                dbpath = self.getUpsDB(path)
+                for group in tags.bygrp.keys():
+                    tags.saveGroup(group, dbpath)
+
+            # now register them with self.tags:
+            for tag in tags.getTags():
+                if not tag.isUser() and not self.tags.isRecognized(tag):
+                    self.tags.registerTag(tag.name, tag.group)
+
+    def _loadUserTags(self):
+        for path in self.path:
+            # start by looking for a cached list
+            dir = self._userStackCache(path)
+            if self.tags.loadUserTags(dir):
+                continue
+
+            # if no list cached, try asking the cached product stack
+            tags = Tags()
+            if self.versions.has_key(path):
+                for t in self.versions[path].getTags():
+                    t = Tag.parse(t)
+                    if t.isUser() and not self.tags.isRecognized(t.name):
+                        tags.registerUserTag(t.name)
+
+            else:
+                # consult the individual User tag Chain files (via Database)
+                db = Database(self.getUpsDB(path), dir)
+                for pname in db.findProductNames():
+                    for tag, v, f in db.getTagAssignments(pname):
+                        t = Tag.part(tag)
+                        if not t.isUser() and self.tags.isRecognized(t.name):
+                            tags.register(t.name, t.group)
+
+            # cache the user tags:
+            tags.saveUserTags(dir)
+
+            # now register them with self.tags:
+            for tag in tags.getTags():
+                if tag.isUser() and not self.tags.isRecognized(tag):
+                    self.tags.registerUserTag(tag.name)
+        
 
     def setPreferredTags(self, tags):
         """
@@ -269,7 +356,10 @@ class Eups(object):
 
     def clearLocks(self):
         """Clear all lock files"""
-        for p in self.path + [self.userDataDir]:
+        locations = self.path
+        if self.userDataDir:
+            locations.append(self.userDataDir)
+        for p in locations:
             locks = filter(lambda f: f.endswith(".lock"), os.listdir(p))
             for lockfile in locks:
                 lockfile = os.path.join(p,lock)
@@ -1202,7 +1292,7 @@ class Eups(object):
                 "You don't have permission to assign a global tag %s in %s" %
                 (str(tag), product.db))
 
-        # update the database if tag is global
+        # update the database.  If it's a user tag, 
         if tag.isGlobal():
             Database(product.db).assignTag(str(tag), productName, versionName, self.flavor)
 
@@ -2120,7 +2210,7 @@ class Eups(object):
 
         return self.findProducts(productName, productVersion, tags)
 
-    def supportServerTags(self, tags, pkgroot, persist=True):
+    def supportServerTags(self, tags, pkgroot, eupsPathDir=None):
         """
         support the list of tags provided by a server
         @param tags     the list of tags either as a python list or a space-
@@ -2132,14 +2222,24 @@ class Eups(object):
         """
         if isinstance(tags, str):
             tags = tags.split()
+
+        stacktags = None
+        if eupsPathDir and utils.isDbWritable(eupsPathDir):
+            stacktags = loadFromEupsPath(eupsPathDir)
+
+        needPersist = False
         for tag in tags:
             if isinstance(tag, Tag):
                 tag = tag.name
-            self.tags.registerTag(tag)
+            if not self.tags.isRecognized(tag):
+                self.tags.registerTag(tag)
+            if not stacktags.isRecognized(tag):
+                stacktags.registerTag(tag)
+                needPersist = True
 
-        # persist
-
-        
+        if stacktags and needPersist:
+            stacktags.saveGlobalTags(eupsPathDir)
+    
 
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
