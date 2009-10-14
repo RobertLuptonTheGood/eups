@@ -12,7 +12,14 @@
 #     VersionCompare -- a parent function class used for defining your own
 #                 version compare function (or tweaking the default one).  
 #
+#  This sample file shows 3 basic types of customizations:
+#    1. Configuration Properties
+#    2. Version Comparison
+#    3. Fallback Flavors
+#
 
+#  1.  Configuration Properties
+#
 #  Configuration properties can be manipulated here (and override any values 
 #  set in a properties file; see etc/config.properties).  Here's how you do 
 #  simple property setting:
@@ -68,6 +75,8 @@ hooks.config.Eups.asAdmin = None
 # This enforces an integer type.  If this property is set with a string 
 # value, it will be converted to the configured top.
 
+# 2. Version Comparison
+# 
 # Version comparisons.  A new or modified version comparison function can 
 # be plugged in by setting hook.version_cmp to a compare function that 
 # expects 2 version strings to be compared.  When tweakng, it is usually 
@@ -84,6 +93,8 @@ hooks.config.Eups.asAdmin = None
 #   hook.version_cmp = MyVersionCompare()
 # 
 
+# 3. Fallback Flavors
+#
 # You can set "fallback" flavors with hooks.setFallbackFlavors().  "Fallback"
 # flavors are flavors of products you can use if a product of the actual
 # native platform flavor cannot be found.  Each flavor, can have its own 
