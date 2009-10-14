@@ -24,6 +24,8 @@ The output of run() is a status code appropriate for passing to sys.exit().
 #      d. over-ride the execute() function.  self.opts and self.args
 #           contains the options and arguments following the command, 
 #           respectively.
+#      (Note that adding additional distrib subcommands is slightly 
+#      different.)
 #  2.  Register the class via register().  See REGISTER below (at end 
 #      of file.  
 #
@@ -227,7 +229,7 @@ Common"""
         if opts is None:
             opts = self.opts
 
-        if self.cmd in ["admin", "flavor", "flags", "path"]:
+        if self.cmd in "admin flavor flags path".split():
             readCache = False
         else:
             readCache = True
@@ -238,12 +240,14 @@ Common"""
         if hasattr(opts, "ignorever"):  ignorever = opts.ignorever
         keep = False
         if hasattr(opts, "keep"):  keep = opts.keep
+        asAdmin = False
+        if hasattr(opts, "asAdmin"):  asAdmin = opts.asAdmin
             
         return eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force,
                          ignore_versions=ignorever, exact_version=exactver,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet,
-                         noaction=opts.noaction)
+                         noaction=opts.noaction, asAdmin=asAdmin)
         
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -953,7 +957,7 @@ only wish to assign a tag, you should use the -t option but not include
 
         try:
             eups.declare(product, version, self.opts.productDir, 
-                        tablefile=tablefile, tag=self.opts.tag, eupsenv=myeups)
+                         tablefile=tablefile, tag=self.opts.tag, eupsenv=myeups)
         except eups.EupsException, e:
             self.err(str(e))
             return 2
@@ -1081,13 +1085,18 @@ class AdminCmd(EupsCmd):
     noDescriptionFormatting = False
 
     description = \
-"""manage internal cache data
+"""manage internal cache data.  By default, these operations apply to the 
+user caches; with -A, they will apply to all caches under EUPS_PATH directories
+that are writable by the user.  
 """
 
     def addOptions(self):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
+        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", 
+                            action="store_true", default=False, 
+                       help="apply cache operations to caches under EUPS_PATH")
         self.clo.add_option("-r", "--root", dest="root", action="store", 
                       help="Location of manifests/buildfiles/tarballs (may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
 

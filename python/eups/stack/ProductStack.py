@@ -605,6 +605,11 @@ class ProductStack(object):
         # get the modification time of the cache file
         cache_mtime = os.stat(cache).st_mtime
 
+        # check for user tag updates
+        if cacheDir != self.dbpath and \
+           Database(cacheDir).isNewerThan(cache_mtime):
+            return False
+
         # this is slightly inaccurate: data for any flavor in the database
         # is newer than this time, this isNewerThan() returns True
         return not Database(self.dbpath).isNewerThan(cache_mtime)
