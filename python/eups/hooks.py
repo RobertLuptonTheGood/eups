@@ -66,13 +66,28 @@ def loadCustomization(verbose=0, log=sys.stderr):
     forms: a configuration properties file and/or a startup script file.  
     Any customizations that appears in a startup script file will override
     those found in the properties file.
-    @param customDir    a directory where customization files can be found
+
+    This function looks for customizations first in a site directory.  By 
+    default this is $EUPS_DIR/site; however, it can be overridden with the 
+    $EUPS_SITEDATA.  Next it looks for customizations in a user directory
+    with is $HOME/.eups by default but can be overridden with $EUPS_USERDATA.
+    In each of these directories, a properties file, called "config.properties"
+    is searched for and loaded, then a startup script, called, "startup.py"
+    is searched for and loaded (possibly over-ridding properties).  
+
+    Finally, additional startup scripts can be run if $EUPS_STARTUP.  This 
+    environment variable contains a colon-delimited list of script file.  Each
+    is executed in order.  
+
+    @param verbose    the verbosity level
     """
     customDirs = []
 
     # a site-leve directory can have configuration stuff in it
     if os.environ.has_key("EUPS_SITEDATA"):
         customDirs.append(os.environ["EUPS_SITEDATA"])
+    elif os.environ.has_key("EUPS_DIR"):
+        customDirs.append(os.path.join(os.environ["EUPS_DIR"], "site"))
 
     # $HOME/.eups can have user configuration stuff in it
     if os.environ.has_key("EUPS_USERDATA"):
