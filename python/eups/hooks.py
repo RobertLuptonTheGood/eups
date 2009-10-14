@@ -3,6 +3,7 @@ Module that enables user configuration and hooks.
 """
 import os, sys, re
 import utils
+import eups
 from VersionCompare import VersionCompare
 
 # the function to use to compare two version.  The user may reset this 
@@ -13,19 +14,40 @@ version_cmp = VersionCompare()
 # the user.  
 setFallbackFlavors = utils.Flavor().setFallbackFlavors
 
+# See after this function for the default definitions of properties
+
+def defineProperties(names, parentName=None):
+    """
+    return a ConfigProperties instance defined with the given names.
+    @param  names       the names of the properties to define, given as a 
+                          space-delimited string or as a list of strings.  
+    @param  parentName  the fully-qualified name of the parent property.  
+                          Provide this if this is defining a non-top-level
+                          property.  
+    """
+    if isinstance(names, str):
+        names = names.split()
+    return utils.ConfigProperty(names, parentName)
+
 # various configuration properties settable by the user
-config = utils.ConfigProperty("Eups".split())
-config.Eups = utils.ConfigProperty("verbose userTags setupTypes setupCmdName".split(), "Eups")
+config = defineProperties("Eups distrib site user")
+config.Eups = defineProperties("userTags preferredTags verbose asAdmin setupTypes setupCmdName", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.verbose = 0
 config.Eups.userTags = ""
+config.Eups.asAdmin = None
 config.Eups.setupTypes = "build"
 config.Eups.setupCmdName = "setup"
 
+# it is expected that different Distrib classes will have different set-able
+# properties.  The key for looking up Distrib-specific data could the Distrib
+# name.  
+config.distrib = {}
+
     
 startupFileName = "startup.py"
-configFileName = "config.txt"
+configFileName = "config.properties"
 
 def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr):
     cfile = os.path.join(customDir, configFileName)
@@ -34,9 +56,9 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr):
             print >> log, "loading properties from", cfile
         loadConfigProperties(cfile)
 
-    startup = os.path.join(customDir, configFileName) 
+    startup = os.path.join(customDir, startupFileName) 
     if os.path.exists(startup):
-        execfile(startup)
+        execute_file(startup)
 
 def loadCustomization(verbose=0, log=sys.stderr):
     """
@@ -68,10 +90,21 @@ def loadCustomization(verbose=0, log=sys.stderr):
         for startupFile in os.environ["EUPS_STARTUP"].split(':'):
             if os.path.exists(startupFile):
                 try:
-                    execfile(startupFile)
+                    execute_file(startupFile)
                 except Exception, e:
                     raise CustomizationError(str(e))
 
+def execute_file(file):
+    import eups
+    from eups import hooks
+    from VersionCompare import VersionCompare    
+
+    _globals = {}
+    for key in filter(lambda k: k.startswith('__'), globals().keys()):
+        _globals[key] = globals()[key]
+    del key
+        
+    execfile(file, _globals, locals())
 
 
 
