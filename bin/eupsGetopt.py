@@ -183,17 +183,23 @@ Options:""" % self.msg
         def asort(A, B):
             """Sort alphabetically, so -C, --cvs, and -c appear together"""
 
-            a = self.cmd_options[A][1]
-            if not a:
-                a = A
+            def getOptnameForSort(C):
+                c = self.cmd_options[C][1]  # convert to long option
 
-            b = self.cmd_options[B][1]
-            if not b:
-                b = B
+                if not c:                   # there is no long option; try the log option for
+                                            # the other case of the option
+                    if self.cmd_options[C.upper()][1]:
+                        c = self.cmd_options[C.upper()][1].upper() # got it; convert to upper case
+                    elif self.cmd_options[C.lower()][1]:
+                        c = self.cmd_options[C.lower()][1].upper() # got it; convert to upper case
+                    else:
+                        c = C
 
-            a = re.sub(r"^-*", "", a)       # strip leading -
-            b = re.sub(r"^-*", "", b)       # strip leading -
+                return re.sub(r"^-*", "", c)       # strip leading -
 
+            a = getOptnameForSort(A)
+            b = getOptnameForSort(B)
+                
             if a.upper() != b.upper():
                 a = a.upper(); b = b.upper()
 
