@@ -99,7 +99,7 @@ DIST_URL = %(base)s/%(path)s
             print >> self.log, "Writing", tarball
 
         try:
-            eupsServer.system("cd %s && tar -cf - %s | gzip > %s/%s" % 
+            eupsServer.system("(cd %s && tar -cf - %s) | gzip > %s/%s" % 
                               (baseDir, productDir, serverDir, tarball),
                               self.Eups.noaction, self.verbose-1, self.log)
         except Exception, e:

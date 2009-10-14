@@ -1125,7 +1125,8 @@ class LocalTransporter(Transporter):
     def canHandle(source):
         """return True if this source location is recognized as one that 
         can be handled by this Transporter class"""
-        return os.path.isabs(source) or os.path.exists(source)
+        return os.path.isabs(source) or os.path.exists(source) or \
+               not re.match(r'^\w\w+:', source) 
 
     canHandle = staticmethod(canHandle)  # should work as of python 2.2
 
@@ -1199,7 +1200,7 @@ class TransporterFactory(object):
             if cls.canHandle(source):
                 return cls(source, verbosity, log)
 
-        raise RuntimeError("Transport for file not recognized: " + source)
+        raise TransporterError("Transport for file not recognized: " + source)
 
 defaultTransporterFactory = TransporterFactory();
 defaultTransporterFactory.register(LocalTransporter)
@@ -1595,7 +1596,7 @@ EUPS distribution manifest for %s (%s). Version %s
 #
 # pkg           flavor       version    tablefile                 installation_directory         installID
 #---------------------------------------------------------------------------------------------------------""" % \
-                    (product, version, self.fmtversion, self.Eups.who,
+                    (product, version, self.fmtversion, self.eups.who,
                      utils.ctimeTZ(), utils.version())
 
             for p in self.products:
@@ -1606,7 +1607,7 @@ EUPS distribution manifest for %s (%s). Version %s
                 if not flavor:
                     p.flavor = flavor
                 if not p.flavor:
-                    p.flavor = self.Eups.flavor
+                    p.flavor = self.eups.flavor
                 if not p.instDir:
                     p.instDir = "none"
                 if not p.tablefile:
@@ -1729,7 +1730,10 @@ class ServerConf(object):
             if self.base != "/dev/null" and self.verbose > 0:
                 print >> self.log, \
                     "Warning: No configuration available from server;", \
-                    'assuming "vanilla" server'                
+                    'assuming "vanilla" server'
+        except TransporterError:
+            # including failed to recognize transport type
+            raise
                 
         if override is not None:
             for key in override.keys():

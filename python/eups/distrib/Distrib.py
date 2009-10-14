@@ -84,7 +84,7 @@ class Distrib(object):
         """create a Distrib instance.  
         
         A DistribServer instance (provided as distServ) is usually created
-        by calling 'eupsServer.ServerConf.makeServer(packageBase)' where 
+        by calling 'eups.server.ServerConf.makeServer(packageBase)' where 
         packageBase the base URL for the server.
 
         @param Eups       the Eups controller instance to use
@@ -377,9 +377,9 @@ class Distrib(object):
         if ptablefile is None:
             # consult the EUPS database
             try:
-                tprod = self.Eups.Product(product, version)
-                dependencies = tprod.dependencies(recursive=recursive, setupType="build")
-            except RuntimeError, e:
+                tprod = self.Eups.getProduct(product, version)
+                dependencies = tprod.getTable().dependencies(self.Eups, recursive=recursive, setupType="build")
+            except eups.ProductNotFound, e:
                 if self.noeups:
                     if self.verbose > 0:
                         print >> self.log, e
@@ -396,19 +396,21 @@ class Distrib(object):
         #
         # We have our dependencies; proceed
         #
-        for (dprod, dopt, dcurrent) in dependencies:
+        for (dprod, dopt) in dependencies:
             productName = dprod.name
             versionName = dprod.version
 
             try:
-                versionName = self.Eups.findVersion(productName, versionName)[0]
-            except RuntimeError, e:
-                if self.Eups.versionIsRelative(versionName):
-                    if self.allowIncomplete:
-                        print >> self.log, "%s; using current instead" % e
-                        versionName = self.Eups.findVersion(productName, eups.Current())[0]
-                    else:
-                        raise
+                versionName = \
+                    self.Eups.getProduct(productName, versionName).version
+            except eups.ProductNotFound, e:
+                if self.allowIncomplete and \
+                   self.Eups.isLegalRelativeVersion(versionName):
+                    print >> self.log, "%s; using preferrd instead" % e
+                    versionName = \
+                            self.Eups.getProduct(productName).version
+                else:
+                    raise
 
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)
@@ -434,22 +436,10 @@ class Distrib(object):
         productDir = "/dev/null"
         baseDir = ""
         try:
-            pinfo = self.Eups.listProducts(product, version)[0]
-            if not pinfo.productDir: 
-                pinfo.productDir = "none"   # the product directory
-        except KeyboardInterrupt:
-            sys.exit(1)
-        except IndexError, e:
-            verbosityToPrint = 0        # control printing the warning
-            if self.noeups:
-                verbosityToPrint += 1
-
-            if self.Eups.verbose > verbosityToPrint:
-                print >> self.log, \
-                      "WARNING: Failed to find the product", product, \
-                      version, "(%s)" % flavor
-            return (baseDir, product)
-        except Exception, e:
+            pinfo = self.Eups.getProduct(product, version)
+            if not pinfo.dir: 
+                pinfo.dir = "none"   # the product directory
+        except eups.ProductNotFound, e:
             print >> self.log, \
                 "WARNING: Failed to lookup directory for",      \
                 "product", product, version, "(%s):" % flavor,  \
@@ -461,31 +451,31 @@ class Distrib(object):
                 "Warning: Something's wrong with %s; %s != %s" % \
                 (product, version, pinfo.version)
 
-        if pinfo.productDir == "none":
+        if pinfo.dir == "none":
             productDir = "none"
         else:
             try:
-                (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo.productDir).groups()
+                (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo.dir).groups()
             except:
                 if self.verbose > 1:
                     print >> self.log, \
                         "Split of \"%s\" at \"%s\" failed; proceeding" \
-                        % (pinfo.productDir, product)
+                        % (pinfo.dir, product)
                 if False:
                     pass
                 else:
                     try:
-                        (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo.productDir).groups()
+                        (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo.dir).groups()
                         if self.verbose > 1:
                             print >> self.log, \
                                 "Guessing \"%s\" has productdir \"%s\"" \
-                                % (pinfo.productDir, productDir)
+                                % (pinfo.dir, productDir)
                     except:
                         if self.verbose:
                             print >> self.log, \
                                 "Again failed to split \"%s\" into baseDir and productdir" \
-                                % (pinfo.productDir)
-                        productDir = pinfo.productDir
+                                % (pinfo.dir)
+                        productDir = pinfo.dir
 
         return (baseDir, productDir)
                 
@@ -517,11 +507,11 @@ class Distrib(object):
         manifest = self.distServer.getManifest(product, version, self.flavor)
         return manifest.getProducts()
 
-    def getTaggedProductVersion(self, product, tag=None):
+    def getTaggedProductVersion(self, product, tag):
         """return the version of the given product that is part of a
         tagged release.
         @param product     the name of the desired product
-        @param tag         the collection release name (default: "current")
+        @param tag         the collection release name
         """
         if tag is None:  tag = self.tag
         return self.distServer.getTaggedProductInfo(product, self.flavor, tag)
@@ -543,9 +533,9 @@ class Distrib(object):
                 
             if group is not None:
                 try:
-                    eupsServer.system("chgrp %s%s %s" % (recurse, group, dir), 
-                                      self.Eups.noaction, self.verbose-2, 
-                                      self.log)
+                    server.system("chgrp %s%s %s" % (recurse, group, dir), 
+                                  self.Eups.noaction, self.verbose-2, 
+                                  self.log)
                 except OSError:  pass
             try:
                 system("chmod %sg+rws%s %s" % (recurse, change, dir), 
@@ -566,7 +556,7 @@ class DefaultDistrib(Distrib):
        parseDistId()
 
     This class implements the following conventions:
-       o  Manifests are written in the format supported by eupsServer.Manifest.
+       o  Manifests are written in the format supported by eups.server.Manifest.
        o  Manifests are deployed into a subdirectory of the server directory 
             called "manifests".  If the flavor is specified (and is not set 
             to "generic"), the manifest will be put in a subdirectory below 
@@ -575,7 +565,7 @@ class DefaultDistrib(Distrib):
             "<product>-<version>.list".  This convention is captured in the 
             function getManifestPath() (which subclasses may override).
        o  Tagged releases are written in the format supported by 
-            eupsServer.TaggedProductList.  
+            eups.server.TaggedProductList.  
        o  Tagged releases are written into files directly below the server
             directory.  The form of the filename is "<tag>.list".  This 
             convention is captured in the function getTaggedReleasePath()
@@ -737,7 +727,7 @@ class DefaultDistrib(Distrib):
             else:
                 if self.Eups.verbose > 1:
                     print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
-                eupsServer.copyfile(fulltablename, tablefile_for_distrib)
+                server.copyfile(fulltablename, tablefile_for_distrib)
         #
         # Finally write the manifest file itself
         #
@@ -774,11 +764,11 @@ class DefaultDistrib(Distrib):
             #
             prod.tablefile = None
             try:
-                prod.tablefile = self.Eups.Product(prod.product, prod.version).table.file
+                prod.tablefile = self.Eups.getProduct(prod.product, prod.version).tablefile
             except KeyboardInterrupt:
                 raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
                                      (prod.product, prod.version))
-            except RuntimeError, e:
+            except eups.ProductNotFound:
                 prod.tablefile = self.findTableFile(prod.product, prod.version, flavor)
             except Exception, e:
                 pass

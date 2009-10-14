@@ -6,11 +6,11 @@ import sys, os, re, atexit, shutil
 import eups
 import server 
 from eups.tags      import Tag, TagNotRecognized
-from eups.utils     import Flavor, Quiet
+from eups.utils     import Flavor, Quiet, isDbWritable
 from server         import ServerConf, Manifest, TaggedProductList
 from server         import RemoteFileNotFound, LocalTransporter
 from DistribFactory import DistribFactory
-from Distrib        import DefaultDistrib, findInstallableRoot
+from Distrib        import Distrib, DefaultDistrib, findInstallableRoot
 
 class Repository(object):
     """
@@ -33,7 +33,7 @@ class Repository(object):
         create a Repository for a given server base URL (pkgroot)
         @param eupsenv       the Eups controller instance to use
         @param pkgroot       the base URL for the package server to pull 
-                                packages from
+                                packages from or deploy packages to.
         @param flavor        the platform flavor of interest.  
                                 #--CUT
                                 When installing
@@ -367,19 +367,22 @@ class Repository(object):
         This implementation returns True only if the repository is accessible
         via local disk.
         """
-        return LocalTransporter.canHandle(self.pkgroot)
+        return (LocalTransporter.canHandle(self.pkgroot) and 
+                isDbWritable(self.pkgroot))
 
-    def create(self, serverRoot, distribTypeName, product, version, tag=None, 
-               nodepend=False, options=None, manifest=None):
+    def create(self, distribTypeName, product, version, tag=None, 
+               nodepend=False, options=None, manifest=None, packageId=None,
+               repositories=None):
         """create and all necessary files for making a particular package
         available and deploy them into a local server directory.  This creates
         not only the requested product but also all of its dependencies unless
         nodepends is True.  Unless Eups.force is True, it will not recreate the 
         a package that is already deployed under the serverRoot directory.
-        @param serverRoot   the root directory of a local server distribution
-                              tree
-        @param distribTypeName     the name of the distribution type to create.  The
-                              recognized names are those registered to the 
+        If repositories is provided, then a dependency package is not deployed
+        if it is available from any of the repositories given.  
+
+        @param distribTypeName  the name of the distribution type to create.  
+                              The recognized names are those registered to the 
                               DistribFactory passed to this Distribution's
                               constructor.  Names recognized by default include
                               "builder", "pacman", and "tarball".
@@ -404,17 +407,24 @@ class Repository(object):
                               nodepend is True) consult the remote server to 
                               determine if the package is available with the 
                               given distID.
-        @param packageId     name:version for distribution; default product:version (either field may be omitted)
+        @param packageId     name:version for distribution; default 
+                              product:version (either field may be omitted)
+        @param repositories  if provided and nodepend=False, then dependency
+                              products will not be deployed if they are 
+                              already deployed in any of the repositories 
+                              given.  
         """
         if not self.isWritable():
             raise RuntimeError("Unable to create packages for this repository (Choose a local repository)")
+        
 
         opts = self._mergeOptions(options)
 
         try:
             distrib = \
                 self.distFactory.createDistribByName(distribTypeName, 
-                                                     options=opts, flavor=self.flavor,
+                                                     options=opts, 
+                                                     flavor=self.flavor,
                                                      verbosity=self.verbose)
         except KeyError:
             distrib = None
@@ -430,17 +440,11 @@ class Repository(object):
             man = Manifest.fromFile(manifest, self.eups, self.eups.verbose-1)
 
         # we will always overwrite the top package
-        id = distrib.createPackage(serverRoot, product, version, self.flavor, overwrite=True)
-        #
-        # Any products in the top-level table file will be considered current for
-        # the purposes of creating this distribution
-        #
-        for p in man.getProducts():
-            self.eups.declareCurrent(p.product, p.version, local=True)
+        id = distrib.createPackage(self.pkgroot, product, version, self.flavor, overwrite=True)
 
         if not nodepend:
             created = [ "%s-%s" % (product, version) ]
-            self._recursiveCreate(serverRoot, distrib, man, created, True, distributionSet)
+            self._recursiveCreate(distrib, man, created, True, repositories)
 
         # update the manifest record for the requested product
         dp = man.getDependency(product, version)
@@ -450,8 +454,8 @@ class Repository(object):
             # check the auto-generated manifest for a record and add it to
             # the given one
             tdp = distrib.createDependencies(product, version, self.flavor)
-            tdp = template.getDependency(product, version)
-            if template is not None:
+            tdp = tdp.getDependency(product, version)
+            if tdp is not None:
                man.getProducts().append(tdp) 
         else:
             dp.distId = id
@@ -471,11 +475,11 @@ class Repository(object):
             packageName = product
             packageVersion = version
 
-        distrib.writeManifest(serverRoot, man.getProducts(), packageName, packageVersion,
-                              self.flavor, self.eups.force)
+        distrib.writeManifest(self.pkgroot, man.getProducts(), packageName, 
+                              packageVersion, self.flavor, self.eups.force)
         
-    def _recursiveCreate(self, serverRoot, distrib, manifest, created=None, 
-                         recurse=True, distributionSet=None):
+    def _recursiveCreate(self, distrib, manifest, created=None, 
+                         recurse=True, repos=None):
         if created is None: 
             created = []
 
@@ -488,12 +492,12 @@ class Repository(object):
             # given in the file
             if distrib.parseDistID(dp.distId) is None:
                 # this may happen if create() was handed a manifest file
-                if _availableAtLocation(dp):
+                if self._availableAtLocation(dp):
                     continue
             else:
                 flavor = dp.flavor
                 if dp.flavor == "generic":   flavor = None
-                if distrib.packageCreated(serverRoot, dp.product, dp.version, 
+                if distrib.packageCreated(self.pkgroot, dp.product, dp.version, 
                                           flavor):
                     if not self.eups.force:
                         if self.verbose > 0:
@@ -507,19 +511,15 @@ class Repository(object):
             #
             # Check if this product is available elsewhere
             #
-            if distributionSet and not self.eups.force:
-                already_available = False # have we discovered that it's available from a server?
-                for (pkgroot, pkgs) in distributionSet.pkgList:
-                    if already_available:
-                        break
-
-                    for (p, v, f) in pkgs:
-                        if (dp.product, dp.version) == (p, v):
-                            if self.verbose > 0:
-                                print >> self.log, "Dependency %s %s is already available from %s; skipping" % \
-                                      (dp.product, dp.version, pkgroot)
-                            already_available = True
-                            break
+            if repos and not self.eups.force:
+                # look for the requested flavor
+                already_available = bool(repos.findPackage(dp.product, 
+                                                           dp.version, 
+                                                           dp.flavor))
+                if not already_available and dp.flavor != "generic":
+                    already_available = bool(repos.findPackage(dp.product, 
+                                                               dp.version, 
+                                                               dp.flavor))
 
                 if already_available:
                     created.append(pver)
@@ -527,30 +527,33 @@ class Repository(object):
 
             # we now should attempt to create this package because it appears 
             # not to be available
-            man = distrib.createDependencies(dp.product, dp.version, self.flavor)
+            man = distrib.createDependencies(dp.product, dp.version, 
+                                             self.flavor)
 
-            id = distrib.createPackage(serverRoot, dp.product, dp.version, 
+            id = distrib.createPackage(self.pkgroot, dp.product, dp.version, 
                                        self.flavor)
             created.append(pver)
             dp.distId = id
                 
             if recurse:
-                self._recursiveCreate(serverRoot, distrib, man, created, recurse, distributionSet)
+                self._recursiveCreate(distrib, man, created, recurse, repos)
 
-            distrib.writeManifest(serverRoot, man.getProducts(), dp.product,
+            distrib.writeManifest(self.pkgroot, man.getProducts(), dp.product,
                                   dp.version, self.flavor, self.eups.force)
 
-    def _availableAtLocation(self, dp, serverRoot):
+    def _availableAtLocation(self, dp):
         distrib = self.distFactory.createDistrib(dp.distId, dp.flavor, None,
                                                  self.options, self.verbose-2,
                                                  self.log)
         flavor = dp.flavor
         if flavor == generic:  flavor = None
-        return distrib.packageCreated(serverRoot, dp.product, dp.version, flavor)
+        return distrib.packageCreated(self.pkgroot, dp.product, dp.version, flavor)
 
-    def createTaggedRelease(self, serverRoot, tag, product, version=None, 
-                            flavor=None, distrib=None):
-        """create and release a named collection of products based on the 
+    def createTaggedRelease(self, tag, product, version=None, flavor=None, 
+                            distrib=None):
+                            
+        """
+        create and release a named collection of products based on the 
         known dependencies of a given product.  
         @param serverRoot   the root directory of a local server distribution
                               tree
@@ -564,17 +567,28 @@ class Repository(object):
                               products to include.  If not provided, a default 
                               will be used.  
         """
-        if distrib is not None and not isinstance(distrib, eupsDistrib.Distrib):
+        if distrib is not None and not isinstance(distrib, Distrib):
             raise TypeError("distrib parameter not a Distrib instance")
-        validTags = self.getRecommendedTags(serverRoot)
-        if not self.eups.force and tag not in validTags:
-            raise RuntimeError("tag %s not amoung recommended tag names (%s)" %
-                               (tag, ", ".join(validTags)))
+        validTags = self.getSupportedTags()
+        if tag in validTags:
+            if not self.eups.force:
+                raise EupsException("Can't over-write existing tagged release "+
+                                    "without --force")
+            elif self.verbose > 0:
+                print >> self.log, \
+                    "Over-writing existing tagged release for", tag
+        elif self.verbose > 0:
+            print >> self.log, "Creating new tagged release for", tag
 
         if not flavor:  flavor = "generic"
 
         if not version:
-            version = self.eups.findCurrentVersion(product)[1]
+            version = self.eups.findPreferredProduct(product)
+            if version:
+                version = version.version
+        if not version:
+            msg = "No local version of %s found" % product
+            raise ProductNotFound(product, msg)
 
         if distribTypeName:
             distrib = \
@@ -590,14 +604,12 @@ class Repository(object):
 
         release = distrib.createTaggedRelease(serverRoot, tag, product, version,
                                               flavor)
-        distrib.writeTaggedRelease(serverRoot, tag, products, flavor, 
+        distrib.writeTaggedRelease(self.pkgroot, tag, products, flavor, 
                                    self.eups.flavor)
 
-    def updateTaggedRelease(self, serverRoot, tag, product, version, 
+    def updateTaggedRelease(self, tag, product, version, 
                             flavor="generic", info=None, distrib=None):
         """update/add the version for a given product in a tagged release
-        @param serverRoot   the root directory of a local server distribution
-                              tree
         @param tag          the name to give to this tagged release.  
         @param product      the name of the product to create
         @param version      the version of the product to create.  (Default:
@@ -610,11 +622,11 @@ class Repository(object):
                               information.  If not provided, a default will be 
                               used.  
         """
-        if distrib is not None and not isinstance(distrib, eupsDistrib.Distrib):
+        if distrib is not None and not isinstance(distrib, Distrib):
             raise TypeError("distrib parameter not a Distrib instance")
-        validTags = self.getRecommendedTags(serverRoot)
+        validTags = self.getSupportedTags()
         if not self.eups.force and tag not in validTags:
-            raise RuntimeError("tag %s not amoung recommended tag names (%s)" %
+            raise RuntimeError("tag %s not amoung supported tag names (%s)" %
                                (tag, ", ".join(validTags)))
 
         if distrib is None:
@@ -622,12 +634,14 @@ class Repository(object):
                                      options=self.options, 
                                      verbosity=self.verbose)
 
-        pl = distrib.getTaggedRelease(serverRoot, tag, flavor)
+        pl = distrib.getTaggedRelease(self.pkgroot, tag, flavor)
         if pl is None:
+            if self.verbose > 0:
+                print >> self.log, "Creating new tagged release for", tag
             pl = TaggedProductList(tag, flavor)
 
         pl.addProduct(product, version, flavor)
-        distrib.writeTaggedRelease(serverRoot, tag, pl, flavor, True);
+        distrib.writeTaggedRelease(self.pkgroot, tag, pl, flavor, True);
             
 
     def clearServerCache(self):

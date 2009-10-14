@@ -1556,6 +1556,147 @@ product will be fully removed, even if its installation was successful.
         return 0
 
 # TODO: distrib create
+class DistribCreateCmd(EupsCmd):
+
+    usage = "%prog distrib create [-h|--help] [options] product version"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Create a distribution package for a specified product
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        self.clo.add_option("-s", "--server-dir", dest="serverDir", 
+                            action="store", metavar="DIR",
+                      help="the directory tree to save created packages under")
+        self.clo.add_option("-a", "--as", dest="packageId", action="store", 
+                            help="Create a distribution with this name")
+        self.clo.add_option("-d", "--distribType", dest="distribTypeName", 
+                            action="store", 
+                            help="Create a distribution with this type name (e.g. 'tarball', 'builder')")
+        self.clo.add_option("-I", "--incomplete", dest="allowIncomplete", 
+                            action="store_true", 
+                            help="Allow a manifest including packages we don't know how to install")
+        self.clo.add_option("-r", "--repository", dest="repos", action="append",
+                            metavar="BASEURL",
+                            help="the base URL for other repositories to consult (repeat as needed).  Default: $EUPS_PKGROOT")
+        self.clo.add_option("-j", "--nodepend", dest="nodepend", 
+                            action="store_true", default=False, 
+            help="Just create package for named product, not its dependencies")
+        self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
+                       help="Use this manifest file for the requested product")
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
+        # this will override the eups option version
+        self.clo.add_option("-f", "--use-flavor", dest="useflavor", 
+                            action="store_true", default=False,
+               help="Create an installation specialised to the current flavor")
+
+        self.clo.add_option("-S", "--server-option", dest="serverOpts",
+                            action="append",
+                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses",
+                            action="append",
+                   help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
+                            action="append",
+                   help="register this Distrib class (repeat as needed)")
+
+        self.clo.add_option("--flavor", dest="flavor", action="store", 
+                      help="Assume this target platform flavor (e.g. 'Linux')")
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-C", "--current", dest="current", 
+                            action="store_true", default=False, 
+                        help="deprecated (ignored)")
+
+    def execute(self):
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        if len(self.args) == 0:
+            self.err("Please specify a product name and version")
+            return 2
+        if len(self.args) < 2:
+            self.err("Please also specify a product version")
+            return 2
+        product = self.args[0]
+        version = self.args[1]
+
+        if not self.opts.repos:
+            if os.environ.has_key("EUPS_PKGROOT"):
+                self.opts.repos = os.environ["EUPS_PKGROOT"].split("|")
+            else:
+                self.opts.repos = []
+        if not self.opts.serverDir:
+            for pkgroot in repos:
+                if utils.isDbWritable(pkgroot):
+                    self.opts.serverDir = pkgroot
+                    break
+        elif not os.path.exists(self.opts.serverDir):
+            self.err("Server directory does not exist: " + self.opts.serverDir)
+            return 3
+        elif not utils.isDbWritable(self.opts.serverDir):
+            self.err("Server directory is not writable: " + self.opts.serverDir)
+            return 3
+        if not self.opts.serverDir:
+            self.err("No writeable package server found; use --serverDir")
+            return 3
+
+        myeups = self.createEups()
+
+        dopts = {}
+        # handle extra options
+        dopts = { 'config': {} }
+        dopts['noeups']     = self.opts.noeups
+        dopts['noaction']   = self.opts.noaction
+        if self.opts.serverOpts:
+            for opt in self.opts.serverOpts:
+                try:
+                    name, val = opt.split("=",1)
+                except ValueError:
+                    self.err("server option not of form NAME=VALUE: "+opt)
+                    return 3
+                dopts[name] = value
+
+        if not self.opts.distribTypeName:
+            self.err("Please specify a distribution type name (e.g. -d tarball, etc)")
+            return 4
+
+        log = None
+        if self.opts.quiet:
+            log = open("/dev/null", "w")
+
+        try:
+            repos = None
+            if not self.opts.force:
+                repos = distrib.Repositories(self.opts.repos, dopts, myeups,
+                                             self.opts.flavor, 
+                                             verbosity=self.opts.verbose, 
+                                             log=log)
+
+            server = distrib.Repository(myeups, self.opts.serverDir, 
+                                        self.opts.flavor, options=dopts, 
+                                        verbosity=self.opts.verbose, log=log)
+            server.create(self.opts, self.opts.distribTypeName, product,
+                          version, nodepend=self.opts.nodepend, options=dopts,
+                          manifest=self.opts.manifest, 
+                          packageId=self.opts.packageId, repositories=repos)
+
+        except EUPSException, e:
+            self.err(str(e))
+            return 1
+
+        return 0
         
 class TagsCmd(EupsCmd):
 
@@ -1661,6 +1802,6 @@ register("distrib",      DistribCmd)
 register("distrib list",    DistribListCmd)
 register("distrib install", DistribInstallCmd)
 register("distrib clean",   DistribCleanCmd)
-# register("distrib create",  DistribCreateCmd)
+register("distrib create",  DistribCreateCmd)
 register("tags",         TagsCmd)
 
