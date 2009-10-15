@@ -11,6 +11,7 @@ from eupsDistribution import Distribution, DistributionSet
 import eupsGetopt
 import eupsTable
 from eupsServer import ServerConf
+import eupsParser
 from eupsDistribFactory import DistribFactory
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -38,6 +39,8 @@ nobuildFlag = "-\002"
 nocleanFlag = "-\003"
 # for eups remove
 noInteractiveFlag = "-\002"
+# for eups list
+depthFlag = "-\002"
 
 allowedDebugOptions = ["raise"]
 
@@ -66,6 +69,7 @@ Supported commands are:
 	expandtable	Insert explicit version tags into a table file
 	flags		Show the value of \$EUPS_FLAGS
 	flavor		Return the current flavor
+        help            Provide help on eups commands
 	list            List some or all products
         path [n]        Print the current eups path, or an element thereof
         pkgroot [n]     Print the current eups pkgroot, or an element thereof
@@ -120,7 +124,7 @@ if not verbose:  verbose = 0
 #
 # Choose arguments based on cmd
 #
-if cmd:
+if cmd and cmd != "help":
     helpStr = "eups [commonOptions] %s [options]" % cmd
 
 subcmd_uses_version = False;            # subcommand uses the "--version" flag
@@ -143,10 +147,10 @@ elif cmd == "depends":
 elif cmd == "distrib":
     helpStr = """eups distrib -V
     eups distrib -h
-    eups distrib list [options] [product [version]]
-    eups distrib install options product [version]
-    eups distrib create options product [version]
     eups distrib clean options product version
+    eups distrib create options product [version]
+    eups distrib install options product [version]
+    eups distrib list [options] [product [version]]
 
     Manage packages either as a user (via clean, install, or list) or as 
     a provider (via create).
@@ -247,12 +251,16 @@ elif cmd == "flags":
 elif cmd == "flavor":
     helpStr, narg = eupsGetopt.declareArgs(helpStr)
     helpStr += "\n\nPrint your eups flavor"
+elif cmd == "help":
+    helpStr, narg = eupsGetopt.declareArgs(helpStr)
+    helpStr += "\n\nProvide help on eups commands; equivalent to --help"
 elif cmd == "list":
     helpStr, narg = eupsGetopt.declareArgs(helpStr, None, ["product", "version"])
     helpStr += "\n\nPrint information about products"
 
     options["-c"] = (False,  "--current", "Only show current products")
     options["-d"] = (False,  "--directory", "Print product directory")
+    options[depthFlag] = (True,  "--depth", "Only list this many layers of dependency")
     options["-D"] = (False,  "--dependencies", "Print product's dependencies")
     options["-e"] = (False,  "--exact", "Use the as-installed version, not the conditional in the table file")
     options["-m"] = (False,  "--table", "Print name of table file")
@@ -325,7 +333,7 @@ if opts.options.get('-V'):
         print >> sys.stderr, "Version: %s" % eups.version()
         sys.exit(0)    
 
-if opts.options.get('-h') or not cmd:
+if opts.options.get('-h') or not cmd or cmd == "help":
     opts.usage()
     sys.exit(0)
 
@@ -643,6 +651,7 @@ def main(cmd, opts):
     elif cmd == "list":
         current = opts.options.get('-c', False)
         directory = opts.options.get('-d', False)
+        depth = opts.options.get(depthFlag, None)
         dependencies = opts.options.get('-D', False)
         Eups.exact_version = opts.options.get("-e", False)
         tablefile = opts.options.get('-m', False)
@@ -663,9 +672,13 @@ def main(cmd, opts):
             print >> sys.stderr, "You must specify a version when you ask for dependencies"
             sys.exit(1);
 
+        if depth and not dependencies:
+            print >> sys.stderr, "Ignoring --depth as it only makes sense with --dependencies"
+
         listProducts(Eups, productName, versionName,
                      current=current, setup=setup, tablefile=tablefile, directory=directory,
-                     dependencies=dependencies, showVersion=showVersion, setupType=setupType)
+                     dependencies=dependencies, showVersion=showVersion, setupType=setupType,
+                     depth=depth)
     elif cmd == "path" or cmd == "pkgroot" or cmd == "startup":
         if cmd == "path":
             _what = "EUPS_PATH"
@@ -913,7 +926,7 @@ def eupsAdmin(Eups, subcmd):
 
 def listProducts(Eups, productName=None, versionName=None,
                  current=False, setup=False, tablefile=False, directory=False, dependencies=False,
-                 showVersion=False, setupType=None):
+                 showVersion=False, setupType=None, depth=None):
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
@@ -951,23 +964,48 @@ def listProducts(Eups, productName=None, versionName=None,
                 productTags[name][v] = tags
 
         if dependencies:
+            if depth is None:
+                depth = "True"
+            else:
+                try:
+                    depth = "<= %d" % int(depth)
+                except ValueError:
+                    pass
+
+                if not re.search(r"depth", depth):
+                    depth = "depth" + depth
+                
+            def includeProduct(recursionDepth):
+                """Should we include a product at this recursionDepth in the listing?"""
+                p = eupsParser.Parser(depth)
+                p.define("depth", recursionDepth)
+                
+                return p.eval()
+
+            recursionDepth = 0
             if not info:
-                if Eups.verbose or not Eups._msgs["dependencies"].has_key(name):
-                    Eups._msgs["dependencies"][name] = version
-                    info += "%-40s %s" % (name, version)
+                if includeProduct(recursionDepth):
+                    if Eups.verbose or not Eups._msgs["dependencies"].has_key(name):
+                        Eups._msgs["dependencies"][name] = version
+                        info += "%-40s %s" % (name, version)
 
             for product, optional, currentRequested, recursionDepth in \
                     Eups.Product(name, version, eupsPathDirs=db).dependencies(recursive=True, recursionDepth=1,
                                                                               setupType=setupType):
+
+                if not includeProduct(recursionDepth):
+                    continue
+
                 if Eups.verbose or not Eups._msgs["dependencies"].has_key(product.name):
                     Eups._msgs["dependencies"][product.name] = product.version
 
                     if info:
                         info += "\n"
 
-                    indent = "| " * (recursionDepth/2)
-                    if recursionDepth%2 == 1:
-                        indent += "|"
+                    if not re.search(r"==", depth):
+                        indent = "| " * (recursionDepth/2)
+                        if recursionDepth%2 == 1:
+                            indent += "|"
 
                     versionName = product.version
                     try: versionName = versionName()
