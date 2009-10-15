@@ -278,161 +278,6 @@ or \code{TAGS} within the svn repository.\footnote{
 The real \code{eups\_product\_version} attempts to correctly handle both cvs
 and svn users.
 
-\subsection{\eups{} and autoconf/configure}
-\label{autoconf}
-
-If you're a user, you don't need to understand this section. If
-you're creating new products, you may need to.
-
-The \eups{} distribution includes a set of autoconf macros
-in the file \file{etc/ac\_eups.m4}. Once you've arranged for
-autoconf to know about this file,\footnote{e.g. by copying the
-  file into your top level directory} you can write a
-\file{configure.ac} file that looks something like
-\begin{quote}
-\obeylines\tt\small\parskip=0pt
-AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
-EUPS\_DEFINE\_ROOT(\${Name}: v2\_4 \$)
-AC\_PROG\_CC(cc)
-EUPS\_WITH\_CONFIGURE([gsl])
-EUPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
-AC\_CONFIG\_FILES([etc/Makefile.global])
-AC\_OUTPUT
-\end{quote}
-\footnote{The old forms with \code{UPS\_} (e.g. \code{UPS\_DEFINE\_ROOT})
-  are supported for backward compatibility.}
-
-Once you've generated a configure file (i.e. typed \code{autoconf})%
-\footnote{You'll check the resulting configure file in, so users won't
-  need to have autoconf on their machines}
-you can say\hfil\break
-\code{cd \$HOME/myProduct}\hfil\break
-\code{setup gsl; setup fftw3}\hfil\break
-\code{./configure --with-eups=/u/act/products --with-flavor=Linux64}\hfil\break
-\code{make}\hfil\break
-\code{make install}\hfil\break
-\code{make declare}\hfil\break
-\code{setup myProduct v2\_4}\hfil\break
-
-You might wonder how you were supposed to know that you had to type
-\code{setup gsl} and \code{setup fftw3} in order to build
-\code{myProduct}. The answer, is: ``It depends''.  If you're
-\code{myProduct}'s loving author, you knew that you needed
-\code{gsl} as you included e.g. \code{gsl/gsl\_rng.h} in your
-source. If you're not the author, then \code{myProduct} presumably
-includes a properly written table file (probably called
-\code{myProduct/ups/myProduct.table}) which knows about
-\code{gsl} and \code{fftw3}:
-\begin{verbatim}
-setupRequired("fftw3")
-setupRequired("gsl")
-\end{verbatim}
-in this case what you \textit{really} typed was:\hfil\break
-\code{setup --root \$HOME/myProduct myProduct}\hfil\break
-which setup \code{gsl} and \code{fftw3} for you:
-\begin{verbatim}
-Setting up:      fftw3               Flavor: Linux      Version: v3_0_1
-Setting up:      gsl                 Flavor: Linux      Version: v1_8
-\end{verbatim}
-
-The \code{make declare} command told \eups{} about your newly built
-product; the \code{setup myProduct v2\_4} command told the system
-that you wanted to use it.
-
-How did your \file{configure.ac} file achieve this magic?
-
-\begin{itemize}
-  \item{\code{AC\_INIT}}
-
-    This is a standard autoconf line, but with an invalid version name (\code{X.Y}).
-
-  \item{\code{AC\_DEFINE\_ROOT}}
-
-    Define the \code{configure} options \code{--with-eups=path},
-    \code{--with-eups-db=DB}, and \code{--with-flavor=XXX}. The
-    version comes from the \code{\${Name}: v2\_4 \$} --- if the
-    \code{v2\_4} were absent the value \code{cvs} would have been used
-    instead.
-
-  \item\code{AC\_PROG\_CC(cc)}
-
-    Find the C compiler    
-
-  \item\code{EUPS\_WITH\_CONFIGURE([gsl])}
-
-    Tell configure that we need the product \code{gsl}, and that it
-    comes with a pkg-config script.\footnote{%
-      I.e. a script \code{gsl-config} which accepts arguments \code{--cflags}
-      and \code{--libs} to print out the options that you should pass to the
-      compiler and linker to use the \code{gsl} libraries. For example,
-      \code{--libs} prints \code{-I/usr/local/include} and
-      \code{--cflags} prints \code{-L/usr/local/lib -lgsl -lgslcblas -lm}
-      }
-    In this case, it came from ups,
-    but the macro also supports \code{--with-gsl=DIR}; there are
-    other possibilies (see the reference manual,
-    Sec. \ref{autoconfReference}).  If all goes well the macro macro sets (in the
-    case of \code{gsl}) the variables \code{GSL\_CFLAGS} and \code{GSL\_LIBS}.
-
-  \item\code{EUPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
-
-    This macro is similar to \code{EUPS\_WITH\_CONFIGURE}, and sets
-    \code{FFTW\_CFLAGS} and \code{FFTW\_LIBS}, armed with knowledge of
-    \eups{} and  \code{--with-fftw3=DIR}.
-
-    The difference is that this time configure has to probe the system
-    to find the include files and libraries.  More specifically, it
-    checks that it can find \code{fftw3.h} and that \code{-lfftw3f} provides the symbol
-    \code{fftwf\_plan\_dft\_2d}.
-    
-  \item\code{AC\_CONFIG\_FILES}
-  \item\code{AC\_OUTPUT}
-
-    The standard autoconf macro to interpolate derived values
-    into \file{Makefile.global}.  What does this mean?
-    \XXX{Describe Makefile.global.in}
-\end{itemize}
-
-
-\subsubsection{A Strategy for using autoconf and \eups{} to Manage Layered Products}
-
-
-A more complete example is:
-
-\begin{quote}
-    \obeylines\tt\small\parskip=0pt
-AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
-\vspace{5pt}
-dnl --------- UPS directories and how to install --------------------------
-\vspace{5pt}
-EUPS\_DEFINE\_ROOT(\${Name}:  \$)
-EUPS\_INSTALL\_DIRS   
-\vspace{5pt}
-
-dnl --------- Build environment -------------------------------------------
-
-AC\_PROG\_CC(cc)
-AC\_PROG\_RANLIB
-
-dnl --------- Products from UPS -------------------------------------------
-dnl (remember to update etc/Makefile.global if you add a new product)
-\vspace{5pt}
-EUPS\_WITH\_CONFIGURE([gsl])
-EUPS\_WITH\_CONFIGURE([pslib])
-\vspace{5pt}
-EUPS\_WITHOUT\_CONFIGURE([cfitsio], [fitsio.h],
-                        -lcfitsio, [cfitsio,ffopen])
-EUPS\_WITHOUT\_CONFIGURE([fftw3],   [fftw3.h],
-                        -lfftw3f,  [fftw3f,fftwf\_plan\_dft\_2d])
-EUPS\_WITHOUT\_CONFIGURE([wcslib],  [wcslib/wcslib.h],
-                        -lwcs,     [wcs,wcsini])
-\vspace{5pt}
-AC\_CONFIG\_FILES([etc/makedefs etc/builddefs etc/installdefs])
-AC\_CONFIG\_FILES([bin/eups\_import], [chmod 755 bin/eups\_import])
-\vspace{5pt}
-AC\_OUTPUT
-\end{quote}
-
 \subsection{\eups{} and scons}
 \label{scons}
 
@@ -1773,6 +1618,161 @@ highlights are:
   \item The \eups{} database used to be given by the environment variable \code{\$PRODUCTS}
     with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}. This is no longer supported.
 \end{itemize}
+
+\section{\eups{} and autoconf/configure}
+\label{autoconf}
+
+If you're a user, you don't need to understand this section. If
+you're creating new products, you may need to.
+
+The \eups{} distribution includes a set of autoconf macros
+in the file \file{etc/ac\_eups.m4}. Once you've arranged for
+autoconf to know about this file,\footnote{e.g. by copying the
+  file into your top level directory} you can write a
+\file{configure.ac} file that looks something like
+\begin{quote}
+\obeylines\tt\small\parskip=0pt
+AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
+EUPS\_DEFINE\_ROOT(\${Name}: v2\_4 \$)
+AC\_PROG\_CC(cc)
+EUPS\_WITH\_CONFIGURE([gsl])
+EUPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])
+AC\_CONFIG\_FILES([etc/Makefile.global])
+AC\_OUTPUT
+\end{quote}
+\footnote{The old forms with \code{UPS\_} (e.g. \code{UPS\_DEFINE\_ROOT})
+  are supported for backward compatibility.}
+
+Once you've generated a configure file (i.e. typed \code{autoconf})%
+\footnote{You'll check the resulting configure file in, so users won't
+  need to have autoconf on their machines}
+you can say\hfil\break
+\code{cd \$HOME/myProduct}\hfil\break
+\code{setup gsl; setup fftw3}\hfil\break
+\code{./configure --with-eups=/u/act/products --with-flavor=Linux64}\hfil\break
+\code{make}\hfil\break
+\code{make install}\hfil\break
+\code{make declare}\hfil\break
+\code{setup myProduct v2\_4}\hfil\break
+
+You might wonder how you were supposed to know that you had to type
+\code{setup gsl} and \code{setup fftw3} in order to build
+\code{myProduct}. The answer, is: ``It depends''.  If you're
+\code{myProduct}'s loving author, you knew that you needed
+\code{gsl} as you included e.g. \code{gsl/gsl\_rng.h} in your
+source. If you're not the author, then \code{myProduct} presumably
+includes a properly written table file (probably called
+\code{myProduct/ups/myProduct.table}) which knows about
+\code{gsl} and \code{fftw3}:
+\begin{verbatim}
+setupRequired("fftw3")
+setupRequired("gsl")
+\end{verbatim}
+in this case what you \textit{really} typed was:\hfil\break
+\code{setup --root \$HOME/myProduct myProduct}\hfil\break
+which setup \code{gsl} and \code{fftw3} for you:
+\begin{verbatim}
+Setting up:      fftw3               Flavor: Linux      Version: v3_0_1
+Setting up:      gsl                 Flavor: Linux      Version: v1_8
+\end{verbatim}
+
+The \code{make declare} command told \eups{} about your newly built
+product; the \code{setup myProduct v2\_4} command told the system
+that you wanted to use it.
+
+How did your \file{configure.ac} file achieve this magic?
+
+\begin{itemize}
+  \item{\code{AC\_INIT}}
+
+    This is a standard autoconf line, but with an invalid version name (\code{X.Y}).
+
+  \item{\code{AC\_DEFINE\_ROOT}}
+
+    Define the \code{configure} options \code{--with-eups=path},
+    \code{--with-eups-db=DB}, and \code{--with-flavor=XXX}. The
+    version comes from the \code{\${Name}: v2\_4 \$} --- if the
+    \code{v2\_4} were absent the value \code{cvs} would have been used
+    instead.
+
+  \item\code{AC\_PROG\_CC(cc)}
+
+    Find the C compiler    
+
+  \item\code{EUPS\_WITH\_CONFIGURE([gsl])}
+
+    Tell configure that we need the product \code{gsl}, and that it
+    comes with a pkg-config script.\footnote{%
+      I.e. a script \code{gsl-config} which accepts arguments \code{--cflags}
+      and \code{--libs} to print out the options that you should pass to the
+      compiler and linker to use the \code{gsl} libraries. For example,
+      \code{--libs} prints \code{-I/usr/local/include} and
+      \code{--cflags} prints \code{-L/usr/local/lib -lgsl -lgslcblas -lm}
+      }
+    In this case, it came from ups,
+    but the macro also supports \code{--with-gsl=DIR}; there are
+    other possibilies (see the reference manual,
+    Sec. \ref{autoconfReference}).  If all goes well the macro macro sets (in the
+    case of \code{gsl}) the variables \code{GSL\_CFLAGS} and \code{GSL\_LIBS}.
+
+  \item\code{EUPS\_WITHOUT\_CONFIGURE([fftw3], [fftw3.h], -lfftw3f, [fftw3f,fftwf\_plan\_dft\_2d])}
+
+    This macro is similar to \code{EUPS\_WITH\_CONFIGURE}, and sets
+    \code{FFTW\_CFLAGS} and \code{FFTW\_LIBS}, armed with knowledge of
+    \eups{} and  \code{--with-fftw3=DIR}.
+
+    The difference is that this time configure has to probe the system
+    to find the include files and libraries.  More specifically, it
+    checks that it can find \code{fftw3.h} and that \code{-lfftw3f} provides the symbol
+    \code{fftwf\_plan\_dft\_2d}.
+    
+  \item\code{AC\_CONFIG\_FILES}
+  \item\code{AC\_OUTPUT}
+
+    The standard autoconf macro to interpolate derived values
+    into \file{Makefile.global}.  What does this mean?
+    \XXX{Describe Makefile.global.in}
+\end{itemize}
+
+
+\subsubsection{A Strategy for using autoconf and \eups{} to Manage Layered Products}
+
+
+A more complete example is:
+
+\begin{quote}
+    \obeylines\tt\small\parskip=0pt
+AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
+\vspace{5pt}
+dnl --------- UPS directories and how to install --------------------------
+\vspace{5pt}
+EUPS\_DEFINE\_ROOT(\${Name}:  \$)
+EUPS\_INSTALL\_DIRS   
+\vspace{5pt}
+
+dnl --------- Build environment -------------------------------------------
+
+AC\_PROG\_CC(cc)
+AC\_PROG\_RANLIB
+
+dnl --------- Products from UPS -------------------------------------------
+dnl (remember to update etc/Makefile.global if you add a new product)
+\vspace{5pt}
+EUPS\_WITH\_CONFIGURE([gsl])
+EUPS\_WITH\_CONFIGURE([pslib])
+\vspace{5pt}
+EUPS\_WITHOUT\_CONFIGURE([cfitsio], [fitsio.h],
+                        -lcfitsio, [cfitsio,ffopen])
+EUPS\_WITHOUT\_CONFIGURE([fftw3],   [fftw3.h],
+                        -lfftw3f,  [fftw3f,fftwf\_plan\_dft\_2d])
+EUPS\_WITHOUT\_CONFIGURE([wcslib],  [wcslib/wcslib.h],
+                        -lwcs,     [wcs,wcsini])
+\vspace{5pt}
+AC\_CONFIG\_FILES([etc/makedefs etc/builddefs etc/installdefs])
+AC\_CONFIG\_FILES([bin/eups\_import], [chmod 755 bin/eups\_import])
+\vspace{5pt}
+AC\_OUTPUT
+\end{quote}
 
 \section{``Transport Layers'' for \code{eups distrib}}
 \label{pacman}
