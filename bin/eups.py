@@ -961,10 +961,10 @@ but no other interpretation is applied
                     else:
                         otherArgs = " ".join(args[1:])
 
-                        mat = re.search(r"(.*)\s+\[([^\]]+)\]\s*", otherArgs)
+                        mat = re.search(r"^(?:(.*)\s+)?\[([^\]]+)\]\s*", otherArgs)
                         if mat:
                             exactVersion, logicalVersion = mat.groups()
-                            if Eups.exact_version:
+                            if exactVersion and Eups.exact_version:
                                 otherArgs = exactVersion
                             else:
                                 otherArgs = logicalVersion
