@@ -184,7 +184,7 @@ DIST_URL = %(base)s/%(path)s
             print >> self.log, "installing %s into %s" % (tarball, unpackDir)
 
         try:
-            eupsServer.system("cd %s && tar -zxf %s" % (unpackDir, tfile), 
+            eupsServer.system("cd %s && tar -zxmf %s" % (unpackDir, tfile), 
                               self.Eups.noaction, verbosity=self.verbose-1)
         except Exception, e:
             raise RuntimeError, ("Failed to read %s: %s" % (tfile, e))
