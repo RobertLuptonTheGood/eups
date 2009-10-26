@@ -1782,7 +1782,7 @@ class Quiet(object):
 class Eups(object):
     """Control eups"""
 
-    cacheVersion = "1.1"                # revision number for cache; must match
+    cacheVersion = "1.2"                # revision number for cache; must match
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=False, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
@@ -2065,6 +2065,7 @@ class Eups(object):
                             self.versions[db][fl][p][v] = versions[db][fl][p][v]
 
                             prod = self.versions[db][fl][p][v]
+                            prod.Eups = self # don't use the one in the cache
                             #
                             # Convert old-style caches
                             #
@@ -2114,14 +2115,23 @@ class Eups(object):
                 os.makedirs(persistentDBDir)
 
             self.versions[eupsPathDir]["version"] = Eups.cacheVersion
+            #
+            # The cache includes Product.Eups, which contains Product.Eups.versions
+            # which is what we're writing.  Not a good idea as it makes the cache
+            # rather large over time.
+            #
+            versions = self.versions
+            self.versions = None
 
             lock = self.lockDB(eupsPathDir)
             try:
                 fd = open(persistentDB, "w")
-                cPickle.dump(self.versions[eupsPathDir], fd, protocol=2)
+                cPickle.dump(versions[eupsPathDir], fd, protocol=2)
             except Exception, e:
+                self.versions = versions
                 print >> sys.stderr, e
                 raise
+            self.versions = versions
         else:
             for p in eupsPathDir:
                 self.writeDB(p, force)
