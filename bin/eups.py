@@ -1938,7 +1938,7 @@ class Eups(object):
     def unlinkDB(self, eupsPathDir):
         """Delete a persistentDB"""
         
-        for flavor in Flavor().getFallbackFlavors(self.flavor):
+        for flavor in [self.flavor] + Flavor().getFallbackFlavors(self.flavor):
             persistentDB = self.getPersistentDB(eupsPathDir, flavor)
 
             if not os.path.exists(persistentDB):
@@ -1949,6 +1949,9 @@ class Eups(object):
             if self.noaction:
                 print >> sys.stderr, "rm %s" % persistentDB
             else:
+                if self.verbose:
+                    print >> sys.stderr, "Deleting %s" % persistentDB
+                    
                 os.unlink(persistentDB)
 
     def getCacheInfo(self, eupsPathDir, flavor=None):
@@ -2060,12 +2063,12 @@ class Eups(object):
 
                         for v in versions[db][fl][p]:
                             self.versions[db][fl][p][v] = versions[db][fl][p][v]
+
+                            prod = self.versions[db][fl][p][v]
                             #
                             # Convert old-style caches
                             #
                             if True:
-                                prod = self.versions[db][fl][p][v]
-
                                 if isinstance(prod._current, bool): # old style _current, pre #523 changes
                                     tmp = prod._current
                                     prod._current = {}
@@ -2097,7 +2100,7 @@ class Eups(object):
 
         if isinstance(eupsPathDir, str):
             try:
-                versions = self.versions[eupsPathDir][self.flavor]
+                self.versions[eupsPathDir][self.flavor]
             except KeyError:
                 return
 
@@ -2671,20 +2674,23 @@ match fails.
     def buildCache(self, eupsPathDir=None, flavor=None):
         """Build the persistent version cache"""
 
+        if not eupsPathDir:
+            for pb in self.path:
+                if not flavor:
+                    for flavor in [self.flavor] + Flavor().getFallbackFlavors(self.flavor):
+                        self.buildCache(pb, flavor)
+                else:
+                    self.buildCache(pb, flavor)
+            return
+
         try:
             realFlavor = self.flavor
 
             if flavor:
                 self.flavor = flavor
 
-            if not eupsPathDir:
-                for pb in self.path:
-                    self.buildCache(pb, flavor)
-                return
-
             if self.verbose:
                 print >> sys.stderr, "Building cache for %s flavor %s" % (eupsPathDir, self.flavor)
-
             #
             # We want an entry even if nothing's declared, otherwise we'll
             # check everytime
