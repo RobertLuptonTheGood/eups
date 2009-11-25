@@ -931,6 +931,9 @@ def listProducts(Eups, productName=None, versionName=None,
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
     productList = Eups.listProducts(productName, versionName, current, setup)
+    if not productList:
+        if Eups.verbose >= 0 and productName == "distrib":
+            print >> sys.stderr, "Maybe you meant \"eups distrib list\"?"
     
     if dependencies:
         Eups._msgs["dependencies"] = {}               # maintain list of printed dependencies
