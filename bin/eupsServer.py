@@ -1295,6 +1295,9 @@ class Manifest(object):
         self.product = product
         self.version = version
 
+    def __str__(self):
+        return "%s %s" % (self.product, self.version)
+
     def getDependency(self, product, version=None, flavor=None, which=-1):
         """Return the last product dependency in this manifest that matches
         the given product info.  Typically only one version of a product will

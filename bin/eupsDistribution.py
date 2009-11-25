@@ -163,11 +163,18 @@ class Distribution(object):
         #
         # Is it already declared with this tag?
         #
+        forceInstall = (recursionLevel == 0 and self.Eups.force)
+        
         try:
             self.Eups.findVersion(manifest.product, manifest.version)
             if self.verbose > 0:
-                "%s is already declared %s" % (manifest.product, manifest.version)
-            return
+                msg = "%s version %s is already declared" % (manifest.product, manifest.version)
+                if not forceInstall:
+                    msg += "; use --force to reinstall"
+                print >> self.log, msg
+
+            if not forceInstall:
+                return
         except RuntimeError, e: # We didn't find the version, so we'll have to install it
             pass
 
@@ -200,7 +207,7 @@ class Distribution(object):
                 installed.append(pver)
                 if recursionLevel == 0:
                     setups.append("setup --keep %s %s" % (prod.product, prod.version))
-                if self.verbose >= 0:
+                if self.verbose >= 0 and not forceInstall:
                     print >> self.log, \
                         "Required product %s %s is already installed" % \
                         (prod.product, prod.version)
@@ -208,7 +215,8 @@ class Distribution(object):
                 if asCurrent:       # we need to process dependencies so as to declare them Current()
                     justDeclare = True
                 else:
-                    continue
+                    if not forceInstall:
+                        continue
 
             if not recurse or \
                     (prod.product == product and 
