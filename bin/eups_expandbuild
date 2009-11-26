@@ -6,9 +6,12 @@
 # @CVSROOT@ => current value of CVSROOT from ./CVS/Root or $CVSROOT
 # @VERSION@ => installed version name
 #
+#
+# This script is DEPRECATED; use "eups expandbuild" instead.
+#
 import os, re, sys
-import eups
-import eupsDistribBuild
+import ooeups as eups
+import eups.distrib.builder as eupsDistribBuild
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -31,6 +34,9 @@ try:
 except RuntimeError, param:
     print >> sys.stderr, "Error parsing arguments: %s" % param
     sys.exit(1)
+
+if not opts.has_option('-q'):
+    print >> sys.stderr, '\nWarning: this tool is DEPRECATED; use "eups expandbuild" instead\n'
 
 if opts.has_option('-h'):
     opts.usage()

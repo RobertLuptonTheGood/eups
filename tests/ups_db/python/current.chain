@@ -1,0 +1,12 @@
+FILE = version
+PRODUCT = python
+CHAIN = current
+#***************************************
+
+#Group:
+   FLAVOR = Linux
+   VERSION = 2.5.2
+   QUALIFIERS = ""
+   MODIFIER = Raymond Plante (rplante)
+   MODIFIED = 2009/09/03 10:03:12 CDT
+#End:

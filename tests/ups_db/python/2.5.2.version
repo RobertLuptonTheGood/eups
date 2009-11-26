@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = python
+VERSION = 2.5.2
+#***************************************
+
+Group:
+   FLAVOR = Linux
+   QUALIFIERS = ""
+   DECLARER = Raymond L. Plante
+   DECLARED = 2009/03/21 20:41:59 CDT
+   PROD_DIR = Linux/python/2.5.2
+   UPS_DIR = ups
+   TABLE_FILE = python.table
+End:
