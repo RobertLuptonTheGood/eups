@@ -26,6 +26,7 @@ class CmdTestCase(unittest.TestCase):
         eups.cmd._errstrm = self.err
 
         os.environ["EUPS_PATH"] = testEupsStack
+        os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_PKGROOT"] = \
             os.path.join(testEupsStack,"testserver","s2")
         if os.environ.has_key("EUPS_FLAGS"):
@@ -67,14 +68,15 @@ class CmdTestCase(unittest.TestCase):
         cmd = eups.cmd.EupsCmd(args="-h".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
-        self.assert_(self.out.getvalue().startswith("Usage: eups "),
+        self.assert_(re.match(r'^[Uu]sage: '+prog, self.out.getvalue()),
                      "Output starts with: '%s....'" % self.out.getvalue()[:16])
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="flavor -h".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
-        self.assert_(self.out.getvalue().startswith("Usage: eups flavor"),
+        self.assert_(re.match(r'^[Uu]sage: '+prog+' flavor',
+                              self.out.getvalue()),
                      "Output starts with: '%s....'" % self.out.getvalue()[:16])
 
     def testVersion(self):
