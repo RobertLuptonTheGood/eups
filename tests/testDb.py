@@ -342,9 +342,18 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
         self.assertEquals(prod.dir, 
                 "/home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1")
-        self.assertEquals(prod.tablefile, "/home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1/ups/doxygen.table")
+        self.assertEquals(prod.tablefile, "none")
         self.assertEquals(len(prod.tags), 1)
         self.assertEquals(prod.tags[0], "current")
+
+        # test correct formation of table file path
+        prod = self.db.findProduct("python", "2.5.2", "Linux")
+        self.assertEquals(prod.name, "python")
+        self.assertEquals(prod.version, "2.5.2")
+        self.assertEquals(prod.flavor, "Linux")
+        self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
+        self.assert_(prod.tablefile.endswith("Linux/python/2.5.2/ups/python.table"))
+        self.assert_(os.path.exists(prod.tablefile))
 
         # test autonormalization of product install directories.
         # The install directory (PROD_DIR) for this python is given 

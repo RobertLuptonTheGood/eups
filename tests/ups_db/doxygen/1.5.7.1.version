@@ -10,5 +10,5 @@ Group:
    DECLARED = 2009/03/21 21:00:58 CDT
    PROD_DIR = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1
    UPS_DIR = ups
-   TABLE_FILE = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1/ups/doxygen.table
+   TABLE_FILE = none
 End:
