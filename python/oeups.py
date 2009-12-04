@@ -567,7 +567,7 @@ def getValidTagFallbacks(tag):
     try:
         return validTags[tag].fallbackTags
     except KeyError:
-        return []
+        return [Current()]
 
 def isValidTag(tag):
     """Is tag valid?"""
