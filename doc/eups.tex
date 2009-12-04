@@ -709,7 +709,7 @@ make install
 \end{verbatim}
 and then typed:
 \begin{verbatim}
-eups distrib create -v --build ~/ACT/BuildFiles: --current moby &&
+eups distrib create -v -s /u/act/products/packages --build ~/ACT/BuildFiles: --current moby &&
 rsync -rv /u/act/products/packages apache2:/u/act/WWW/public
 
 eups distrib -v install --current moby --root http://www.astro.princeton.edu/~act/packages
@@ -726,7 +726,7 @@ directories\footnote{
 What if your product isn't (yet) declared to \eups?  Write a build file \code{scipy.build} and
 maybe table file \code{scipy.table} in \code{\~/ACT/BuildFiles}, and incant:
 \begin{verbatim}
-eups distrib -z act create --build ~/ACT/BuildFiles: --noeups scipy 0.6.0
+eups distrib -z act create -s /u/act/products/packages --build ~/ACT/BuildFiles: --noeups scipy 0.6.0
 
 eups distrib -z act install scipy 0.6.0 --root http://www.astro.princeton.edu/~act/packages scipy 0.6.0
 \end{verbatim}
@@ -735,7 +735,7 @@ N.b. this uses \code{scipy.table} from the build file directory, \code{\~/ACT/Bu
 they'll be honoured (the current versions will be used if you don't specify desired versions). A
 simplified version (in this case installing the just-released \code{swig 1.3.35} on my laptop) is:
 \begin{verbatim}
-eups distrib create --build \~/ACT/BuildFiles swig 1.3.35 --noeups
+eups distrib create -s /u/act/products/packages --build \~/ACT/BuildFiles swig 1.3.35 --noeups
 eups distrib install swig 1.3.35
 \end{verbatim}
 
@@ -743,7 +743,7 @@ You can also use \code{--noeups} to create a distribution from a checked out ver
 first installing it.  You'll need to tell \eups{} where to look for the table/build files
 in \code{./ups}:
 \begin{verbatim}
-eups distrib create --build ups --noeups mwi 2.4
+eups distrib create -s /u/act/products/packages --build ups --noeups mwi 2.4
 \end{verbatim}
 
 %------------------------------------------------------------------------------
