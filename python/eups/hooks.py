@@ -4,6 +4,7 @@ Module that enables user configuration and hooks.
 import os, sys, re
 import utils
 import eups
+import eups.exceptions
 from VersionCompare import VersionCompare
 
 # the function to use to compare two version.  The user may reset this 
@@ -108,7 +109,7 @@ def loadCustomization(verbose=0, log=sys.stderr):
                 try:
                     execute_file(startupFile)
                 except Exception, e:
-                    raise CustomizationError(str(e))
+                    raise eups.exceptions.CustomizationError(str(e))
 
 def execute_file(file):
     import eups
@@ -166,7 +167,3 @@ def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
 
     finally:
         fd.close()
-
-
-
-

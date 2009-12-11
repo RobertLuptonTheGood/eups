@@ -213,3 +213,14 @@ class BadTableContent(TableError):
         TableError.__init__(self, tablefile, productName, version, flavor, 
                             "Table parsing error", msg)
 
+class CustomizationError(EupsException):
+    """
+    a TableError indicating an error occurred while running a user's customization code
+    """
+    
+    def __init__(self, msg=None):
+        """
+        @param msg          the descriptive message.  If None, A default will 
+                               be generated.
+        """
+        EupsException.__init__(self, msg)
