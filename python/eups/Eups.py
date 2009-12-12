@@ -678,46 +678,47 @@ class Eups(object):
 
         return out
 
-#    def findPreferredProduct(self, name, eupsPathDirs, flavor, noCache):
-#        """
-#        Find the version of a product that is most preferred or None,
-#        if no preferred version exists.  
-#
-#        @param name          the name of the desired product
-#        @param eupsPathDirs  the EUPS path directories to search.  (Each 
-#                                should have a ups_db sub-directory.)  If 
-#                                None (def.), configured EUPS_PATH 
-#                                directories will be searched.
-#        @param flavor        the desired flavor.  If None (default), the 
-#                                default flavor will be searched for.
-#        @param noCache       if true, the software inventory cache should not be 
-#                                used to find products; otherwise, it will be used
-#                                to the extent it is available.  
-#        """
-#        if not flavor:
-#            flavor = self.flavor
-#        if eupsPathDirs is None:
-#            eupsPathDirs = self.path
-#
-#        # find all versions of product
-#        prods = []
-#        for root in eupsPathDirs:
-#            if noCache or not self.versions.has_key(root) or not self.versions[root]:
-#                # go directly to the EUPS database
-#                dbpath = self.getUpsDB(root)
-#                if not os.path.exists(dbpath):
-#                    if self.verbose:
-#                        print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
-#                    continue
-#
-#                prods.extend(Database(dbpath).findProducts(name, flavors=flavor))
-#
-#            else:
-#                # consult the cache
-#                prods.extend(map(lambda v: self.versions[root].getProduct(name,v,flavor), 
-#                                 self.versions[root].getVersions()))
-#
-#        return self._selectPreferredProduct(prods, self.perferredTags)
+    if False:
+        def findPreferredProduct(self, name, eupsPathDirs, flavor, noCache):
+            """
+            Find the version of a product that is most preferred or None,
+            if no preferred version exists.  
+
+            @param name          the name of the desired product
+            @param eupsPathDirs  the EUPS path directories to search.  (Each 
+                                    should have a ups_db sub-directory.)  If 
+                                    None (def.), configured EUPS_PATH 
+                                    directories will be searched.
+            @param flavor        the desired flavor.  If None (default), the 
+                                    default flavor will be searched for.
+            @param noCache       if true, the software inventory cache should not be 
+                                    used to find products; otherwise, it will be used
+                                    to the extent it is available.  
+            """
+            if not flavor:
+                flavor = self.flavor
+            if eupsPathDirs is None:
+                eupsPathDirs = self.path
+
+            # find all versions of product
+            prods = []
+            for root in eupsPathDirs:
+                if noCache or not self.versions.has_key(root) or not self.versions[root]:
+                    # go directly to the EUPS database
+                    dbpath = self.getUpsDB(root)
+                    if not os.path.exists(dbpath):
+                        if self.verbose:
+                            print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
+                        continue
+
+                    prods.extend(Database(dbpath).findProducts(name, flavors=flavor))
+
+                else:
+                    # consult the cache
+                    prods.extend(map(lambda v: self.versions[root].getProduct(name,v,flavor), 
+                                     self.versions[root].getVersions()))
+
+            return self._selectPreferredProduct(prods, self.preferredTags)
 
     def _selectPreferredProduct(self, products, preferredTags=None):
         # return the product in a list that is most preferred.
