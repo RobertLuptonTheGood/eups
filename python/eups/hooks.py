@@ -109,7 +109,7 @@ def loadCustomization(verbose=0, log=sys.stderr):
                 try:
                     execute_file(startupFile)
                 except Exception, e:
-                    raise eups.exceptions.CustomizationError(str(e))
+                    raise eups.exceptions.CustomizationError("Processing %s: %s" % (startupFile, e))
 
 def execute_file(file):
     import eups
