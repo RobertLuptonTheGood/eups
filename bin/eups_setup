@@ -29,8 +29,7 @@ setup = eups.setupcmd.EupsSetup()
 
 # set debugging features
 debugOptions = setup.opts.debug.split(":")
-# allowRaise = "raise" in debug
-allowRaise = True
+allowRaise = "raise" in debugOptions
 
 # load any local customizations
 verbosity = setup.opts.verbose
@@ -43,9 +42,11 @@ if allowRaise:
     sys.exit(setup.run())
 else:
     try:
-        sys.exit(setup.run())
+        status = setup.run()            # calling sys.exit here raises SystemExit which is caught...
     except Exception, e:
         setup.err(str(e))
-        sys.exit(9)
+        status = 9
+
+sys.exit(status)
 
 
