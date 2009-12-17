@@ -153,10 +153,10 @@ class MacroSubstitutionTestCase(unittest.TestCase):
         prod = vf.makeProduct("Linux", "/opt")
 
         self.assertEquals(prod.dir, "/u/dss/products/Linux/lapack/3.1.1")
-        self.assertEquals(prod.tablefile, "/opt/ups_db/lapack/Linux")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/lapack/Linux/3.1.1.table")
 
         prod = vf.makeProduct("Linux", dbpath="/opt/eups/UPS_DB")
-        self.assertEquals(prod.tablefile, "/opt/eups/UPS_DB/lapack/Linux")
+        self.assertEquals(prod.tablefile, "/opt/eups/UPS_DB/lapack/Linux/3.1.1.table")
 
 from eups.db import ChainFile
 
