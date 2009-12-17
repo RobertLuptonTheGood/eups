@@ -5,7 +5,7 @@ common high-level EUPS functions appropriate for calling from an application.
 import re, os, sys, time
 from Eups           import Eups
 from exceptions     import ProductNotFound
-from tags           import Tag, TagNotRecognized
+from tags           import Tags, Tag, TagNotRecognized
 from VersionParser  import VersionParser
 from stack          import ProductStack, persistVersionName as cacheVersion
 from distrib.server import ServerConf
@@ -452,6 +452,13 @@ def Current():
     utils.deprecated("Use of Current() is deprecated (and ignored).")
     return None
 
+def Setup():
+    """
+    a deprecated means of getting an instance of the standard setup tag.
+    Prefer eups.Tag("setup") instead.
+    """
+    return Tag("setup")
+
 def osetup(Eups, productName, version=None, fwd=True, setupType=None):
     """
     Identical to setup() but with a deprecated signature.
@@ -644,4 +651,29 @@ def unsetup(productName, version=None, eupsenv=None):
     """
     return setup(productName, version, fwd=False)
 
-    
+def productDir(productName, versionName=Setup(), eupsenv=None):
+    """
+    return the installation directory (PRODUCT_DIR) for the specified 
+    product.  None is returned if no matching product can be found
+    @param productName   the name of the product of interest
+    @param version       the desired version.  This can in one of the 
+                         following forms:
+                          *  an explicit version 
+                          *  a version expression (e.g. ">=3.3")
+                          *  a Tag instance 
+                          *  None, in which case, the (most) preferred 
+                               version will be returned.
+                         The default is the global tag "setup".  
+    @param eupsenv       The Eups instance to use to find the product.  If 
+                            not provided, a default will created.  
+    """
+    if not productName:
+        raise EupsException("productDir(): no product name specified")
+    if not eupsenv:
+        eupsenv = Eups()
+
+    prod = eupsenv.findProduct(productName, versionName)
+    if not prod:
+        return None
+    return prod.dir
+

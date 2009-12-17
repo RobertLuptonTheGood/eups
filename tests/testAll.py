@@ -11,6 +11,7 @@ from testTable import *
 from testEups import *
 from testCmd import *
 from testDeprecated import *
+from testApp import *
 
 if __name__ == "__main__":
     unittest.main()

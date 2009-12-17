@@ -133,6 +133,30 @@ class VersionFileTestCase(unittest.TestCase):
         self.assert_("Darwin" in flavors)
         self.assert_("Linux:rhel" in flavors)
 
+class MacroSubstitutionTestCase(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def testPROD_DIR(self):
+        vf = VersionFile(os.path.join(testEupsStack, "fw.version"))
+        prod = vf.makeProduct("Darwin")
+
+        self.assertEquals(prod.dir, "DarwinX86/fw/1.2")
+        self.assertEquals(prod.tablefile, "DarwinX86/fw/1.2/ups/fw.table")
+
+    def testUPS_DB(self):
+        vf = VersionFile(os.path.join(testEupsStack, "lapack-3.1.1.version"))
+        prod = vf.makeProduct("Linux", "/opt")
+
+        self.assertEquals(prod.dir, "/u/dss/products/Linux/lapack/3.1.1")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/lapack/Linux")
+
+        prod = vf.makeProduct("Linux", dbpath="/opt/eups/UPS_DB")
+        self.assertEquals(prod.tablefile, "/opt/eups/UPS_DB/lapack/Linux")
 
 from eups.db import ChainFile
 
@@ -560,7 +584,7 @@ class DatabaseTestCase(unittest.TestCase):
                 os.removedirs(pdir)
             raise
                            
-__all__ = "VersionFileTestCase ChainFileTestCase DatabaseTestCase".split()
+__all__ = "VersionFileTestCase MacroSubstitutionTestCase ChainFileTestCase DatabaseTestCase ".split()
 
 if __name__ == "__main__":
     unittest.main()
