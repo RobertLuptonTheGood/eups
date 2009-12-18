@@ -382,8 +382,11 @@ will also be printed.
                                    setupType=self.opts.setuptype, 
                                    depth=self.opts.depth)
             if n == 0:
-                self.err('No products found; ' +
-                         'Maybe you meant "eups distrib list"?')
+                msg = 'No products found'
+
+                if product == "distrib":
+                    msg += '; Maybe you meant "eups distrib list"?'
+                self.err(msg)
 
         except eups.EupsException, e:
             self.err(str(e))
