@@ -411,7 +411,7 @@ class Eups(object):
 
         if self.tags.isRecognized(versionName):
             dbpath = self.getUpsDB(eupsPathDir)
-            vers = Database(dbpath).getTaggedVersion(productName, versionName, flavor)
+            vers = Database(dbpath).getTaggedVersion(versionName, productName, flavor)
             if vers is not None:
                 versionName = vers
 
