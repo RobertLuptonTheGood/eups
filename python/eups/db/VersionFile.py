@@ -198,7 +198,16 @@ class VersionFile(object):
             if not table.startswith("$PROD_") and \
                not table.startswith("$UPS_") and not os.path.isabs(table):
                 if ups_dir:
+                    otable = table      # keep in case of problems
                     table = os.path.join(ups_dir, table)
+                    
+                    if not os.path.exists(table):
+                        #
+                        # OK, be nice.  Look relative to eupsPathDir too.  This is needed due to
+                        # malformed .version files (#???)
+                        #
+                        table = os.path.join(eupsPathDir, otable)
+
                 elif install and isRealFilename(install):
                     table = os.path.join(install, table)
 
@@ -226,6 +235,7 @@ class VersionFile(object):
         for name in dosub:
             if macrore.has_key(name) and data[name]:
                 value = macrore[name].sub(data[name], value)
+
         return value
 
     def makeProducts(self):
