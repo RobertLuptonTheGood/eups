@@ -3,8 +3,12 @@ from eups.Product import Product
 from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename
 
-var_prod_dir_re = re.compile("\$PROD_DIR")
-var_ups_dir_re = re.compile("\$UPS_DIR")
+macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
+            "PROD_DIR":  re.compile(r"^\$PROD_DIR\b"),
+            "FLAVOR":    re.compile(r"\$FLAVOR\b"),
+            "UPS_DIR":   re.compile(r"^\$UPS_DIR\b"),
+            "UPS_DB":    re.compile(r"^\$UPS_DB\b")     }
+
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 if who:
     who += " (%s)" % os.getlogin()
@@ -51,7 +55,30 @@ class VersionFile(object):
       *  If the table file is relative, it is assumed to be relative to the
            ups_dir directory.  If the ups_dir is "none" or None, then the 
            table file is relative to productDir.
-           
+      *  The path may include symbolic path "macro"--a path
+           with a context-specific value.  These macros have the form $name,
+           and most have restrictions on where in the value it can appear
+           (i.e. all but $FLAVOR may only appear at the start of the path).
+           Some restrictions also apply as to within which path a macro may 
+           appear.
+           The supported macros are:
+              $PROD_ROOT -- the absolute path to the default root directory 
+                            where products are installed by default--i.e. 
+                            the value of the EUPS path directory where it 
+                            is registered.  This can only appear at the 
+                            start of the path.
+              $FLAVOR    -- the value of the product's flavor.
+              $PROD_DIR  -- the fully resolved value of productDir; this 
+                            macro cannot appear in the productDir value.
+                            This can only appear at the start of the path.
+              $UPS_DIR   -- the fully resolved value of ups_dir.
+                            This can only appear at the start of the path.
+              $UPS_DB    -- the path to the EUPS database directory path 
+                            (which typically ends with the name "ups_db").
+                            This can only appear at the start of the path.
+
+    These rules are generally applied in makeProduct() which turns the parsed 
+    data from a version file into a specific product description.  
 
     @author  Raymond Plante
     """
@@ -114,7 +141,8 @@ class VersionFile(object):
     def makeProduct(self, flavor, eupsPathDir=None, dbpath=None):
         """
         create a Product instance for the given flavor.  If the product has 
-        not be declared for the flavor, a  ProductNotFound exception is raised.
+        not been declared for the flavor, a  ProductNotFound exception is 
+        raised.
 
         @param flavor      : the desired flavor for the Product.  
         @param eupsPathDir : the product stack path to assume that product is 
@@ -132,39 +160,73 @@ class VersionFile(object):
         if not self.info.has_key(flavor):
             raise ProductNotFound(self.name, self.version, flavor)
 
-        info = self.info[flavor]
-        install = table = None
-        if info.has_key("productDir"):
-            install = info["productDir"]
-            if eupsPathDir:
-                # no need to check if install isabs()
-                install = os.path.join(eupsPathDir, install)
-
-        if info.has_key("table_file"):
-            table = info["table_file"]
-
-        if isRealFilename(table):
-            if info.has_key("ups_dir"):
-                # substitute out $UPS_DIR
-                table = var_ups_dir_re.sub(info["ups_dir"], table)
-
-            if not os.path.isabs(table) and not table.startswith("$PROD_DIR") \
-               and info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
-                table = os.path.join(info["ups_dir"], table)
-            if not os.path.isabs(table) and not table.startswith("$PROD_DIR") \
-               and install is not None and isRealFilename(install):
-                table = os.path.join(install, table)
-
-            if install:
-                # substitute out $PROD_DIR
-                table = var_prod_dir_re.sub(install, table)
-
         if eupsPathDir and not dbpath:
             dbpath = os.path.join(eupsPathDir, "ups_db")
 
+        macrodata = { "FLAVOR":    flavor,
+                      "PROD_ROOT": eupsPathDir,
+                      "UPS_DB":    dbpath       }
+
+        info = self.info[flavor]
+        install = table = None
+
+        if info.has_key("productDir"):
+            install = info["productDir"]
+        if isRealFilename(install):
+            if eupsPathDir and not install.startswith("$PROD_") and \
+               not install.startswith("$UPS_"):
+                # no need to check if install isabs(); 
+                # os.path.join() does the right thing
+                install = os.path.join(eupsPathDir, install)
+            install = self._resolve(install, macrodata)
+            macrodata["PROD_DIR"] = install
+
+        ups_dir = None
+        if info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
+            ups_dir = info["ups_dir"]
+            if install and not ups_dir.startswith("$PROD_") and \
+               not ups_dir.startswith("$UPS_"): 
+                # no need to check if ups_dir isabs(); 
+                # os.path.join() does the right thing
+                ups_dir = os.path.join(install, ups_dir)
+            ups_dir = self._resolve(ups_dir, macrodata)
+            macrodata["UPS_DIR"] = ups_dir
+
+        if info.has_key("table_file"):
+            table = info["table_file"]
+        if isRealFilename(table):
+            if not table.startswith("$PROD_") and \
+               not table.startswith("$UPS_") and not os.path.isabs(table):
+                if ups_dir:
+                    table = os.path.join(ups_dir, table)
+                elif install and isRealFilename(install):
+                    table = os.path.join(install, table)
+
+            table = self._resolve(table, macrodata)
+
+        # one last try:
+        if isRealFilename(install) and install.find('$') >= 0:
+            install = self._resolve(install, macrodata, skip="PROD_DIR")
+            macrodata["PROD_DIR"] = install
+        if isRealFilename(table) and install.find('$') >= 0:
+            table = self._resolve(table, macrodata)
+
         return Product(self.name, self.version, flavor, install, table, 
                        db=dbpath)
-        
+
+    def _resolve(self, value, data, skip=None):
+        if not value: return value
+
+        dosub = data.keys()
+        if skip:
+            if isinstance(skip, str):
+                skip = skip.split()
+            dosub = filter(lambda n: n not in skip, dosub)
+
+        for name in dosub:
+            if macrore.has_key(name) and data[name]:
+                value = macrore[name].sub(data[name], value)
+        return value
 
     def makeProducts(self):
         """

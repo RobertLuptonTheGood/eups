@@ -7,6 +7,7 @@ import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
+import re
 import unittest
 import time
 from testCommon import testEupsStack
@@ -141,14 +142,218 @@ class MacroSubstitutionTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def testPROD_ROOT(self):
+
+        # test no substitution
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0", "fw.table")
+        prod = vf.makeProduct("Linux")
+        self.assertEquals(prod.dir, "$PROD_ROOT/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "$PROD_ROOT/Linux/fw/1.0/fw.table")
+
+        # test use in product dir
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/fw.table")
+
+        # test integration of ups_dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0", "fw.table", "ups")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/ups/fw.table")
+
+        # test use in table path
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0", 
+                     "$PROD_ROOT/Linux/fw/1.0/fw.table", "ups")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/fw.table")
+
+        # test use in ups_dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0", 
+                     "fw.table", "$PROD_ROOT/Linux/fw/1.0/UPS")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/UPS/fw.table")
+
+        # test in combination with FLAVOR
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "$PROD_ROOT/$FLAVOR/fw/1.0", "fw.table", "ups")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/ups/fw.table")
+        
+    def testFLAVOR(self):
+
+        # test use in product dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "/opt/$FLAVOR/fw/1.0", "fw.table")
+        prod = vf.makeProduct("LinuxARM")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/fw.table")
+
+        # test use in product dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "fw.table")
+        prod = vf.makeProduct("LinuxARM")
+        self.assertEquals(prod.dir, "LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "LinuxARM/fw/1.0/fw.table")
+        
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/fw.table")
+
+        # test use in table path
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$FLAVOR/fw.table", 
+                     "/opt/eups/tables")
+        prod = vf.makeProduct("LinuxARM")
+        self.assertEquals(prod.dir, "Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/eups/tables/LinuxARM/fw.table")
+        
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "$FLAVOR/fw.table", 
+                     "/opt/eups/tables")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/eups/tables/LinuxARM/fw.table")
+
+        # test use in ups_dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "fw.table")
+        vf.info["LinuxARM"]["ups_dir"] = "$FLAVOR"
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/LinuxARM/fw.table")
+
+        # test in combination with PROD_DIR
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "fw.table", "$PROD_DIR/UPS")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/UPS/fw.table")
+
     def testPROD_DIR(self):
+        # test in table
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$PROD_DIR/fw.table")
+        prod = vf.makeProduct("LinuxARM")
+        self.assertEquals(prod.dir, "Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "Linux/fw/1.0/fw.table")
+
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/fw.table")
+
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$PROD_DIR/fw.table", "ups")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/fw.table")
+
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$PROD_DIR/fw.table", 
+                     "$FLAVOR/ups")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/fw.table")
+
+        # test in ups_dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "fw.table", "$PROD_DIR/ups")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/ups/fw.table")
+
+    def testUPS_DB(self):
+        # test no substitution
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$UPS_DB/Linux/fw/1.0", "fw.table")
+        prod = vf.makeProduct("Linux")
+        self.assert_(prod.db is None)
+        self.assertEquals(prod.dir, "$UPS_DB/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "$UPS_DB/Linux/fw/1.0/fw.table")
+
+        # test use in product dir
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.db, "/opt/ups_db")
+        self.assertEquals(prod.dir, "/opt/ups_db/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/Linux/fw/1.0/fw.table")
+
+        prod = vf.makeProduct("Linux", "/opt", "/opt/eups_db")
+        self.assertEquals(prod.dir, "/opt/eups_db/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/eups_db/Linux/fw/1.0/fw.table")
+
+        # test integration of ups_dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$UPS_DB/Linux/fw/1.0", "fw.table", "ups")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.db, "/opt/ups_db")
+        self.assertEquals(prod.dir, "/opt/ups_db/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/Linux/fw/1.0/ups/fw.table")
+
+        # test use in table path
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "/opt/Linux/fw/1.0", 
+                     "$UPS_DB/Linux/fw/1.0/fw.table", "ups")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.db, "/opt/ups_db")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/Linux/fw/1.0/fw.table")
+
+        # test use in ups_dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "Linux/fw/1.0", 
+                     "fw.table", "$UPS_DB/Linux/fw/1.0/UPS")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.db, "/opt/ups_db")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/Linux/fw/1.0/UPS/fw.table")
+
+        # test in combination with FLAVOR
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "fw.table", 
+                     "$UPS_DB/$FLAVOR/ups")
+        prod = vf.makeProduct("LinuxARM", "/opt")
+        self.assertEquals(prod.db, "/opt/ups_db")
+        self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/ups_db/LinuxARM/ups/fw.table")
+
+    def testUPS_DIR(self):
+        # test use in table path
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "/opt/Linux/fw/1.0", 
+                     "$UPS_DIR/fw.table", "UPS")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/UPS/fw.table")
+
+        # test no substitution
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$UPS_DIR/Linux/fw/1.0", "fw.table")
+        prod = vf.makeProduct("Linux")
+        self.assertEquals(prod.dir, "$UPS_DIR/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "$UPS_DIR/Linux/fw/1.0/fw.table")
+
+        # test use in product dir
+        vf = VersionFile(None, readFile=False)
+        vf.addFlavor("Linux", "$UPS_DIR/Linux/fw/1.0", "fw.table", 
+                     "$PROD_ROOT/ups")
+        prod = vf.makeProduct("Linux", "/opt")
+        self.assertEquals(prod.dir, "/opt/ups/Linux/fw/1.0")
+        self.assertEquals(prod.tablefile, "/opt/ups/fw.table")
+
+    def testPROD_DIRfile(self):
         vf = VersionFile(os.path.join(testEupsStack, "fw.version"))
         prod = vf.makeProduct("Darwin")
 
         self.assertEquals(prod.dir, "DarwinX86/fw/1.2")
         self.assertEquals(prod.tablefile, "DarwinX86/fw/1.2/ups/fw.table")
 
-    def testUPS_DB(self):
+    def testUPS_DBfile(self):
         vf = VersionFile(os.path.join(testEupsStack, "lapack-3.1.1.version"))
         prod = vf.makeProduct("Linux", "/opt")
 
