@@ -162,6 +162,12 @@ tcltk                 8.5a4     \tcurrent
         cmd = eups.cmd.EupsCmd(args="list goober".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.out.getvalue(), "")
+        self.assertEquals(self.err.getvalue(), prog + ' list: No products found\n')
+
+        self._resetOut()
+        cmd = eups.cmd.EupsCmd(args="list distrib goober".split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+        self.assertEquals(self.out.getvalue(), "")
         self.assertEquals(self.err.getvalue(), prog + ' list: No products found; Maybe you meant "eups distrib list"?\n')
 
         self._resetOut()

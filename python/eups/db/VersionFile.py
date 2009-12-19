@@ -201,12 +201,14 @@ class VersionFile(object):
                     otable = table      # keep in case of problems
                     table = os.path.join(ups_dir, table)
                     
-                    if not os.path.exists(table):
+                    if not os.path.exists(table) and eupsPathDir:
                         #
                         # OK, be nice.  Look relative to eupsPathDir too.  This is needed due to
                         # malformed .version files (#???)
                         #
-                        table = os.path.join(eupsPathDir, otable)
+                        ntable = os.path.join(eupsPathDir, otable)
+                        if (os.path.exists(ntable)):
+                            table = ntable
 
                 elif install and isRealFilename(install):
                     table = os.path.join(install, table)
