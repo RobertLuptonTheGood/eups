@@ -75,6 +75,12 @@ show :
 configure : configure.ac
 	@ echo "Rebuilding ./configure"
 	autoconf
+#
+# Run tests
+#
+test : 
+	@ echo "Running tests"
+	python tests/testAll.py
 clean :
 	- /bin/rm -f *~ core
 	@ for f in $(SUBDIRS); do \
