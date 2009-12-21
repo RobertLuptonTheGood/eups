@@ -409,7 +409,7 @@ class Eups(object):
         if args:
             raise RuntimeError, ("Unexpected arguments: %s" % args) 
 
-        if self.tags.isRecognized(versionName):
+        if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
             dbpath = self.getUpsDB(eupsPathDir)
             vers = Database(dbpath).getTaggedVersion(versionName, productName, flavor)
             if vers is not None:
@@ -795,6 +795,8 @@ class Eups(object):
 
     def getUpsDB(self, eupsPathDir):
         """Return the ups database directory given a directory from self.path"""
+        if not utils.isRealFilename(eupsPathDir):
+            return "none"
         return os.path.join(eupsPathDir, self.ups_db)
     
     def getSetupProducts(self, requestedProductName=None):
@@ -817,7 +819,7 @@ class Eups(object):
                 product = self.findSetupProduct(productName)
                 if not product and self.quiet <= 0:
                     print >> sys.stderr, "Product %s is not setup" % productName
-                continue
+                    continue
 
             except EupsException, e:
                 if self.quiet <= 0:
@@ -1829,7 +1831,7 @@ class Eups(object):
                 if version and (not prod.version or \
                                 not fnmatch.fnmatch(prod.version, version)):
                     continue
-                if not prod.flavors or prod.flavor not in flavors:
+                if not prod.flavor or prod.flavor not in flavors:
                     continue
 
                 # If we haven't limited the stack paths, accept a product
@@ -1921,7 +1923,22 @@ class Eups(object):
                     for key in filter(lambda k: k.startswith("%s:%s:%s" % (pname,flavor,dir)), setup.keys()):
                         out.append(setup[key])
                         del setup[key]
-                                                             
+
+        if not version or \
+           (isinstance(version,str) and version.startswith("LOCAL")) or \
+           (tags and "setup" in tags):
+
+            # Add in LOCAL: setups
+            #
+            sunames = setup.keys()
+            sunames.sort()
+            for pname in sunames:
+                prod = setup[pname]
+                if name and not fnmatch.fnmatch(prod.name, name):
+                    continue
+                if version and not fnmatch.fnmatch(prod.version, version):
+                    continue
+                out.append(prod)
 
         return out
                 

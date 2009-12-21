@@ -59,6 +59,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 
     productList = eupsenv.findProducts(productName, versionName, tags)
+    productList.sort(lambda a,b: cmp(a, b), 
+                     lambda p: ":".join([p.name, p.version]))
     
     if dependencies:
         _msgs = {}               # maintain list of printed dependencies
@@ -88,7 +90,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
     nprod = len(productList)
     for pi in productList:
-        name, version, db = pi.name, pi.version, pi.db # for convenience
+        name, version, root = pi.name, pi.version, pi.stackRoot() # for convenience
+        if root == "none":  root = " (none)"
         info = ""
 
         if dependencies:
@@ -156,7 +159,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 if eupsenv.verbose > 1:
                     info += "%-10s" % (pi.flavor)
 
-                info += "%-20s %-55s" % (db, pi.dir)
+                info += "%-20s %-55s" % (root, pi.dir)
 
 
             extra = pi.tags

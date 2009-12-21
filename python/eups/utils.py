@@ -164,11 +164,11 @@ def isRealFilename(filename):
     """
     Return True iff "filename" is a real filename, not a placeholder.  
     It need not exist.  The following names are considered placeholders:
-    ["none", "???"].
+    ["none", "???", "(none)"].
     """
     if filename is None:
         return False
-    elif filename in ("none", "???"):
+    elif filename in ("none", "???", "(none)"):
         return False
     else:
         return True

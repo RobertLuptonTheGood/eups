@@ -41,6 +41,9 @@ class CmdTestCase(unittest.TestCase):
     def tearDown(self):
         del self.out
 
+        if os.environ.has_key("SETUP_PYTHON"):
+            eups.unsetup("python")
+
         newprod = os.path.join(self.dbpath,"newprod")
         if os.path.exists(newprod):
             for dir,subdirs,files in os.walk(newprod, False):
@@ -175,6 +178,21 @@ tcltk                 8.5a4     \tcurrent
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.out.getvalue(), "")
         self.assertEquals(self.err.getvalue(), "")
+
+        # test listing of LOCAL products
+        self._resetOut()
+        eups.setup("python", productRoot=os.path.join(testEupsStack, "Linux",
+                                                      "python", "2.5.2"))
+        outwlocal = """
+   2.5.2     \tcurrent
+   2.6       
+   LOCAL:%s/Linux/python/2.5.2\tsetup
+""".strip() % testEupsStack
+        cmd = eups.cmd.EupsCmd(args="list python".split(), toolname=prog)
+        self.assertEqual(cmd.run(), 0)
+        self.assertEquals(self.out.getvalue(), outwlocal)
+        self.assertEquals(self.err.getvalue(), "")
+        eups.unsetup("python")
 
     def testListBadTag(self):
         cmd = eups.cmd.EupsCmd(args="list tcltk -t goob".split(), 
