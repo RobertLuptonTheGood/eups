@@ -1453,7 +1453,7 @@ class Eups(object):
             tag = "current"
             utils.deprecated("Eups.declare(): declareCurrent param is deprecated; use tag param.", self.quiet)
 
-        if productDir:
+        if productDir and productDir != "none":
             productDir = os.path.abspath(productDir)
             if not productName:
                 productName = utils.guessProduct(os.path.join(productDir,"ups"))
@@ -1492,15 +1492,16 @@ class Eups(object):
                   (productName, versionName, productDir)
 
         if utils.isRealFilename(productDir):
-            if os.environ.has_key("HOME"):
-                productDir = re.sub(r"^~", os.environ["HOME"], productDir)
-            if not os.path.isabs(productDir):
-                productDir = os.path.join(os.getcwd(), productDir)
-            productDir = os.path.normpath(productDir)
-            assert productDir
+            if productDir != "none":
+                if os.environ.has_key("HOME"):
+                    productDir = re.sub(r"^~", os.environ["HOME"], productDir)
+                if not os.path.isabs(productDir):
+                    productDir = os.path.join(os.getcwd(), productDir)
+                productDir = os.path.normpath(productDir)
+                assert productDir
 
-            if not os.path.isdir(productDir):
-                raise EupsException("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
+                if not os.path.isdir(productDir):
+                    raise EupsException("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
 
         if tablefile is None:
             tablefile = "%s.table" % productName
@@ -1590,14 +1591,17 @@ class Eups(object):
             if _productDir and productDir != _productDir:
                 differences += ["%s != %s" % (productDir, _productDir)]
 
-            if full_tablefile and _tablefile and tablefile != _tablefile:
-                # Different names; see if they're different content too
-                diff = ["%s != %s" % (tablefile, _tablefile)] # possible difference
-                try:
-                    if not filecmp.cmp(full_tablefile, _tablefile):
+            if full_tablefile:
+                if _tablefile and tablefile != _tablefile:
+                    # Different names; see if they're different content too
+                    diff = ["%s != %s" % (tablefile, _tablefile)] # possible difference
+                    try:
+                        if not filecmp.cmp(full_tablefile, _tablefile):
+                            differences += diff
+                    except OSError:
                         differences += diff
-                except OSError:
-                    differences += diff
+            elif tablefileIsFd:
+                differences += ["table file from stdin"]
 
             if differences:
                 # we're in a re-declaring situation
