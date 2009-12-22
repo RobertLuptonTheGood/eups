@@ -1,7 +1,8 @@
-import os, sys, re
+import os, pwd, re, sys
 import lock
 from exceptions import EupsException
-who = os.getlogin()
+
+who = pwd.getpwuid(os.geteuid())[0]
 
 tagListFileExt = "tags"
 tagListFileTmpl = "%s." + tagListFileExt

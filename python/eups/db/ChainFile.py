@@ -2,10 +2,6 @@ import os, re, sys, pwd
 from eups.utils import ctimeTZ, isRealFilename
 
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
-if who:
-    who += " (%s)" % os.getlogin()
-else:
-    who = os.getlogin()
 
 class ChainFile(object):
     """

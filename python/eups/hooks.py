@@ -36,7 +36,7 @@ config.Eups = defineProperties("userTags preferredTags verbose asAdmin setupType
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = ""
-config.Eups.preferredTags = "stable current newest"
+config.Eups.preferredTags = "current stable newest"
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
 config.Eups.setupTypes = "build"

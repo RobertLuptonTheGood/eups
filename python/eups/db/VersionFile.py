@@ -10,10 +10,6 @@ macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
             "UPS_DB":    re.compile(r"^\$UPS_DB\b")     }
 
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
-if who:
-    who += " (%s)" % os.getlogin()
-else:
-    who = os.getlogin()
 defaultProductUpsDir = "ups"
 
 class VersionFile(object):
