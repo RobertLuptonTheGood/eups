@@ -90,38 +90,34 @@ for that command.
 Common"""
 
     def addOptions(self):
+        self.clo.add_option("--debug", dest="debug", action="store", default="",
+                            help="turn on specified debugging behaviors (allowed: raise)")
         self.clo.add_option("-h", "--help", dest="help", action="store_true",
                             help="show command-line help and exit")
-        self.clo.add_option("-v", "--verbose", dest="verbose", action="count", 
-                            default=0, 
-         help="Print extra messages about progress (repeat for ever more chat)")
-        self.clo.add_option("-q", "--quiet", dest="quiet", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="Suppress messages to user (overrides -v)")
-        self.clo.add_option("-V", "--version", dest="version", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-v", "--verbose", dest="verbose", action="count", default=0,
+                            help="Print extra messages about progress (repeat for ever more chat)")
+        self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
                             help="Print eups version number")
-        self.clo.add_option("--debug", dest="debug", action="store", 
-                            default="",
-                 help="turn on specified debugging behaviors (allowed: raise)")
 
     def addEupsOptions(self):
         """
         set the common command line options
         """
-        self.clo.add_option("-F", "--force", dest="force", action="store_true", 
-                            default=False, help="Force requested behaviour")
-        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", 
-                      help="Assume this target platform flavor (e.g. 'Linux')")
-        self.clo.add_option("-Z", "--database", dest="path", action="store", 
-                            help="The colon-separated list of product stacks (databases) to use. Default: $EUPS_PATH")
-        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", 
-                            metavar="DIR", 
-                            help="Select the product paths which contain this directory.  Default: all in path")
-        self.clo.add_option("-n", "--noaction", dest="noaction", 
-                            action="store_true", default=False,
-                   help="Don\'t actually do anything (for debugging purposes)")
-        self.clo.add_option("--with-eups", dest="path", action="store", 
+        self.clo.add_option("-Z", "--database", dest="path", action="store",
+                            help="The colon-separated list of product stacks (databases) to use. " +
+                            "Default: $EUPS_PATH")
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
+                            help="Assume this target platform flavor (e.g. 'Linux')")
+        self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
+                            help="Force requested behaviour")
+        self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
+                            help="Don\'t actually do anything (for debugging purposes)")
+        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
+                            help="Select the product paths which contain this directory.  " +
+                            "Default: all in path")
+        self.clo.add_option("--with-eups", dest="path", action="store",
                             help="synonym for --database")
 
     def execute(self):
@@ -286,7 +282,7 @@ is specified, the given flavor will be returned.
         EupsCmd.addOptions(self)
 
         self.clo.add_option("-f", "--flavor", dest="flavor", action="store", 
-                      help="Assume this target platform flavor (e.g. 'Linux')")
+                            help="Assume this target platform flavor (e.g. 'Linux')")
 
     def execute(self):
         if not self.opts.quiet:
@@ -328,30 +324,25 @@ will also be printed.
         self.addEupsOptions()
 
         # these are specific to this command
-        self.clo.add_option("-d", "--directory", dest="printdir", 
-                            action="store_true", default=False, 
-                            help="Include the product's installation directory")
-        self.clo.add_option("-D", "--dependencies", dest="depends", 
-                            action="store_true", default=False, 
-                            help="Print product's dependencies (must also provide the version argument")
-        self.clo.add_option("--depth", dest="depth", action="store", 
-                            help="Only list this many layers of dependency")
-        self.clo.add_option("-e", "--exact", dest="exactver", 
-                            action="store_true", default=False, 
-                            help="Follow the as-installed versions, not the conditionals in the table file (ignored unless -d is specified)")
-        self.clo.add_option("-m", "--table", dest="tablefile", 
-                            action="store_true", default=False, 
-                            help="Print the name of the product's table file")
-        self.clo.add_option("-s", "--setup", dest="setup", 
-                            action="store_true", default=False, 
-                            help="List only product's that are setup.")
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
-                            help="List only versions having this tag name")
-        self.clo.add_option("-T", "--type", dest="setuptype", action="store", 
-                            help="the setup type to assume (ignored unless -d is specified)")
-        self.clo.add_option("-c", "--current", dest="current", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
                             help="same as --tag=current (deprecated)")
+        self.clo.add_option("-D", "--dependencies", dest="depends", action="store_true", default=False,
+                            help="Print product's dependencies (must also provide the version argument")
+        self.clo.add_option("--depth", dest="depth", action="store",
+                            help="Only list this many layers of dependency")
+        self.clo.add_option("-d", "--directory", dest="printdir", action="store_true", default=False,
+                            help="Include the product's installation directory")
+        self.clo.add_option("-e", "--exact", dest="exactver", action="store_true", default=False,
+                            help="Follow the as-installed versions, not the conditionals in the table file " +
+                            "(ignored unless -d is specified)")
+        self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
+                            help="List only product's that are setup.")
+        self.clo.add_option("-m", "--table", dest="tablefile", action="store_true", default=False,
+                            help="Print the name of the product's table file")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="List only versions having this tag name")
+        self.clo.add_option("-T", "--type", dest="setuptype", action="store",
+                            help="the setup type to assume (ignored unless -d is specified)")
 
     def execute(self):
         product = version = None
@@ -515,11 +506,9 @@ class PkgconfigCmd(EupsCmd):
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-c", "--cflags", dest="cflags", 
-                            action="store_true", default=False,
+        self.clo.add_option("-c", "--cflags", dest="cflags", action="store_true", default=False,
                             help="Output all pre-processor and compiler flags")
-        self.clo.add_option("-l", "--libs", dest="libs", 
-                            action="store_true", default=False,
+        self.clo.add_option("-l", "--libs", dest="libs", action="store_true", default=False,
                             help="Output all linker flags")
 
         # always call the super-version so that the core options are set
@@ -652,17 +641,15 @@ class UsesCmd(EupsCmd):
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
-                help="Look for products that get setup because it has this tag")
-        self.clo.add_option("-d", "--depth", dest="depth", 
-                            action="store", type="int", default=9999, 
-                        help="Only search down this many layers of dependency")
-        self.clo.add_option("-e", "--exact", dest="exactver", 
-                            action="store_true", default=False, 
-                            help="Consider the as-installed versions, not the conditionals in the table file (ignored unless -d is specified)")
-        self.clo.add_option("-o", "--optional", dest="optional", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-d", "--depth", dest="depth", action="store", type="int", default=9999, 
+                            help="Only search down this many layers of dependency")
+        self.clo.add_option("-e", "--exact", dest="exactver", action="store_true", default=False, 
+                            help="Consider the as-installed versions, not the conditionals in the table file "+
+                            "(ignored unless -d is specified)")
+        self.clo.add_option("-o", "--optional", dest="optional", action="store_true", default=False, 
                             help="Show optional setups")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
+                            help="Look for products that get setup because it has this tag")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -670,8 +657,7 @@ class UsesCmd(EupsCmd):
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
-        self.clo.add_option("-c", "--current", dest="current", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
                             help="(deprecated)")
         
 
@@ -713,15 +699,13 @@ otherwise it'll be written to stdout unless you specify --inplace.
     def addOptions(self):
         # these are specific to this command
         self.clo.add_option("-c", "--cvs", dest="cvsroot", action="store", 
-                         help="A CVS root URL to find source code under")
+                            help="A CVS root URL to find source code under")
+        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true", 
+                            help="Modify the given buildfile in situ")
+        self.clo.add_option("-p", "--product", dest="prodname", action="store", default="",
+                            help="The name of the product that the build file is for")
         self.clo.add_option("-s", "--svn", dest="svnroot", action="store", 
-                         help="An SVN root URL to find source code under")
-        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False,
-                            action="store_true", 
-                        help="Modify the given buildfile in situ")
-        self.clo.add_option("-p", "--product", dest="prodname", action="store",
-                            default="",
-                     help="The name of the product that the build file is for")
+                            help="An SVN root URL to find source code under")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -730,12 +714,12 @@ otherwise it'll be written to stdout unless you specify --inplace.
         self.addEupsOptions()
 
         self.clo.add_option("-V", "--version", dest="version", action="store", 
-                  help="The version of the product that the build file is for")
+                            help="The version of the product that the build file is for")
 
         self.clo.add_option("--cvsroot", dest="cvsroot", action="store", 
-                         help="same as --cvs")
+                            help="same as --cvs")
         self.clo.add_option("--svnroot", dest="svnroot", action="store", 
-                         help="same as --svn")
+                            help="same as --svn")
 
     def execute(self):
         outdir = None
@@ -851,17 +835,14 @@ For example, the make target in a ups directory might contain the line:
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False,
-                            action="store_true", 
-                        help="Modify the given tablefile in situ")
+        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true", 
+                            help="Modify the given tablefile in situ")
         self.clo.add_option("-p", "--product", dest="prodlist", action="store",
-                          help="A set of products of the form 'prod=ver[:...]'")
-        self.clo.add_option("-w", "--warn", dest="warn", action="store_true", 
-                            default=False, 
+                            help="A set of products of the form 'prod=ver[:...]'")
+        self.clo.add_option("-w", "--warn", dest="warn", action="store_true", default=False, 
                             help="Warn about versions with non-canonical names")
-        self.clo.add_option("-W", "--warnRegexp", dest="warnRegexp", 
-                            action="store", 
-            help="Canonical versions should match this regexp (implies --warn)")
+        self.clo.add_option("-W", "--warnRegexp", dest="warnRegexp", action="store", 
+                            help="Canonical versions should match this regexp (implies --warn)")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -979,12 +960,11 @@ only wish to assign a tag, you should use the -t option but not include
         # these are specific to this command
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
-        self.clo.add_option("-m", "--table", dest="tablefile", 
-                            action="store", 
-                  help='table file location (may be "none" for no table file)')
-        self.clo.add_option("-M", "--import-table", dest="externalTablefile", 
-                            action="store", 
-                            help='Import the given table file directly into the database (may be "-" for stdin).')
+        self.clo.add_option("-M", "--import-table", dest="externalTablefile", action="store", 
+                            help="Import the given table file directly into the database " +
+                            "(may be \"-\" for stdin).")
+        self.clo.add_option("-m", "--table", dest="tablefile", action="store", 
+                            help='table file location (may be "none" for no table file)')
         self.clo.add_option("-t", "--tag", dest="tag", action="store", 
                             help="assign TAG to the specified product")
         
@@ -994,8 +974,7 @@ only wish to assign a tag, you should use the -t option but not include
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-c", "--current", dest="tag", 
-                            action="store_const", const="current",
+        self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
                             help="same as --tag=current (deprecated)")
         
 
@@ -1075,8 +1054,7 @@ version currently declared.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-c", "--current", dest="tag", 
-                            action="store_const", const="current",
+        self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
                             help="same as --tag=current (deprecated)")
         
 
@@ -1125,18 +1103,14 @@ where it is installed.
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-i", "--interactive", dest="interactive", 
-                            action="store_true",
-           help="Prompt user before actually removing products (default if -R)")
-        self.clo.add_option("--noInteractive", dest="interactive", 
-                            action="store_false",
-           help="Don't prompt user before actually removing products")
-        self.clo.add_option("-N", "--noCheck", dest="noCheck", 
-                            action="store_true", default=False,
-           help="Don't check whether recursively removed products are needed")
-        self.clo.add_option("-R", "--recursive", dest="recursive", 
-                            action="store_true", default=False,
-         help="Recursively also remove everything that this product depends on")
+        self.clo.add_option("-i", "--interactive", dest="interactive", action="store_true",
+                            help="Prompt user before actually removing products (default if -R)")
+        self.clo.add_option("-N", "--noCheck", dest="noCheck", action="store_true", default=False,
+                            help="Don't check whether recursively removed products are needed")
+        self.clo.add_option("-R", "--recursive", dest="recursive", action="store_true", default=False,
+                            help="Recursively also remove everything that this product depends on")
+        self.clo.add_option("--noInteractive", dest="interactive", action="store_false",
+                            help="Don't prompt user before actually removing products")
         
         # these options are used to configure the Eups instance
         self.addEupsOptions()
@@ -1185,11 +1159,11 @@ that are writable by the user.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", 
-                            action="store_true", default=False, 
-                       help="apply cache operations to caches under EUPS_PATH")
+        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
+                            help="apply cache operations to caches under EUPS_PATH")
         self.clo.add_option("-r", "--root", dest="root", action="store", 
-                      help="Location of manifests/buildfiles/tarballs (may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
+                            help="Location of manifests/buildfiles/tarballs " +
+                            "(may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
 
     def execute(self):
         if len(self.args) < 1:
@@ -1290,20 +1264,18 @@ class DistribListCmd(EupsCmd):
     def addOptions(self):
         self.clo.enable_interspersed_args()
 
-        self.clo.add_option("-r", "--repository", dest="root", action="append",
-                            metavar="BASEURL",
-                      help="the base URL for a repository to access (repeat as needed).  Default: $EUPS_PKGROOT")
-        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", 
-                      help="Specifically list for this flavor")
-        self.clo.add_option("-S", "--server-option", dest="serverOpts",
-                            action="append",
-                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
-        self.clo.add_option("-S", "--server-class", dest="serverClasses",
-                            action="append",
-                   help="register this DistribServer class (repeat as needed)")
-        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
-                            action="append",
-                   help="register this Distrib class (repeat as needed)")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
+                            help="register this Distrib class (repeat as needed)")
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
+                            help="Specifically list for this flavor")
+        self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
+                            help="the base URL for a repository to access (repeat as needed).  " +
+                            "Default: $EUPS_PKGROOT")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses", action="append",
+                            help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
+                            help="pass a customized option to all repositories " +
+                            "(form NAME=VALUE, repeat as needed)")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -1389,65 +1361,53 @@ tag will be installed.
     def addOptions(self):
         self.clo.enable_interspersed_args()
 
-        self.clo.add_option("-r", "--repository", dest="root", action="append",
-                            metavar="BASEURL",
-                      help="the base URL for a repository to access (repeat as needed).  Default: $EUPS_PKGROOT")
-        self.clo.add_option("-I", "--install-into", dest="installStack", 
-                            action="append", metavar="DIR",
-                            help="install into this product stack (Default: the first writable stack in $EUPS_PATH)")
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
-                         help="preferentially install products with this TAG")
-        self.clo.add_option("-U", "--no-server-tags", dest="updateTags", 
-                            action="store_false", default=True, 
-                     help="Prevent automatic assignment of server/global tags")
-        self.clo.add_option("-j", "--nodepend", dest="nodepend", 
-                            action="store_true", default=False, 
-                        help="Just install product, but not its dependencies")
-        self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
-                       help="Use this manifest file for the requested product")
-        self.clo.add_option("-d", "--declareAs", dest="tagAs", action="append",
-                            metavar="TAG",
+        self.clo.add_option("-d", "--declareAs", dest="tagAs", action="append", metavar="TAG",
                             help="tag all newly installed products with this user TAG (repeat as needed)")
-        self.clo.add_option("-g", "--groupAccess", dest="groupperm", 
-                            action="store", metavar="GROUP",
+        self.clo.add_option("-g", "--groupAccess", dest="groupperm", action="store", metavar="GROUP",
                             help="Give specified group r/w access to all newly installed packages")
-        self.clo.add_option("--nobuild", dest="nobuild", 
-                            action="store_true", default=False, 
-                    help="Don't attempt to build the product; just declare it")
-        self.clo.add_option("--noclean", dest="noclean", 
-                            action="store_true", default=False, 
-                 help="Don't clean up after successfully building the product")
-        self.clo.add_option("-N", "--noeups", dest="noeups", 
-                            action="store_true", default=False, 
-                help="Don't attempt to lookup product in eups (always install)")
-        self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store",
-                            metavar="DIR",
+        self.clo.add_option("-I", "--install-into", dest="installStack", action="append", metavar="DIR",
+                            help="install into this product stack " +
+                            "(Default: the first writable stack in $EUPS_PATH)")
+        self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
+                            help="Use this manifest file for the requested product")
+        self.clo.add_option("-U", "--no-server-tags", dest="updateTags", action="store_false", default=True,
+                            help="Prevent automatic assignment of server/global tags")
+        self.clo.add_option("--noclean", dest="noclean", action="store_true", default=False,
+                            help="Don't clean up after successfully building the product")
+        self.clo.add_option("-j", "--nodepend", dest="nodepend", action="store_true", default=False,
+                            help="Just install product, but not its dependencies")
+        self.clo.add_option("-N", "--noeups", dest="noeups", action="store_true", default=False,
+                            help="Don't attempt to lookup product in eups (always install)")
+        self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
+                            help="the base URL for a repository to access (repeat as needed).  " +
+                            "Default: $EUPS_PKGROOT")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="preferentially install products with this TAG")
+        self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store", metavar="DIR",
                             help="Build products in this directory")
+        self.clo.add_option("--nobuild", dest="nobuild", action="store_true", default=False,
+                            help="Don't attempt to build the product; just declare it")
 
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
-        self.clo.add_option("-S", "--server-option", dest="serverOpts",
-                            action="append",
-                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
-        self.clo.add_option("-S", "--server-class", dest="serverClasses",
-                            action="append",
-                   help="register this DistribServer class (repeat as needed)")
-        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
-                            action="append",
-                   help="register this Distrib class (repeat as needed)")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
+                            help="register this Distrib class (repeat as needed)")
+        self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
+                            help="pass a customized option to all repositories " +
+                            "(form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses", action="append",
+                            help="register this DistribServer class (repeat as needed)")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
+        self.clo.add_option("--recurse", dest="searchDep", action="store_true", default=False, 
+                            help="don't assume manifests completely specify dependencies")
         self.clo.add_option("--root", dest="root", action="append",
                             help="equivalent to --repository (deprecated)")
-        self.clo.add_option("--recurse", dest="searchDep", 
-                            action="store_true", default=False, 
-                 help="don't assume manifests completely specify dependencies")
-        self.clo.add_option("-C", "--current", dest="current", 
-                            action="store_true", default=False, 
-                        help="deprecated (use --tag or --no-server-tags)")
+        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False, 
+                            help="deprecated (use --tag or --no-server-tags)")
 
     def execute(self):
         # get rid of sub-command arg
@@ -1573,31 +1533,25 @@ product will be fully removed, even if its installation was successful.
     def addOptions(self):
         self.clo.enable_interspersed_args()
 
-        self.clo.add_option("-R", "--remove", dest="remove", 
-                            action="store_true", default=False, 
-                        help="Also remove the named product after cleaning")
-        self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store",
-                            metavar="DIR",
+        self.clo.add_option("-P", "--product-dir", dest="pdir", action="store", metavar="DIR",
+                            help="Assume the DIR is the product's installation/root directory")
+        self.clo.add_option("-R", "--remove", dest="remove", action="store_true", default=False,
+                            help="Also remove the named product after cleaning")
+        self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
+                            help="the base URL for a repository to access (repeat as needed).  " +
+                            "Default: $EUPS_PKGROOT")
+        self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store", metavar="DIR",
                             help="Assume the build was done under DIR")
-        self.clo.add_option("-P", "--product-dir", dest="pdir", action="store",
-                            metavar="DIR",
-             help="Assume the DIR is the product's installation/root directory")
-        self.clo.add_option("-r", "--repository", dest="root", action="append",
-                            metavar="BASEURL",
-                      help="the base URL for a repository to access (repeat as needed).  Default: $EUPS_PKGROOT")
 
         # these options are used to configure the Eups instance
         self.addEupsOptions()
-
-        self.clo.add_option("-S", "--server-option", dest="serverOpts",
-                            action="append",
+ 
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
+                            help="register this Distrib class (repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses", action="append",
+                            help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
                             help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
-        self.clo.add_option("-S", "--server-class", dest="serverClasses",
-                            action="append",
-                   help="register this DistribServer class (repeat as needed)")
-        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
-                            action="append",
-                   help="register this Distrib class (repeat as needed)")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -1670,53 +1624,43 @@ class DistribCreateCmd(EupsCmd):
     def addOptions(self):
         self.clo.enable_interspersed_args()
 
-        self.clo.add_option("-s", "--server-dir", dest="serverDir", 
-                            action="store", metavar="DIR",
-                      help="the directory tree to save created packages under")
-        self.clo.add_option("-a", "--as", dest="packageId", action="store", 
+        self.clo.add_option("-a", "--as", dest="packageId", action="store",
                             help="Create a distribution with this name")
-        self.clo.add_option("-d", "--distribType", dest="distribTypeName", 
-                            action="store", 
+        self.clo.add_option("-d", "--distribType", dest="distribTypeName", action="store",
                             help="Create a distribution with this type name (e.g. 'tarball', 'builder')")
-        self.clo.add_option("-I", "--incomplete", dest="allowIncomplete", 
-                            action="store_true", 
+        self.clo.add_option("-I", "--incomplete", dest="allowIncomplete", action="store_true",
                             help="Allow a manifest including packages we don't know how to install")
-        self.clo.add_option("-r", "--repository", dest="repos", action="append",
-                            metavar="BASEURL",
-                            help="the base URL for other repositories to consult (repeat as needed).  Default: $EUPS_PKGROOT")
-        self.clo.add_option("-j", "--nodepend", dest="nodepend", 
-                            action="store_true", default=False, 
-            help="Just create package for named product, not its dependencies")
         self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
-                       help="Use this manifest file for the requested product")
+                            help="Use this manifest file for the requested product")
+        self.clo.add_option("-j", "--nodepend", dest="nodepend", action="store_true", default=False,
+                            help="Just create package for named product, not its dependencies")
+        self.clo.add_option("-r", "--repository", dest="repos", action="append", metavar="BASEURL",
+                            help="the base URL for other repositories to consult (repeat as needed).  " +
+                            "Default: $EUPS_PKGROOT")
+        self.clo.add_option("-s", "--server-dir", dest="serverDir", action="store", metavar="DIR",
+                            help="the directory tree to save created packages under")
 
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
         # this will override the eups option version
-        self.clo.add_option("-f", "--use-flavor", dest="useflavor", 
-                            action="store_true", default=False,
-               help="Create an installation specialised to the current flavor")
-
-        self.clo.add_option("-S", "--server-option", dest="serverOpts",
-                            action="append",
-                            help="pass a customized option to all repositories (form NAME=VALUE, repeat as needed)")
-        self.clo.add_option("-S", "--server-class", dest="serverClasses",
-                            action="append",
-                   help="register this DistribServer class (repeat as needed)")
-        self.clo.add_option("-D", "--distrib-class", dest="distribClasses",
-                            action="append",
-                   help="register this Distrib class (repeat as needed)")
-
-        self.clo.add_option("--flavor", dest="flavor", action="store", 
-                      help="Assume this target platform flavor (e.g. 'Linux')")
+        self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
+                            help="register this Distrib class (repeat as needed)")
+        self.clo.add_option("-S", "--server-class", dest="serverClasses", action="append",
+                            help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
+                            help="pass a customized option to all repositories " +
+                            "(form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-f", "--use-flavor", dest="useflavor", action="store_true", default=False,
+                            help="Create an installation specialised to the current flavor")
+        self.clo.add_option("--flavor", dest="flavor", action="store",
+                            help="Assume this target platform flavor (e.g. 'Linux')")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-C", "--current", dest="current", 
-                            action="store_true", default=False, 
-                        help="deprecated (ignored)")
+        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False, 
+                            help="deprecated (ignored)")
 
     def execute(self):
         # get rid of sub-command arg
@@ -1814,7 +1758,7 @@ class TagsCmd(EupsCmd):
         EupsCmd.addOptions(self)
 
         self.clo.add_option("-t", "--tag", dest="tags", action="append", 
-             help="prepend these tags to the preferred list (repeat as needed)")
+                            help="prepend these tags to the preferred list (repeat as needed)")
 
     def execute(self):
         myeups = eups.Eups(readCache=True)
