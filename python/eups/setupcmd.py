@@ -84,65 +84,52 @@ product and all its dependencies into the environment so that it can be used.
 
     def addOptions(self):
 
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
-                            help="assign TAG to the specified product")
-        self.clo.add_option("-r", "--root", dest="productDir", action="store", 
-                            help="root directory of requested product")
-        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", 
-                      help="Assume this target platform flavor (e.g. 'Linux')")
-        self.clo.add_option("-j", "--just", dest="nodepend", 
-                            action="store_true", default=False, 
-                        help="Just setup product, no dependencies (equivalent to --max-depth 0)")
-        self.clo.add_option("-S", "--max-depth", dest="max_depth", 
-                            action="store", type="int", default=-1,
-                            help="Only show this many levels of dependencies (use with -v)")
-        self.clo.add_option("-i", "--ignore-versions", dest="ignoreVer", 
-                            action="store_true", default=False, 
-                            help="Ignore any explicit versions in table files")
-        self.clo.add_option("-k", "--keep", dest="keep", 
-                            action="store_true", default=False, 
-                            help="Keep any products already setup (regardless of their versions)")
-        self.clo.add_option("-e", "--exact", dest="exact_version", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False,
+                            help="deprecated (use --tag=current)")
+        self.clo.add_option("-Z", "--database", dest="path", action="store",
+                            help="The colon-separated list of product stacks (databases) to use. " +
+                            "Default: $EUPS_PATH")
+        self.clo.add_option("", "--debug", dest="debug", action="store", default="",
+                            help="turn on specified debugging behaviors (allowed: raise)")
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Don't use exact matching even though an explicit version is specified")
-        self.clo.add_option("-E", "--inexact", dest="inexact_version", 
-                            action="store_true", default=False, 
-                            help="Don't use exact matching even though an explicit version is specified")
-        self.clo.add_option("-Z", "--database", dest="path", action="store", 
-                            help="The colon-separated list of product stacks (databases) to use. Default: $EUPS_PATH")
-        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", 
-                            metavar="DIR", 
-                            help="Select the product paths which contain this directory.  Default: all in path")
-        self.clo.add_option("-T", "--type", dest="setuptype", action="store", 
-                            help="the setup type to assume (ignored unless -d is specified)")
-        self.clo.add_option("-F", "--force", dest="force", action="store_true", 
-                            default=False, help="Force requested behaviour")
-        self.clo.add_option("-u", "--unsetup", dest="unsetup", 
-                            action="store_true", default=False, 
-                            help="Unsetup the specifed product")
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
+                            help="Assume this target platform flavor (e.g. 'Linux')")
+        self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
+                            help="Force requested behaviour")
         self.clo.add_option("-h", "--help", dest="help", action="store_true",
                             help="show command-line help and exit")
-        self.clo.add_option("-v", "--verbose", dest="verbose", action="count", 
-                            default=0, 
-         help="Print extra messages about progress (repeat for ever more chat)")
-        self.clo.add_option("-q", "--quiet", dest="quiet", 
-                            action="store_true", default=False, 
-                            help="Suppress messages to user (overrides -v)")
-        self.clo.add_option("-V", "--version", dest="version", 
-                            action="store_true", default=False, 
-                            help="Print eups version number")
-        self.clo.add_option("--debug", dest="debug", action="store", 
-                            default="",
-                 help="turn on specified debugging behaviors (allowed: raise)")
-        self.clo.add_option("-n", "--noaction", dest="noaction", 
-                            action="store_true", default=False,
-                   help="Don\'t actually do anything (for debugging purposes)")
-        self.clo.add_option("-l", "--list", dest="list", 
-                            action="store_true", default=False, 
+        self.clo.add_option("-i", "--ignore-versions", dest="ignoreVer", action="store_true", default=False,
+                            help="Ignore any explicit versions in table files")
+        self.clo.add_option("-E", "--inexact", dest="inexact_version", action="store_true", default=False,
+                            help="Don't use exact matching even though an explicit version is specified")
+        self.clo.add_option("-j", "--just", dest="nodepend", action="store_true", default=False,
+                            help="Just setup product, no dependencies (equivalent to --max-depth 0)")
+        self.clo.add_option("-k", "--keep", dest="keep", action="store_true", default=False,
+                            help="Keep any products already setup (regardless of their versions)")
+        self.clo.add_option("-l", "--list", dest="list", action="store_true", default=False,
                             help="deprecated (use 'eups list')")
-        self.clo.add_option("-C", "--current", dest="current", 
-                            action="store_true", default=False, 
-                            help="deprecated (use --tag)")
+        self.clo.add_option("-S", "--max-depth", dest="max_depth", action="store", type="int", default=-1,
+                            help="Only show this many levels of dependencies (use with -v)")
+        self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
+                            help="Don\'t actually do anything (for debugging purposes)")
+        self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
+                            help="Suppress messages to user (overrides -v)")
+        self.clo.add_option("-r", "--root", dest="productDir", action="store",
+                            help="root directory of requested product")
+        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
+                            help="Select the product paths which contain this directory.  " +
+                            "Default: all in path")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="assign TAG to the specified product")
+        self.clo.add_option("-T", "--type", dest="setuptype", action="store",
+                            help="the setup type to assume (ignored unless -d is specified)")
+        self.clo.add_option("-u", "--unsetup", dest="unsetup", action="store_true", default=False,
+                            help="Unsetup the specifed product")
+        self.clo.add_option("-v", "--verbose", dest="verbose", action="count", default=0,
+                            help="Print extra messages about progress (repeat for ever more chat)")
+        self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
+                            help="Print eups version number")
 
     def execute(self):
         
