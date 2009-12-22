@@ -680,3 +680,18 @@ def productDir(productName, versionName=Setup(), eupsenv=None):
         return None
     return prod.dir
 
+def getSetupVersion(productName, eupsenv=None):
+    """
+    return the version name for the currently setup version of a given product.
+    This is equivalent to eupsenv.
+    @param productName   the name of the setup product
+    @param eupsenv       the Eups instance to use; if None (default), a 
+                             default will be created.
+    @throws ProductNotFound  if the requested product is not setup
+    """
+    if not eupsenv:
+        eupsenv = Eups()
+    version = eupsenv.findSetupVersion(productName)[0]
+    if not version:
+        raise ProductNotFound(productName, msg="%s is not setup" % productName)
+    return version

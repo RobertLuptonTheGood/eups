@@ -49,6 +49,14 @@ class AppTestCase(unittest.TestCase):
         dir = eups.productDir("python")
         self.assertEquals(dir, pdir)
 
+    def testGetSetupVersion(self):
+        self.assertRaises(eups.ProductNotFound, eups.getSetupVersion, "python")
+
+        eups.setup("python", "2.5.2")
+        version = eups.getSetupVersion("python")
+        self.assertEquals(version, "2.5.2")
+
+
 __all__ = "AppTestCase".split()        
 
 if __name__ == "__main__":
