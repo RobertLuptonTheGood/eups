@@ -134,6 +134,20 @@ class VersionFile(object):
         if readFile and os.path.exists(self.file):
             self._read(self.file, verbosity)
 
+    def __str__(self):
+        s = ""
+        s += "Product: %s  Version: %s" % (self.name, self.version)
+
+        flavors = self.info.keys(); flavors.sort()
+        for flavor in flavors:
+            s += "\n------------------"
+            s += "\nFlavor: %s" % flavor
+            keys = self.info[flavor].keys(); keys.sort()
+            for key in keys:
+                s += "\n%-20s : %s" % (key, self.info[flavor][key])
+
+        return s
+
     def makeProduct(self, flavor, eupsPathDir=None, dbpath=None):
         """
         create a Product instance for the given flavor.  If the product has 
@@ -180,16 +194,14 @@ class VersionFile(object):
         ups_dir = None
         if info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
             ups_dir = info["ups_dir"]
-            if install and not ups_dir.startswith("$PROD_") and \
-               not ups_dir.startswith("$UPS_"): 
-                # no need to check if ups_dir isabs(); 
-                # os.path.join() does the right thing
+            if install and not ups_dir.startswith("$PROD_") and not ups_dir.startswith("$UPS_"): 
                 ups_dir = os.path.join(install, ups_dir)
             ups_dir = self._resolve(ups_dir, macrodata)
             macrodata["UPS_DIR"] = ups_dir
 
         if info.has_key("table_file"):
             table = info["table_file"]
+
         if isRealFilename(table):
             if not table.startswith("$PROD_") and \
                not table.startswith("$UPS_") and not os.path.isabs(table):
@@ -200,7 +212,7 @@ class VersionFile(object):
                     if not os.path.exists(table) and eupsPathDir:
                         #
                         # OK, be nice.  Look relative to eupsPathDir too.  This is needed due to
-                        # malformed .version files (#???)
+                        # malformed .version files (fixed in r10329)
                         #
                         ntable = os.path.join(eupsPathDir, otable)
                         if (os.path.exists(ntable)):

@@ -1459,7 +1459,7 @@ class Eups(object):
                 productName = utils.guessProduct(os.path.join(productDir,"ups"))
 
         if tag and (not productDir or productDir == "/dev/null" or not tablefile):
-            for flavor in Flavor().getFallbackFlavors(self.flavor):
+            for flavor in Flavor().getFallbackFlavors(self.flavor, True):
                 info = self.findProduct(productName, versionName, eupsPathDir, flavor)
                 if info is not None:
                     if not productDir:
@@ -1492,16 +1492,15 @@ class Eups(object):
                   (productName, versionName, productDir)
 
         if utils.isRealFilename(productDir):
-            if productDir != "none":
-                if os.environ.has_key("HOME"):
-                    productDir = re.sub(r"^~", os.environ["HOME"], productDir)
-                if not os.path.isabs(productDir):
-                    productDir = os.path.join(os.getcwd(), productDir)
-                productDir = os.path.normpath(productDir)
-                assert productDir
+            if os.environ.has_key("HOME"):
+                productDir = re.sub(r"^~", os.environ["HOME"], productDir)
+            if not os.path.isabs(productDir):
+                productDir = os.path.join(os.getcwd(), productDir)
+            productDir = os.path.normpath(productDir)
+            assert productDir
 
-                if not os.path.isdir(productDir):
-                    raise EupsException("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
+            if not os.path.isdir(productDir):
+                raise EupsException("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
 
         if tablefile is None:
             tablefile = "%s.table" % productName
@@ -1560,7 +1559,11 @@ class Eups(object):
                 else:
                     full_tablefile = tablefile
             else:
-                full_tablefile = os.path.join(productDir, ups_dir, tablefile)
+                if utils.isRealFilename(tablefile):
+                    if utils.isRealFilename(productDir):
+                        full_tablefile = os.path.join(productDir, ups_dir, tablefile)
+                    else:
+                        full_tablefile = tablefile
 
             if not os.path.isfile(full_tablefile):
                 raise EupsException("I'm unable to declare %s as tablefile %s does not exist" %
@@ -1604,7 +1607,7 @@ class Eups(object):
                 differences += ["table file from stdin"]
 
             if differences:
-                # we're in a re-declaring situation
+                # we're redeclaring the product in a non-trivial way
                 info = ""
                 if self.verbose:
                     info = " (%s)" % " ".join(differences)
@@ -1616,8 +1619,7 @@ class Eups(object):
                 dodeclare = False
 
         # Last bit of tablefile path tweaking...
-        if not tablefile.startswith('$') and not os.path.isabs(tablefile) and \
-           full_tablefile:
+        if not tablefile.startswith('$') and not os.path.isabs(tablefile) and full_tablefile:
             tablefile = full_tablefile
 
         #
@@ -1657,7 +1659,7 @@ class Eups(object):
         dbpath = self.getUpsDB(eupsPathDir)
         if tag:  tag = [tag]
         product = Product(productName, versionName, self.flavor, productDir, 
-                          tablefile, tag, dbpath)
+                          tablefile, tag, dbpath, ups_dir=ups_dir)
 
         Database(dbpath).declare(product)
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:

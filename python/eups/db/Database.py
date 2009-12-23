@@ -365,16 +365,14 @@ class Database(object):
         if not tablefile:
             tablefile = product.tableFileName()
             if not tablefile or not os.path.exists(tablefile):
-                raise TableFileNotFound(product.name, product.version, 
-                                        product.flavor, 
-                                        msg="Unable to located a table file " +
-                                            "in default location: " + tablefile)
+                raise TableFileNotFound(product.name, product.version, product.flavor, 
+                                        msg="Unable to located a table file in default location: " + tablefile)
 
         # set the basic product information
         pdir = self._productDir(product.name)
         vfile = self._versionFileInDir(pdir, product.version)
         versionFile = VersionFile(vfile, product.name, product.version)
-        versionFile.addFlavor(product.flavor, product.dir, tablefile)
+        versionFile.addFlavor(product.flavor, product.dir, tablefile, product.ups_dir)
 
         # seal the deal
         if not os.path.exists(pdir):

@@ -42,7 +42,7 @@ class Product(object):
     LocalVersionPrefix = "LOCAL:"
 
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
-                 tags=None, db=None, noInit=None):
+                 tags=None, db=None, noInit=None, ups_dir=None):
         if (name and not isinstance(name, str)) or isinstance(dir,bool) or noInit is not None:
             print >> sys.stderr, "Note: detected use of deprecated API; use Eups.getProduct() instead."
             name = version
@@ -52,6 +52,7 @@ class Product(object):
         self.name = name
         self.version = version
         self.dir = dir
+        self.ups_dir = ups_dir
 
         if not self.dir and self.version.startswith(self.LocalVersionPrefix):
             self.dir = self.version[len(self.LocalVersionPrefix):]
