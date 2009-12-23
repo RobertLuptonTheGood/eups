@@ -52,12 +52,16 @@ class Tags(object):
                          type Tag
         @return bool 
         """
+        if isinstance(tag, str) and tag.find(':') >= 0:
+            # parse a qualified name
+            tag = Tag.parse(tag)
         return (self.groupFor(tag) is not None)
 
     def groupFor(self, tag):
         """
         return the group that this tag is registered under or None if it 
-        is not recognized.
+        is not recognized.  If the input tag is a string, it should be 
+        an unqualified tag name.  
         """
         if isinstance(tag, Tag):
             try:
@@ -96,6 +100,9 @@ class Tags(object):
         @param tag :    the name as a string or a Tag instance
         @return Tag : a representation of the tag
         """
+        if isinstance(tag, str) and tag.find(':') >= 0:
+            # parse a qualified name
+            tag = Tag.parse(tag)
         group = self.groupFor(tag)
         if group is None:
             raise TagNotRecognized(str(tag))

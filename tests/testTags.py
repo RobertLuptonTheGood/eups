@@ -19,6 +19,55 @@ class TagsTestCase(unittest.TestCase):
         self.tags.registerTag("stable")
         self.tags.registerUserTag("rlp")
 
+    def testRecognized(self):
+        self.assert_(self.tags.isRecognized("stable"), "stable not recognized")
+        self.assert_(self.tags.isRecognized("global:stable"), 
+                     "global:stable not recognized")
+        self.assert_(not self.tags.isRecognized("user:stable"), 
+                     "stable recognized as user tag")
+        self.assert_(self.tags.isRecognized("rlp"), "rlp not recognized")
+        self.assert_(self.tags.isRecognized("user:rlp"), 
+                     "user:rlp not recognized")
+        self.assert_(not self.tags.isRecognized("global:rlp"), 
+                     "rlp recognized as global tag")
+
+    def testGroupFor(self):
+        self.assertEquals(self.tags.groupFor("stable"), Tags.global_)
+        self.assertEquals(self.tags.groupFor("rlp"), Tags.user)
+        self.assert_(self.tags.groupFor("goober") is None, 
+                     "Found group for undefined tag")
+
+    def testTagNames(self):
+        tags = self.tags.getTagNames()
+        self.assertEquals(len(tags), 2)
+        self.assert_("stable" in tags)
+        self.assert_("user:rlp" in tags)
+
+    def testGetTag(self):
+        tag = self.tags.getTag("stable")
+        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertEquals(tag.name, "stable")
+        self.assertEquals(tag.group, Tags.global_)
+
+        tag = self.tags.getTag("global:stable")
+        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertEquals(tag.name, "stable")
+        self.assertEquals(tag.group, Tags.global_)
+
+        tag = self.tags.getTag("rlp")
+        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertEquals(tag.name, "rlp")
+        self.assertEquals(tag.group, Tags.user)
+
+        tag = self.tags.getTag("user:rlp")
+        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertEquals(tag.name, "rlp")
+        self.assertEquals(tag.group, Tags.user)
+
+        self.assertRaises(TagNotRecognized, self.tags.getTag, "goob")
+
+
+
     def testContents(self):
         tags = self.tags.getTagNames()
         self.assertEquals(len(tags), 2)
