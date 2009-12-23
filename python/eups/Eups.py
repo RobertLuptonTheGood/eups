@@ -2113,10 +2113,19 @@ class Eups(object):
         useInfo = Uses()
 
         for pi in productList:          # for every known product
-            tbl = pi.getTable()
-            if not tbl:
+            try:
+                q = Quiet(self)
+                tbl = pi.getTable()
+
+                if not tbl:
+                    del q
+                    continue
+
+                deps = tbl.dependencies(self, followExact=True) # lookup top-level dependencies
+                del q
+            except Exception, e:
+                print >> sys.stderr, ("Warning: %s" % (e))
                 continue
-            deps = tbl.dependencies(self, followExact=True)
 
             for pd, od in deps:
                 if pi.name == pd.name and pi.version == pd.version:
