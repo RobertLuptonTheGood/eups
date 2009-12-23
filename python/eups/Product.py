@@ -1,5 +1,5 @@
 # from Table import *
-import os, sys
+import os, re, sys
 import cPickle
 import table as mod_table
 import utils
@@ -121,7 +121,16 @@ class Product(object):
             if utils.isRealFilename(self.dir) and self.name:
                 return os.path.join(self.dir, "ups", "%s.table" % self.name)
         elif utils.isRealFilename(self.tablefile):
-            return self.tablefile
+            if os.path.isabs(self.tablefile):
+                return self.tablefile
+            else:
+                tablefile = self.tablefile
+                if self.db and self.ups_dir:
+                    ups_dir = re.sub("^\$UPS_DB", self.db, self.ups_dir)
+                    tablefile = os.path.join(ups_dir, tablefile)
+
+                return tablefile
+
         return None
 
     def getTable(self):

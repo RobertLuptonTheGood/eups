@@ -379,7 +379,7 @@ class ProductStack(object):
             self.lookup[flavor][product.name] = ProductFamily(product.name)
         self.lookup[flavor][product.name].addVersion(product.version,
                                                      product.dir,
-                                                     product.tablefile,
+                                                     product.tableFileName(),
                                                      product._table)
         for tag in product.tags:
             self.lookup[flavor][product.name].assignTag(tag, product.version)
