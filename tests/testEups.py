@@ -15,6 +15,7 @@ from eups import TagNotRecognized, Product, ProductNotFound, EupsException
 from eups.Eups import Eups
 from eups.stack import ProductStack
 from eups.utils import Quiet
+import eups.hooks
 
 class EupsTestCase(unittest.TestCase):
 
@@ -23,6 +24,7 @@ class EupsTestCase(unittest.TestCase):
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
         self.dbpath = os.path.join(testEupsStack, "ups_db")
+        eups.hooks.config.Eups.userTags = 'mine'
         self.eups = Eups()
 
         self.betachain = os.path.join(self.dbpath,"python","beta.chain")
@@ -57,6 +59,8 @@ class EupsTestCase(unittest.TestCase):
         if os.path.exists(pdir20):
             shutil.rmtree(pdir20)
 
+        eups.hooks.config.Eups.userTags = ''
+
     def testInit(self):
         self.assertEquals(len(self.eups.path), 1)
         self.assertEquals(self.eups.path[0], testEupsStack)
@@ -72,8 +76,9 @@ class EupsTestCase(unittest.TestCase):
 
         # 2 default tags: newest, setup
         # 3 from ups_db cache:  stable, current, beta
+        # 1 user tag: mine
         tags = self.eups.tags.getTagNames()
-        self.assertEquals(len(tags), 5)
+        self.assertEquals(len(tags), 6, "wrong number of tags:"+str(tags))
         for tag in "newest setup stable current beta".split():
             self.assert_(tag in tags)
 
@@ -357,6 +362,17 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(not os.path.exists(os.path.join(self.dbpath,"newprod")),
                      "product not fully removed")
 
+    def testUserTags(self):
+        self.assert_(self.eups.tags.isRecognized("mine"), 
+                     "user:mine not recognized")
+        prod = self.eups.getProduct("python", "2.5.2")
+        self.assert_("user:mine" not in prod.tags, "user:mine already assigned")
+        self.eups.assignTag("mine", "python", "2.5.2")
+        prod = self.eups.getProduct("python", "2.5.2")
+        self.assert_("user:mine" in prod.tags, "user:mine not assigned")
+        prod = self.eups.findProducts("python", tags="mine")
+        self.assertEquals(len(prod), 1, "failed to find user-tagged product")
+        self.assertEquals(prod[0].version, "2.5.2")
 
     def testList(self):
 

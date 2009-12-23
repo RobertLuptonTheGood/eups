@@ -755,12 +755,14 @@ class ProductStack(object):
 
     findCachedFlavors = staticmethod(findCachedFlavors) # works since python2.2
 
-    def refreshFromDatabase(self):
+    def refreshFromDatabase(self, userTagDir=None):
         """
         load product information directly from the database files on disk,
-        overwriting any previous information.
+        overwriting any previous information.  If userTagDir is provided,
+        user tag assignments will be explicitly loaded into the stack 
+        (otherwise, the stack may not have user tags in it).
         """
-        db = Database(self.dbpath)
+        db = Database(self.dbpath, userTagDir)
 
         # forget!
         self.lookup = {}
@@ -769,13 +771,13 @@ class ProductStack(object):
             for product in db.findProducts(prodname):
                 self.addProduct(product)
 
-    def _loadUserTags(self, persistDir=None):
-        if not persistDir:
-            persistDir = self.persistDir
-        if not persistDir or not os.path.exists(persistDir):
+    def _loadUserTags(self, userTagDir=None):
+        if not userTagDir:
+            userTagDir = self.persistDir
+        if not userTagDir or not os.path.exists(userTagDir):
             return
 
-        db = Database(self.dbpath, persistDir)
+        db = Database(self.dbpath, userTagDir)
         prodnames = db.findProductNames()
         for pname in prodnames:
             for tag, flavor, version in db.getTagAssignments(pname, glob=False):
@@ -783,26 +785,26 @@ class ProductStack(object):
             
 
     # @staticmethod   # requires python 2.4
-    def fromDatabase(dbpath, persistDir=None, autosave=True):
+    def fromDatabase(dbpath, persistDir=None, userTagDir=None, autosave=True):
         """
         return a ProductStack that has all products loaded in from an EUPS
-        database
-        @param dbpath   the full path to the database directory ("ups_db")
-        @param userTagPersistDir  the directory to persist user tag data to
-        @param persistDir     the directory to persist to.  If None,
-                                     the dbpath value will be used as the 
-                                     directory.
-        @param autosave           if true (default), all updates will be 
-                                     saved to disk.
+        database.  If a userTagDir is provided, user tag assignments will be
+        loaded in as well.
+        @param dbpath      the full path to the database directory ("ups_db")
+        @param persistDir  the directory to persist to.  If None, the dbpath 
+                              value will be used as the directory.
+        @param userTagDir  the directory where user tag data is persisted.
+        @param autosave    if true (default), all updates will be saved to 
+                              disk.
         """
         out = ProductStack(dbpath, persistDir, autosave)
-        out.refreshFromDatabase()
+        out.refreshFromDatabase(userTagDir)
         return out
     fromDatabase = staticmethod(fromDatabase)    # works since python2.2
 
     # @staticmethod   # requires python 2.4
-    def fromCache(dbpath, flavors, persistDir=None, updateCache=True, 
-                  autosave=True, verbose=False):
+    def fromCache(dbpath, flavors, persistDir=None, userTagDir=None, 
+                  updateCache=True, autosave=True, verbose=False):
         """
         return a ProductStack that has all products loaded in from the 
         available caches.  If they are out of date (or non-existent), this 
@@ -813,21 +815,22 @@ class ProductStack(object):
         will be assumed to have all user tags included in the cache.  If 
         no cache exists, then an up-to-date one will be looked for in dbpath.
         If one does not exist, one will be created by loading all product
-        data from the dbpath database.  A 
-        ProductStack created from dbpath will not have user tags in it;
-        thus, these will be explicitly added to it.  Finally, regardless of 
-        where the stack was loaded from, if persistDir is set and updateCache
-        is True, the stack is pesisted into persistDir.
+        data from the dbpath database.  A ProductStack created from dbpath 
+        will not have user tags in it; thus, these will be explicitly added 
+        to it.  Finally, regardless of where the stack was loaded from, if 
+        persistDir is set and updateCache is True, the stack is pesisted 
+        into persistDir.
 
-        @param dbpath   the full path to the database directory ("ups_db")
-        @param flavors            the desired flavors
-        @param persistDir     the directory to persist to.  If None,
-                                     the dbpath value will be used as the 
-                                     directory.
-        @param updateCache        if true (default), update the caches if any 
-                                     appear out of date
-        @param autosave           if true (default), all updates will be 
-                                     saved to disk.
+        @param dbpath       the full path to the database directory ("ups_db")
+        @param flavors         the desired flavors
+        @param persistDir   the directory to persist to.  If None,
+                               the dbpath value will be used as the 
+                               directory.
+        @param userTagDir   the directory where user tag data is persisted
+        @param updateCache  if true (default), update the caches if any 
+                               appear out of date
+        @param autosave     if true (default), all updates will be 
+                               saved to disk.
         """
         if not flavors:
             raise RuntimeError("ProductStack.fromCache(): at least one flavor needed as input" +
@@ -841,10 +844,10 @@ class ProductStack(object):
         if not cacheOkay:
             cacheOkay = out._tryCache(dbpath, dbpath, flavors)
             if cacheOkay:
-                out._loadUserTags(persistDir)
+                out._loadUserTags(userTagDir)
 
         if not cacheOkay:
-            out.refreshFromDatabase()
+            out.refreshFromDatabase(userTagDir)
             out._flavorsUpdated(flavors)
             if updateCache:  out.save()
 

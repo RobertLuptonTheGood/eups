@@ -196,11 +196,13 @@ class Eups(object):
             # the product info will be refreshed from the database
             dbpath = self.getUpsDB(p)
             cacheDir = dbpath
+            userCacheDir = self._makeUserCacheDir(p)
             if not self.asAdmin or not utils.isDbWritable(p):
                 # use a user-writable alternate location for the cache
-                cacheDir = self._makeUserCacheDir(p)
+                cacheDir = userCacheDir
             self.versions[p] = ProductStack.fromCache(dbpath, neededFlavors, 
                                                       persistDir=cacheDir, 
+                                                      userTagDir=userCacheDir,
                                                       updateCache=True, 
                                                       autosave=False,
                                                       verbose=self.verbose)
@@ -234,6 +236,11 @@ class Eups(object):
             except TypeError:
                 pass
 
+    def _databaseFor(self, eupsPathDir, dbpath=None):
+        if not dbpath:
+            dbpath = self.getUpsDB(eupsPathDir)
+        return Database(dbpath, userTagRoot=self._userStackCache(eupsPathDir))
+
     def _userStackCache(self, eupsPathDir):
         if not self.userDataDir:
             return None
@@ -243,6 +250,14 @@ class Eups(object):
         cachedir = self._userStackCache(eupsPathDir)
         if cachedir and not os.path.exists(cachedir):
             os.makedirs(cachedir)
+            try:
+                readme = open(os.path.join(cachedir,"README"), "w")
+                try:
+                    print >> readme, "User cache directory for", eupsPathDir
+                finally:
+                    readme.close()
+            except:
+                pass
         return cachedir
 
     def _loadServerTags(self):
@@ -410,8 +425,7 @@ class Eups(object):
             raise RuntimeError, ("Unexpected arguments: %s" % args) 
 
         if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
-            dbpath = self.getUpsDB(eupsPathDir)
-            vers = Database(dbpath).getTaggedVersion(versionName, productName, flavor)
+            vers = self._databaseFor(eupsPathDir).getTaggedVersion(versionName, productName, flavor)
             if vers is not None:
                 versionName = vers
 
@@ -487,14 +501,13 @@ class Eups(object):
         for root in eupsPathDirs:
             if noCache or not self.versions.has_key(root) or not self.versions[root]:
                 # go directly to the EUPS database
-                dbpath = self.getUpsDB(root)
-                if not os.path.exists(dbpath):
+                if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
                         print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                     continue
 
                 try:
-                    product = Database(dbpath).findProduct(name, version, flavor)
+                    product = self._databaseFor(root).findProduct(name, version, flavor)
                 except ProductNotFound:
                     product = None
     
@@ -558,13 +571,12 @@ class Eups(object):
         for root in eupsPathDirs:
             if noCache or not self.versions.has_key(root) or not self.versions[root]:
                 # go directly to the EUPS database
-                dbpath = self.getUpsDB(root)
-                if not os.path.exists(dbpath):
+                if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
                         print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                     continue
 
-                db = Database(dbpath)
+                db = self._databaseFor(root)
                 try:
                     version = db.getTaggedVersion(tag.name, name, flavor)
                     if version is not None:
@@ -593,13 +605,12 @@ class Eups(object):
         for root in eupsPathDirs:
             if noCache or not self.versions.has_key(root) or not self.versions[root]:
                 # go directly to the EUPS database
-                dbpath = self.getUpsDB(root)
-                if not os.path.exists(dbpath):
+                if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
                         print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                     continue
 
-                products = Database(dbpath).findProducts(name, flavors=flavor)
+                products = self._databaseFor(root).findProducts(name, flavors=flavor)
                 latest = self._selectPreferredProduct(products, [ Tag("newest") ])
                 if latest is None:
                     continue
@@ -647,13 +658,12 @@ class Eups(object):
         for root in eupsPathDirs:
             if noCache or not self.versions.has_key(root) or not self.versions[root]:
                 # go directly to the EUPS database
-                dbpath = self.getUpsDB(root)
-                if not os.path.exists(dbpath):
+                if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
                         print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                     continue
 
-                products = Database(dbpath).findProducts(name, flavors=flavor)
+                products = self._databaseFor(root).findProducts(name, flavors=flavor)
                 if len(products) == 0: 
                     continue
 
@@ -705,13 +715,12 @@ class Eups(object):
             for root in eupsPathDirs:
                 if noCache or not self.versions.has_key(root) or not self.versions[root]:
                     # go directly to the EUPS database
-                    dbpath = self.getUpsDB(root)
-                    if not os.path.exists(dbpath):
+                    if not os.path.exists(self.getUpsDB(root)):
                         if self.verbose:
                             print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
                         continue
 
-                    prods.extend(Database(dbpath).findProducts(name, flavors=flavor))
+                    prods.extend(self._databaseFor(root).findProducts(name, flavors=flavor))
 
                 else:
                     # consult the cache
@@ -1298,8 +1307,9 @@ class Eups(object):
                 (str(tag), product.db))
 
         # update the database.  If it's a user tag, 
-        if tag.isGlobal():
-            Database(product.db).assignTag(str(tag), productName, versionName, self.flavor)
+#        if tag.isGlobal():
+        db = Database(product.db, self._userStackCache(root))
+        db.assignTag(str(tag), productName, versionName, self.flavor)
 
         # update the cache
         if self.versions.has_key(root) and self.versions[root]:
@@ -1337,7 +1347,7 @@ class Eups(object):
                                       eupsPathDir)
             dbpath = prod.db
             eupsPathDir = prod.stackRoot()
-            if tag.name not in prod.tags:
+            if str(tag) not in prod.tags:
                 msg = "Tag %s not assigned to product %s" % \
                     (tag.name, productName)
                 if eupsPathDir:
@@ -1346,7 +1356,7 @@ class Eups(object):
         elif not eupsPathDir or isinstance(eupsPathDir, list):
             prod = self.findProduct(productName, tag, eupsPathDir, self.flavor)
             if prod is None:
-                # This product is not assigned to this product.  Is it 
+                # This tag is not assigned to this product.  Is it 
                 # because the product doesn't exist?
                 prod = self.findProduct(productName, versionName)
                 if prod is None:
@@ -1370,7 +1380,7 @@ class Eups(object):
                 (str(tag), product.db))
 
         # update the database
-        if tag.isGlobal() and not Database(dbpath).unassignTag(str(tag), productName, self.flavor):
+        if not self._databaseFor(eupsPathDir,dbpath).unassignTag(str(tag), productName, self.flavor):
             if self.verbose:
                 print >> sys.stderr, "Tag %s not assigned to %s %s" % \
                     (productName, versionName)
@@ -1661,7 +1671,7 @@ class Eups(object):
         product = Product(productName, versionName, self.flavor, productDir, 
                           tablefile, tag, dbpath, ups_dir=ups_dir)
 
-        Database(dbpath).declare(product)
+        self._databaseFor(eupsPathDir, dbpath).declare(product)
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
 
             self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
@@ -1751,8 +1761,7 @@ class Eups(object):
         if self.noaction:
             return True
 
-        dbpath = self.getUpsDB(eupsPathDir)
-        if not Database(dbpath).undeclare(product):
+        if not self._databaseFor(eupsPathDir).undeclare(product):
             # this should not happen
             raise ProductNotFound(product.name, product.version, product.flavor, product.db)
             
@@ -1811,15 +1820,20 @@ class Eups(object):
             if isinstance(tags, Tags):
                 tags = Tags.getTagNames()
             elif isinstance(tags, Tag):
-                tags = [tags.name]
+                tags = [str(tags)]
             if not isinstance(tags, list):
                 tags = [tags]
+
+            # check for unsupported tags and convert them to their 
+            # qualified names (i.e. user tags start with "user:")
             bad = []
-            for t in tags:
-                if not self.tags.isRecognized(t):
-                    bad.append(t)
+            for i in xrange(len(tags)):
+                try:
+                    tags[i] = str(self.tags.getTag(tags[i]))
+                except TagNotRecognized:
+                    bad.append(tags[i])
             if len(bad) > 0:
-                raise TagNotReconized(str(bad))
+                raise TagNotRecognized(str(bad))
 
         prodkey = lambda p: "%s:%s:%s:%s" % (p.name,p.flavor,p.db,p.version)
         tagset = _TagSet(tags)
