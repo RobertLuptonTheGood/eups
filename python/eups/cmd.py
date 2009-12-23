@@ -1838,9 +1838,7 @@ class EupsOptionParser(optparse.OptionParser):
         self._preformattedDescr = not formatdesc
 
     def print_help(self):
-        os.dup2(2, 1)                   # send stdout to stderr so "setup --help" will work
-
-        optparse.OptionParser.print_help(self) # optparse.OptionParser is an old-style class, damn them
+        optparse.OptionParser.print_help(self, sys.stderr) # optparse.OptionParser is an old-style class, damn them
 
     def format_description(self, formatter):
         """

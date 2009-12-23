@@ -12,6 +12,7 @@ from testEups import *
 from testCmd import *
 from testDeprecated import *
 from testApp import *
+from testMisc import *
 from checkVersionFile import *
 
 if __name__ == "__main__":
