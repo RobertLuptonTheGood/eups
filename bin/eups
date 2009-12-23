@@ -31,8 +31,7 @@ cmd = eups.cmd.EupsCmd()
 
 # set debugging features
 debugOptions = cmd.opts.debug.split(":")
-# allowRaise = "raise" in debug
-allowRaise = True
+allowRaise = "raise" in debugOptions
 
 # load any local customizations
 verbosity = cmd.opts.verbose
@@ -45,8 +44,10 @@ if allowRaise:
     sys.exit(cmd.run())
 else:
     try:
-        sys.exit(setup.run())
+        status = cmd.run()            # calling sys.exit here raises SystemExit which is caught...
     except Exception, e:
         cmd.err(str(e))
-        sys.exit(9)
+        status = 9
+
+sys.exit(status)
 
