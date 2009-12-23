@@ -51,7 +51,8 @@ product and all its dependencies into the environment so that it can be used.
             args = sys.argv[1:]
         self.clargs = args[:]
 
-        self.clo = EupsOptionParser(self.usage, self.description, 
+        self.clo = EupsOptionParser(self._errstrm, self.usage, 
+                                    self.description, 
                                     not self.noDescriptionFormatting,
                                     self.prog)
         self.clo.enable_interspersed_args()

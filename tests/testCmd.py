@@ -70,17 +70,17 @@ class CmdTestCase(unittest.TestCase):
     def testHelp(self):
         cmd = eups.cmd.EupsCmd(args="-h".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
-        self.assertEquals(self.err.getvalue(), "")
-        self.assert_(re.match(r'^[Uu]sage: '+prog, self.out.getvalue()),
-                     "Output starts with: '%s....'" % self.out.getvalue()[:16])
+        self.assertEquals(self.out.getvalue(), "")
+        self.assert_(re.match(r'^[Uu]sage: '+prog, self.err.getvalue()),
+                     "Output starts with: '%s....'" % self.err.getvalue()[:16])
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="flavor -h".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
-        self.assertEquals(self.err.getvalue(), "")
+        self.assertEquals(self.out.getvalue(), "")
         self.assert_(re.match(r'^[Uu]sage: '+prog+' flavor',
-                              self.out.getvalue()),
-                     "Output starts with: '%s....'" % self.out.getvalue()[:16])
+                              self.err.getvalue()),
+                     "Output starts with: '%s....'" % self.err.getvalue()[:16])
 
     def testVersion(self):
         cmd = eups.cmd.EupsCmd(args="-V".split(), toolname=prog)

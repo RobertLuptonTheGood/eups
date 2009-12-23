@@ -136,7 +136,8 @@ Common"""
                 return 0
 
             self.err("No command provided\n")
-            self.clo.print_help()
+            if not self.opts.quiet:
+                self.clo.print_help()
             return 9
 
         ecmd = makeEupsCmd(self.cmd, self.clargs, self.prog)
@@ -168,7 +169,8 @@ Common"""
             args = sys.argv[1:]
         self.clargs = args[:]
 
-        self.clo = EupsOptionParser(self.usage, self.description, 
+        self.clo = EupsOptionParser(self._errstrm, self.usage, 
+                                    self.description, 
                                     not self.noDescriptionFormatting,
                                     self.prog)
 
@@ -1827,8 +1829,9 @@ class EupsOptionParser(optparse.OptionParser):
     being accessed.  
     """
 
-    def __init__(self, usage=None, description=None, formatdesc=True, 
-                 prog=None):
+    def __init__(self, helpstrm=None, usage=None, description=None, 
+                 formatdesc=True, prog=None):
+                 
         optparse.OptionParser.__init__(self, usage=usage, 
                                        description=description, 
                                        prog=prog, 
@@ -1836,9 +1839,12 @@ class EupsOptionParser(optparse.OptionParser):
                                        conflict_handler="resolve")
 
         self._preformattedDescr = not formatdesc
+        if not helpstrm:
+            helpstrm = _errstrm
+        self._helpstrm = helpstrm
 
     def print_help(self):
-        optparse.OptionParser.print_help(self, sys.stderr) # optparse.OptionParser is an old-style class, damn them
+        optparse.OptionParser.print_help(self, self._helpstrm) # optparse.OptionParser is an old-style class, damn them
 
     def format_description(self, formatter):
         """
