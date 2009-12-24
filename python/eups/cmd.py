@@ -258,11 +258,65 @@ Common"""
         asAdmin = False
         if hasattr(opts, "asAdmin"):  asAdmin = opts.asAdmin
             
-        return eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
+        Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force,
                          ignore_versions=ignorever, exact_version=exactver,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet,
                          noaction=opts.noaction, asAdmin=asAdmin)
+
+        try:
+            eups.commandCallbacks.apply(Eups, self.cmd, self.opts, self.args)
+        except eups.OperationForbidden, e:
+            e.status = 255
+            raise
+        except Exception, e:
+            e.status = 9
+            raise
+
+        return Eups
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class CommandCallbacks(object):
+    """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
+        and calling eups.commandCallbacks.add(hook)"""
+
+    callbacks = []
+
+    def __init__(self):
+        pass
+
+    def add(self, callback):
+        """
+        Add a command callback.
+        
+        The arguments are the command (e.g. "admin" if you type "eups admin")
+        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+        
+        E.g.
+        if cmd == "fetch":
+            argv[1:2] = ["distrib", "install"]
+        """
+        CommandCallbacks.callbacks += [callback]
+
+    def apply(self, Eups, cmd, opts, args):
+        """Call the command callbacks on cmd"""
+
+        for hook in CommandCallbacks.callbacks:
+            hook(Eups, cmd, opts, args)
+
+    def clear(self):
+        """Clear the list of command callbacks"""
+        CommandCallbacks.callbacks = []
+
+    def list(self):
+        for hook in CommandCallbacks.callbacks:
+            print >> sys.stderr, hook
+
+try:
+    type(commandCallbacks)
+except NameError:
+    commandCallbacks = CommandCallbacks()
         
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -865,7 +919,11 @@ For example, the make target in a ups directory might contain the line:
             self.err("You may not specify both --inplace and a target directory")
             return 4
 
-        myeups = self.createEups()
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
         productList = {}
         productVersionPair = self.opts.prodlist
@@ -1076,7 +1134,11 @@ version currently declared.
         if len(self.args) > 1:
             version = self.args[1]
 
-        myeups = self.createEups()
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
         if self.opts.tag:
             try:
@@ -1137,8 +1199,12 @@ where it is installed.
         product = self.args[0]
         version = self.args[1]
 
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
-        myeups = self.createEups()
         try:
             myeups.remove(product, version, self.opts.recursive,
                           checkRecursive=not self.opts.noCheck, 
@@ -1449,7 +1515,11 @@ tag will be installed.
             else:
                 self.opts.path = "%s:%s" % (self.opts.installStack, self.opts.path)
 
-        myeups = self.createEups()
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
         if self.opts.tag:
             try:
@@ -1602,7 +1672,11 @@ product will be fully removed, even if its installation was successful.
         if self.opts.quiet:
             log = open("/dev/null", "w")
 
-        myeups = self.createEups()
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
         try:
             repos = distrib.Repositories(self.opts.root, dopts, myeups, 
@@ -1703,7 +1777,11 @@ class DistribCreateCmd(EupsCmd):
             self.err("No writeable package server found; use --serverDir")
             return 3
 
-        myeups = self.createEups()
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
         dopts = {}
         # handle extra options

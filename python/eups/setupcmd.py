@@ -197,6 +197,20 @@ product and all its dependencies into the environment so that it can be used.
                              ignore_versions=self.opts.ignoreVer,
                              max_depth=self.opts.max_depth, 
                              exact_version=self.opts.exact_version)
+
+            if self.opts.unsetup:
+                cmdName = "unsetup"
+            else:
+                cmdName = "setup"
+            
+            try:
+                eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
+            except eups.OperationForbidden, e:
+                e.status = 255
+                raise
+            except Exception, e:
+                e.status = 9
+                raise
                                   
             cmds = eups.setup(productName, versionName, self.opts.tag,
                               self.opts.productDir, self.opts.setuptype, 

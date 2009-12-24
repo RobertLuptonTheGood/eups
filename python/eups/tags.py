@@ -111,26 +111,35 @@ class Tags(object):
             return tag
         return Tag(tag, group)
 
-    def registerTag(self, name, group=None):
+    def registerTag(self, name, group=None, force=False):
         """
         register a tag so that it is recognized.  
 
         @param name :  the name of the tag
         @param group : the class of tag to register it as.  If null, it 
-                       will be registered as a global tag. 
+                       will be registered as a global tag.
+        @param force : Allows the tag to be redefined, maybe in a different group
+
         @throws TagNameConflict  if the name has already been registered.
         """
         if group is None:
             group = self.global_
 
+        if isinstance(name, Tag):
+            name = name.name
+
         found = self.groupFor(name)
-        if found and found != group:
-            raise TagNameConflict(name, found)
+        if found:
+            if found != group and not force:
+                raise TagNameConflict(name, found)
+
+            self.bygrp[found].remove(name)
+            found = False               # it aint there now
 
         if not found:
             self.bygrp[group].append(name)
 
-    def registerUserTag(self, name):
+    def registerUserTag(self, name, force=False):
         """
         register a user tag.  This is equivalent to 
         registerTag(name, Tags.user).  
@@ -138,7 +147,7 @@ class Tags(object):
         @param string name : the name of the tag
         @throws TagNameConflict  if the name has already been registered.
         """
-        return self.registerTag(name, self.user)
+        return self.registerTag(name, self.user, force)
 
     def _lockfilepath(self, file):
         return file + ".lock"
@@ -454,7 +463,7 @@ class TagNameConflict(EupsException):
     """
 
     def __init__(self, name, found):
-        EupsException.__init__(self, "Saw %s; %s" % (name, found))
+        EupsException.__init__(self, "Tag \"%s\" is already present in group %s" % (name, found))
         self.name = name,
         self.found = found
             

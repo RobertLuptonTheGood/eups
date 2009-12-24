@@ -226,3 +226,69 @@ class CustomizationError(EupsException):
         if not msg:
             msg = "Unknown user customization error"
         EupsException.__init__(self, msg)
+
+class TagNameConflict(EupsException):
+    """
+    an exception indicating that there was a tagname conflict
+    a stack database.
+
+    An instance has the following public attributes:
+        name     the product name
+        version  the version.  A None value (default) means no product of 
+                     any version was found.
+        flavors  the platform flavors of interest.  A None value (default)
+                     means that the flavor is unknown, though typically can
+                     be assumed to mean any of the supportable platforms.
+        stack    the path to the EUPS-managed software stack or to the 
+                     database directory (ups_db).  A None value (default)
+                     means that the flavor is unknown, though typically can
+                     be assumed to mean any of the stacks in scope.
+    """
+
+    def __init__(self, name, version=None, flavors=None, stack=None, msg=None):
+        """
+        create the exception
+        @param name     the product name
+        @param version  the version.  Use None (default) if no product of 
+                            any version was found.
+        @param flavors   the platform flavors of interest.  default: None
+        @param stack    the path to the EUPS-managed software stack or to the 
+                           database directory (ups_db)
+        @param msg      the descriptive message.  A default will be generated
+                           from the product name.
+        """
+        message = msg
+        if message is None:
+            message = "Product " + str(name)
+            if version is not None:
+                message += " %s" % str(version)
+            if flavors:
+                message += " for %s" % str(flavors)
+            message += " not found"
+            if stack is not None:
+                message += " in %s" % str(stack)
+        EupsException.__init__(self, message)
+        self.name = name
+        self.version = version
+        if not isinstance(flavors, list):
+            flavors = [flavors]
+        self.flavors = flavors
+        self.stack = stack
+
+
+class OperationForbidden(EupsException):
+    """
+    an exception indicating that someone tried to do something illegal
+
+    An instance has the following public attributes:
+
+        message
+    """
+
+    def __init__(self, message):
+        """
+        create the exception
+        @param message  the message describing the failure.  
+        """
+        EupsException.__init__(self, message)
+
