@@ -346,7 +346,6 @@ class Tag(object):
         return true if this is a user tag
         """
         import hooks
-        import pdb; pdb.set_trace()
         return self.group == Tags.user
 
     def isGlobal(self):

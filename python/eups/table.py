@@ -6,7 +6,6 @@
 #
 import os
 import re, sys
-import pdb
 
 from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
 from VersionParser import VersionParser
