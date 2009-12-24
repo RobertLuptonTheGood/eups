@@ -345,6 +345,8 @@ class Tag(object):
         """
         return true if this is a user tag
         """
+        import hooks
+        import pdb; pdb.set_trace()
         return self.group == Tags.user
 
     def isGlobal(self):
@@ -447,6 +449,15 @@ class TagNotRecognized(EupsException):
         self.name = name,
         self.group = group
 
+class TagNameConflict(EupsException):
+    """
+    an exception indicating that a tagname has already been registered.
+    """
+
+    def __init__(self, name, found):
+        EupsException.__init__(self, "Saw %s; %s" % (name, found))
+        self.name = name,
+        self.found = found
             
-__all__ = "Tags Tag TagNotRecognized".split()
+__all__ = "Tags Tag TagNotRecognized TagNameConflict".split()
 

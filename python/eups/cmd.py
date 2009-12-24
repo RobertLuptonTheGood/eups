@@ -55,7 +55,7 @@ class EupsCmd(object):
     specializations that handle each command.  
     """
 
-    usage = "%prog [-h|--help|-V|--version] command [options]"
+    usage = "%prog [--debug=OPTS|-h|--help|-V|--version] command [options]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -382,8 +382,8 @@ will also be printed.
                 self.err(msg)
 
         except eups.EupsException, e:
-            self.err(str(e))
-            return 2
+            e.status = 2
+            raise
 
         return 0
 
@@ -678,8 +678,8 @@ class UsesCmd(EupsCmd):
                            showOptional=self.opts.optional,
                            tags=self.opts.tag)
         except eups.EupsException, e:
-            self.err(str(e))
-            return 2
+            e.status = 2
+            raise
 
         return 0
 
@@ -1005,7 +1005,11 @@ only wish to assign a tag, you should use the -t option but not include
                     self.err("Error opening %s: %s" % (externalTablefile, e))
                     return 4
 
-        myeups = self.createEups()
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
 
         if self.opts.tag:
             try:
@@ -1016,13 +1020,16 @@ only wish to assign a tag, you should use the -t option but not include
             except eups.TagNotRecognized:
                 self.err("%s: Unsupported tag name" % self.opts.tag)
                 return 1
+            except eups.EupsException, e:
+                e.status = 9
+                raise
 
         try:
             eups.declare(product, version, self.opts.productDir, 
                          tablefile=tablefile, tag=self.opts.tag, eupsenv=myeups)
         except eups.EupsException, e:
-            self.err(str(e))
-            return 2
+            e.status = 2
+            raise
 
         return 0
 
@@ -1084,8 +1091,8 @@ version currently declared.
         try:
             eups.undeclare(product, version, tag=self.opts.tag, eupsenv=myeups)
         except eups.EupsException, e:
-            self.err(str(e))
-            return 2
+            e.status = 2
+            raise
 
         return 0
 
@@ -1137,8 +1144,8 @@ where it is installed.
                           checkRecursive=not self.opts.noCheck, 
                           interactive=self.opts.interactive)
         except eups.EupsException, e:
-            self.err(str(e))
-            return 1
+            e.status = 1
+            raise
 
         return 0
 
@@ -1327,8 +1334,8 @@ class DistribListCmd(EupsCmd):
 
             data = repos.listPackages(product, version, self.opts.flavor)
         except eups.EupsException, e:
-            self.err(str(e))
-            return 1
+            e.status = 1
+            raise
 
         primary = "primary"
         for i in xrange(len(data)):
@@ -1509,9 +1516,10 @@ tag will be installed.
                           self.opts.noclean, self.opts.noeups, dopts, 
                           self.opts.manifest, self.opts.searchDep)
         except eups.EupsException, e:
-            self.err(str(e))
-            if log:  log.close()
-            return 1
+            e.status = 1
+            if log:
+                log.close()
+            raise
 
         if log:  log.close()
         return 0
@@ -1604,12 +1612,10 @@ product will be fully removed, even if its installation was successful.
                         self.opts.pdir, self.opts.remove)
 
         except eups.EupsException, e:
-            self.err(str(e))
-            if log:  log.close()
-            return 1
-
-        if log:  log.close()
-        return 0
+            e.status = 1
+            if log:
+                log.close()
+            raise
 
 class DistribCreateCmd(EupsCmd):
 
@@ -1738,8 +1744,8 @@ class DistribCreateCmd(EupsCmd):
                           packageId=self.opts.packageId, repositories=repos)
 
         except EUPSException, e:
-            self.err(str(e))
-            return 1
+            e.status = 1
+            raise
 
         return 0
         

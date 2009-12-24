@@ -217,7 +217,6 @@ class Eups(object):
         self._loadUserTags()
 
         if preferredTags is None:
-            # the default is: "stable current newest"
             preferredTags = hooks.config.Eups.preferredTags.split()
         q = Quiet(self)
         self._kindlySetPreferredTags(preferredTags)

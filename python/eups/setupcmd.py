@@ -170,8 +170,8 @@ product and all its dependencies into the environment so that it can be used.
             try:
                 productName = eups.utils.guessProduct(os.path.join(self.opts.productDir, "ups"), productName)
             except EupsException, e:
-                self.err(str(e))
-                return 4
+                e.status = 4
+                raise
 
         if not productName:
             self.err("Please specify a product")
@@ -203,9 +203,8 @@ product and all its dependencies into the environment so that it can be used.
                               Eups, fwd=not self.opts.unsetup)
 
         except EupsException, e:
-            self.err(str(e))
-            status = 1
-            cmds = ["false"]
+            e.status = 1
+            raise
 
         if Eups.verbose > 2:
             self.err("\n\t".join(["Issuing commands:"] + cmds))

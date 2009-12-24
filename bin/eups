@@ -47,7 +47,7 @@ else:
         status = cmd.run()            # calling sys.exit here raises SystemExit which is caught...
     except Exception, e:
         cmd.err(str(e))
-        status = 9
+        status = e.status
 
 sys.exit(status)
 
