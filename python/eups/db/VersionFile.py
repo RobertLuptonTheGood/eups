@@ -3,12 +3,6 @@ from eups.Product import Product
 from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename
 
-macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
-            "PROD_DIR":  re.compile(r"^\$PROD_DIR\b"),
-            "FLAVOR":    re.compile(r"\$FLAVOR\b"),
-            "UPS_DIR":   re.compile(r"^\$UPS_DIR\b"),
-            "UPS_DB":    re.compile(r"^\$UPS_DB\b")     }
-
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 defaultProductUpsDir = "ups"
 
@@ -73,8 +67,9 @@ class VersionFile(object):
                             (which typically ends with the name "ups_db").
                             This can only appear at the start of the path.
 
-    These rules are generally applied in makeProduct() which turns the parsed 
-    data from a version file into a specific product description.  
+    These rules are generally applied in makeProduct() (via 
+    Product.resolvePaths()) which turns the parsed data from a version file
+    into a specific product description.
 
     @author  Raymond Plante
     """
@@ -173,65 +168,13 @@ class VersionFile(object):
         if eupsPathDir and not dbpath:
             dbpath = os.path.join(eupsPathDir, "ups_db")
 
-        macrodata = { "FLAVOR":    flavor,
-                      "PROD_ROOT": eupsPathDir,
-                      "UPS_DB":    dbpath       }
-
         info = self.info[flavor]
-        install = table = None
+        out = Product(self.name, self.version, flavor, 
+                      info.get("productDir"), info.get("table_file"), 
+                      db=dbpath, ups_dir=info.get("ups_dir"))
+        out.resolvePaths()
 
-        if info.has_key("productDir"):
-            install = info["productDir"]
-        if isRealFilename(install):
-            if eupsPathDir and not install.startswith("$PROD_") and \
-               not install.startswith("$UPS_"):
-                # no need to check if install isabs(); 
-                # os.path.join() does the right thing
-                install = os.path.join(eupsPathDir, install)
-            install = self._resolve(install, macrodata)
-            macrodata["PROD_DIR"] = install
-
-        ups_dir = None
-        if info.has_key("ups_dir") and isRealFilename(info["ups_dir"]):
-            ups_dir = info["ups_dir"]
-            if install and not ups_dir.startswith("$PROD_") and not ups_dir.startswith("$UPS_"): 
-                ups_dir = os.path.join(install, ups_dir)
-            ups_dir = self._resolve(ups_dir, macrodata)
-            macrodata["UPS_DIR"] = ups_dir
-
-        if info.has_key("table_file"):
-            table = info["table_file"]
-
-        if isRealFilename(table):
-            if not table.startswith("$PROD_") and \
-               not table.startswith("$UPS_") and not os.path.isabs(table):
-                if ups_dir:
-                    otable = table      # keep in case of problems
-                    table = os.path.join(ups_dir, table)
-                    
-                    if not os.path.exists(table) and eupsPathDir:
-                        #
-                        # OK, be nice.  Look relative to eupsPathDir too.  This is needed due to
-                        # malformed .version files (fixed in r10329)
-                        #
-                        ntable = os.path.join(eupsPathDir, otable)
-                        if (os.path.exists(ntable)):
-                            table = ntable
-
-                elif install and isRealFilename(install):
-                    table = os.path.join(install, table)
-
-            table = self._resolve(table, macrodata)
-
-        # one last try:
-        if isRealFilename(install) and install.find('$') >= 0:
-            install = self._resolve(install, macrodata, skip="PROD_DIR")
-            macrodata["PROD_DIR"] = install
-        if isRealFilename(table) and install.find('$') >= 0:
-            table = self._resolve(table, macrodata)
-
-        return Product(self.name, self.version, flavor, install, table, 
-                       db=dbpath)
+        return out
 
     def _resolve(self, value, data, skip=None):
         if not value: return value

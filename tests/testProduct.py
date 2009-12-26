@@ -84,7 +84,153 @@ class ProductTestCase(unittest.TestCase):
         if os.path.exists("test_product.pickle"):
             os.remove("test_product.pickle")
 
-__all__ = "ProductTestCase".split()
+class ProductTransformationTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.eupsPathDir = testEupsStack
+        self.dbpath = os.path.join(self.eupsPathDir, "ups_db")
+
+    def tearDown(self):
+        pass
+
+    def testProd1(self):
+        pname = "newprod"
+        pver = "2.0"
+        pdir = os.path.join(self.eupsPathDir,"Linux",pname,pver)
+        prod = Product("newprod", "2.0", "Linux", pdir, db=self.dbpath)
+                       
+        self.assertEquals(prod.dir, pdir)
+        self.assertEquals(prod.db, self.dbpath)
+        self.assert_(prod.ups_dir is None)
+        self.assert_(prod.tablefile is None)
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+        # test cloning (we'll use this later)
+        clone = prod.clone()
+        self.assertEquals(clone.dir, pdir)
+        self.assertEquals(clone.db, self.dbpath)
+        self.assert_(clone.ups_dir is None)
+        self.assert_(clone.tablefile is None)
+        self.assertEquals(clone.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+        # turn to absolute paths
+        prod.resolvePaths()
+        self.assertEquals(prod.dir, pdir)
+        self.assertEquals(prod.db, self.dbpath)
+        self.assertEquals(prod.tablefile, 
+                          os.path.join(pdir,"ups",pname+".table"))
+        self.assertEquals(prod.ups_dir, os.path.join(pdir,"ups"))
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+        # turn to relative paths
+        prod.canonicalizePaths()
+        self.assertEquals(prod.dir, "Linux/newprod/2.0")
+        self.assertEquals(prod.db, self.dbpath)
+        self.assertEquals(prod.tablefile, pname+".table")
+        self.assertEquals(prod.ups_dir, "ups")
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+        # round trip: turn back to absolute paths
+        prod.resolvePaths()
+        self.assertEquals(prod.dir, pdir)
+        self.assertEquals(prod.db, self.dbpath)
+        self.assertEquals(prod.tablefile, 
+                          os.path.join(pdir,"ups",pname+".table"))
+        self.assertEquals(prod.ups_dir, os.path.join(pdir,"ups"))
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+        # turn original to relative paths
+        clone.canonicalizePaths()
+        self.assertEquals(clone.dir, "Linux/newprod/2.0")
+        self.assertEquals(clone.db, self.dbpath)
+        self.assertEquals(clone.tablefile, pname+".table")
+        self.assertEquals(clone.ups_dir, "ups")
+        self.assertEquals(clone.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+        # back to absolute paths
+        clone.resolvePaths()
+        self.assertEquals(clone.dir, pdir)
+        self.assertEquals(clone.db, self.dbpath)
+        self.assertEquals(clone.tablefile, 
+                          os.path.join(pdir,"ups",pname+".table"))
+        self.assertEquals(clone.ups_dir, os.path.join(pdir,"ups"))
+        self.assertEquals(clone.tableFileName(), 
+                          os.path.join(pdir,"ups",pname+".table"))
+
+    def testProd2(self):
+        """
+        Test $UPS_DB transformations
+        """
+        pname = "newprod"
+        pver = "2.0"
+        pdir = os.path.join(self.eupsPathDir,"Linux",pname,pver)
+        prod = Product("newprod", "2.0", "Linux", pdir, db=self.dbpath, 
+                       table=os.path.join(self.dbpath,pname,'Linux',
+                                          pver+".table"))
+
+        self.assertEquals(prod.dir, pdir)
+        self.assertEquals(prod.db, self.dbpath)
+        self.assertEquals(prod.tablefile, 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+        self.assert_(prod.ups_dir is None)
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+
+        # test cloning (we'll use this later)
+        clone = prod.clone()
+        self.assertEquals(clone.dir, pdir)
+        self.assertEquals(clone.db, self.dbpath)
+        self.assertEquals(clone.tablefile, 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+        self.assert_(clone.ups_dir is None)
+        self.assertEquals(clone.tableFileName(), 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+
+        # turn to absolute paths
+        prod.resolvePaths()
+        self.assertEquals(prod.dir, pdir)
+        self.assertEquals(prod.db, self.dbpath)
+        self.assert_(prod.ups_dir is None)
+        self.assertEquals(prod.tablefile, 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+
+        prod.canonicalizePaths()
+        self.assertEquals(prod.dir, "Linux/newprod/2.0")
+        self.assertEquals(prod.db, self.dbpath)
+        self.assertEquals(prod.ups_dir, "$UPS_DB/newprod/Linux")
+        self.assertEquals(prod.tablefile, "2.0.table")
+        self.assertEquals(prod.tableFileName(), 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+
+        # turn original to relative paths
+        clone.canonicalizePaths()
+        self.assertEquals(clone.dir, "Linux/newprod/2.0")
+        self.assertEquals(clone.db, self.dbpath)
+        self.assertEquals(clone.ups_dir, "$UPS_DB/newprod/Linux")
+        self.assertEquals(clone.tablefile, "2.0.table")
+        self.assertEquals(clone.tableFileName(), 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+
+        # back to absolute paths
+        clone.resolvePaths()
+        self.assertEquals(clone.dir, pdir)
+        self.assertEquals(clone.db, self.dbpath)
+        self.assertEquals(clone.ups_dir, 
+                          os.path.join(self.dbpath,pname,"Linux"))
+        self.assertEquals(clone.tablefile, 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+        self.assertEquals(clone.tableFileName(), 
+                          os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
+
+__all__ = "ProductTestCase ProductTransformationTestCase".split()
 
 if __name__ == "__main__":
     unittest.main()

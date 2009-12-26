@@ -361,18 +361,20 @@ class Database(object):
                       str(product.flavor))
             )
 
-        tablefile = product.tablefile
+        prod = product.clone().canonicalizePaths()
+
+        tablefile = prod.tablefile
         if not tablefile:
-            tablefile = product.tableFileName()
+            tablefile = prod.tableFileName()
             if not tablefile or not os.path.exists(tablefile):
-                raise TableFileNotFound(product.name, product.version, product.flavor, 
+                raise TableFileNotFound(prod.name, prod.version, prod.flavor, 
                                         msg="Unable to located a table file in default location: " + tablefile)
 
         # set the basic product information
-        pdir = self._productDir(product.name)
-        vfile = self._versionFileInDir(pdir, product.version)
-        versionFile = VersionFile(vfile, product.name, product.version)
-        versionFile.addFlavor(product.flavor, product.dir, tablefile, product.ups_dir)
+        pdir = self._productDir(prod.name)
+        vfile = self._versionFileInDir(pdir, prod.version)
+        versionFile = VersionFile(vfile, prod.name, prod.version)
+        versionFile.addFlavor(prod.flavor, prod.dir, tablefile, prod.ups_dir)
 
         # seal the deal
         if not os.path.exists(pdir):
@@ -380,8 +382,8 @@ class Database(object):
         versionFile.write()
 
         # now assign any tags
-        for tag in product.tags:
-            self.assignTag(tag, product.name, product.version, product.flavor)
+        for tag in prod.tags:
+            self.assignTag(tag, prod.name, prod.version, prod.flavor)
 
     def undeclare(self, product):
         """

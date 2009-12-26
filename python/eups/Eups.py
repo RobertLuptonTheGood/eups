@@ -1444,7 +1444,9 @@ class Eups(object):
                                in EUPS_PATH will be installed into.
         @param tablefile     the path to the table file for this product.  If
                                "none", the product has no table file.  If None,
-                               it is looked for under productDir/ups.
+                               it is looked for under productDir/ups.  If set
+                               to a file stream, its contents will get written
+                               into the product database.
         @param tag           the tag to assign to this product.  If the 
                                specified product is already registered with
                                the same product directory and table file,
@@ -1536,7 +1538,13 @@ class Eups(object):
         if not utils.isRealFilename(tablefile):
             ups_dir = None
         elif tablefile:
-            if isinstance(tablefile, file):
+            # is this a filestream?
+            # 
+            # Instead of checking on the type, e.g:
+            #   if isinstance(tablefile, file):
+            # look for file-like methods; this accepts StringIO objects
+            #
+            if hasattr(tablefile,"readlines") and hasattr(tablefile,"next"):
                 tablefileIsFd = True
                 tfd = tablefile
 
@@ -1665,12 +1673,16 @@ class Eups(object):
             return
 
         # now really declare the product.  This will also update the tags
+        #
         dbpath = self.getUpsDB(eupsPathDir)
         if tag:  tag = [tag]
         product = Product(productName, versionName, self.flavor, productDir, 
                           tablefile, tag, dbpath, ups_dir=ups_dir)
 
+        # update the database
         self._databaseFor(eupsPathDir, dbpath).declare(product)
+
+        # update the cache (if in use)
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
 
             self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
@@ -2137,7 +2149,8 @@ class Eups(object):
                 deps = tbl.dependencies(self, followExact=True) # lookup top-level dependencies
                 del q
             except Exception, e:
-                print >> sys.stderr, ("Warning: %s" % (e))
+                if not self.quiet:
+                    print >> sys.stderr, ("Warning: %s" % (e))
                 continue
 
             for pd, od in deps:

@@ -372,17 +372,19 @@ class ProductStack(object):
                        str(product.flavor))
             )
 
-        flavor = product.flavor
+        prod = product.clone().resolvePaths()
+
+        flavor = prod.flavor
         if not self.lookup.has_key(flavor):
             self.lookup[flavor] = {}
-        if not self.lookup[flavor].has_key(product.name):
-            self.lookup[flavor][product.name] = ProductFamily(product.name)
-        self.lookup[flavor][product.name].addVersion(product.version,
-                                                     product.dir,
-                                                     product.tableFileName(),
-                                                     product._table)
-        for tag in product.tags:
-            self.lookup[flavor][product.name].assignTag(tag, product.version)
+        if not self.lookup[flavor].has_key(prod.name):
+            self.lookup[flavor][prod.name] = ProductFamily(prod.name)
+        self.lookup[flavor][prod.name].addVersion(prod.version,
+                                                     prod.dir,
+                                                     prod.tablefile,
+                                                     prod._table)
+        for tag in prod.tags:
+            self.lookup[flavor][prod.name].assignTag(tag, prod.version)
 
         self._flavorsUpdated(flavor)
         if self.autosave: self.save(flavor)

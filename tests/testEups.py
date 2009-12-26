@@ -9,6 +9,7 @@ import sys
 import shutil
 import unittest
 import time
+from cStringIO import StringIO
 from testCommon import testEupsStack
 
 from eups import TagNotRecognized, Product, ProductNotFound, EupsException
@@ -361,6 +362,21 @@ class EupsTestCase(unittest.TestCase):
         self.eups.undeclare("newprod")
         self.assert_(not os.path.exists(os.path.join(self.dbpath,"newprod")),
                      "product not fully removed")
+
+    def testDeclareStdinTable(self):
+        pdir = os.path.join(testEupsStack, "Linux", "newprod")
+        pdir11 = os.path.join(pdir, "1.1")
+        tableStrm = StringIO('setupRequired("python")\n')
+        prod = self.eups.findProduct("newprod", "1.1")
+        self.assert_(prod is None, "newprod is already declared")
+
+        # declare with table coming from input stream
+        self.eups.declare("newprod", "1.1", pdir11, testEupsStack, tableStrm)
+        prod = self.eups.findProduct("newprod", "1.1")
+        self.assert_(prod is not None, "failed to declare newprod 1.1")
+        self.assertEquals(prod.tablefile, 
+                          os.path.join(self.dbpath,
+                                       "newprod","Linux","1.1.table"))
 
     def testUserTags(self):
         self.assert_(self.eups.tags.isRecognized("mine"), 
