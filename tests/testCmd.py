@@ -13,7 +13,7 @@ import cStringIO as StringIO
 from testCommon import testEupsStack
 
 import eups.cmd
-from eups import Tag
+from eups import Tag, TagNotRecognized
 
 prog = "eups"
 
@@ -197,8 +197,10 @@ tcltk                 8.5a4     \tcurrent
     def testListBadTag(self):
         cmd = eups.cmd.EupsCmd(args="list tcltk -t goob".split(), 
                                toolname=prog)
-        self.assertNotEqual(cmd.run(), 0)
-        self.assert_(self.err.getvalue().find("list: Unsupported tag"))
+#        self.assertNotEqual(cmd.run(), 0)
+        # cmd is now raising exception
+        self.assertRaises(TagNotRecognized, cmd.run)
+#        self.assert_(self.err.getvalue().find("list: Unsupported tag") >= 0)
 
     def testUses(self):
         cmd = eups.cmd.EupsCmd(args="uses tcltk".split(), toolname=prog)
@@ -234,8 +236,10 @@ tcltk                 8.5a4     \tcurrent
     def testUsesBadTag(self):
         cmd = eups.cmd.EupsCmd(args="uses tcltk -t goob".split(), 
                                toolname=prog)
-        self.assertNotEqual(cmd.run(), 0)
-        self.assert_(self.err.getvalue().find("uses: Unsupported tag"))
+#        self.assertNotEqual(cmd.run(), 0)
+        # cmd is now raising exception
+        self.assertRaises(TagNotRecognized, cmd.run)
+#        self.assert_(self.err.getvalue().find("uses: Unsupported tag") >= 0)
 
     def testDeclare(self):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
