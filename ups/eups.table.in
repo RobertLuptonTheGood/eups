@@ -2,5 +2,5 @@ envAppend(PATH, ${PRODUCT_DIR}/bin)
 envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
 envAppend(EUPS_PATH, @EUPS_PATH@)
 
-addAlias(setup,   eval `${PRODUCT_DIR}/bin/eups_setup $@`);
-addAlias(unsetup, eval `${PRODUCT_DIR}/bin/eups_setup --unsetup $@`);
+addAlias(setup,   eval `${PRODUCT_DIR}/bin/eups_setup "$@"`);
+addAlias(unsetup, eval `${PRODUCT_DIR}/bin/eups_setup --unsetup "$@"`);
