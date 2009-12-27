@@ -45,7 +45,10 @@ else:
         status = setup.run()            # calling sys.exit here raises SystemExit which is caught...
     except Exception, e:
         setup.err(str(e))
-        status = e.status
+        if hasattr(e, "status"):
+            status = e.status
+        else:
+            status = 9
         print("false")
 
 sys.exit(status)
