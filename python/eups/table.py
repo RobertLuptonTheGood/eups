@@ -7,6 +7,7 @@
 import os
 import re, sys
 
+import eups
 from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
 from VersionParser import VersionParser
 import utils
@@ -428,9 +429,12 @@ but no other interpretation is applied
                             deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict, recursionDepth+1)
                         
                 except ProductNotFound, e:
-                    if a.extra:         # product is optional
-                        continue
-                    raise
+                    product = eups.Product(productName, versionArg) # it doesn't exist, but it's still a dep.
+
+                    val = [product, a.extra]
+                    if recursive:
+                        val += [recursionDepth]
+                    deps += [val]
 
         return deps
 
@@ -604,7 +608,7 @@ class Action(object):
                 except RuntimeError, e:
                     pass
             else:
-                raise RuntimeError, ("Failed to setup required product %s %s: %s" % (productName, vers, reason))
+                raise reason
 
     def execute_envPrepend(self, Eups, fwd=True):
         """Execute envPrepend"""
