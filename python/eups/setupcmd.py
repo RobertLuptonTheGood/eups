@@ -219,6 +219,9 @@ product and all its dependencies into the environment so that it can be used.
         except EupsException, e:
             e.status = 1
             raise
+        except Exception, e:
+            e.status = -1
+            raise
 
         if Eups.verbose > 2:
             self.err("\n\t".join(["Issuing commands:"] + cmds))
