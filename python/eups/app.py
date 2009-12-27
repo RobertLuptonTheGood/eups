@@ -598,7 +598,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             if eupsenv.shell == "sh":
                 cmd = "function %s { %s ; }; export -f %s" % (key, value, key)
             elif eupsenv.shell == "csh":
-                value = re.sub(r"\$@", r"\!*", value)
+                value = re.sub(r"\"?\$@\"?", r"\!*", value)
                 cmd = "alias %s \'%s\'" % (key, value)
             elif eupsenv.shell == "zsh":
                 cmd = "%s() { %s ; }" % (key, value, key)
