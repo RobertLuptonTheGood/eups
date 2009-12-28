@@ -556,7 +556,7 @@ class Eups(object):
         return self._findTaggedProduct(name, tag, eupsPathDirs, flavor, noCache)
 
     def _findTaggedProduct(self, name, tag, eupsPathDirs, flavor, noCache=False):
-        # find the first product assigned a given tag.
+        """find the first version assigned a given tag."""
 
         if tag.name == "newest":
             return self._findNewestProduct(name, eupsPathDirs, flavor)
