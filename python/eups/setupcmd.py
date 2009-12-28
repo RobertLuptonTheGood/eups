@@ -153,7 +153,8 @@ product and all its dependencies into the environment so that it can be used.
         if not versionName:
             if self.opts.verbose > 1:
                 if self.opts.inexact_version:
-                    self.err("--inexact has no effect unless you request a specific version")
+                    #self.err("--inexact has no effect unless you request a specific version")
+                    pass
 
                 if self.opts.tag:
                     self.err("Will look for version with tag="+self.opts.tag)

@@ -474,7 +474,7 @@ class Eups(object):
                                 used to find products; otherwise, it will be used
                                 to the extent it is available.  
         """
-        if not version or self.ignore_versions:
+        if not version or (not isinstance(version, Tag) and self.ignore_versions):
             return self.findPreferredProduct(name, eupsPathDirs, flavor, noCache=noCache)
 
         if not flavor:
@@ -2136,6 +2136,8 @@ class Eups(object):
     """
         if not productName and versionName:
             raise EupsException("You may not specify a version \"%s\" but not a product" % versionName)
+
+        self.exact_version = True       # we want to know exactly which versions were specified
 
         # start with every known product
         productList = self.findProducts()

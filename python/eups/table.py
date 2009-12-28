@@ -385,7 +385,7 @@ but no other interpretation is applied
                                   products in this table.
         @param followExact     follow the exact, as-built versions in the 
                                   table file.  If None or not specified,
-                                  it defaults to Eups.exact_versions.  
+                                  it defaults to Eups.exact_version.
         """
         if followExact is None:
             followExact = Eups.exact_version
