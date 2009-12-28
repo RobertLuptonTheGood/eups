@@ -1571,8 +1571,15 @@ class Eups(object):
                     except Exception, e:
                         raise EupsException("Unable to generate full tablefilename: %s" % e)
                     
-                    if not os.path.isfile(full_tablefile) and not os.path.isabs(full_tablefile):
-                        full_tablefile = os.path.join(productDir, full_tablefile)
+                    if not os.path.isabs(full_tablefile):
+                        #
+                        # We can't simply check os.path.isfile(full_tablefile) as a file of the name might
+                        # exist locally (it often will if we're declaring from the toplevel product directory),
+                        # but that's not the file we want
+                        #
+                        possible_full_tablefile = os.path.join(productDir, full_tablefile)
+                        if os.path.isfile(possible_full_tablefile):
+                            full_tablefile = possible_full_tablefile
 
                 else:
                     full_tablefile = tablefile
