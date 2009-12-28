@@ -550,8 +550,9 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                     print >> sys.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
                           (",".join(prefTags), taggedVersion.version, version)
             else:
-                print >> sys.stderr, "No versions of %s are tagged %s; setting up %s" % \
-                      (productName, ",".join(prefTags), version)
+                if not re.search(r"^LOCAL:", version):
+                    print >> sys.stderr, "No versions of %s are tagged %s; setting up %s" % \
+                          (productName, ",".join(prefTags), version)
 
         #
         # Set new variables
