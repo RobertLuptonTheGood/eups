@@ -50,7 +50,7 @@ else:
         if hasattr(e, "status"):
             status = e.status
         else:
-            status = e.status
+            status = 9
 
 sys.exit(status)
 
