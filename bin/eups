@@ -31,6 +31,10 @@ cmd = eups.cmd.EupsCmd()
 
 # set debugging features
 debugOptions = cmd.opts.debug.split(":")
+for do in debugOptions:
+    if not do in allowedDebugOptions:
+        print >> sys.stderr, "Unknown debug option: %s; exiting" % do
+        sys.exit(1)
 allowRaise = "raise" in debugOptions
 
 # load any local customizations
