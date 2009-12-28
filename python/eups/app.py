@@ -535,6 +535,25 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                                         productRoot=productRoot)
     if ok:
         #
+        # Check that we got the desired tag
+        #
+        if prefTags:
+            for tag in prefTags:
+                taggedVersion = eupsenv.findTaggedProduct(productName, tag)
+                if taggedVersion:
+                    break
+
+            if taggedVersion:
+                if version == taggedVersion.version: # OK, we got it
+                    pass
+                else:
+                    print >> sys.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
+                          (",".join(prefTags), taggedVersion.version, version)
+            else:
+                print >> sys.stderr, "No versions of %s are tagged %s; setting up %s" % \
+                      (productName, ",".join(prefTags), version)
+
+        #
         # Set new variables
         #
         for key in os.environ.keys():
