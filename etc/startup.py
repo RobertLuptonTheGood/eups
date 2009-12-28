@@ -36,7 +36,7 @@ hooks.config.Eups.preferredTags = "stable beta current newest"
 # Eups.setupTypes:  the list of setup types supported by table files.  
 #
 # By default, EUPS recognizes one setup type, "build".  This allows table
-# files to say, "if setup == build {".  
+# files to say, "if (setup == build) {".  
 #
 # hooks.config.Eups.setupTypes = "build"
 
@@ -78,10 +78,10 @@ hooks.config.Eups.asAdmin = None
 # 2. Version Comparison
 # 
 # Version comparisons.  A new or modified version comparison function can 
-# be plugged in by setting hook.version_cmp to a compare function that 
+# be plugged in by setting hooks.version_cmp to a compare function that 
 # expects 2 version strings to be compared.  When tweakng, it is usually 
 # easier to create a subclass of the VersionCompare function class and set
-# hook.version_cmp to an instance of that subclass.  See VersionCompare 
+# hooks.version_cmp to an instance of that subclass.  See VersionCompare 
 # help for more info.  
 #
 # For example:
@@ -90,7 +90,7 @@ hooks.config.Eups.asAdmin = None
 #       def compare(self, v1, v2):
 #           ...
 #
-#   hook.version_cmp = MyVersionCompare()
+#   hooks.version_cmp = MyVersionCompare()
 # 
 
 # 3. Fallback Flavors
