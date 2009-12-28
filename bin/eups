@@ -24,7 +24,7 @@ except ImportError:
 import eups.cmd
 import eups.hooks
 
-allowedDebugOptions = ["raise"]
+allowedDebugOptions = ["", "raise"]
 
 # parse the command line
 cmd = eups.cmd.EupsCmd()

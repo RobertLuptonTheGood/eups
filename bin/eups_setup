@@ -22,7 +22,7 @@ except ImportError:
         raise
     import eups.setupcmd
 
-allowedDebugOptions = ["raise"]
+allowedDebugOptions = ["", "raise"]
 
 # parse the command line
 setup = eups.setupcmd.EupsSetup()
