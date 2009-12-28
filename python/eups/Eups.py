@@ -424,7 +424,8 @@ class Eups(object):
             raise RuntimeError, ("Unexpected arguments: %s" % args) 
 
         if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
-            vers = self._databaseFor(eupsPathDir).getTaggedVersion(versionName, productName, flavor)
+            vers = self._databaseFor(eupsPathDir).getTaggedVersion(self.tags.getTag(versionName),
+                                                                   productName, flavor)
             if vers is not None:
                 versionName = vers
 
@@ -577,7 +578,7 @@ class Eups(object):
 
                 db = self._databaseFor(root)
                 try:
-                    version = db.getTaggedVersion(tag.name, name, flavor)
+                    version = db.getTaggedVersion(tag, name, flavor)
                     if version is not None:
                         return db.findProduct(name, version, flavor)
                 except ProductNotFound:

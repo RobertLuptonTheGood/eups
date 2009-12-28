@@ -441,13 +441,12 @@ class Database(object):
         if not os.path.exists(pdir):
             raise ProductNotFound(productName, stack=self.dbpath);
 
-        if tag.startswith("user:"):
+        if tag.isUser():
             if not self.usertagdb:
                 return None
-            tag = tag[len("user:"):]
             pdir = self._productDir(productName, self.usertagdb)
             
-        tfile = self._tagFileInDir(pdir, tag)
+        tfile = self._tagFileInDir(pdir, tag.name)
         if not os.path.exists(tfile):
             return None
 
