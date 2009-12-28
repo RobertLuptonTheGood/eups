@@ -782,7 +782,7 @@ class ProductStack(object):
         db = Database(self.dbpath, userTagDir)
         prodnames = db.findProductNames()
         for pname in prodnames:
-            for tag, flavor, version in db.getTagAssignments(pname, glob=False):
+            for tag, version, flavor in db.getTagAssignments(pname, glob=False):
                 self.assignTag(tag, pname, version, flavor)
             
 
