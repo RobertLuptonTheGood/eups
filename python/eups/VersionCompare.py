@@ -4,7 +4,10 @@ class VersionCompare(object):
     """
     a comparison function class that compares two product versions.
     """
-    def compare(self, v1, v2):
+    def compare(self, v1, v2, mustReturnInt=True):
+        """Compare two versions.
+
+        If mustReturnInt is true, return value must be acceptable to sort(), i.e. an int"""
         return self.stdCompare(v1, v2)
 
     def stdCompare(self, v1, v2, suffix=True):
@@ -120,9 +123,9 @@ class VersionCompare(object):
 
         return vvv, eee, fff
 
-    def __call__(self, v1, v2):
+    def __call__(self, v1, v2, mustReturnInt=True):
         """
         make an instance behave like a callable function
         """
-        return self.compare(v1, v2)
+        return self.compare(v1, v2, mustReturnInt)
 

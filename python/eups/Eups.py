@@ -1001,7 +1001,7 @@ class Eups(object):
 
     Uses version_cmp to define sort order """
 
-        cmp = self.version_cmp(v1, v2)
+        cmp = self.version_cmp(v1, v2, mustReturnInt=False)
 
         if cmp is None:                 # no sort order is defined
             return False
