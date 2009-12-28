@@ -9,6 +9,7 @@ import re, sys
 
 import eups
 from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
+from tags       import TagNotRecognized
 from VersionParser import VersionParser
 import utils
 
@@ -534,21 +535,29 @@ class Action(object):
 
         optional = self.extra
 
+        if optional:
+            cmdStr = "setupOptional"    # name of this command, used in diagnostics
+        else:
+            cmdStr = "setupRequired"
+
         _args = self.args; args = []
         i = -1
 
-        requestedFlavor = None; requestedBuildType = None; noRecursion = False
+        requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTag = None
         ignoredOpts = []
         while i < len(_args) - 1:
             i += 1
             if re.search(r"^-", _args[i]):
-                if _args[i] == "-f":    # a flavor specification
+                if _args[i] in ("-f", "--flavor"): # a flavor specification
                     requestedFlavor = _args[i + 1]
                     i += 1              # skip the argument
-                elif _args[i] == "-j":  # setup just this product
+                elif _args[i] in ("-j", "--just"):  # setup just this product
                     noRecursion = True
                 elif _args[i] == "-q":  # e.g. -q build
                     requestedBuildType = _args[i + 1]
+                    i += 1              # skip the argument
+                elif _args[i] in ("-t", "--tag"): # e.g. -t current
+                    requestedTag = _args[i + 1]
                     i += 1              # skip the argument
                 else:
                     ignoredOpts.append(_args[i]) 
@@ -565,7 +574,11 @@ class Action(object):
 
         if ignoredOpts:
             if Eups.verbose > 0: 
-                print >> sys.stderr, "Ignoring options %s for %s %s" % (" ".join(ignoredOpts), productName, vers) 
+                print >> sys.stderr, "Ignoring options %s for %s %s" % \
+                      (" ".join(ignoredOpts), productName, vers) 
+
+        if requestedFlavor and requestedFlavor != Eups.flavor:
+            print >> sys.stderr, "Ignoring --flavor option in \"%s(%s)\"" % (cmdStr, " ".join(_args))
 
         if vers:  
             # see if a version of the form "logical [exact]"
@@ -587,6 +600,16 @@ class Action(object):
                         vers = exactVersion
                 else:
                     vers = logicalVersion
+
+        if requestedTag:
+            if vers:
+                print >> sys.stderr, "You specified version \"%s\" and tag \"%s\"; ignoring the latter" % \
+                      (vers, requestedTag)
+            else:
+                try:
+                    vers = Eups.tags.getTag(requestedTag)
+                except TagNotRecognized, e:
+                    print >> sys.stderr, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
 
         productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion)
             
