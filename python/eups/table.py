@@ -174,8 +174,18 @@ but no other interpretation is applied
                     if re.search(r"\${PRODUCT_DIR}", value):
                         if product.dir:
                             value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
-                        elif re.search(r"\${PRODUCT_DIR}", value):
+                        else:
                             print >> sys.stderr, "Unable to expand PRODUCT_DIR in %s" % self.file
+                    #
+                    # Be nice; they should say PRODUCT_DIR but sometimes PRODUCT is spelled out, e.g. EUPS_DIR
+                    #
+                    regexp = r"\${%s}" % utils.dirEnvNameFor(product.name)
+                    if re.search(regexp, value):
+                        if product.dir:
+                            value = re.sub(regexp, product.dir, value)
+                        else:
+                            print >> sys.stderr, "Unable to expand %s in %s" % \
+                                  (self.file, utils.dirEnvNameFor(product.name))
 
                     if product.flavor:
                         value = re.sub(r"\${PRODUCT_FLAVOR}", product.flavor, value)
@@ -186,7 +196,7 @@ but no other interpretation is applied
                     if re.search(r"\${PRODUCT_VERSION}", value):
                         if product.version:
                             value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
-                        elif re.search(r"\${PRODUCT_VERSION}", value):
+                        else:
                             print >> sys.stderr, "Unable to expand PRODUCT_VERSION in %s" % self.file
 
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
@@ -646,10 +656,16 @@ class Action(object):
         else:
             delim = ":"
 
-        opath = os.environ.get(envVar, "") # old value of envVar (generally a path of some sort, hence the name)
+        opath = os.environ.get(envVar, "") # old value of envVar, generally a path of some sort hence the name
 
-        prepend_delim = re.search(r"^%s" % delim, opath) # should we prepend an extra :?
-        append_delim = re.search(r"%s$" % delim, opath) # should we append an extra :?
+        # should we prepend an extra :?
+        pat = "^" + delim
+        prepend_delim = re.search(pat, value)
+        value = re.sub(pat, "", value)
+        # should we append an extra :?
+        pat = delim + "$"
+        append_delim = re.search(pat, value)
+        value = re.sub(pat, "", value)
 
         opath = filter(lambda el: el, opath.split(delim)) # strip extra : at start or end
 
