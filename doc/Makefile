@@ -6,13 +6,13 @@ all : doc;
 .PHONY : all doc install clean tidy
 
 eups.aux : eups.tex
-	@ if ! latex $(LATEXFLAGS) eups.tex; then \
+	@ if ! echo | latex $(LATEXFLAGS) eups.tex; then \
 		echo "Could not build eups.aux (ignoring)"; \
 	fi
 		
 
 eups.dvi : eups.aux
-	@ if ! latex $(LATEXFLAGS) eups.tex; then \
+	@ if ! echo | latex $(LATEXFLAGS) eups.tex; then \
 		echo "Could not build eups.dvi (ignoring)"; \
 	fi
 
@@ -36,7 +36,7 @@ eups.html : eups.aux
 	fi
 
 eups.pdf : eups.aux
-	@ if ! pdflatex $(LATEXFLAGS) eups.tex; then \
+	@ if ! echo | pdflatex $(LATEXFLAGS) eups.tex; then \
 		echo "Could not build eups.pdf (ignoring)"; \
 	fi
 
