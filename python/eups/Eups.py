@@ -848,8 +848,13 @@ class Eups(object):
             self.findSetupVersion(productName, environ)
         if versionName is None:
             return None
-        return Product(productName, versionName, flavor, productDir,
-                       tablefile, db=self.getUpsDB(eupsPathDir))
+
+        if productDir:                  # they must have setup -r
+            return Product(productName, versionName, flavor, productDir,
+                           tablefile, db=self.getUpsDB(eupsPathDir), ups_dir=os.path.join(productDir, "ups"))
+        else:                           # a real product, fully identified by a version (and flavor, -Z)
+            return self.findProduct(productName, versionName, eupsPathDirs=[eupsPathDir],
+                                    flavor=flavor, noCache=False)
         
     def setEnv(self, key, val, interpolateEnv=False):
         """Set an environmental variable"""
