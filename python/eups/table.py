@@ -577,7 +577,10 @@ class Action(object):
             args += [_args[i]]
 
         productName = args[0]
-        if len(args) > 1:
+        
+        if Eups.ignore_versions:
+            vers = None                 # Setting and then ignoring vers generates confusing error messages
+        elif len(args) > 1:
             vers = " ".join(args[1:])
         else:
             vers = None
