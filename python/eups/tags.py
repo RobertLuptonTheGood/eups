@@ -409,7 +409,10 @@ class Tag(object):
         # replaced with:
         parts = name.split(':')
         if len(parts) > 2:
-            parts = ":".join(parts[:-1], parts[-1])
+            try:
+                parts = ":".join(parts[:-1], parts[-1])
+            except Exception, e:
+                import eups; eups.debug(e)
 
         if len(parts) == 1:
             return Tag(name, defGroup)
