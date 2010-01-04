@@ -230,7 +230,7 @@ class Eups(object):
         q = Quiet(self)
         for product in self.getSetupProducts():
             try:
-                if re.search(r"^LOCAL:", product.version):
+                if product.version.startswith(Product.LocalVersionPrefix):
                     self.localVersions[product.name] = os.environ[self._envarDirName(product.name)]
             except TypeError:
                 pass
@@ -409,7 +409,7 @@ class Eups(object):
                       "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
 
         if productName == "eups" and not args: # you can get here if you initialised eups by sourcing setups.c?sh
-            args = ["LOCAL:%s" % environ["EUPS_DIR"], "-Z", "(none)"]
+            args = ["%s:%s" % (Product.LocalVersionPrefix, environ["EUPS_DIR"]), "-Z", "(none)"]
 
         if len(args) > 0 and args[0] != "-f":
             versionName = args.pop(0)
@@ -421,23 +421,25 @@ class Eups(object):
             args.pop(0);  eupsPathDir = args.pop(0)
 
         if args:
-            raise RuntimeError, ("Unexpected arguments: %s" % args) 
+            raise RuntimeError, ("Unexpected arguments: %s" % args)
 
-        if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
-            vers = self._databaseFor(eupsPathDir).getTaggedVersion(self.tags.getTag(versionName),
-                                                                   productName, flavor)
-            if vers is not None:
-                versionName = vers
+        if versionName.startswith(Product.LocalVersionPrefix):
+            productDir = None           # If we set productDir, the Product ctor ignores the local version
+        else:
+            if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
+                vers = self._databaseFor(eupsPathDir).getTaggedVersion(self.tags.getTag(versionName),
+                                                                       productName, flavor)
+                if vers is not None:
+                    versionName = vers
 
-        try:
-            productDir = environ[self._envarDirName(productName)]
-            if productDir:
-                tablefile = os.path.join(productDir,"ups",productName+".table")
-                if not os.path.exists(tablefile):
-                    tablefile = "none"
-                
-        except KeyError:
-            pass
+            try:
+                productDir = environ[self._envarDirName(productName)]
+                if productDir:
+                    tablefile = os.path.join(productDir,"ups",productName+".table")
+                    if not os.path.exists(tablefile):
+                        tablefile = "none"
+            except KeyError:
+                pass
             
         return versionName, eupsPathDir, productDir, tablefile, flavor
 
@@ -849,9 +851,9 @@ class Eups(object):
         if versionName is None:
             return None
 
-        if productDir:                  # they must have setup -r
+        if versionName.startswith(Product.LocalVersionPrefix): # they setup -r
             return Product(productName, versionName, flavor, productDir,
-                           tablefile, db=self.getUpsDB(eupsPathDir), ups_dir=os.path.join(productDir, "ups"))
+                           tablefile, db=self.getUpsDB(eupsPathDir))
         else:                           # a real product, fully identified by a version (and flavor, -Z)
             return self.findProduct(productName, versionName, eupsPathDirs=[eupsPathDir],
                                     flavor=flavor, noCache=False)
@@ -1061,7 +1063,7 @@ class Eups(object):
                                   setup.  The default is False.
         @param setupType        the setup type.  This will cause conditional
                                   sections of the table filebased on "type" 
-                                  (e.g. "if (type == build) {...") to be 
+                                  (e.g. "if (type == build) {...}") to be 
                                   executed.  
         @param productRoot      the directory where the product is installed
                                   to assume.  This is useful for products 
@@ -1969,7 +1971,7 @@ class Eups(object):
                         del setup[key]
 
         if not version or \
-           (isinstance(version,str) and version.startswith("LOCAL")) or \
+           (isinstance(version,str) and version.startswith(Product.LocalVersionPrefix)) or \
            (tags and "setup" in tags):
 
             # Add in LOCAL: setups
