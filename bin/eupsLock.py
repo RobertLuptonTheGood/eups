@@ -35,7 +35,7 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0
             f = os.fdopen(os.open(lockfile, os.O_EXCL | os.O_RDWR), "rw")
             s = os.stat(lockfile)
         except OSError, e:
-            if e.errno != errno.EEXIST:
+            if e.errno not in (errno.EEXIST, errno.ENOENT):
                 raise RuntimeError ("%s exists but stat() failed: %s" % (lockfile, e.strerror))
             # we didn't create the lockfile, so it did exist, but it's gone now. Just try again
             continue
@@ -73,7 +73,7 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0
             try:
                 os.unlink(lockfile)
             except OSError, e:
-                if e.errno != errno.ENOENT:
+               if e.errno != errno.ENOENT:
                     print >> sys.stderr, "Clearing lockfile %s: %s" % (lockfile, e)
 
             return
