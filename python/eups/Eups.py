@@ -409,7 +409,7 @@ class Eups(object):
                       "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
 
         if productName == "eups" and not args: # you can get here if you initialised eups by sourcing setups.c?sh
-            args = ["%s:%s" % (Product.LocalVersionPrefix, environ["EUPS_DIR"]), "-Z", "(none)"]
+            args = ["%s%s" % (Product.LocalVersionPrefix, environ["EUPS_DIR"]), "-Z", "(none)"]
 
         if len(args) > 0 and args[0] != "-f":
             versionName = args.pop(0)
