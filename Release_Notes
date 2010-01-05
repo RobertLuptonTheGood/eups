@@ -1,3 +1,37 @@
+2010-01-05 18:35  rhl
+
+	* bin/eups, bin/eups.py, bin/eups_setup: Moved startup code to
+	  eups.py and look in $EUPS_SITEDATA or
+	  /Users/rhl/LSST/eups-1.2/site for startup.py
+
+2010-01-05 18:20  rhl
+
+	* ., Makefile.in, configure, configure.ac: Merged ./site install
+	  stuff from trunk
+
+2009-12-04 19:34  rhl
+
+	* bin/eups.py: Current is a valid fallback for tags if you haven't
+	  chosen your own list
+
+2009-10-26 19:53  rhl
+
+	* Prevent the cache from growing ever-larger. N.b. an inconsistent
+	  change in the cache, so the cache version is incremented
+
+2009-10-26 19:50  rhl
+
+	* Teach eups admin {build,clear}Cache about fallbackFlavors
+
+2009-10-19 21:54  rhl
+
+	* Don't be confused by table files that only list relative
+	  versions, not absolute; #975
+
+2009-10-15 09:50  rhl
+
+	* Added --depth option to list --dependencies; added eups help
+
 2009-10-12 gk
 	Changed the Makefile in doc so that the install never fails for documentation errors.
 	ticket https://trac.sdss3.org/ticket/325
