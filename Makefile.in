@@ -52,10 +52,17 @@ install : show
 	   fi; \
 	fi
 
-	@ $(RM) -r $(EUPS_DIR)
-	@ mkdir -p $(EUPS_DIR)
+	@ if [ -d $(EUPS_DIR) ]; then \
+		$(RM) -r `ls $(EUPS_DIR)/* | awk '{ if($$1 != "site") { print } }'`; \
+	else \
+		mkdir -p $(EUPS_DIR); \
+	fi
 	@ for f in $(SUBDIRS); do \
-		(mkdir $(EUPS_DIR)/$$f; cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) install ); \
+		(\
+		   if [ ! -d $(EUPS_DIR)/$$f ]; then mkdir $(EUPS_DIR)/$$f; fi; \
+		   cd $$f ; \
+		   echo In $$f; $(MAKE) $(MFLAGS) install \
+                ); \
 	done
 	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
 	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
@@ -69,6 +76,11 @@ show :
 	@echo "Your EUPS database[s] will be              $(EUPS_DB)"
 	@vers="$$(bin/eups --version 2>&1 | awk '/^Version/ {print $$2}')"; \
 	 echo "Your EUPS version is $$vers"
+	@ if [ -d $(EUPS_DIR)/site ]; then \
+		echo "Your site configuration files are `ls $(EUPS_DIR)/site/*`"; \
+	else \
+		echo "Your site configuration files will be in $(EUPS_DIR)/site"; \
+	fi
 #
 # Rebuild configure; almost no-one should need to do this
 #
