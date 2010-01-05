@@ -22,6 +22,32 @@ def debug(*args, **kwargs):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def loadStartup():
+    """Load startup files"""
+
+    startupFiles = os.environ["EUPS_STARTUP"].split(':')
+
+    siteDataVar = "EUPS_SITEDATA"
+    if os.environ.has_key(siteDataVar):
+        siteDir = os.environ[siteDataVar]
+    else:
+        siteDir = os.path.join(os.environ["EUPS_DIR"], "site")
+
+    for f in ["startup.py",]:
+        f = os.path.join(siteDir, f)
+        if os.path.exists(f):
+            startupFiles.append(f)
+
+    try:
+        for startupFile in startupFiles:
+            try:
+                if startupFile:
+                    execfile(startupFile)
+            except Exception, e:
+                print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
+    except KeyError:
+        pass
+
 class CommandCallbacks(object):
     """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
         and calling eups.commandCallbacks.add(hook)"""

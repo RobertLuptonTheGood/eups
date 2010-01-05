@@ -17,15 +17,8 @@ from eupsDistribFactory import DistribFactory
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 distribClasses = {}
-try:
-    for startupFile in os.environ["EUPS_STARTUP"].split(':'):
-        try:
-            if startupFile:
-                execfile(startupFile)
-        except Exception, e:
-            print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
-except KeyError:
-    pass
+
+eups.loadStartup()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #

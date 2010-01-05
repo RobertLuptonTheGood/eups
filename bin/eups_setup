@@ -3,15 +3,7 @@ import os, re, sys
 import eups
 import eupsGetopt
 
-try:
-    for startupFile in os.environ["EUPS_STARTUP"].split(':'):
-        try:
-            if startupFile:
-                execfile(startupFile)
-        except Exception, e:
-            print >> sys.stderr, "Detected error sourcing %s: %s" % (startupFile, e)
-except KeyError:
-    pass
+eups.loadStartup()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
