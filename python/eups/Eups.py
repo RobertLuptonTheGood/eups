@@ -427,8 +427,9 @@ class Eups(object):
             productDir = None           # If we set productDir, the Product ctor ignores the local version
         else:
             if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
-                vers = self._databaseFor(eupsPathDir).getTaggedVersion(self.tags.getTag(versionName),
-                                                                       productName, flavor)
+                # get qualified tag name (the database needs to see user tags as "user:...")
+                tag = str(self.tags.getTag(versionName))
+                vers = self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName, flavor)
                 if vers is not None:
                     versionName = vers
 
@@ -558,7 +559,16 @@ class Eups(object):
         return self._findTaggedProduct(name, tag, eupsPathDirs, flavor, noCache)
 
     def _findTaggedProduct(self, name, tag, eupsPathDirs, flavor, noCache=False):
-        """find the first version assigned a given tag."""
+        """
+        find the first version assigned a given tag.
+        @param name          the name of the product
+        @param tag           the desired tag as a Tag instance
+        @param eupsPathDirs  the Eups path directories to search
+        @param flavor        the desired flavor
+        @param noCache       if true, do not use the product inventory cache;
+                               else (the default), a cache will be used if
+                               available.
+        """
 
         if tag.name == "newest":
             return self._findNewestProduct(name, eupsPathDirs, flavor)
@@ -580,7 +590,7 @@ class Eups(object):
 
                 db = self._databaseFor(root)
                 try:
-                    version = db.getTaggedVersion(tag, name, flavor)
+                    version = db.getTaggedVersion(str(tag), name, flavor)
                     if version is not None:
                         return db.findProduct(name, version, flavor)
                 except ProductNotFound:

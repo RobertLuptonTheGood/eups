@@ -14,10 +14,37 @@ tagFileTmpl = "%s." + tagFileExt
 tagFileRe = re.compile(r'^(\w.*)\.%s$' % tagFileExt)
 
 class Database(object):
-
     """
     An interface to the product database recorded on disk.  This interface will
     enforce restrictions on product names, flavors, and versions.
+
+    A database is represented on disk as a collection of files with a known 
+    directory structure.  (The root directory is typically called "ups_db"; 
+    however, but its name does not matter to this implementation.)  The 
+    root directory contains a subdirectory named after each declared product.
+
+    Each product name subdirectory contains one or more "version files", each
+    in turn containing the product data (excluding tag assignments) for a 
+    particular declared version of the product.  The version file has a name
+    composed of the version string appended by the ".version" extension.  The
+    format is known to the VersionFile class.  The version file will define
+    one or more flavors of its version of the product.  
+
+    The product name subdirectory may also contain "chain files"; these 
+    record the assignment of tags to versions of a product.  A chain file
+    has a name composed of a tag name appended by the ".chain" extension.  
+    The format of the chain file is known to the ChainFile class.  Note that
+    tags are assigned to a version on a per-flavor basis; that is, a tag 
+    may be assigned to one flavor of the version but not all.  The chain
+    file, thus, indicates which flavors are assigned the tag.
+
+    The Database class understands a notion of "user" tags defined from its
+    perspective as tag assignments that are recorded under a separate 
+    directory (provided by the constructor).  Methods that take a tag name as 
+    input will recognize it as a user tag if the name has the "user:" prefix.
+    The structure of the separate user tag directory is the same as the 
+    main database directory with the assignments recorded as chain files.
+    (Any version files there will be ignored.)
 
     @author Raymond Plante
     """
@@ -77,6 +104,9 @@ class Database(object):
         return out
 
     def isWritable(self):
+        """
+        return true if the user has write permission for this database
+        """
         return eups.utils.isDbWritable(self.dbpath)
 
     def findProduct(self, name, version, flavor):
@@ -109,6 +139,9 @@ class Database(object):
         return a list of tags for a given product.  An empty list is 
         returned if no tags are assigned.  ProductNotFound is raised if 
         no version of the product is not currently declared.
+        @param productName : the name of the desired product
+        @param version :     the desired version of the product
+        @param flavor :      the desired platform flavor
         """
         pdir = self._productDir(productName)
         if not os.path.exists(pdir):
@@ -165,7 +198,6 @@ class Database(object):
 
         @param string productName : the name of the product to find
         @return string[] :
-        @author
         """
         versions = []
         pdir = self._productDir(productName)
@@ -436,17 +468,22 @@ class Database(object):
         return the version name of the product that has the given tag assigned
         to it.  None is return if the tag is not assigned to any version.
         ProductNotFound is raised if no version of the product is declared.
+        @param tag          the string name for the tag.  A user tag must be
+                              prepended by a "user:" label to be found
+        @param productName  the name of the product
+        @param flavor       the flavor for the product
         """
         pdir = self._productDir(productName)
         if not os.path.exists(pdir):
             raise ProductNotFound(productName, stack=self.dbpath);
 
-        if tag.isUser():
+        if tag.startswith("user:"):
             if not self.usertagdb:
                 return None
+            tag = tag[len("user:"):]
             pdir = self._productDir(productName, self.usertagdb)
             
-        tfile = self._tagFileInDir(pdir, tag.name)
+        tfile = self._tagFileInDir(pdir, tag)
         if not os.path.exists(tfile):
             return None
 
@@ -458,7 +495,9 @@ class Database(object):
         """
         assign a tag to a given product.
 
-        @param tag :         the name of the tag to assign
+        @param tag :         the name of the tag to assign.  If the name is 
+                               prepended with the "user:" label, the assignment
+                               will be recorded in the user tag area.
         @param productName : the name of the product getting the tag
         @param version :     the version to tag 
         @param flavors :     the flavors of the product to be tagged.  
