@@ -25,7 +25,7 @@ def debug(*args, **kwargs):
 def loadStartup():
     """Load startup files"""
 
-    startupFiles = os.environ["EUPS_STARTUP"].split(':')
+    startupFiles = os.environ.get("EUPS_STARTUP", "").split(':')
 
     siteDataVar = "EUPS_SITEDATA"
     if os.environ.has_key(siteDataVar):
