@@ -1,3 +1,6 @@
+2010-01-07 20:38 cpl
+	* Tag 1.2.1 from the tip of branches/1.2.
+
 2010-01-05 18:35  rhl
 
 	* bin/eups, bin/eups.py, bin/eups_setup: Moved startup code to
