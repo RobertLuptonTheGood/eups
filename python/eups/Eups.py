@@ -838,8 +838,9 @@ class Eups(object):
 
             try:
                 product = self.findSetupProduct(productName)
-                if not product and self.quiet <= 0:
-                    print >> sys.stderr, "Product %s is not setup" % productName
+                if not product:
+                    if self.quiet <= 0:
+                        print >> sys.stderr, "Product %s is not setup" % productName
                     continue
 
             except EupsException, e:
@@ -955,8 +956,12 @@ class Eups(object):
     def unsetupSetupProduct(self, product):
         """ 
         if the given product is setup, unset it up.  
+        @param product     a Product instance or a product name
         """
-        prod = self.findSetupProduct(product.name)
+        if isinstance(product, Product):
+            product = product.name
+
+        prod = self.findSetupProduct(product)
         if prod is not None:
             try:
                 self.setup(prod.name, fwd=False)

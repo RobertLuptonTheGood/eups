@@ -537,7 +537,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         #
         # Check that we got the desired tag
         #
-        if prefTags:
+        if eupsenv.quiet <= 0 and prefTags:
             for tag in prefTags:
                 taggedVersion = eupsenv.findTaggedProduct(productName, tag)
                 if taggedVersion:
