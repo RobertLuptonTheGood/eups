@@ -683,6 +683,7 @@ class Eups(object):
                 for prod in products:
                     if prod.version not in outver:
                         out.append(prod)
+                        outver.append(prod.version)
 
             else:
                 # consult the cache
@@ -693,7 +694,9 @@ class Eups(object):
                         continue
                     for ver in vers:
                         if ver not in outver:
-                            out.append(self.versions[root].getProduct(name, ver, flavor))
+                            prod = self.versions[root].getProduct(name, ver, flavor)
+                            out.append(prod)
+                            outver.append(prod.version)
                 
                 except ProductNotFound:
                     continue
@@ -2159,6 +2162,7 @@ class Eups(object):
         if not productName and versionName:
             raise EupsException("You may not specify a version \"%s\" but not a product" % versionName)
 
+        old_exact_version = self.exact_version
         self.exact_version = True       # we want to know exactly which versions were specified
 
         # start with every known product
@@ -2192,6 +2196,9 @@ class Eups(object):
                 useInfo._remember(pi.name, pi.version, (pd.name, pd.version, od))
 
         useInfo._invert(depth)
+
+        self.exact_version = old_exact_version
+
         #
         # OK, we have the information stored away
         #

@@ -393,7 +393,9 @@ class Tag(object):
         if isinstance(that, Tag):
             return (self.name == that.name and self.group == that.group)
         else:
-            return self.name == that
+            # allow either a qualified string ("user:beta") if the group matches or 
+            # an unqualified string ("beta").  
+            return str(self) == that or self.name == that
 
     # @staticmethod   # requires python 2.4
     def parse(name, defGroup=Tags.global_):

@@ -299,7 +299,13 @@ class Product(object):
 
     def isTagged(self, tag):
         """
-        return True if this product has been assigned a given tag.
+        return True if this product has been assigned a given tag.  
+
+        Note that if the input tag is a string, then an exact string match to a
+        string tag name listed in this product instance (in self.tags) is 
+        required to return True.  If the input is a instance of Tag, then the 
+        match is controlled by the Tag class's __eq__() function.  This currently 
+        means that an unqualified tag name listed in this product.  
         """
         return tag in self.tags
 
