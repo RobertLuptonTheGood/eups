@@ -471,8 +471,9 @@ class EnvListCmd(EupsCmd):
         if len(self.args) > 0:
             self.which = self.args[0]
 
-    def printEnv(self):
-        elems = os.environ.get(self.what, "").split(self.delim)
+    def printEnv(self, elems=None):
+        if elems is None:
+            elems = os.environ.get(self.what, "").split(self.delim)
 
         if self.which is not None:
             try:
@@ -529,6 +530,9 @@ listed (where 0 is the first element).
     def __init__(self, args=None, toolname=None, cmd=None):
         EnvListCmd.__init__(self, args, toolname, cmd)
         self._init("EUPS_STARTUP")
+
+    def execute(self):
+        self.printEnv(hooks.loadCustomization(execute=False))
 
 class PkgrootCmd(EnvListCmd):
 

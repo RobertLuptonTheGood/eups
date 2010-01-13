@@ -51,7 +51,7 @@ config.distrib = {}
 startupFileName = "startup.py"
 configFileName = "config.properties"
 
-def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr):
+def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False):
     cfile = os.path.join(customDir, configFileName)
     if os.path.exists(cfile):
         if verbose > 0:
@@ -60,9 +60,14 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr):
 
     startup = os.path.join(customDir, startupFileName) 
     if os.path.exists(startup):
-        execute_file(startup)
+        if execute:
+            execute_file(startup)
 
-def loadCustomization(verbose=0, log=sys.stderr):
+        return startup
+
+    return None
+
+def loadCustomization(verbose=0, log=sys.stderr, execute=True):
     """
     load all site and/or user customizations.  Customizations can come in two
     forms: a configuration properties file and/or a startup script file.  
@@ -82,6 +87,8 @@ def loadCustomization(verbose=0, log=sys.stderr):
     is executed in order.  
 
     @param verbose    the verbosity level
+    @param log        where to write log messages
+    @param execute    process files?
     """
     customDirs = []
 
@@ -98,8 +105,12 @@ def loadCustomization(verbose=0, log=sys.stderr):
         customDirs.append(os.path.join(os.environ["HOME"], ".eups"))
 
     # load the configuration by directories; later ones override prior ones
+    customisationFiles = []             # files that we'd load
+
     for dir in customDirs:
-        loadCustomizationFromDir(dir, verbose, log)
+        cfile = loadCustomizationFromDir(dir, verbose, log, execute=execute)
+        if cfile:
+            customisationFiles.append(cfile)
 
     # load any custom startup scripts via EUPS_STARTUP; this overrides
     # everything
@@ -107,13 +118,18 @@ def loadCustomization(verbose=0, log=sys.stderr):
         for startupFile in os.environ["EUPS_STARTUP"].split(':'):
             if os.path.exists(startupFile):
                 try:
-                    execute_file(startupFile)
+                    if execute: 
+                        execute_file(startupFile)
+
+                    customisationFiles.append(startupFile)
                 except Exception, e:
                     msg = "Processing %s: %s" % (startupFile, e)
                     if False:           # we have no recourse if we break this file; so proceed
                         raise eups.exceptions.CustomizationError(msg)
                     else:
                         print >> log, msg
+
+    return customisationFiles
 
 def execute_file(file):
     import eups
