@@ -558,7 +558,7 @@ class Eups(object):
         tag = self.tags.getTag(tag)  # may raise TagNotRecongized
         return self._findTaggedProduct(name, tag, eupsPathDirs, flavor, noCache)
 
-    def _findTaggedProduct(self, name, tag, eupsPathDirs, flavor, noCache=False):
+    def _findTaggedProduct(self, name, tag, eupsPathDirs=None, flavor=None, noCache=False):
         """
         find the first version assigned a given tag.
         @param name          the name of the product
@@ -569,6 +569,13 @@ class Eups(object):
                                else (the default), a cache will be used if
                                available.
         """
+
+        if not flavor:
+            flavor = self.flavor
+        if eupsPathDirs is None:
+            eupsPathDirs = self.path
+        if isinstance(eupsPathDirs, str):
+            eupsPathDirs = [eupsPathDirs]
 
         if tag.name == "newest":
             return self._findNewestProduct(name, eupsPathDirs, flavor)
@@ -1120,7 +1127,7 @@ class Eups(object):
             if isinstance(versionName, Tag):
                 # resolve a tag to a version
                 tag = self.tags.getTag(versionName) # may raise TagNotRecognized
-                p = self._findTaggedProduct(product, tag)
+                p = self._findTaggedProduct(productName, tag)
                 if p and p.version:
                     versionName = p.version
 
