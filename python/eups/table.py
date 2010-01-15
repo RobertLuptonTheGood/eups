@@ -559,18 +559,23 @@ class Action(object):
             i += 1
             if re.search(r"^-", _args[i]):
                 if _args[i] in ("-f", "--flavor"): # a flavor specification
-                    requestedFlavor = _args[i + 1]
+                    if fwd:
+                        requestedFlavor = _args[i + 1]
                     i += 1              # skip the argument
                 elif _args[i] in ("-j", "--just"):  # setup just this product
-                    noRecursion = True
+                    if fwd:
+                        noRecursion = True
                 elif _args[i] == "-q":  # e.g. -q build
-                    requestedBuildType = _args[i + 1]
+                    if fwd:
+                        requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
                 elif _args[i] in ("-t", "--tag"): # e.g. -t current
-                    requestedTag = _args[i + 1]
+                    if fwd:
+                        requestedTag = _args[i + 1]
                     i += 1              # skip the argument
                 else:
-                    ignoredOpts.append(_args[i]) 
+                    if fwd:
+                        ignoredOpts.append(_args[i]) 
 
                 continue
 
