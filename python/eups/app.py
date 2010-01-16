@@ -551,8 +551,9 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                           (",".join(prefTags), taggedVersion.version, version)
             else:
                 if not re.search(r"^LOCAL:", version):
-                    print >> sys.stderr, "No versions of %s are tagged %s; setting up %s" % \
-                          (productName, ",".join(prefTags), version)
+                    if eupsenv.verbose > 0:
+                        print >> sys.stderr, "No versions of %s are tagged %s; setup version is %s" % \
+                              (productName, ",".join(prefTags), version)
 
         #
         # Set new variables
