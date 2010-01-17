@@ -63,6 +63,7 @@ class Eups(object):
                                   strings (each being a separate name).  If 
                                   None, the list will be set according to the
                                   user's configuration.
+        @param preferredTags      List of tags to process in order; None will be intepreted as the default
         """
                  
         self.verbose = verbose
@@ -218,11 +219,22 @@ class Eups(object):
             self.tags.registerUserTag(tag)
         self._loadServerTags()
         self._loadUserTags()
-
+        #
+        # Handle preferred tags; this is a list where None means hooks.config.Eups.preferredTags
+        #
         if preferredTags is None:
-            preferredTags = hooks.config.Eups.preferredTags
-        if isinstance(preferredTags, str):
-            preferredTags = preferredTags.split()
+            preferredTags = [None]
+
+        pt, preferredTags = preferredTags, []
+        for tags in pt:
+            if not tags:
+                tags = hooks.config.Eups.preferredTags
+            if isinstance(tags, str):
+                tags = tags.split()
+
+            for t in tags:
+                preferredTags.append(t)
+                
         q = Quiet(self)
         self._kindlySetPreferredTags(preferredTags)
         del q
@@ -602,7 +614,7 @@ class Eups(object):
 
                 db = self._databaseFor(root)
                 try:
-                    version = db.getTaggedVersion(str(tag), name, flavor)
+                    version = db.getTaggedVersion(tag, name, flavor)
                     if version is not None:
                         return db.findProduct(name, version, flavor)
                 except ProductNotFound:
@@ -613,8 +625,7 @@ class Eups(object):
                 # consult the cache
                 try: 
                     self.versions[root].ensureInSync(verbose=self.verbose)
-                    return self.versions[root].getTaggedProduct(name, flavor, 
-                                                                tag.name)
+                    return self.versions[root].getTaggedProduct(name, flavor, tag)
                 except ProductNotFound:
                     pass
 
@@ -1402,8 +1413,10 @@ class Eups(object):
                 prod = self.findProduct(productName, versionName)
                 if prod is None:
                     raise ProductNotFound(productName, versionName, self.flavor)
-                msg = "Tag %s not assigned to product %s within %s" % \
-                    (tag.name, productName, str(eupsPathDir))
+                msg = "Tag %s not assigned to product %s" % \
+                    (tag.name, productName)
+                if eupsPathDir:
+                    msg += " within %s" % str(eupsPathDir)
 
             dbpath = prod.db
             eupsPathDir = prod.stackRoot()
