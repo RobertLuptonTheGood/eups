@@ -211,13 +211,18 @@ class Eups(object):
         # load up the recognized tags.  
         # 
         self.tags = Tags("newest setup")
-        for tag in hooks.config.Eups.userTags.split():
+        userTags = hooks.config.Eups.userTags
+        if isinstance(userTags, str):
+            userTags = userTags.split()
+        for tag in userTags:
             self.tags.registerUserTag(tag)
         self._loadServerTags()
         self._loadUserTags()
 
         if preferredTags is None:
-            preferredTags = hooks.config.Eups.preferredTags.split()
+            preferredTags = hooks.config.Eups.preferredTags
+        if isinstance(preferredTags, str):
+            preferredTags = preferredTags.split()
         q = Quiet(self)
         self._kindlySetPreferredTags(preferredTags)
         del q
