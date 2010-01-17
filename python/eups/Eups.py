@@ -1094,6 +1094,10 @@ class Eups(object):
                                   to assume.  This is useful for products 
                                   that are not currently declared.  
         """
+
+        if isinstance(versionName, str) and versionName.startswith(Product.LocalVersionPrefix):
+            productRoot = versionName[len(Product.LocalVersionPrefix):]
+
         if productRoot is None:
             productRoot = self.root
 
