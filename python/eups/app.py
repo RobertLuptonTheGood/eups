@@ -50,8 +50,6 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             raise TagNotRecognized(str(badtags), 
                                    msg="Unsupported tag(s): %s" % 
                                        ", ".join(badtags))
-        if setup:
-            tags.append("setup")
     elif setup:
         tags = ["setup"]
 
@@ -94,6 +92,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if root == "none":  root = " (none)"
         info = ""
 
+        if setup and not eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
+            continue
+        
         if dependencies:
             recursionDepth = 0 
 #             if not info:
@@ -161,8 +162,12 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
                 info += "%-20s %-55s" % (root, pi.dir)
 
-
-            extra = pi.tags
+            if eupsenv.verbose > 1:
+                extra = pi.tags
+            else:
+                extra = []
+                for t in pi.tags:
+                    extra.append(Tag(t).name) # get the bare tag name, not e.g. user:foo
 
             if eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
                 extra += ["setup"]
@@ -493,7 +498,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                              a "LOCAL" product.  
     @param setupType       the setup type.  This will cause conditional
                              sections of the table filebased on "type" 
-                             (e.g. "if (type == build) {...") to be 
+                             (e.g. "if (type == build) {...}") to be 
                              executed.  
     @param eupsenv         the Eups instance to use to do the setup.  If 
                              None, one will be created for it.
@@ -515,7 +520,6 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     elif isinstance(prefTags, Tag):
         prefTags = [prefTags]
 
-    oldPrefTags = None
     if prefTags:
         badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), prefTags)
         if badtags:
@@ -524,15 +528,18 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                                        map(lambda t: str(t), badtags))
         prefTags = map(lambda t: t.name, map(eupsenv.tags.getTag, prefTags))
 
+    oldPrefTags = eupsenv.getPreferredTags()
+    try:
         # prepend the given tags to the preferred list.
-        oldPrefTags = eupsenv.getPreferredTags()
-        eupsenv.setPreferredTags(prefTags + oldPrefTags)
+        if prefTags:
+            eupsenv.setPreferredTags(prefTags + oldPrefTags)
 
+        ok, version, reason = eupsenv.setup(productName, version, fwd,
+                                            setupType=setupType, productRoot=productRoot)
+    finally:
+        eupsenv.setPreferredTags(oldPrefTags)
+        
     cmds = []
-
-    ok, version, reason = eupsenv.setup(productName, version, fwd, 
-                                        setupType=setupType, 
-                                        productRoot=productRoot)
     if ok:
         #
         # Check that we got the desired tag
@@ -666,8 +673,6 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
         cmds += ["false"]               # as in /bin/false
 
-    if oldPrefTags is not None:
-        eupsenv.setPreferredTags(oldPrefTags)
     return cmds
 
 def unsetup(productName, version=None, eupsenv=None):
