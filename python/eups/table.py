@@ -341,7 +341,7 @@ but no other interpretation is applied
                 print >> sys.stderr, "Unrecognised line: %s at %s:%d" % (line, self.file, lineNo)
                 continue
 
-            block += [Action(cmd, args, extra)]
+            block += [Action(tableFile, cmd, args, extra)]
         #
         # Push any remaining actions onto current logical block
         #
@@ -495,9 +495,10 @@ class Action(object):
     setupRequired = "setupRequired"     # extra: bool optional
     sourceRequired = "sourceRequired"   # not supported
 
-    def __init__(self, cmd, args, extra):
+    def __init__(self, tableFile, cmd, args, extra):
         """
-        Create the Action.  
+        Create the Action.
+        @param tableFile  the parent tableFile; used in user messages
         @param cmd      the name of the command (as it appears in the table file
                           command line)
         @param args     the list of arguments passed to the command as 
@@ -505,6 +506,7 @@ class Action(object):
         @param extra    extra, command-specific data passed by the parser to 
                           control the execution of the command.  
         """
+        self.tableFile = tableFile
         self.cmd = cmd
         try:
             i = args.index("-f")
@@ -593,7 +595,7 @@ class Action(object):
                 print >> sys.stderr, "Ignoring options %s for %s %s" % \
                       (" ".join(ignoredOpts), productName, vers) 
 
-        if requestedFlavor and requestedFlavor != Eups.flavor:
+        if fwd and requestedFlavor and requestedFlavor != Eups.flavor:
             print >> sys.stderr, "Ignoring --flavor option in \"%s(%s)\"" % (cmdStr, " ".join(_args))
 
         if vers:  
@@ -617,18 +619,30 @@ class Action(object):
                 else:
                     vers = logicalVersion
 
+        if not fwd:
+            requestedTag = None         # ignore if not setting up
+            
         if requestedTag:
             if vers:
                 print >> sys.stderr, "You specified version \"%s\" and tag \"%s\"; ignoring the latter" % \
                       (vers, requestedTag)
             else:
                 try:
-                    vers = Eups.tags.getTag(requestedTag)
+                    Eups.tags.getTag(requestedTag)
                 except TagNotRecognized, e:
                     print >> sys.stderr, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
+                    requestedTag = None
 
-        productOK, vers, reason = Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion)
-            
+        savedPTags = Eups.getPreferredTags()
+        try:
+            if requestedTag:
+                Eups.setPreferredTags([requestedTag] + savedPTags)
+                
+            productOK, vers, reason = \
+                       Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion)
+        finally:
+            Eups.setPreferredTags(savedPTags)
+
         if not productOK and fwd:
             if optional:                # setup the pre-existing version (if any)
                 try:
@@ -647,6 +661,7 @@ class Action(object):
                 except RuntimeError, e:
                     pass
             else:
+                reason.msg = "in file %s: %s" % (self.tableFile, reason)
                 raise reason
 
     def execute_envPrepend(self, Eups, fwd=True):
