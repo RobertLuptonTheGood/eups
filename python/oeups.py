@@ -4,7 +4,6 @@ import filecmp
 import fnmatch
 import cPickle
 import tempfile
-import pdb
 import lock as eupsLock
 import Parser as eupsParser
 from product import Product, ProductInformation
