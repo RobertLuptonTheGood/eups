@@ -342,7 +342,15 @@ class Tag(object):
     equal to a string if the string is identical to the tag name. 
     """
 
-    def __init__(self, name, group=Tags.global_):
+    def __init__(self, name, group=None):
+
+        if name.startswith("user:"):
+            name = name[len("user:"):]
+            if not group:
+                group = Tags.user
+
+        if not group:
+            group = Tags.global_
 
         # the tag name
         self.name = name
