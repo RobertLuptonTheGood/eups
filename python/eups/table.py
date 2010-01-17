@@ -559,23 +559,18 @@ class Action(object):
             i += 1
             if re.search(r"^-", _args[i]):
                 if _args[i] in ("-f", "--flavor"): # a flavor specification
-                    if fwd:
-                        requestedFlavor = _args[i + 1]
+                    requestedFlavor = _args[i + 1]
                     i += 1              # skip the argument
                 elif _args[i] in ("-j", "--just"):  # setup just this product
-                    if fwd:
-                        noRecursion = True
+                    noRecursion = True
                 elif _args[i] == "-q":  # e.g. -q build
-                    if fwd:
-                        requestedBuildType = _args[i + 1]
+                    requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
                 elif _args[i] in ("-t", "--tag"): # e.g. -t current
-                    if fwd:
-                        requestedTag = _args[i + 1]
+                    requestedTag = _args[i + 1]
                     i += 1              # skip the argument
                 else:
-                    if fwd:
-                        ignoredOpts.append(_args[i]) 
+                    ignoredOpts.append(_args[i]) 
 
                 continue
 
@@ -583,12 +578,15 @@ class Action(object):
 
         productName = args[0]
         
-        if Eups.ignore_versions:
+        vers = None
+        if not fwd:                     # unsetup
+            product = Eups.findSetupProduct(productName)
+            if product:
+                vers = product.version
+        elif Eups.ignore_versions:
             vers = None                 # Setting and then ignoring vers generates confusing error messages
         elif len(args) > 1:
             vers = " ".join(args[1:])
-        else:
-            vers = None
 
         if ignoredOpts:
             if Eups.verbose > 0: 
