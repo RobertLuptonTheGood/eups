@@ -546,6 +546,8 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             if taggedVersion:
                 if version == taggedVersion.version: # OK, we got it
                     pass
+                elif productRoot:       # they asked for a particular directory
+                    pass
                 else:
                     print >> sys.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
                           (",".join(prefTags), taggedVersion.version, version)
