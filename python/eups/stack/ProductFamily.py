@@ -1,6 +1,7 @@
 import os
 from eups import utils
 from eups.Product import Product
+import eups.tags
 from eups.exceptions import ProductNotFound, TableFileNotFound
 from eups.table import Table
 
@@ -82,6 +83,9 @@ class ProductFamily(object):
         @param flavor    a platform flavor to set on the returned product
         @return Product 
         """
+        if isinstance(tag, eups.tags.Tag):
+            tag = str(tag)
+
         if self.isTagAssigned(tag):
             return self.getProduct(self.tags[tag], dbpath, flavor)
         else:
