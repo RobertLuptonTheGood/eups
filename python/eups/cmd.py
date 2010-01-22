@@ -1043,14 +1043,34 @@ only wish to assign a tag, you should use the -t option but not include
         
 
     def execute(self):
-        if len(self.args) == 0:
+        product, version = None, None
+        if len(self.args) > 0:
+            product = self.args[0]
+        if len(self.args) > 1:
+            version = self.args[1]
+
+        if not product:
+            if not product:
+                try:
+                    product = utils.guessProduct(os.path.join(self.opts.productDir,"ups"))
+                except RuntimeError, msg:
+                    self.err(msg)
+                    return 2
+            base, v = os.path.split(self.opts.productDir)
+            base, p = os.path.split(base)
+
+            if product != p:
+                self.msg("Guessed product %s from ups directory, but %s from path" % (product, p))
+                return 2
+
+            version = v
+
+        if not product:
             self.err("Please specify a product name and version")
             return 2
-        if len(self.args) < 2:
+        if not version:
             self.err("Please also specify a product version")
             return 2
-        product = self.args[0]
-        version = self.args[1]
 
         if self.opts.tablefile and self.opts.externalTablefile:
             self.err("You may not specify both -m and -M")
