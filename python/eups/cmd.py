@@ -1050,17 +1050,20 @@ only wish to assign a tag, you should use the -t option but not include
             version = self.args[1]
 
         if not product:
-            if not product:
-                try:
-                    product = utils.guessProduct(os.path.join(self.opts.productDir,"ups"))
-                except RuntimeError, msg:
-                    self.err(msg)
-                    return 2
+            if self.opts.tablefile in (None, "none"): # -M XXX and -m none
+                self.err("Unable to guess product name as product has no ups directory")
+                return 2
+
+            try:
+                product = utils.guessProduct(os.path.join(self.opts.productDir,"ups"))
+            except RuntimeError, msg:
+                self.err(msg)
+                return 2
             base, v = os.path.split(self.opts.productDir)
             base, p = os.path.split(base)
 
             if product != p:
-                self.msg("Guessed product %s from ups directory, but %s from path" % (product, p))
+                self.err("Guessed product %s from ups directory, but %s from path" % (product, p))
                 return 2
 
             version = v
