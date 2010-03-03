@@ -1909,7 +1909,7 @@ class Eups(object):
                 raise TagNotRecognized(str(bad))
 
         prodkey = lambda p: "%s:%s:%s:%s" % (p.name,p.flavor,p.db,p.version)
-        tagset = _TagSet(tags)
+        tagset = _TagSet(self, tags)
         out = []
         newest = None
 
@@ -2400,13 +2400,15 @@ _ClassEups = Eups                       # so we can say, "isinstance(Eups, _Clas
 
 
 class _TagSet(object):
-    def __init__(self, tags):
+    def __init__(self, eups, tags):
+        self.eups = eups
         self.lu = {}
         if tags:
             for tag in tags:
                 self.lu[tag] = True
     def intersects(self, tags):
         for tag in tags:
+            tag = str(self.eups.tags.getTag(tag)) # make sure that we have e.g. user: prefix
             if self.lu.has_key(tag):
                 return True
         return False
