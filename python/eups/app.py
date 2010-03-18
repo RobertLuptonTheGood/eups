@@ -10,12 +10,12 @@ from VersionParser  import VersionParser
 from stack          import ProductStack, persistVersionName as cacheVersion
 from distrib.server import ServerConf
 import utils, table, distrib.builder, hooks
-
+from exceptions import EupsException
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
                   dependencies=False, showVersion=False, setupType=None,
-                  depth=None, giveHints=True):
+                  depth=None, giveHints=True, productDir=None):
     """
     print out a listing of products.  Returned is the number of products listed.
     @param ostrm           the output stream to send listing to
@@ -53,6 +53,32 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     elif setup:
         tags = ["setup"]
 
+    # If productDir is provided only list its dependencies;  we do this by setting it up
+    if productDir:
+        if not dependencies:
+            raise EupsException("-r only makes sense with --dependencies")
+
+        if productDir:
+            ups_dir = os.path.join(productDir, "ups")
+            if not os.path.isdir(ups_dir):
+                raise EupsException("Unable to guess product name as product has no ups directory")
+
+            p = utils.guessProduct(ups_dir)
+
+            if productName:
+                if p != productName:
+                    raise EupsException("Guessed product %s from ups directory, but %s from path" % \
+                                        (productName, p))
+            else:
+                productName = p  
+
+        if tags:
+            tag = tags[0]
+        else:
+            tag = None
+
+        eupsenv.setup(productName, versionName, productRoot=os.path.abspath(productDir))
+        setup = True                    # only list this version
 
     productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
 

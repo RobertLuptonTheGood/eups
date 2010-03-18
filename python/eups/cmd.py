@@ -391,6 +391,8 @@ will also be printed.
         self.clo.add_option("-e", "--exact", dest="exactver", action="store_true", default=False,
                             help="Follow the as-installed versions, not the conditionals in the table file " +
                             "(ignored unless -d is specified)")
+        self.clo.add_option("-r", "--root", dest="productDir", action="store", 
+                            help="root directory where product is installed")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
                             help="List only product's that are setup.")
         self.clo.add_option("-m", "--table", dest="tablefile", action="store_true", default=False,
@@ -427,7 +429,8 @@ will also be printed.
                                    dependencies=self.opts.depends, 
                                    showVersion=self.opts.version, 
                                    setupType=self.opts.setuptype, 
-                                   depth=self.opts.depth)
+                                   depth=self.opts.depth,
+                                   productDir=self.opts.productDir)
             if n == 0:
                 msg = 'No products found'
 
@@ -1050,16 +1053,20 @@ only wish to assign a tag, you should use the -t option but not include
             version = self.args[1]
 
         if not product:
-            if self.opts.tablefile in (None, "none"): # -M XXX and -m none
-                self.err("Unable to guess product name as product has no ups directory")
+            if self.opts.tablefile == "none" or externalTablefile != None:
+                self.err("Unable to guess product name as product contains no table file")
                 return 2
 
             try:
-                product = utils.guessProduct(os.path.join(self.opts.productDir,"ups"))
+                ups_dir = os.path.join(self.opts.productDir,"ups")
+                if not os.path.isdir(ups_dir):
+                    self.err("Unable to guess product name as product has no ups directory")
+                    return 2
+                product = utils.guessProduct(ups_dir)
             except RuntimeError, msg:
                 self.err(msg)
                 return 2
-            base, v = os.path.split(self.opts.productDir)
+            base, v = os.path.split(os.path.abspath(self.opts.productDir))
             base, p = os.path.split(base)
 
             if product != p:
@@ -1848,7 +1855,7 @@ class DistribCreateCmd(EupsCmd):
                           manifest=self.opts.manifest, 
                           packageId=self.opts.packageId, repositories=repos)
 
-        except EUPSException, e:
+        except eups.EupsException, e:
             e.status = 1
             raise
 
