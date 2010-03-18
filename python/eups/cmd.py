@@ -1289,7 +1289,7 @@ that are writable by the user.
         elif subcmd == "listCache":
             eups.listCache(verbose=self.opts.verbose)
         elif subcmd == "clearLocks":
-            eups.Eups(readCache=False).clearLocks()
+            eups.Eups(readCache=False, verbose=self.opts.verbose).clearLocks()
         elif subcmd == "clearServerCache":
             pkgroots = self.opts.root
             if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):

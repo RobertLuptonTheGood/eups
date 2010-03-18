@@ -391,15 +391,15 @@ class Eups(object):
         if self.userDataDir:
             locations.append(self.userDataDir)
         for p in locations:
-            locks = filter(lambda f: f.endswith(".lock"), os.listdir(p))
-            for lockfile in locks:
-                lockfile = os.path.join(p,lock)
-                if self.verbose:
-                    print "Removing", lockfile
-                try:
-                    os.remove(lockfile)
-                except Exception, e:
-                    print >> sys.stderr, ("Error deleting %s: %s" % (lockfile, e))
+            for root, dirs, files in os.walk(p):
+                for lockfile in filter(lambda f: f.endswith(".lock"), files):
+                    lockfile = os.path.join(root, lockfile)
+                    if self.verbose:
+                        print "Removing", lockfile
+                    try:
+                        os.remove(lockfile)
+                    except Exception, e:
+                        print >> sys.stderr, ("Error deleting %s: %s" % (lockfile, e))
 
     def findSetupVersion(self, productName, environ=None):
         """Find setup version of a product, returning the version, eupsPathDir, productDir, None (for tablefile), and flavor
