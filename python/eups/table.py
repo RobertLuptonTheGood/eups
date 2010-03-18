@@ -381,7 +381,7 @@ but no other interpretation is applied
 
         return s
 
-    _versionre = re.compile(r"(.*)\s+\[([^\]]+)\]\s*")
+    _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
     def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None, followExact=None):
         """
