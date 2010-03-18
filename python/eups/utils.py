@@ -136,8 +136,8 @@ def userStackCacheFor(eupsPathDir, userDataDir=None):
         userDataDir = defaultUserDataDir()
     if not userDataDir:
         return None
-    pathdir = os.path.basename(eupsPathDir) + str(hash(eupsPathDir))
-    return os.path.join(userDataDir,"_caches_",pathdir)
+
+    return os.path.join(userDataDir,"_caches_", eupsPathDir[1:])
 
 def defaultUserDataDir():
     """
