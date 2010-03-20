@@ -874,6 +874,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             if product:
                 version = product.version
             if not version:
+                if cmd == "setupOptional":
+                    return ""           # it must not have been setup
+
                 print >> sys.stderr, "Trouble finding version for", productName
 
         if logical:
