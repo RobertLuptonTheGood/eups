@@ -1053,7 +1053,7 @@ only wish to assign a tag, you should use the -t option but not include
             version = self.args[1]
 
         if not product:
-            if self.opts.tablefile == "none" or externalTablefile != None:
+            if self.opts.tablefile == "none" or self.opts.externalTablefile != None:
                 self.err("Unable to guess product name as product contains no table file")
                 return 2
 
