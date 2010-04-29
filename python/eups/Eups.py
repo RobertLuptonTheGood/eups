@@ -9,7 +9,7 @@ import tempfile
 from stack      import ProductStack, CacheOutOfSync
 from db         import Database
 from tags       import Tags, Tag, TagNotRecognized
-from exceptions import ProductNotFound, EupsException, TableError
+from exceptions import ProductNotFound, EupsException, TableError, TableFileNotFound
 from table      import Table
 from Product    import Product
 from Uses       import Uses
@@ -1208,7 +1208,18 @@ class Eups(object):
                     self.alreadySetupProducts[p.name] = p
                 del q
 
-        table = product.getTable()
+        try:
+            table = product.getTable()
+        except TableFileNotFound, e:
+            if fwd:
+                raise
+
+            if not self.force:
+                raise
+
+            table = None
+            print >> sys.stderr, "Warning: %s" % e
+        
         if table:
             try:
                 verbose = self.verbose
