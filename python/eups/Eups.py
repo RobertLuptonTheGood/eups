@@ -1551,7 +1551,8 @@ class Eups(object):
                     if not productDir:
                         productDir = info.dir
                     if not tablefile:
-                        tablefile = info.tablefile # we'll check the other fields later
+                        if productDir == info.dir:     # we didn't change the definition
+                            tablefile = info.tablefile # we'll check the other fields later
                     if not productDir:
                         productDir = "none"
                     break
