@@ -110,6 +110,8 @@ product and all its dependencies into the environment so that it can be used.
                             help="Keep any products already setup (regardless of their versions)")
         self.clo.add_option("-l", "--list", dest="list", action="store_true", default=False,
                             help="deprecated (use 'eups list')")
+        self.clo.add_option("-m", "--table", dest="tablefile", action="store", default=None,
+                            help="Use this table file")
         self.clo.add_option("-S", "--max-depth", dest="max_depth", action="store", type="int", default=-1,
                             help="Only show this many levels of dependencies (use with -v)")
         self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
@@ -139,16 +141,32 @@ product and all its dependencies into the environment so that it can be used.
             self.opts.exact_version = False
             self.opts.inexact_version = False
 
-        if not self.opts.productDir and len(self.args) < 1:
-           self.err("please specify at least a product name or use -r")
-           print >> self._errstrm, self.clo.get_usage()
-           return 3
-
         productName = versionName = None
         if len(self.args) > 0:
             productName = self.args[0]
         if len(self.args) > 1:
             versionName = self.args[1]
+
+        if self.opts.tablefile:         # we're setting up a product based only on a tablefile
+            if self.opts.unsetup:
+                self.err("Ignoring --table as I'm unsetting up a product")
+                self.opts.tablefile = None
+            else:
+                if not os.path.exists(self.opts.tablefile):
+                    self.err("%s does not exist" % self.opts.tablefile)
+                    print >> self._errstrm, self.clo.get_usage()
+                    return 3
+                    
+                self.opts.tablefile = os.path.abspath(self.opts.tablefile)
+
+                if not productName:
+                    self.opts.productDir = os.path.dirname(self.opts.tablefile)
+                    productName = os.path.splitext(os.path.basename(self.opts.tablefile))[0]
+
+        if not self.opts.productDir and not productName:
+            self.err("please specify at least a product name or use -r")
+            print >> self._errstrm, self.clo.get_usage()
+            return 3
 
         if not versionName:
             if self.opts.verbose > 1:
@@ -215,7 +233,7 @@ product and all its dependencies into the environment so that it can be used.
                                   
             cmds = eups.setup(productName, versionName, self.opts.tag,
                               self.opts.productDir, self.opts.setuptype, 
-                              Eups, fwd=not self.opts.unsetup)
+                              Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
 
         except EupsException, e:
             e.status = 1

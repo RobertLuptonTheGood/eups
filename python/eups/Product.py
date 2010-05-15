@@ -383,11 +383,11 @@ class Product(object):
 
     # this replaces from initFromDirectory()
     # @staticmethod   # requires python 2.4
-    def createLocal(productName, productDir, flavor=None, checkForTable=True):
+    def createLocal(productName, productDir, flavor=None, checkForTable=True, tablefile=None):
         out = Product(productName, Product.LocalVersionPrefix + productDir, 
                       flavor, productDir)
         out.db = "(none)"
-        out.tablefile = None
+        out.tablefile = tablefile
         if checkForTable:
             out.tablefile = out.tableFileName()
             if not os.path.exists(out.tablefile):

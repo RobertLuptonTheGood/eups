@@ -500,7 +500,7 @@ def osetup(Eups, productName, version=None, fwd=True, setupType=None):
     return setup(productName, version, None, setupType, Eups, fwd)
 
 def setup(productName, version=None, prefTags=None, productRoot=None, 
-          setupType=None, eupsenv=None, fwd=True):
+          setupType=None, eupsenv=None, fwd=True, tablefile=None):
     """
     Return a set of shell commands which, when sourced, will setup a product.  
     (If fwd is false, unset it up.)
@@ -561,7 +561,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             eupsenv.setPreferredTags(prefTags + oldPrefTags)
 
         ok, version, reason = eupsenv.setup(productName, version, fwd,
-                                            setupType=setupType, productRoot=productRoot)
+                                            setupType=setupType, productRoot=productRoot, tablefile=tablefile)
     finally:
         eupsenv.setPreferredTags(oldPrefTags)
         

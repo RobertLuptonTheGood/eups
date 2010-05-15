@@ -437,6 +437,9 @@ class Eups(object):
         if len(args) > 1 and (args[0] == "-Z" or args[0] == "-z"):
             args.pop(0);  eupsPathDir = args.pop(0)
 
+        if len(args) > 1 and (args[0] == "-m"):
+            args.pop(0);  tablefile = args.pop(0)
+
         if args:
             raise RuntimeError, ("Unexpected arguments: %s" % args)
 
@@ -452,7 +455,7 @@ class Eups(object):
 
             try:
                 productDir = environ[self._envarDirName(productName)]
-                if productDir:
+                if productDir and not tablefile:
                     tablefile = os.path.join(productDir,"ups",productName+".table")
                     if not os.path.exists(tablefile):
                         tablefile = "none"
@@ -1073,7 +1076,7 @@ class Eups(object):
 
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
               setupToplevel=True, noRecursion=False, setupType=None,
-              productRoot=None):
+              productRoot=None, tablefile=None):
         """
         Update the environment to use (or stop using) a specified product.  
 
@@ -1108,7 +1111,9 @@ class Eups(object):
                                   executed.  
         @param productRoot      the directory where the product is installed
                                   to assume.  This is useful for products 
-                                  that are not currently declared.  
+                                  that are not currently declared.
+
+        @param tablefile        use this table file to setup the product
         """
 
         if isinstance(versionName, str) and versionName.startswith(Product.LocalVersionPrefix):
@@ -1163,7 +1168,7 @@ class Eups(object):
 
             # get the product to setup
             if productRoot:
-                product = Product.createLocal(productName, productRoot, self.flavor)
+                product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
             else:
                 product = self.findProduct(productName, versionName)
                 if not product and self.alreadySetupProducts.has_key(productName):
@@ -1313,9 +1318,13 @@ class Eups(object):
             self.unsetupSetupProduct(product)
             del q
 
+            setup_product_str = "%s %s -f %s -Z %s" % (
+                product.name, product.version, setupFlavor, product.stackRoot())
+            if tablefile:
+                setup_product_str += " -m %s" % (tablefile)
+
             self.setEnv(self._envarDirName(product.name), product.dir)
-            self.setEnv(self._envarSetupName(product.name),
-                        "%s %s -f %s -Z %s" % (product.name, product.version, setupFlavor, product.stackRoot()))
+            self.setEnv(self._envarSetupName(product.name), setup_product_str)
             #
             # Remember that we've set this up in case we want to keep it later
             #
