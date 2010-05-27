@@ -67,7 +67,7 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False
 
     return None
 
-def loadCustomization(verbose=0, log=sys.stderr, execute=True):
+def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True):
     """
     load all site and/or user customizations.  Customizations can come in two
     forms: a configuration properties file and/or a startup script file.  
@@ -116,7 +116,10 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True):
     # everything
     if os.environ.has_key("EUPS_STARTUP"):
         for startupFile in os.environ["EUPS_STARTUP"].split(':'):
-            if os.path.exists(startupFile):
+            if not os.path.exists(startupFile):
+                if not quiet:
+                    print "Startup file %s doesn't exist" % (startupFile)
+            else:
                 try:
                     if execute: 
                         execute_file(startupFile)

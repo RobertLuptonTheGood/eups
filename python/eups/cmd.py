@@ -535,7 +535,8 @@ listed (where 0 is the first element).
         self._init("EUPS_STARTUP")
 
     def execute(self):
-        self.printEnv(hooks.loadCustomization(execute=False))
+        self.printEnv(hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
+                                              quiet=self.opts.quiet))
 
 class PkgrootCmd(EnvListCmd):
 
