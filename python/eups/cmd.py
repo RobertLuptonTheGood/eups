@@ -1093,9 +1093,9 @@ only wish to assign a tag, you should use the -t option but not include
                 tablefile = sys.stdin
             else:
                 try:
-                    tablefile = open(externalTablefile, "r")
+                    tablefile = open(self.opts.externalTablefile, "r")
                 except IOError, e:
-                    self.err("Error opening %s: %s" % (externalTablefile, e))
+                    self.err("Error opening %s: %s" % (self.opts.externalTablefile, e))
                     return 4
 
         try:
