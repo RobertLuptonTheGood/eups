@@ -1758,7 +1758,8 @@ class Eups(object):
         # now really declare the product.  This will also update the tags
         #
         dbpath = self.getUpsDB(eupsPathDir)
-        if tag:  tag = [tag]
+        if tag:
+            tag = [self.tags.getTag(tag)]
         product = Product(productName, versionName, self.flavor, productDir, 
                           tablefile, tag, dbpath, ups_dir=ups_dir)
 

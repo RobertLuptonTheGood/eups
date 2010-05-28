@@ -507,7 +507,11 @@ class Database(object):
         @param flavors :     the flavors of the product to be tagged.  
                                 If None, tag all available flavors.  
         """
-        if tag.startswith("user:") and not self.usertagdb:
+
+        if isinstance(tag, str):
+            tag = eups.tags.Tag(tag)
+
+        if tag.isUser() and not self.usertagdb:
             raise RuntimeError("Unable to assign user tags (user db not available)")
 
         vf = VersionFile(self._versionFile(productName, version))
@@ -534,16 +538,15 @@ class Database(object):
                                msg="Requested flavors not declared for %s %s"
                                    % (productName, version))
 
-        if tag.startswith("user:"):
+        if tag.isUser():
             pdir = self._productDir(productName, self.usertagdb)
-            tag = tag[len("user:"):]
             if not os.path.exists(pdir):
                 os.makedirs(pdir)
         else:
             pdir = self._productDir(productName)
         
-        tfile = self._tagFileInDir(pdir, tag)
-        tagFile = ChainFile(tfile, productName, tag)
+        tfile = self._tagFileInDir(pdir, tag.name)
+        tagFile = ChainFile(tfile, productName, tag.name)
 
         tagFile.setVersion(version, flavors)
         tagFile.write()
