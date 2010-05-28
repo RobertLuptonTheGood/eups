@@ -42,6 +42,9 @@ class Tags(object):
             for tag in globals:
                 self.registerTag(tag)
 
+    def __str__(self):
+        return "(Tags [%s])" % (" ".join(self.getTagNames()))
+
     def isRecognized(self, tag):
         """
         return true if given item is recognized as a tag.  It either may 
