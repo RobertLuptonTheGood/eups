@@ -1827,7 +1827,7 @@ class Eups(object):
         if not versionName:
             productList = self.findProducts(productName, eupsPathDirs=eupsPathDir) 
             if len(productList) == 0:
-                raise ProductNotFound(productName, eupsPathDir=eupsPathDir)
+                raise ProductNotFound(productName, stack=eupsPathDir)
 
             elif len(productList) > 1:
                 versionList = map(lambda el: el.version, productList)
