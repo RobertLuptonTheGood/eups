@@ -133,6 +133,8 @@ product and all its dependencies into the environment so that it can be used.
                             help="Print extra messages about progress (repeat for ever more chat)")
         self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
                             help="Print eups version number")
+        self.clo.add_option("--vro", dest="vro", action="store", metavar="LIST",
+                            help="Set the Version Resolution Order")
 
     def execute(self):
         
@@ -203,6 +205,8 @@ product and all its dependencies into the environment so that it can be used.
                 return 3
             self.opts.max_depth = 0
 
+        if not self.opts.vro:
+            self.opts.vro = hooks.config.Eups.VRO
         #
         # Do the work
         #
@@ -214,8 +218,23 @@ product and all its dependencies into the environment so that it can be used.
                              quiet=self.opts.quiet, verbose=self.opts.verbose, 
                              noaction=self.opts.noaction, keep=self.opts.keep, 
                              ignore_versions=self.opts.ignoreVer,
-                             max_depth=self.opts.max_depth, 
+                             max_depth=self.opts.max_depth, vro=self.opts.vro,
                              exact_version=self.opts.exact_version)
+
+            # Set the VRO.  Note that the order of these tests is significant
+            if self.opts.tag:
+                vroTag = self.opts.tag
+            elif self.opts.productDir:
+                vroTag = "path"
+            elif versionName:
+                vroTag = "commandLineVersion"
+            else:
+                vroTag = "default"
+
+            Eups.setVRO(vroTag, self.opts.dbz)
+
+            if self.opts.verbose > 1:
+                self.err("Using VRO for \"%s\": %s" % (vroTag, Eups.getVRO()))
 
             if self.opts.unsetup:
                 cmdName = "unsetup"

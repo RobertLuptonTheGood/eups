@@ -32,7 +32,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags verbose asAdmin setupTypes setupCmdName", "Eups")
+config.Eups = defineProperties("userTags preferredTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = ""
@@ -41,6 +41,9 @@ config.Eups.verbose = 0
 config.Eups.asAdmin = None
 config.Eups.setupTypes = "build"
 config.Eups.setupCmdName = "setup"
+config.Eups.VRO = {
+    "default" : "path version current",
+}
 
 # it is expected that different Distrib classes will have different set-able
 # properties.  The key for looking up Distrib-specific data could the Distrib

@@ -42,7 +42,7 @@ class Eups(object):
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
-                 userDataDir=None, asAdmin=False, validSetupTypes=None
+                 userDataDir=None, asAdmin=False, validSetupTypes=None, vro={}
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -161,7 +161,27 @@ class Eups(object):
 
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
+        #
+        # The Version Resolution Order.  The entries may be a string (which should be split), or a dictionary
+        # indexed by dictionary names in the EUPS_PATH (as set by -z); each value in this dictionary should
+        # be split
+        #
+        if not isinstance(vro, dict):
+            vro = {"default" : vro}
 
+        self._vroDict = {}
+        for key, v in vro.items():
+            if isinstance(v, dict):
+                _v = {}
+                for k, v in v.items():
+                    _v[k] = v.split()
+                v = _v
+            else:
+                v = v.split()
+
+            self._vroDict[key] = v
+
+        self._vro = None                # the actual VRO to use
         # 
         # determine the user data directory.  This is a place to store 
         # user preferences and caches of product information.
@@ -2417,6 +2437,37 @@ class Eups(object):
 
         return self.findProducts(productName, productVersion, tags)
 
+    def setVRO(self, vroTag="default", dbz=None):
+        """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "path")
+
+        """
+        if self._vroDict.has_key(vroTag):
+            pass
+        elif self._vroDict.has_key("default"):
+            vroTag = "default"
+        else:
+            raise RuntimeError, "Complain to RHL about getVRO"
+
+        vro = self._vroDict[vroTag]
+
+        if isinstance(vro, dict):
+            if vro.has_key(dbz):
+                self._vro = vro[dbz]
+            elif vro.has_key("default"):
+                self._vro = vro["default"]
+            else:
+                raise RuntimeError, ("Unable to find entry for %s in VRO dictionary for tag %s" %
+                                     (dbz, vroTag))
+        else:
+            self._vro = vro
+
+    def getVRO(self):
+        """Return the VRO (as chosen by setVRO)"""
+
+        if not self._vro:
+            self.setVRO()
+
+        return self._vro
 
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 
