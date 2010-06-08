@@ -299,7 +299,7 @@ class Eups(object):
     def _loadServerTags(self):
         for path in self.path:
             # start by looking for a cached list
-            if self.tags.loadFromEupsPath(path):
+            if self.tags.loadFromEupsPath(path, self.verbose):
                 continue
 
             # if no list cached, try asking the cached product stack

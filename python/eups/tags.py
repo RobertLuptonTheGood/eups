@@ -168,15 +168,19 @@ class Tags(object):
         return tagListFileTmpl % group
     persistFilename = staticmethod(persistFilename) #should work as'f python 2.2
 
-    def load(self, group, file):
+    def load(self, group, file, lock=True):
         """
         load registered tag names in from a file.
 
         @param group : the group to load the tags into
         @param file :  the file to load the tags from.  If null, load them 
                           from configured location.
+        @param lock :  file must be locked before being read
         """
-        self._lock(file)
+
+        if lock:
+            self._lock(file)
+
         try:
             fd = open(file)
             if not self.bygrp.has_key(group): 
@@ -189,7 +193,8 @@ class Tags(object):
                 self.bygrp[group].extend(line)
             fd.close()
         finally:
-            self._unlock(file)
+            if lock:
+                self._unlock(file)
 
     def save(self, group, file):
         """
@@ -261,7 +266,12 @@ class Tags(object):
                 if verbosity > 1:
                     print >> sys.stderr, "Reading tags from", file
                 try:
-                    self.load(group, file)
+                    try:
+                        self.load(group, file)
+                    except OSError, e:
+                        if verbosity > 1:
+                            print >> sys.stderr, ("Unable to lock %s; reading anyway" % file)
+                        self.load(group, file, lock=False)
                     loaded = True
                 except IOError, e:
                     if verbosity >= 0:
