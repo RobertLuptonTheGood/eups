@@ -130,7 +130,7 @@ def userStackCacheFor(eupsPathDir, userDataDir=None):
     @param eupsPathDir   the product stack to return a cache directory for
     @param userDataDir   the user's personal data directory.  If not given,
                             it is set to the value returned by 
-                            defaultUserDataDir() (by default $HOME/.eups).
+                            defaultUserDataDir() (by default ~/.eups).
     """
     if not userDataDir:
         userDataDir = defaultUserDataDir()
@@ -142,14 +142,14 @@ def userStackCacheFor(eupsPathDir, userDataDir=None):
 def defaultUserDataDir():
     """
     return the default user data directory.  This will be the value of 
-    $EUPS_USERDATA if set; otherwise, it is $HOME/.eups.  None is returned 
-    if $HOME is not set.
+    $EUPS_USERDATA if set; otherwise, it is ~/.eups. 
     """
-    userDataDir = None
+
     if os.environ.has_key("EUPS_USERDATA"):
         userDataDir = os.environ["EUPS_USERDATA"]
-    elif os.environ.has_key("HOME"):
-        userDataDir = os.path.join(os.environ["HOME"], ".eups")
+    else:
+        userDataDir = os.path.join(os.path.expanduser("~"), ".eups")
+
     return userDataDir
 
 def ctimeTZ(t=None):

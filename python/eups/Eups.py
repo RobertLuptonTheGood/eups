@@ -128,7 +128,7 @@ class Eups(object):
         self.who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 
         if root:
-            root = re.sub(r"^~", os.environ["HOME"], root)
+            root = os.path.expanduser(root)
             if not os.path.isabs(root):
                 root = os.path.join(os.getcwd(), root)
             root = os.path.normpath(root)
@@ -189,7 +189,7 @@ class Eups(object):
         if not userDataDir:
             userDataDir = utils.defaultUserDataDir()
             if not userDataDir and self.quiet <= 0:
-                print >> sys.stderr, "Warning: No $HOME set!"
+                print >> sys.stderr, "Warning: Unable to find home directory!"
 
         if userDataDir and not os.path.exists(userDataDir):
             if self.quiet <= 0:
@@ -1599,8 +1599,7 @@ class Eups(object):
                   (productName, versionName, productDir)
 
         if utils.isRealFilename(productDir):
-            if os.environ.has_key("HOME"):
-                productDir = re.sub(r"^~", os.environ["HOME"], productDir)
+            productDir = os.path.expanduser(productDir)
             if not os.path.isabs(productDir):
                 productDir = os.path.join(os.getcwd(), productDir)
             productDir = os.path.normpath(productDir)
