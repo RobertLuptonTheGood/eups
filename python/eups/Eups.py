@@ -263,7 +263,9 @@ class Eups(object):
         # Find which tags are reserved to the installation
         #
         self._reservedTags = hooks.config.Eups.reservedTags
-        if isinstance(self._reservedTags, str):
+        if self._reservedTags is None:
+            self._reservedTags = []
+        elif isinstance(self._reservedTags, str):
             self._reservedTags = self._reservedTags.split()
         #
         # Some tags are always reserved
