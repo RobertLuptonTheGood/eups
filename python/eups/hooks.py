@@ -32,11 +32,12 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
+config.Eups = defineProperties("userTags preferredTags reservedTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = ""
 config.Eups.preferredTags = "current stable newest"
+config.Eups.reservedTags = None
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
 config.Eups.setupTypes = "build"

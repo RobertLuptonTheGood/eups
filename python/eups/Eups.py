@@ -260,6 +260,18 @@ class Eups(object):
         del q
 
         #
+        # Find which tags are reserved to the installation
+        #
+        self._reservedTags = hooks.config.Eups.reservedTags
+        if isinstance(self._reservedTags, str):
+            self._reservedTags = self._reservedTags.split()
+        #
+        # Some tags are always reserved
+        #
+        for k in ["newest",]:
+            if not self._reservedTags.count(k):
+                self._reservedTags.append(k)
+        #
         # Find locally-setup products in the environment
         #
         self.localVersions = {}
@@ -2435,6 +2447,10 @@ class Eups(object):
             if setup:  tags.append("setup")
 
         return self.findProducts(productName, productVersion, tags)
+
+    def isReservedTag(self, tagName):
+        """Is tagName the name of a reserved tag?"""
+        return self._reservedTags.count(str(tagName)) > 0
 
     def setVRO(self, vroTag="default", dbz=None):
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "path")

@@ -1107,9 +1107,13 @@ only wish to assign a tag, you should use the -t option but not include
         if self.opts.tag:
             try:
                 tag = myeups.tags.getTag(self.opts.tag)
-                if not self.opts.force and not tag.isUser():
-                    self.err("%s: Not a user tag (use --force to set server tags)" % self.opts.tag)
-                    return 1
+
+                if myeups.isReservedTag(tag):
+                    if self.opts.force:
+                        self.err("%s is a reserved tag, but proceeding anyway)" % self.opts.tag)
+                    else:
+                        self.err("%s is a reserved tag (use --force to set)" % self.opts.tag)
+                        return 1
             except eups.TagNotRecognized:
                 self.err("%s: Unsupported tag name" % self.opts.tag)
                 return 1
@@ -1178,9 +1182,13 @@ version currently declared.
         if self.opts.tag:
             try:
                 tag = myeups.tags.getTag(self.opts.tag)
-                if not self.opts.force and not tag.isUser():
-                    self.err("%s: Not a user tag (use --force to unset server tags)" % self.opts.tag)
-                    return 1
+
+                if myeups.isReservedTag(tag):
+                    if self.opts.force:
+                        self.err("%s is a reserved tag, but proceeding anyway)" % self.opts.tag)
+                    else:
+                        self.err("%s is a reserved tag (use --force to unset)" % self.opts.tag)
+                        return 1
             except eups.TagNotRecognized:
                 self.err("%s: Unsupported tag name" % self.opts.tag)
                 return 1
