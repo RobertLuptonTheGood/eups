@@ -152,8 +152,8 @@ def execute_file(file):
 
 
 
-commre = re.compile(r'#.*$')
-namevalre = re.compile(r'[:=]')
+commre = re.compile(r'\s*#.*$')
+namevalre = re.compile(r'\s*[:=]\s*')
 def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
     maxerr = 5
     if not os.path.exists(configFile):
@@ -174,6 +174,7 @@ def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
                     maxerr -= 1
                 continue
             name, val = parts
+            val = re.sub(r"(^['\"]|['\"]\s*$)", "", val) # strip leading/trailing quotes
 
             # turn property name into an attribute of hooks.config
             parts = name.split('.')
