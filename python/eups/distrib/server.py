@@ -1645,6 +1645,10 @@ EUPS distribution manifest for %s (%s). Version %s
 
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
+    def remapEntries(self):
+        """Allow the user to modify entries in the Manifest"""
+        pass
+
 class ServerConf(object):
     """a factory class for creating DistribServer classes based on the 
     servers configuration data

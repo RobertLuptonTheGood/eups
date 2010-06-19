@@ -343,6 +343,8 @@ class Repositories(object):
         else:
             man = self.repos[pkgroot].getManifest(product, version, flavor)
 
+        man.remapEntries()              # allow user to rewrite entries in the manifest
+
         self._msgs = {}
         self._recursiveInstall(0, man, product, version, flavor, pkgroot, 
                                productRoot, updateTags, alsoTag, options, 
