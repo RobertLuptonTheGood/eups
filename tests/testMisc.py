@@ -3,13 +3,13 @@
 Miscellaneous Tests.  These might eventually be migrated into other test
 files.  
 """
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
 import re
 import unittest
 import time
+import testCommon
 from testCommon import testEupsStack
 
 import eups
@@ -25,8 +25,18 @@ class MiscTestCase(unittest.TestCase):
     def testNothing(self):
         pass
 
-__all__ = "MiscTestCase".split()
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def suite(makeSuite=True):
+    """Return a test suite"""
+
+    return testCommon.makeSuite([
+        MiscTestCase,
+        ], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
-
+    run(True)

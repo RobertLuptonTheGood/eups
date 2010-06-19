@@ -3,13 +3,13 @@
 Tests for eups.db
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
 import re
 import unittest
 import time
+import testCommon
 from testCommon import testEupsStack
 
 from eups import ProductNotFound, Product
@@ -638,9 +638,10 @@ class DatabaseTestCase(unittest.TestCase):
                                                  "python","my.chain")))
 
         tags = self.db.findTags("python", "2.5.2", "Linux")
-        self.assertEquals(len(tags), 2)
-        self.assertEquals(tags[0], "current")
-        self.assertEquals(tags[1], "user:my")
+        ntag = 2
+        self.assertEquals(len(tags), ntag)
+        self.assertEquals(tags.count("current"), 1)
+        self.assertEquals(tags.count("user:my"), 1)
 
         prods = self.db.findProducts("python", "2.5.2")
         self.assertEquals(len(prods), 1)
@@ -789,7 +790,21 @@ class DatabaseTestCase(unittest.TestCase):
                 os.removedirs(pdir)
             raise
                            
-__all__ = "VersionFileTestCase MacroSubstitutionTestCase ChainFileTestCase DatabaseTestCase ".split()
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def suite(makeSuite=True):
+    """Return a test suite"""
+
+    return testCommon.makeSuite([
+        ChainFileTestCase,
+        DatabaseTestCase,
+        MacroSubstitutionTestCase,
+        VersionFileTestCase,
+        ], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

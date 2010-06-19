@@ -2,14 +2,13 @@
 """
 Tests for eups.tags
 """
-
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import unittest
 import time
-from testCommon import testEupsStack
 
+import testCommon
+from testCommon import testEupsStack
 from eups.tags import Tags, Tag, TagNotRecognized
 
 class TagsTestCase(unittest.TestCase):
@@ -151,8 +150,17 @@ class TagsTestCase(unittest.TestCase):
         self.assertEquals(len(names), 3)
         for tag in "stable current beta".split():
             self.assert_(tag in names, tag+" not found amoung loaded names")
-        
-__all__ = "TagsTestCase".split()        
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def suite(makeSuite=True):
+    """Return a test suite"""
+
+    return testCommon.makeSuite([TagsTestCase], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

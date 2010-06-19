@@ -3,13 +3,13 @@
 Tests for eups.Eups
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
 import unittest
 import time
 from cStringIO import StringIO
+import testCommon
 from testCommon import testEupsStack
 
 from eups import TagNotRecognized, Product, ProductNotFound, EupsException
@@ -21,6 +21,8 @@ import eups.hooks
 class EupsTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.environ0 = os.environ.copy()
+
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
@@ -29,9 +31,6 @@ class EupsTestCase(unittest.TestCase):
         self.eups = Eups()
 
         self.betachain = os.path.join(self.dbpath,"python","beta.chain")
-
-    def testDefCtor(self):
-        pass
 
     def tearDown(self):
         flavors = self.eups.versions[testEupsStack].getFlavors()
@@ -61,6 +60,8 @@ class EupsTestCase(unittest.TestCase):
             shutil.rmtree(pdir20)
 
         eups.hooks.config.Eups.userTags = ''
+
+        os.environ = self.environ0
 
     def testInit(self):
         self.assertEquals(len(self.eups.path), 1)
@@ -227,7 +228,7 @@ class EupsTestCase(unittest.TestCase):
         # test unassign, specifying version
         self.eups.unassignTag("beta", "python", "2.6")
         self.assert_(not os.path.exists(self.betachain),
-                     "Failed ro remove beta tag file for python")
+                     "Failed to remove beta tag file for python")
 
         # test unassign to any version
         self.eups.assignTag("beta", "python", "2.6")
@@ -238,9 +239,6 @@ class EupsTestCase(unittest.TestCase):
                      "Failed to remove beta tag file for python")
         prod = self.eups.findProduct("python", self.eups.tags.getTag("beta"))
         self.assert_(prod is None, "Failed to untag beta from %s" % prod)
-
-        
-
 
     def testDeclare(self):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
@@ -450,6 +448,8 @@ class EupsTestCase(unittest.TestCase):
         # test getSetupProducts(), findSetupProduct(), findProducts(), 
         # listProducts(), findSetupVersion()
 
+        self.environ0 = os.environ.copy()
+
         self.eups.setup("python")
         self.assert_(os.environ.has_key("PYTHON_DIR"))
         self.assert_(os.environ.has_key("SETUP_PYTHON"))
@@ -463,6 +463,8 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(not os.environ.has_key("SETUP_TCLTK"))
 
     def testRemove(self):
+        os.environ = self.environ0
+
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir10 = os.path.join(pdir, "1.0")
         pdir20 = os.path.join(pdir, "2.0")
@@ -482,6 +484,8 @@ class EupsTestCase(unittest.TestCase):
 
 class EupsCacheTestCase(unittest.TestCase):
     def setUp(self):
+        self.environ0 = os.environ.copy()
+
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
@@ -490,6 +494,8 @@ class EupsCacheTestCase(unittest.TestCase):
                                   ProductStack.persistFilename("Linux"))
         if os.path.exists(self.cache):
             os.remove(self.cache)
+
+        self.betachain = os.path.join(self.dbpath, "python", "beta.chain")
 
     def tearDown(self):
         usercachedir = os.path.join(testEupsStack,"_userdata_","_caches_")
@@ -505,6 +511,11 @@ class EupsCacheTestCase(unittest.TestCase):
                     os.rmdir(os.path.join(dir,file))
             os.rmdir(newprod)
                     
+        if os.path.exists(self.betachain):
+            os.remove(self.betachain)
+
+        os.environ = self.environ0
+
     def testDetectOutOfSync(self):
         e1 = Eups()
         e2 = Eups()
@@ -530,8 +541,19 @@ class EupsCacheTestCase(unittest.TestCase):
         prod = e2.findProduct("newprod")
         self.assert_(prod is not None, "Failed to declare product")
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-__all__ = "EupsTestCase EupsCacheTestCase".split()        
+def suite(makeSuite=True):
+    """Return a test suite"""
+
+    return testCommon.makeSuite([
+        EupsTestCase,
+        EupsCacheTestCase
+        ], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

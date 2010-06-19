@@ -3,17 +3,25 @@
 A master script for running all tests.
 """
 import unittest
-from testTags import *
-from testProduct import *
-from testDb import *
-from testStack import *
-from testTable import *
-from testEups import *
-from testCmd import *
-from testDeprecated import *
-from testApp import *
-from testMisc import *
-from checkVersionFile import *
+import testCommon
+
+tests = []
+for t in [
+    "testApp",
+    "testCmd",
+    "testDeprecated",
+    "testDb",
+    "testEups",
+    "testMisc",
+    "testProduct",
+    "testStack",
+    "testTable",
+    "testTags",
+    ]:
+    tests += __import__(t).suite()
+
+def run(shouldExit=False):
+    testCommon.run(unittest.TestSuite(tests), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

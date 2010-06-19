@@ -3,13 +3,13 @@
 Tests for eups.product
 """
 
-#import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import unittest
 import time
-from testCommon import testEupsStack
 
+import testCommon
+from testCommon import testEupsStack
 from eups.Product import Product, TableFileNotFound
 
 class ProductTestCase(unittest.TestCase):
@@ -230,7 +230,16 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(clone.tableFileName(), 
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
-__all__ = "ProductTestCase ProductTransformationTestCase".split()
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def suite(makeSuite=True):
+    """Return a test suite"""
+
+    return testCommon.makeSuite((ProductTestCase, ProductTransformationTestCase), makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

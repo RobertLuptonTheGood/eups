@@ -8,6 +8,7 @@ import os
 import sys
 import unittest
 import time
+import testCommon
 from testCommon import testEupsStack
 
 from eups.Product import Product, TableFileNotFound
@@ -33,18 +34,14 @@ class TableTestCase2(unittest.TestCase):
     """test the Table class"""
 
     def setUp(self):
+        self.environ0 = os.environ.copy()
         os.environ["EUPS_PATH"] = testEupsStack
         self.tablefile = os.path.join(testEupsStack, "tablesyntax.table")
         self.table = Table(self.tablefile)
         self.eups = Eups(flavor="Linux")
 
     def tearDown(self):
-        if os.environ.has_key("FOO"):
-            del os.environ["FOO"]
-        if os.environ.has_key("BAR"):
-            del os.environ["BAR"]
-        if os.environ.has_key("GOOBPATH"):
-            del os.environ["GOOBPATH"]
+        os.environ = self.environ0
 
     def testNoSetup(self):
         actions = self.table.actions("Linux")
@@ -145,17 +142,20 @@ class EmptyTableTestCase(unittest.TestCase):
         for action in actions:
             action.execute(self.eups, 1, True)
 
-def main():
-    suite = unittest.TestLoader().loadTestsFromTestCase(TableTestCase1)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-    suite = unittest.TestLoader().loadTestsFromTestCase(TableTestCase2)
-    unittest.TextTestRunner(verbosity=2).run(suite)
-    suite = unittest.TestLoader().loadTestsFromTestCase(EmptyTableTestCase)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def suite(makeSuite=True):
+    """Return a test suite"""
 
-__all__ = "TableTestCase1 TableTestCase2 EmptyTableTestCase".split()
+    return testCommon.makeSuite([
+        EmptyTableTestCase,
+        TableTestCase1,
+        TableTestCase2
+        ], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
-#    main()
+    run(True)

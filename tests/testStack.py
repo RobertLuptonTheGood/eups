@@ -3,11 +3,11 @@
 Tests for eups.stack
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import unittest
 import time
+import testCommon
 from testCommon import testEupsStack
 from eups import ProductNotFound, Product
 
@@ -469,11 +469,20 @@ class CacheTestCase(unittest.TestCase):
                                "/opt/sw/Darwin/fw/1.2", "none"))
         self.assertRaises(CacheOutOfSync, ps2.save)
         
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-    
+def suite(makeSuite=True):
+    """Return a test suite"""
 
+    return testCommon.makeSuite([
+        CacheTestCase,
+        ProductFamilyTestCase,
+        ProductStackTestCase
+        ], makeSuite)
 
-__all__ = "ProductFamilyTestCase ProductStackTestCase CacheTestCase".split()
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

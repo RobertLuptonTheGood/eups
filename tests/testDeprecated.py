@@ -3,12 +3,12 @@
 Tests for selected deprecated functions 
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
 import unittest
 import time
+import testCommon
 from testCommon import testEupsStack
 from cStringIO import StringIO
 
@@ -22,6 +22,8 @@ syserr = sys.stderr
 class DeprecatedTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.environ0 = os.environ.copy()
+
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
@@ -34,6 +36,8 @@ class DeprecatedTestCase(unittest.TestCase):
         sys.stderr = self.err
 
     def tearDown(self):
+        os.environ = self.environ0
+
         sys.stderr = syserr
 
     def testDeprecatedProduct(self):
@@ -44,9 +48,18 @@ class DeprecatedTestCase(unittest.TestCase):
         self.assertEqual(prod.envarDirName(), "NEWPROD_DIR")
         self.assertEqual(prod.envarSetupName(), "SETUP_NEWPROD")
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def suite(makeSuite=True):
+    """Return a test suite"""
 
-__all__ = "DeprecatedTestCase".split()        
+    return testCommon.makeSuite([
+        DeprecatedTestCase,
+        ], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

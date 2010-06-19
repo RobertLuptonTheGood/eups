@@ -10,6 +10,7 @@ import unittest
 import time
 import re, shutil
 import cStringIO as StringIO
+import testCommon
 from testCommon import testEupsStack
 
 import eups.cmd
@@ -20,6 +21,8 @@ prog = "eups"
 class CmdTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.environ0 = os.environ.copy()
+
         self.dbpath = os.path.join(testEupsStack, "ups_db")
         self.out = Stdout()
         self.err = StringIO.StringIO()
@@ -41,8 +44,7 @@ class CmdTestCase(unittest.TestCase):
     def tearDown(self):
         del self.out
 
-        if os.environ.has_key("SETUP_PYTHON"):
-            eups.unsetup("python")
+        os.environ = self.environ0
 
         newprod = os.path.join(self.dbpath,"newprod")
         if os.path.exists(newprod):
@@ -265,7 +267,7 @@ tcltk                 8.5a4     \tcurrent
 
         # make sure user cannot set a server tag
         self._resetOut()
-        cmd = "declare newprod 1.0 -t current"
+        cmd = "declare newprod 1.0 -t newest"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
         self.assertNotEqual(cmd.run(), 0)
         self.assertNotEqual(self.err.getvalue(), "")
@@ -368,6 +370,8 @@ import eups.setupcmd
 class SetupCmdTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.environ0 = os.environ.copy()
+
         self.dbpath = os.path.join(testEupsStack, "ups_db")
         self.out = Stdout()
         self.err = StringIO.StringIO()
@@ -387,6 +391,8 @@ class SetupCmdTestCase(unittest.TestCase):
 
     def tearDown(self):
         del self.out
+
+        os.environ = self.environ0
 
 #     def testQuiet(self):
 #         cmd = eups.setupcmd.EupsSetup(args="-q".split(), toolname=prog)
@@ -417,7 +423,18 @@ class Stdout(object):
     def __del__(self):
         sys.stdout = self.oldstdout
 
-__all__ = "CmdTestCase SetupCmdTestCase".split()        
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def suite(makeSuite=True):
+    """Return a test suite"""
+
+    return testCommon.makeSuite([CmdTestCase,
+                                 SetupCmdTestCase
+                                 ], makeSuite)
+
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
+    run(True)

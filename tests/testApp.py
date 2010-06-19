@@ -5,13 +5,13 @@ module are imported into the eups module.  Note also the most of these
 functions are tested via testCmd.py
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
 import unittest
 import time
 from cStringIO import StringIO
+import testCommon
 from testCommon import testEupsStack
 
 import eups
@@ -19,13 +19,13 @@ import eups
 class AppTestCase(unittest.TestCase):
 
     def setUp(self):
+        self.environ0 = os.environ.copy()
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_FLAVOR"] = "Linux"
         self.dbpath = os.path.join(testEupsStack, "ups_db")
 
     def tearDown(self):
-        if os.environ.has_key("PYTHON_DIR"):
-            eups.unsetup("python")
+        os.environ = self.environ0
 
     def testSetup(self):
         t = eups.Setup()
@@ -349,14 +349,16 @@ setupRequired(python 2.5.2 [>= 2.5])
         self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def suite(makeSuite=True):
+    """Return a test suite"""
 
+    return testCommon.makeSuite([AppTestCase], makeSuite)
 
-__all__ = "AppTestCase".split()        
+def run(shouldExit=False):
+    """Run the tests"""
+    testCommon.run(suite(), shouldExit)
 
 if __name__ == "__main__":
-    unittest.main()
-
-
-
-    
+    run(True)

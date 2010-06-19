@@ -3,7 +3,6 @@
 Check a Version file for parsability and macro substitution
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import shutil
@@ -11,12 +10,12 @@ import re
 import unittest
 import time
 from optparse import OptionParser
-from testCommon import testEupsStack
+import testCommon
 
 from eups import ProductNotFound, Product
 from eups.db import VersionFile
 
-defaultFile = os.path.join(testEupsStack, "fw.version")
+defaultFile = os.path.join(testCommon.testEupsStack, "fw.version")
 usrtablefiles = [ defaultFile ]
 
 class CheckVersionFileTestCase(unittest.TestCase):
