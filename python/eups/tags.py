@@ -24,16 +24,20 @@ class Tags(object):
     # the group string name indicating the user tag group
     user = "_u"
 
-    def __init__(self, globals=None, groups=None):
+    # pseudo-tags used by the VRO
+    pseudo = "_p"
+
+    def __init__(self, globals=None, groups=[]):
 
         # a lookup of recognized tag names.  These are separated into groups 
-        # of which two are generally used:
+        # of which three are generally used:
         #   "_"    global tags
+        #   "_p"   pseudo tags used by the VRO
         #   "_u"   user tags
-        self.bygrp = { self.global_: [], self.user: [] }
+        self.bygrp = { self.global_: [], self.pseudo: [], self.user: [] }
 
-        if groups:
-            for group in filter(lambda z: z!='user' and z!='global', groups):
+        for group in groups:
+            if not self.bygrp.has_key(group):
                 self.bygrp[group] = []
 
         if isinstance(globals, str):
@@ -78,11 +82,16 @@ class Tags(object):
                     return k
         return None
 
-    def getTagNames(self):
+    def getTagNames(self, omitPseudo=False):
         """
         return the qualified names of all registered tags
         """
-        out = map(lambda z: str(z), self.getTags())
+        out = []
+        for t in self.getTags():
+            if t.isPseudo() and omitPseudo:
+                continue
+            out.append(str(t))
+
         out.sort()
         return out
 
@@ -163,7 +172,7 @@ class Tags(object):
 
     # @staticmethod   # requires python 2.4
     def persistFilename(group):
-        if group == Tags.global_:  group = "global"
+        if group in (Tags.global_, Tags.pseudo):  group = "global"
         if group == Tags.user:     group = "user"
         return tagListFileTmpl % group
     persistFilename = staticmethod(persistFilename) #should work as'f python 2.2
@@ -307,7 +316,7 @@ class Tags(object):
         The tag names are assumed to be persisted in 
         Tags.persistFilename(group).
         """
-        if group == self.global_:  group = "group"
+        if group in (self.global_, self.pseudo) :  group = "group"
         if group == self.user:     group = "user"
 
         if not os.path.isdir(dir):
@@ -384,6 +393,12 @@ class Tag(object):
         """
         return self.group == Tags.global_
 
+    def isPseudo(self):
+        """
+        return true if this is a pseudo tag
+        """
+        return self.group == Tags.pseudo
+
     def equals(self, that):
         """
         return true if the given tag is the same as this tag.  The given 
@@ -405,7 +420,7 @@ class Tag(object):
     def __str__(self):
         if self.isUser():
             return "user:" + self.name
-        elif self.isGlobal():
+        elif self.isGlobal() or self.isPseudo():
             return self.name
         else:
             return "%s:%s" % (self.group, self.name)
@@ -489,6 +504,13 @@ class TagNameConflict(EupsException):
     """
 
     def __init__(self, name, found):
+        if found == Tags.global_:
+            found = "global"
+        elif found == Tags.user:
+            found = "user"
+        else:
+            found = "??? (%s)" % found
+
         EupsException.__init__(self, "Tag \"%s\" is already present in group %s" % (name, found))
         self.name = name,
         self.found = found

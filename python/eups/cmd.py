@@ -83,6 +83,7 @@ Supported commands are:
 	undeclare	Undeclare a product
         uses            List everything which depends on the specified product 
                         and version
+	vro             Show the Version Resolution Order that would be used
 
 Use -h with a command name to see a detailed description, inluding options, 
 for that command.  
@@ -322,7 +323,7 @@ except NameError:
 
 class FlavorCmd(EupsCmd):
 
-    usage = "%prog flavor [-h|--help] [-f FLAVOR]"
+    usage = "%prog flavor [-h|--help] [options]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -518,7 +519,7 @@ integer argument, n, will cause just the n-th directory to be listed (where
 
 class StartupCmd(EnvListCmd):
 
-    usage = "%prog startup [-h|--help] [n]"
+    usage = "%prog startup [-h|--help]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -526,8 +527,6 @@ class StartupCmd(EnvListCmd):
 
     description = \
 """Print the start-up files that customize EUPS as given via EUPS_STARTUP.  
-An optional integer argument, n, will cause just the n-th directory to be 
-listed (where 0 is the first element).
 """
 
     def __init__(self, args=None, toolname=None, cmd=None):
@@ -558,7 +557,7 @@ integer argument, n, will cause just the n-th URL to be listed (where
 
 class PkgconfigCmd(EupsCmd):
 
-    usage = "%prog pkgroot [-c|--cflags|-l|--libs] product [version]"
+    usage = "%prog pkgroot [-h|--help] [options] product [version]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1872,39 +1871,67 @@ class DistribCreateCmd(EupsCmd):
         
 class TagsCmd(EupsCmd):
 
-    usage = "%prog tags [-h|--help] [-t tag]"
+    usage = "%prog tags [-h|--help] [options]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""Print information about supported and preferred tags
+"""Print information about known tags
 """
 
     def addOptions(self):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-t", "--tag", dest="tags", action="append", 
-                            help="prepend these tags to the preferred list (repeat as needed)")
+        self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
+                            help="Force requested behaviour")
 
     def execute(self):
-        myeups = eups.Eups(readCache=True)
+        myeups = eups.Eups(readCache=True, force=self.opts.force)
 
-        badtags = []
-        if self.opts.tags:
-            tags = self.opts.tags
-            badtags = filter(lambda t: not myeups.tags.isRecognized(t), tags)
-            if badtags:
-                tags = filter(lambda t: t not in badtags, tags)
-            if tags:
-                oldtags = myeups.getPreferredTags()
-                myeups.setPreferredTags(tags + oldtags)
+        print " ".join(myeups.tags.getTagNames(omitPseudo=True))
 
-        if not self.opts.quiet:
-            print "Supported Tags:", ", ".join(myeups.tags.getTagNames())
-            print "Preferred Tags:", ", ".join(myeups.getPreferredTags())
+        return 0
+
+class VroCmd(EupsCmd):
+
+    usage = "%prog vro [-h|--help] [options] [version]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Print information about the Version Resolution Order (VRO) to use
+"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
+                            help="Force requested behaviour")
+        self.clo.add_option("-r", "--root", dest="productDir", action="store", 
+                            help="root directory where product is installed")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="List only versions having this tag name")
+        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
+                            help="Select the product paths which contain this directory.  " +
+                            "Default: all in path")
+
+    def execute(self):
+        if len(self.args) > 0:
+            versionName = self.args[0]
+        else:
+            versionName = None
+
+        myeups = eups.Eups(readCache=True, force=self.opts.force, vro=hooks.config.Eups.VRO)
+
+        myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
+
+        print " ".join(myeups.getVRO())
 
         return 0
 
@@ -2007,5 +2034,6 @@ register("distrib install", DistribInstallCmd)
 register("distrib clean",   DistribCleanCmd)
 register("distrib create",  DistribCreateCmd)
 register("tags",         TagsCmd)
+register("vro",          VroCmd)
 register("help",         HelpCmd)
 

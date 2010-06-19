@@ -32,11 +32,12 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags reservedTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = ""
 config.Eups.preferredTags = "current stable newest"
+config.Eups.globalTags = "current stable"
 config.Eups.reservedTags = None
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
@@ -56,20 +57,31 @@ startupFileName = "startup.py"
 configFileName = "config.properties"
 
 def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False):
+    configFiles = [] 
     cfile = os.path.join(customDir, configFileName)
     if os.path.exists(cfile):
-        if verbose > 0:
-            print >> log, "loading properties from", cfile
-        loadConfigProperties(cfile, verbose, log)
+        if execute:
+            if verbose > 1:
+                print >> log, "loading properties from", cfile
+            loadConfigProperties(cfile, verbose, log)
+
+        configFiles.append(cfile)
 
     startup = os.path.join(customDir, startupFileName) 
     if os.path.exists(startup):
         if execute:
+            if verbose > 1:
+                print >> log, "sourcing", startup
             execute_file(startup)
 
-        return startup
+        configFiles.append(startup)
 
-    return None
+    return configFiles
+
+try:
+    type(customisationFiles)
+except NameError:
+    customisationFiles = None
 
 def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True):
     """
@@ -93,28 +105,34 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True):
     @param verbose    the verbosity level
     @param log        where to write log messages
     @param execute    process files?
+    @param quiet      Be extra quiet
     """
+
+    global customisationFiles
+    if customisationFiles is not None:
+        return customisationFiles
+
     customDirs = []
 
-    # a site-leve directory can have configuration stuff in it
+    # a site-level directory can have configuration stuff in it
     if os.environ.has_key("EUPS_SITEDATA"):
         customDirs.append(os.environ["EUPS_SITEDATA"])
     elif os.environ.has_key("EUPS_DIR"):
         customDirs.append(os.path.join(os.environ["EUPS_DIR"], "site"))
 
-    # $HOME/.eups can have user configuration stuff in it
+    # ~/.eups can have user configuration stuff in it
     if os.environ.has_key("EUPS_USERDATA"):
         customDirs.append(os.environ["EUPS_USERDATA"])
-    elif os.environ.has_key("HOME"):
-        customDirs.append(os.path.join(os.environ["HOME"], ".eups"))
+    else:
+        customDirs.append(os.path.join(os.path.expanduser("~"), ".eups"))
 
     # load the configuration by directories; later ones override prior ones
     customisationFiles = []             # files that we'd load
 
     for dir in customDirs:
-        cfile = loadCustomizationFromDir(dir, verbose, log, execute=execute)
-        if cfile:
-            customisationFiles.append(cfile)
+        cfiles = loadCustomizationFromDir(dir, verbose, log, execute=execute)
+        if cfiles:
+            customisationFiles += cfiles
 
     # load any custom startup scripts via EUPS_STARTUP; this overrides
     # everything
@@ -153,7 +171,7 @@ def execute_file(file):
 
 
 commre = re.compile(r'\s*#.*$')
-namevalre = re.compile(r'\s*[:=]\s*')
+namevalre = re.compile(r'\s*([:=]|\+=)\s*')
 def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
     maxerr = 5
     if not os.path.exists(configFile):
@@ -168,12 +186,15 @@ def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
             if not line:
                 continue
             parts = namevalre.split(line, 1)
-            if len(parts) != 2:
+            if len(parts) != 3:
                 if verbose >= 0 and maxerr > 0:
                     print >> log, "Bad property syntax (ignoring):", line
                     maxerr -= 1
                 continue
-            name, val = parts
+            name, op, val = parts
+            if op == ":":
+                op = "="
+                
             val = re.sub(r"(^['\"]|['\"]\s*$)", "", val) # strip leading/trailing quotes
 
             # turn property name into an attribute of hooks.config
@@ -183,15 +204,21 @@ def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
                 nxt = parts.pop(0)
                 if not hasattr(attr, nxt):
                     if verbose >= 0:
-                      print >> log, "Ignoring unrecognized property:", name
+                        print >> log, "Skipping unrecognised category \"%s\" at %s:%d" % \
+                              (name, configFile, lineno)
                     break
                 attr = getattr(attr, nxt)
 
             try:
+                if op == "+=":
+                    if hasattr(attr, parts[0]) and getattr(attr, parts[0]) is not None:
+                        val = getattr(attr, parts[0]) + " " + val
+
                 setattr(attr, parts[0], val)
             except AttributeError, e:
                 if verbose >= 0:
-                   print >> log, "Skipping bad property assignment:", str(e)
+                   print >> log, "Skipping unknown property \"%s\" at %s:%d" % \
+                         (parts[0], configFile, lineno)
 
     finally:
         fd.close()

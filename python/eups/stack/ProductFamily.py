@@ -177,6 +177,8 @@ class ProductFamily(object):
         """
         if not self.hasVersion(version):
             raise ProductNotFound(self.name, version)
+
+        tag = str(tag)
         self.tags[tag] = version
 
     def unassignTag(self, tag, file=None):

@@ -176,15 +176,11 @@ product and all its dependencies into the environment so that it can be used.
                     #self.err("--inexact has no effect unless you request a specific version")
                     pass
 
-                if self.opts.tag:
-                    self.err("Will look for version with tag="+self.opts.tag)
-                else:
-                    self.err("Will look for version with most preferred tag")
-
-        if versionName and not self.opts.inexact_version:
-            self.opts.exact_version = True # if they specify a version, that's what they want
-            if self.opts.verbose:
-                self.err("Assuming --exact as you specified a version by name (consider --inexact)")
+        if False:                       # replaced by VRO
+            if versionName and not self.opts.inexact_version:
+                self.opts.exact_version = True # if they specify a version, that's what they want
+                if self.opts.verbose:
+                    self.err("Assuming --exact as you specified a version by name (consider --inexact)")
 
         if self.opts.productDir:
             self.opts.productDir = os.path.abspath(self.opts.productDir)
@@ -221,20 +217,7 @@ product and all its dependencies into the environment so that it can be used.
                              max_depth=self.opts.max_depth, vro=self.opts.vro,
                              exact_version=self.opts.exact_version)
 
-            # Set the VRO.  Note that the order of these tests is significant
-            if self.opts.tag:
-                vroTag = self.opts.tag
-            elif self.opts.productDir:
-                vroTag = "path"
-            elif versionName:
-                vroTag = "commandLineVersion"
-            else:
-                vroTag = "default"
-
-            Eups.setVRO(vroTag, self.opts.dbz)
-
-            if self.opts.verbose > 1:
-                self.err("Using VRO for \"%s\": %s" % (vroTag, Eups.getVRO()))
+            Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 
             if self.opts.unsetup:
                 cmdName = "unsetup"

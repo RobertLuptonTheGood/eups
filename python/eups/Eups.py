@@ -65,6 +65,10 @@ class Eups(object):
                                   user's configuration.
         @param preferredTags      List of tags to process in order; None will be intepreted as the default
         """
+        #
+        # Load local customisations
+        #
+        hooks.loadCustomization(verbose)
                  
         self.verbose = verbose
 
@@ -231,12 +235,19 @@ class Eups(object):
         # 
         # load up the recognized tags.  
         # 
-        self.tags = Tags("newest setup")
-        userTags = hooks.config.Eups.userTags
-        if isinstance(userTags, str):
-            userTags = userTags.split()
-        for tag in userTags:
-            self.tags.registerUserTag(tag)
+        self.tags = Tags()
+
+        for tags, group in [
+            (hooks.config.Eups.globalTags, None), # None => global
+            (["newest",], None),
+            (hooks.config.Eups.userTags, Tags.user),
+            (["setup", "path", "version", "versionExpr", "warn"], Tags.pseudo),
+            ]:
+            if isinstance(tags, str):
+                tags = tags.split()
+            for tag in tags:
+                self.tags.registerTag(tag, group)
+
         self._loadServerTags()
         self._loadUserTags()
         #
@@ -318,20 +329,27 @@ class Eups(object):
 
             # if no list cached, try asking the cached product stack
             tags = Tags()
+            tagNames = []
+
             if self.versions.has_key(path):
                 for t in self.versions[path].getTags():
-                    t = Tag.parse(t)
-                    if not t.isUser() and not self.tags.isRecognized(t.name):
-                        tags.registerTag(t.name, t.group)
-
-            else:
-                # consult the Database
+                    tagNames.append(t)
+            else:                       # consult the Database
                 db = Database(self.getUpsDB(path))
                 for pname in db.findProductNames():
                     for tag, v, f in db.getTagAssignments(pname):
-                       t = Tag.parse(tag)
-                       if not t.isUser() and not self.tags.isRecognized(t.name):
-                           tags.registerTag(t.name, t.group)
+                        tagNames.append(tag)
+                            
+            for t in tagNames:
+                t = Tag.parse(t)
+                if not (t.isUser() or self.tags.isRecognized(t.name)):
+                    if self.force:
+                        print >> sys.stderr, "Unknown tag found in %s stack: \"%s\"; defining" % (path, t)
+                        tags.registerTag(t.name, t.group)
+                    else:
+                        print >> sys.stderr, \
+                              "Ignoring unknown tag found in %s stack: \"%s\" (consider --force)" % (path, t)
+                        sys.exit(1)
 
             if self.asAdmin and utils.isDbWritable(p):
                 # cache the global tags
@@ -339,9 +357,9 @@ class Eups(object):
                 for group in tags.bygrp.keys():
                     tags.saveGroup(group, dbpath)
 
-            # now register them with self.tags:
+            # now register them with self.tags; this can only happen with --force
             for tag in tags.getTags():
-                if not tag.isUser() and not self.tags.isRecognized(tag):
+                if not (tag.isUser() or self.tags.isRecognized(tag)):
                     self.tags.registerTag(tag.name, tag.group)
 
     def _loadUserTags(self):
@@ -388,6 +406,7 @@ class Eups(object):
         self._kindlySetPreferredTags(tags, True)
 
     def _kindlySetPreferredTags(self, tags, strict=False):
+
         if isinstance(tags, str):
             tags = tags.split()
         if not isinstance(tags, list):
@@ -507,6 +526,101 @@ class Eups(object):
         return utils.dirEnvNameFor(productName)
 
 
+    def findProductFromVRO(self, name, version=None, eupsPathDirs=None, flavor=None,
+                           noCache=False):
+        """
+        return a product matching the given constraints by searching the VRO.  By default, the 
+        cache will be searched when available; otherwise, the product 
+        database will be searched.  Return None if a match was not found.
+        @param name          the name of the desired product
+        @param version       the desired version.  This can in one of the 
+                                following forms:
+                                 *  an explicit version 
+                                 *  a version expression (e.g. ">=3.3")
+                                 *  a Tag instance 
+                                 *  null, in which case, the (most) preferred 
+                                      version will be returned.
+        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
+                                have a ups_db sub-directory.)  If None (def.),
+                                configured EUPS_PATH directories will be 
+                                searched.
+        @param flavor        the desired flavor.  If None (default), the 
+                                default flavor will be searched for.
+        @param noCache       if true, the software inventory cache should not be 
+                                used to find products; otherwise, it will be used
+                                to the extent it is available.  
+        """
+
+        if not flavor:
+            flavor = self.flavor
+        if eupsPathDirs is None:
+            eupsPathDirs = self.path
+        if isinstance(eupsPathDirs, str):
+            eupsPathDirs = [eupsPathDirs]
+
+        product = None
+
+        vro = self.getPreferredTags()
+        for i in range(len(vro)):
+            vroTag = vro[i]
+            if vroTag == "path":
+                continue
+            elif vroTag in ("version", "versionExpr",):
+                if self.ignore_versions:
+                    continue
+
+                if vroTag == "versionExpr":
+                    if isinstance(version, str):
+                        if self.isLegalRelativeVersion(version):  # raises exception if bad syntax used
+                            product = self._findPreferredProductByExpr(name, version, 
+                                                                       eupsPathDirs, flavor, noCache)
+                if not product:
+                    # search path for an explicit version 
+                    for root in eupsPathDirs:
+                        if noCache or not self.versions.has_key(root) or not self.versions[root]:
+                            # go directly to the EUPS database
+                            if not os.path.exists(self.getUpsDB(root)):
+                                if self.verbose:
+                                    print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
+                                continue
+
+                            try:
+                                product = self._databaseFor(root).findProduct(name, version, flavor)
+                                if product:
+                                    break
+                            except ProductNotFound:
+                                product = None
+                        else:
+                            # consult the cache
+                            try:
+                                self.versions[root].ensureInSync(verbose=self.verbose)
+                                product = self.versions[root].getProduct(name, version, flavor)
+                                break
+                            except ProductNotFound:
+                                pass
+            elif vroTag == "warn":
+                if self.verbose > 0:
+                    print >> sys.stderr, "VRO \"%s\" failed to match for %s %s; trying \"%s\"" % \
+                          (" ".join(vro[0:i]), name, version, " ".join(vro[i+1:]))
+            elif self.tags.isRecognized(vroTag):
+                # search for a tagged version
+                product = self._findTaggedProduct(name, self.tags.getTag(vroTag), eupsPathDirs,
+                                                  flavor, noCache)
+            else:
+                print >> sys.stderr, "YOU CAN'T GET HERE", vroTag
+                if False:
+                    product = self.findProduct(name, version=Tag(vroTag), eupsPathDirs=eupsPathDirs,
+                                               flavor=flavor, noCache=noCache)
+
+            if product:
+                break
+
+        if product:
+            if self.verbose > 2:
+                print >> sys.stderr, ("VRO used %-12s " % (vroTag)),
+            
+        return product
+
     def findProduct(self, name, version=None, eupsPathDirs=None, flavor=None,
                     noCache=False):
         """
@@ -531,6 +645,7 @@ class Eups(object):
                                 used to find products; otherwise, it will be used
                                 to the extent it is available.  
         """
+
         if not version or (not isinstance(version, Tag) and self.ignore_versions):
             return self.findPreferredProduct(name, eupsPathDirs, flavor, noCache=noCache)
 
@@ -546,9 +661,6 @@ class Eups(object):
                 return self._findPreferredProductByExpr(name, version, 
                                                         eupsPathDirs, flavor, 
                                                         noCache)
-
-#            if self.tags.isRecognized(version):
-#                version = self.tags.getTag(version)
 
         if isinstance(version, Tag):
             # search for a tagged version
@@ -762,47 +874,6 @@ class Eups(object):
                     continue
 
         return out
-
-    if False:
-        def findPreferredProduct(self, name, eupsPathDirs, flavor, noCache):
-            """
-            Find the version of a product that is most preferred or None,
-            if no preferred version exists.  
-
-            @param name          the name of the desired product
-            @param eupsPathDirs  the EUPS path directories to search.  (Each 
-                                    should have a ups_db sub-directory.)  If 
-                                    None (def.), configured EUPS_PATH 
-                                    directories will be searched.
-            @param flavor        the desired flavor.  If None (default), the 
-                                    default flavor will be searched for.
-            @param noCache       if true, the software inventory cache should not be 
-                                    used to find products; otherwise, it will be used
-                                    to the extent it is available.  
-            """
-            if not flavor:
-                flavor = self.flavor
-            if eupsPathDirs is None:
-                eupsPathDirs = self.path
-
-            # find all versions of product
-            prods = []
-            for root in eupsPathDirs:
-                if noCache or not self.versions.has_key(root) or not self.versions[root]:
-                    # go directly to the EUPS database
-                    if not os.path.exists(self.getUpsDB(root)):
-                        if self.verbose:
-                            print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
-                        continue
-
-                    prods.extend(self._databaseFor(root).findProducts(name, flavors=flavor))
-
-                else:
-                    # consult the cache
-                    prods.extend(map(lambda v: self.versions[root].getProduct(name,v,flavor), 
-                                     self.versions[root].getVersions()))
-
-            return self._selectPreferredProduct(prods, self.preferredTags)
 
     def _selectPreferredProduct(self, products, preferredTags=None):
         # return the product in a list that is most preferred.
@@ -1199,12 +1270,19 @@ class Eups(object):
                         (product.name, versionName, product.version, product.version)
 
         else:  # on setup (fwd = True)
-
             # get the product to setup
             if productRoot:
+                vro = self.getPreferredTags()
+                if len(vro) > 0 and self.getPreferredTags()[0] != "path":
+                    if self.verbose:
+                        print >> sys.stderr, "Using %s, although \"path\" is not specified in VRO" % \
+                              (productRoot)
+
+                if self.verbose > 2:
+                    print >> sys.stderr, ("VRO used %-12s " % ("path")),
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
             else:
-                product = self.findProduct(productName, versionName)
+                product = self.findProductFromVRO(productName, versionName)
                 if not product and self.alreadySetupProducts.has_key(productName):
 
                     # We couldn't find it, but maybe it's already setup 
@@ -1218,7 +1296,7 @@ class Eups(object):
                     # It's not there.  Try a set of other flavors that might 
                     # fit the bill
                     for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
-                        product = self.findProduct(productName, versionName, flavor=fallbackFlavor)
+                        product = self.findProductFromVRO(productName, versionName, flavor=fallbackFlavor)
 
                         if product:        
                             setupFlavor = fallbackFlavor
@@ -1409,18 +1487,16 @@ class Eups(object):
 
         if tag.isGlobal() and not utils.isDbWritable(product.db):
             raise EupsException(
-                "You don't have permission to assign a global tag %s in %s" %
-                (str(tag), product.db))
+                "You don't have permission to assign a global tag %s in %s" % (tag, product.db))
 
         # update the database.  If it's a user tag, 
-#        if tag.isGlobal():
         db = Database(product.db, self._userStackCache(root))
-        db.assignTag(str(tag), productName, versionName, self.flavor)
+        db.assignTag(tag, productName, versionName, self.flavor)
 
         # update the cache
         if self.versions.has_key(root) and self.versions[root]:
             self.versions[root].ensureInSync(verbose=self.verbose)
-            self.versions[root].assignTag(str(tag), productName, versionName, self.flavor)
+            self.versions[root].assignTag(tag, productName, versionName, self.flavor)
             try:
                 self.versions[root].save(self.flavor)
             except CacheOutOfSync, e:
@@ -1454,8 +1530,7 @@ class Eups(object):
             dbpath = prod.db
             eupsPathDir = prod.stackRoot()
             if str(tag) not in prod.tags:
-                msg = "Tag %s not assigned to product %s" % \
-                    (tag.name, productName)
+                msg = "Product %s is not tagged \"%s\"" % (productName, tag.name)
                 if eupsPathDir:
                     msg += " within %s" % str(eupsPathDir)
 
@@ -1761,58 +1836,59 @@ class Eups(object):
         verbose = self.verbose
         if self.noaction:
             verbose = 2
-        if not dodeclare:
+        if dodeclare:
+            # Talk about doing a full declare.  
+            if verbose:
+                info = "Declaring"
+                if verbose > 1:
+                    if productDir == "/dev/null":
+                        info += " \"none\" as"
+                    else:
+                        info += " %s as" % productDir
+                info += " %s %s" % (productName, versionName)
+                if tag:
+                    info += " %s" % tag
+                info += " in %s" % (eupsPathDir)
+
+                print >> sys.stderr, info
+            if self.noaction:  
+                return
+            #
+            # now really declare the product.  This will also update the tags
+            #
+            dbpath = self.getUpsDB(eupsPathDir)
             if tag:
-                # we just want to update the tag
-                if verbose:
-                    info = "Assigning %s to %s %s" % (tag, productName, versionName)
-                    print >> sys.stderr, info
-                if not self.noaction:
-                    self.assignTag(tag, productName, versionName)
-            return
+                tag = [self.tags.getTag(tag)]
+            product = Product(productName, versionName, self.flavor, productDir, 
+                              tablefile, tag, dbpath, ups_dir=ups_dir)
 
-        # Talk about doing a full declare.  
-        if verbose:
-            info = "Declaring"
-            if verbose > 1:
-                if productDir == "/dev/null":
-                    info += " \"none\" as"
-                else:
-                    info += " %s as" % productDir
-            info += " %s %s" % (productName, versionName)
-            if tag:
-                info += " %s" % tag
-            info += " in %s" % (eupsPathDir)
+            # update the database
+            self._databaseFor(eupsPathDir, dbpath).declare(product)
 
-            print >> sys.stderr, info
-        if self.noaction:  
-            return
+            # update the cache (if in use)
+            if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
 
-        # now really declare the product.  This will also update the tags
-        #
-        dbpath = self.getUpsDB(eupsPathDir)
-        if tag:
-            tag = [self.tags.getTag(tag)]
-        product = Product(productName, versionName, self.flavor, productDir, 
-                          tablefile, tag, dbpath, ups_dir=ups_dir)
+                self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
+                self.versions[eupsPathDir].addProduct(product)
 
-        # update the database
-        self._databaseFor(eupsPathDir, dbpath).declare(product)
-
-        # update the cache (if in use)
-        if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
-
-            self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
-            self.versions[eupsPathDir].addProduct(product)
-
-            try:
-                self.versions[eupsPathDir].save(self.flavor)
-            except CacheOutOfSync, e:
-                if self.quiet <= 0:
-                    print >> sys.stderr, "Note: " + str(e)
-                    print >> sys.stderr, "Correcting..."
-                self.versions[eupsPathDir].refreshFromDatabase()
+                try:
+                    self.versions[eupsPathDir].save(self.flavor)
+                except CacheOutOfSync, e:
+                    if self.quiet <= 0:
+                        print >> sys.stderr, "Note: " + str(e)
+                        print >> sys.stderr, "Correcting..."
+                    self.versions[eupsPathDir].refreshFromDatabase()
                 
+        if tag:
+            # we just want to update the tag
+            if verbose:
+                info = "Assigning %s to %s %s" % (tag, productName, versionName)
+                print >> sys.stderr, info
+            if not self.noaction:
+                if isinstance(tag, str):
+                    tag = [self.tags.getTag(tag)]
+
+                self.assignTag(tag[0], productName, versionName)
 
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
                   undeclareCurrent=None):
@@ -2454,10 +2530,21 @@ class Eups(object):
         """Is tagName the name of a reserved tag?"""
         return self._reservedTags.count(str(tagName)) > 0
 
-    def setVRO(self, vroTag="default", dbz=None):
-        """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "path")
+    def selectVRO(self, tag, productDir, versionName, dbz=None):
+        """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")
 
         """
+
+        # Note that the order of these tests is significant
+        if tag:
+            vroTag = tag
+        elif productDir:
+            vroTag = "path"
+        elif versionName:
+            vroTag = "commandLineVersion"
+        else:
+            vroTag = "default"
+
         if self._vroDict.has_key(vroTag):
             pass
         elif self._vroDict.has_key("default"):
@@ -2478,11 +2565,20 @@ class Eups(object):
         else:
             self._vro = vro
 
+        if self.verbose > 1:
+            print >> sys.stderr, "Using VRO for \"%s\": %s" % (vroTag, self._vro)
+        #
+        # The VRO used to be called the "preferredTags";  for now use the old name
+        #
+        q = None # Quiet(self)
+        self._kindlySetPreferredTags(self._vro)
+        del q
+
     def getVRO(self):
         """Return the VRO (as chosen by setVRO)"""
 
         if not self._vro:
-            self.setVRO()
+            self.selectVRO()
 
         return self._vro
 

@@ -557,7 +557,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     oldPrefTags = eupsenv.getPreferredTags()
     try:
         # prepend the given tags to the preferred list.
-        if prefTags:
+        if False and prefTags:          # Superceded by VRO
             eupsenv.setPreferredTags(prefTags + oldPrefTags)
 
         ok, version, reason = eupsenv.setup(productName, version, fwd,

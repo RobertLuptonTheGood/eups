@@ -596,7 +596,7 @@ class Database(object):
             tf = ChainFile(tfile)
             changed = False
             for flavor in flavors:
-                if (tf.removeVersion(flavor)):
+                if tf.removeVersion(flavor):
                     changed = True
 
             if changed:
