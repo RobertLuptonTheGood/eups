@@ -1897,14 +1897,15 @@ class TagsCmd(EupsCmd):
 
 class VroCmd(EupsCmd):
 
-    usage = "%prog vro [-h|--help] [options] [version]"
+    usage = "%prog vro [-h|--help] [options] product [version]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""Print information about the Version Resolution Order (VRO) to use
+"""Print information about the Version Resolution Order (VRO) to use if issuing the setup command with the
+same arguments.
 """
 
     def addOptions(self):
@@ -1922,8 +1923,13 @@ class VroCmd(EupsCmd):
                             "Default: all in path")
 
     def execute(self):
-        if len(self.args) > 0:
-            versionName = self.args[0]
+        if len(self.args) == 0:
+            self.err("Please specify a product name")
+            return 3
+        product = self.args[0]          # product's value is not actually used
+
+        if len(self.args) > 1:
+            versionName = self.args[1]
         else:
             versionName = None
 

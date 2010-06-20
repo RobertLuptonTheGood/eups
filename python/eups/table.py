@@ -270,6 +270,10 @@ but no other interpretation is applied
                 # Special case cmd(..., " ") by protecting " " as "\001"
                 #
                 args = re.sub(r',\s*"(\s)"', r'\1"%c"' % 1, args)
+                #
+                # Replace " " within quoted strings with \1 too
+                #
+                args = re.sub(r"(\"[^\"]+\")", lambda s: re.sub(" ", "\1", s.group(0)), args)
 
                 args = filter(lambda s: s, re.split("[, ]", args))
                 args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args) # remove quotes
@@ -513,6 +517,7 @@ class Action(object):
             del args[i:i+2]
         except ValueError:
             pass
+
         self.args = args
         self.extra = extra
 
@@ -556,6 +561,7 @@ class Action(object):
         i = -1
 
         requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTag = None
+        requestedVRO = None
         ignoredOpts = []
         while i < len(_args) - 1:
             i += 1
@@ -570,6 +576,9 @@ class Action(object):
                     i += 1              # skip the argument
                 elif _args[i] in ("-t", "--tag"): # e.g. -t current
                     requestedTag = _args[i + 1]
+                    i += 1              # skip the argument
+                elif _args[i] in ("--vro"): # e.g. --vro version
+                    requestedVRO = _args[i + 1]
                     i += 1              # skip the argument
                 else:
                     ignoredOpts.append(_args[i]) 
@@ -598,71 +607,78 @@ class Action(object):
         if fwd and requestedFlavor and requestedFlavor != Eups.flavor:
             print >> sys.stderr, "Ignoring --flavor option in \"%s(%s)\"" % (cmdStr, " ".join(_args))
 
+
+        versExpr = None                 # relational expression for version
         if vers:  
-            # see if a version of the form "logical [exact]"
+            # see if a version of the form "exact [logical]"
             mat = re.search(r"(?:(\S*)\s+)?\[([^\]]+)\]\s*", vers)
             if mat:
-                exactVersion, logicalVersion = mat.groups()
-                if Eups.exact_version:
-                    if not exactVersion:
-                        if Eups.verbose > 1 - fwd:
-                            if fwd:
-                                verb = "setup"
-                            else:
-                                verb = "unsetup"
-                            print >> sys.stderr, \
-                                  "You asked me to %s an exact version of %s but I only found an expression; using %s" % \
-                                  (verb, productName, logicalVersion)
-                        vers = logicalVersion
-                    else:
-                        vers = exactVersion
-                else:
-                    vers = logicalVersion
+                vers, versExpr = mat.groups()
 
         if not fwd:
             requestedTag = None         # ignore if not setting up
             
+        if requestedTag and vers:
+            print >> sys.stderr, "You specified version \"%s\" and tag \"%s\"; ignoring the latter" % \
+                  (vers, requestedTag)
+            requestedTag = None
+
+        if requestedTag and requestedVRO:
+            print >> sys.stderr, "You specified vro \"%s\" and tag \"%s\"; ignoring the latter" % \
+                  (requestedVRO, requestedTag)
+            requestedTag = None
+
         if requestedTag:
-            if vers:
-                print >> sys.stderr, "You specified version \"%s\" and tag \"%s\"; ignoring the latter" % \
-                      (vers, requestedTag)
-            else:
-                try:
-                    Eups.tags.getTag(requestedTag)
-                except TagNotRecognized, e:
-                    print >> sys.stderr, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
-                    requestedTag = None
+            try:
+                Eups.tags.getTag(requestedTag)
+            except TagNotRecognized, e:
+                print >> sys.stderr, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
+                requestedTag = None
 
-        savedPTags = Eups.getPreferredTags()
-        try:
-            if requestedTag:
-                Eups.setPreferredTags([requestedTag] + savedPTags)
+        vro = Eups.getPreferredTags()
+        if requestedVRO:
+            pass
+        elif requestedTag:
+            requestedVRO = [requestedTag] + vro
+        else:
+            requestedVRO = vro
+
+        Eups.pushStack("env")
+        Eups.pushStack("vro", requestedVRO)
                 
-            productOK, vers, reason = \
-                       Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion)
-        finally:
-            Eups.setPreferredTags(savedPTags)
+        q = None
+        if optional:
+            q = utils.Quiet(Eups)
 
-        if not productOK and fwd:
-            if optional:                # setup the pre-existing version (if any)
-                try:
-                    product = Eups.findSetupProduct(productName, Eups.oldEnviron)
-                    if product:
-                        q = utils.Quiet(Eups)
-                        productOK, vers, reason = Eups.setup(productName, product.version, fwd, recursionDepth)
-                        del q
-                        if productOK:
-                            if Eups.verbose > 0:
-                                print >> sys.stderr, "            %sKept previously setup %s %s" % \
-                                    (recursionDepth*" ", product.name, product.version)
-                        else:
-                            #utils.debug(reason)
-                            pass
-                except RuntimeError, e:
-                    pass
-            else:
-                reason.msg = "in file %s: %s" % (self.tableFile, reason)
-                raise reason
+        try:
+            productOK, vers, reason = \
+                       Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
+                                  versionExpr=versExpr)
+        except Exception, e:
+            productOK, reason = False, e
+
+        if q:
+            del q
+
+        Eups.popStack("vro")
+
+        if productOK:                   # clean up the stack, dropping the value we pushed
+            Eups.dropStack("env")       # forget the value we just pushed
+        else:
+            Eups.popStack("env")
+            if fwd:
+                if optional:
+                    if Eups.verbose:
+                        msg = "... optional setup %s failed" % (productName)
+                        if Eups.verbose > 1:
+                            msg += ": %s" % reason
+                        print >> sys.stderr, "            %s%s" % (recursionDepth*" ", msg)
+                else:
+                    if isinstance(reason, str):
+                        utils.debug("reason is a str", reason)
+
+                    reason.msg = "in file %s: %s" % (self.tableFile, reason)
+                    raise reason
 
     def execute_envPrepend(self, Eups, fwd=True):
         """Execute envPrepend"""

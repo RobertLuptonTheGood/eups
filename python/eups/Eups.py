@@ -165,6 +165,10 @@ class Eups(object):
 
         self._msgs = {}                 # used to suppress messages
         self._msgs["setup"] = {}        # used to suppress messages about setups
+
+        self._stacks = {}               # used for saving/restoring state
+        self._stacks["env"] = []        # environment that we'll setup
+        self._stacks["vro"] = []        # the VRO
         #
         # The Version Resolution Order.  The entries may be a string (which should be split), or a dictionary
         # indexed by dictionary names in the EUPS_PATH (as set by -z); each value in this dictionary should
@@ -297,6 +301,65 @@ class Eups(object):
             except TypeError:
                 pass
 
+    def pushStack(self, what, value=None):
+        """Push some state onto a stack; see also popStack() and dropStack()
+
+The what argument tells us what sort of state is expected (allowed values are defined in __init__)
+        """
+        if not self._stacks.has_key(what):
+            raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
+
+        if what == "env":
+            value = os.environ.copy()
+        elif what == "vro":
+            self.setPreferredTags(value)
+
+        self._stacks[what].append(value)
+
+        self.__showStack("push", what)
+
+    def popStack(self, what):
+        """Pop some state off a stack, restoring the previous value; see also pushStack() and dropStack()
+
+The what argument tells us what sort of state is expected (allowed values are defined in __init__)
+        """
+        if not self._stacks.has_key(what):
+            raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
+
+        try:
+            value = self._stacks[what].pop()
+        except IndexError:
+            raise RuntimeError, ("Programming error: stack \"%s\" doesn't have an element to pop" % what)
+
+        if what == "env":
+            os.environ = value
+        elif what == "vro":
+            self.setPreferredTags(value)
+
+        self.__showStack("pop", what)
+
+    def dropStack(self, what):
+        """Drop the bottom element of a stack; see also pushStack() and popStack()
+
+The what argument tells us what sort of state is expected (allowed values are defined in __init__)
+        """
+        if not self._stacks.has_key(what):
+            raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
+
+        try:
+            self._stacks[what].pop()
+        except IndexError:
+            raise RuntimeError, ("Programming error: stack \"%s\" doesn't have an element to drop" % what)
+
+        self.__showStack("drop", what)
+
+    def __showStack(self, op, what):
+        """Debugging routine for stack"""
+        if False:
+            values = [e.has_key("BASE_DIR") for e in self._stacks["env"] + [os.environ]]
+            values.insert(-1, ":")
+            utils.debug("%-5s" % op, len(self._stacks[what]), values)
+
     def _databaseFor(self, eupsPathDir, dbpath=None):
         if not dbpath:
             dbpath = self.getUpsDB(eupsPathDir)
@@ -412,7 +475,23 @@ class Eups(object):
         if not isinstance(tags, list):
             raise TypeError("Eups.setPreferredTags(): arg not a list")
 
-        notokay = filter(lambda t: not self.tags.isRecognized(t), tags)
+        _tags = tags
+        tags = []; notokay = []
+        for t in _tags:
+            if re.search(r":\d+$", t):
+                t, suffix = t.split(":")
+
+                if self.tags.isRecognized(t):
+                    tags.append(t)
+                    tags.append(":")
+                    tags.append(suffix)
+                else:
+                    notokay.append(t)
+            elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
+                tags.append(t)
+            else:
+                notokay.append(t)
+
         if notokay:
             if strict:
                 raise TagNotRecognized(str(notokay), 
@@ -421,8 +500,8 @@ class Eups(object):
             elif self.quiet <= 0:
                 print >> sys.stderr, \
                     "Ignoring unsupported tags:", ", ".join(notokay)
+                tags = filter(self.tags.isRecognized, tags)
 
-        tags = filter(self.tags.isRecognized, tags)
         if len(tags) == 0:
             if self.quiet <= 0 or self.verbose > 1:
                 print >> sys.stderr, \
@@ -526,7 +605,7 @@ class Eups(object):
         return utils.dirEnvNameFor(productName)
 
 
-    def findProductFromVRO(self, name, version=None, eupsPathDirs=None, flavor=None,
+    def findProductFromVRO(self, name, version=None, versionExpr=None, eupsPathDirs=None, flavor=None,
                            noCache=False):
         """
         return a product matching the given constraints by searching the VRO.  By default, the 
@@ -536,10 +615,11 @@ class Eups(object):
         @param version       the desired version.  This can in one of the 
                                 following forms:
                                  *  an explicit version 
-                                 *  a version expression (e.g. ">=3.3")
+                                 *  a version expression (e.g. ">=3.3") (see also versionExpr)
                                  *  a Tag instance 
                                  *  null, in which case, the (most) preferred 
                                       version will be returned.
+        @param versionExpr   An expression specifying the constraints on the version
         @param eupsPathDirs  the EUPS path directories to search.  (Each should 
                                 have a ups_db sub-directory.)  If None (def.),
                                 configured EUPS_PATH directories will be 
@@ -563,45 +643,70 @@ class Eups(object):
         vro = self.getPreferredTags()
         for i in range(len(vro)):
             vroTag = vro[i]
-            if vroTag == "path":
+            if vroTag in ("path", ":") or re.search(r"^\d+$", vroTag):
                 continue
+
             elif vroTag in ("version", "versionExpr",):
                 if self.ignore_versions:
                     continue
 
-                if vroTag == "versionExpr":
-                    if isinstance(version, str):
-                        if self.isLegalRelativeVersion(version):  # raises exception if bad syntax used
-                            product = self._findPreferredProductByExpr(name, version, 
-                                                                       eupsPathDirs, flavor, noCache)
-                if not product:
-                    # search path for an explicit version 
-                    for root in eupsPathDirs:
-                        if noCache or not self.versions.has_key(root) or not self.versions[root]:
-                            # go directly to the EUPS database
-                            if not os.path.exists(self.getUpsDB(root)):
-                                if self.verbose:
-                                    print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
-                                continue
+                if self.isLegalRelativeVersion(version): # version is actually a versionExpr
+                    vroTag, versionExpr = "versionExpr", version
+                    
+                if vroTag == "versionExpr" and versionExpr:
+                    if self.isLegalRelativeVersion(versionExpr):  # raises exception if bad syntax used
+                        products = self._findProductsByExpr(name, versionExpr, eupsPathDirs, flavor, noCache)
+                        product = self._selectPreferredProduct(products, ["newest"])
 
-                            try:
-                                product = self._databaseFor(root).findProduct(name, version, flavor)
-                                if product:
-                                    break
-                            except ProductNotFound:
-                                product = None
-                        else:
-                            # consult the cache
-                            try:
-                                self.versions[root].ensureInSync(verbose=self.verbose)
-                                product = self.versions[root].getProduct(name, version, flavor)
+                        if product:
+                            break
+                #
+                # If we failed to find a versionExpr, we can still use the explicit version
+                #
+                # Search path for an explicit version
+                #
+                for root in eupsPathDirs:
+                    if noCache or not self.versions.has_key(root) or not self.versions[root]:
+                        # go directly to the EUPS database
+                        if not os.path.exists(self.getUpsDB(root)):
+                            if self.verbose:
+                                print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
+                            continue
+
+                        try:
+                            product = self._databaseFor(root).findProduct(name, version, flavor)
+                            if product:
                                 break
-                            except ProductNotFound:
-                                pass
+                        except ProductNotFound:
+                            product = None
+                    else:
+                        # consult the cache
+                        try:
+                            self.versions[root].ensureInSync(verbose=self.verbose)
+                            product = self.versions[root].getProduct(name, version, flavor)
+                            break
+                        except ProductNotFound:
+                            pass
+
             elif vroTag == "warn":
-                if self.verbose > 0:
-                    print >> sys.stderr, "VRO \"%s\" failed to match for %s %s; trying \"%s\"" % \
-                          (" ".join(vro[0:i]), name, version, " ".join(vro[i+1:]))
+                preVro = vro[0:i]
+                debugLevel = 1
+                try:
+                    if vro[i + 1] == ":":
+                        debugLevel = int(vro[i + 2])
+                        i += 2
+                except IndexError:
+                    pass
+                postVro = vro[i + 1:]
+
+                if self.verbose >= debugLevel + 0*self.quiet:
+                    if version:
+                        vname = version
+                    else:
+                        vname = "\"\""
+                    print >> sys.stderr, "            VRO [%s] failed to match for %s %s; trying [%s]" % \
+                          (", ".join(preVro), name, vname, ", ".join(postVro))
+
             elif self.tags.isRecognized(vroTag):
                 # search for a tagged version
                 product = self._findTaggedProduct(name, self.tags.getTag(vroTag), eupsPathDirs,
@@ -1181,7 +1286,7 @@ class Eups(object):
 
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
               setupToplevel=True, noRecursion=False, setupType=None,
-              productRoot=None, tablefile=None):
+              productRoot=None, tablefile=None, versionExpr=None):
         """
         Update the environment to use (or stop using) a specified product.  
 
@@ -1194,7 +1299,7 @@ class Eups(object):
         @param productName      the name of the product desired
         @param versionName      the version of the product desired.  This is 
                                   can either be a actual version name or an
-                                  instance of Tag.  
+                                  instance of Tag.  See also versionExpr
         @param fwd              if False, the product will be unset; otherwise
                                   it will be setup.
         @param recursionDepth   the number of dependency levels this setup 
@@ -1219,6 +1324,7 @@ class Eups(object):
                                   that are not currently declared.
 
         @param tablefile        use this table file to setup the product
+        @param versionExpr      An expression specifying the desired version
         """
 
         if isinstance(versionName, str) and versionName.startswith(Product.LocalVersionPrefix):
@@ -1282,7 +1388,7 @@ class Eups(object):
                     print >> sys.stderr, ("VRO used %-12s " % ("path")),
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
             else:
-                product = self.findProductFromVRO(productName, versionName)
+                product = self.findProductFromVRO(productName, versionName, versionExpr)
                 if not product and self.alreadySetupProducts.has_key(productName):
 
                     # We couldn't find it, but maybe it's already setup 
@@ -1296,7 +1402,8 @@ class Eups(object):
                     # It's not there.  Try a set of other flavors that might 
                     # fit the bill
                     for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
-                        product = self.findProductFromVRO(productName, versionName, flavor=fallbackFlavor)
+                        product = self.findProductFromVRO(productName, versionName, versionExpr,
+                                                          flavor=fallbackFlavor)
 
                         if product:        
                             setupFlavor = fallbackFlavor
