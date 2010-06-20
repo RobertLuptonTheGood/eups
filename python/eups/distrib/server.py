@@ -1646,8 +1646,75 @@ EUPS distribution manifest for %s (%s). Version %s
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
     def remapEntries(self):
-        """Allow the user to modify entries in the Manifest"""
-        pass
+        """Allow the user to modify entries in the Manifest
+
+The mapping is defined by the file userDataDir/manifest.remap, which consists of three columns:
+   product    version-in-manifest   desired-version
+
+If version-in-manifest is "Any" the desired-version is used for all products
+If desired-version is "None" or omitted, the product is deleted from the Manifest
+"""
+        if not self.eups.userDataDir:
+            return
+        
+        mapFile = os.path.join(self.eups.userDataDir, "manifest.remap")
+        if not os.path.exists(mapFile):
+            return
+        
+        mapping = {}
+        lineNo = 0
+        for line in open(mapFile, "r").readlines():
+            lineNo += 1
+
+            line = line.strip()
+            line = re.sub(r"\s*#.*$", "", line) # strip comments
+
+            if not line:
+                continue
+
+            vals = line.split()
+
+            product, inversion, outversion = 3*[None]
+            if len(vals) > 0:
+                product = vals[0]
+
+            if len(vals) > 1:
+                inversion = vals[1]
+                if inversion in ("any", "Any"):
+                    inversion = "any"
+
+            if len(vals) > 2:
+                outversion = vals[2]
+                if outversion in ("none", "None"):
+                    outversion = None
+
+            if len(vals) > 3:
+                print >> sys.stderr, "Expected 3 fields in \"%s\" (%s:%d)" % (line, mapFile, lineNo)
+                
+            if not product:
+                print >> sys.stderr, "Expected 3 fields in \"%s\" (%s:%d)" % (line, mapFile, lineNo)
+                
+            if not mapping.has_key(product):
+                mapping[product] = {}
+
+            if inversion:
+                mapping[product][inversion] = outversion
+
+        products = []
+        for p in self.products:
+            if mapping.has_key(p.product):
+                if not len(mapping[p.product]):
+                    p.version = None
+                else:
+                    for versName in (p.version, "any"):
+                        if mapping[p.product].has_key(versName):
+                            p.version = mapping[p.product][versName]
+                            break
+
+            if p.version:
+                products.append(p)
+
+        self.products = products
 
 class ServerConf(object):
     """a factory class for creating DistribServer classes based on the 
