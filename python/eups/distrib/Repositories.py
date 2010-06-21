@@ -409,45 +409,41 @@ class Repositories(object):
 
             thisinstalled = None
             if not noeups and not self.eups.force:
-                thisinstalled = self.eups.findProduct(prod.product, 
-                                                      prod.version, 
-                                                      flavor=instflavor)
+                thisinstalled = self.eups.findProduct(prod.product, prod.version, flavor=instflavor)
             if thisinstalled:
                 if self.verbose >= 0:
                     print >> self.log, \
-                        "Required product %s %s is already installed;" % \
-                        (prod.product, prod.version),                    \
-                        "use --force to reinstall."
+                        "Required product %s %s is already installed; use --force to reinstall" % \
+                        (prod.product, prod.version)
 
             else:
-
                 recurse = searchDep
                 if recurse is None:  
                     recurse = not prod.distId or prod.shouldRecurse
+
+                recurse = False         # This code used to work, but appears to have bitrotted
+                                        # during the server side re-working
                 if recurse and \
                    prod.product != product and prod.version != version:
 
                     # This is not the top-level product for the current manifest.
                     # We are ignoring the distrib ID; instead we will search 
                     # for the required dependency in the repositories
-                    pkg = self.findPackage(prod.product, prod.version, 
-                                           prod.flavor)
+                    pkg = self.findPackage(prod.product, prod.version, prod.flavor)
                     if pkg:
-                        dman = self.repos[pkg[3]].getManifest(pkg[0], pkg[1], 
-                                                              pkg[2])
+                        dman = self.repos[pkg[3]].getManifest(pkg[0], pkg[1], pkg[2])
 
                         thisinstalled = \
                             self._recursiveInstall(recursionLevel+1, dman, 
                                                    prod.product, prod.version, 
                                                    prod.flavor, pkg[3], 
                                                    productRoot, updateTags, 
-                                                   alsoTag, opts, norecurse, 
-                                                   noclean, noeups, setups, 
+                                                   alsoTag, opts, nodepend, 
+                                                   noclean, noeups, searchDep, setups, 
                                                    installed, tag, ances)
                         if not thisinstalled and self.verbose > 0:
                             print >> self.log, \
-                                "Warning: recursive install failed for", \
-                                prod.product, prod.version
+                                "Warning: recursive install failed for", prod.product, prod.version
 
                     elif not prod.distId:
                         raise ServerError("Can't find a package for %s %s (%s)"
@@ -456,28 +452,34 @@ class Repositories(object):
                 if not thisinstalled:
                     if self.verbose >= 0:
                         print >> self.log, \
-                            "Installing %s %s for %s..." % \
-                            (prod.product, prod.version, instflavor)
-                    self._doInstall(pkgroot, prod, productRoot, 
-                                    instflavor, opts, noclean, setups, tag)
+                              "Installing %s %s for %s..." % (prod.product, prod.version, instflavor)
+                    pkg = self.findPackage(prod.product, prod.version, prod.flavor)
+                    if not pkg:
+                        raise ServerError("Can't find a package for %s %s (%s)"
+                                          % (prod.product, prod.version, prod.flavor))
+
+                    # Look up the product, which may be found on a different pkgroot
+                    pkgroot = pkg[3]
+
+                    dman = self.repos[pkg[3]].getManifest(pkg[0], pkg[1], pkg[2])
+                    prod = dman.getDependency(prod.product)
+                        
+                    self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups 
-            setups.append("setup --keep --type=build %s %s" % 
-                          (prod.product, prod.version))
+            setups.append("setup --keep --type=build %s %s" % (prod.product, prod.version))
 
             # ...update the tags
             if updateTags:
                 self._updateServerTags(pkgroot, prod, productRoot, instflavor)
             if alsoTag:
                 if self.verbose > 1:
-                    print >> self.log, \
-                        "Assigning User Tags to %s %s: %s" % \
-                        (prod.name, prod.version, ", ".join(str(alsoTag)))
+                    print >> self.log, "Assigning User Tags to %s %s: %s" % \
+                          (prod.name, prod.version, ", ".join(str(alsoTag)))
                 for tag in alsoTag:
                     try:
-                        self.eups.assignTag(tag, prod.product, prod.version,
-                                            productRoot)
+                        self.eups.assignTag(tag, prod.product, prod.version, productRoot)
                     except Exception, e:
                         msg = str(e)
                         if not self._msgs.has_key(msg):
