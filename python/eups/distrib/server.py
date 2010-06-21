@@ -1641,6 +1641,7 @@ EUPS distribution manifest for %s (%s). Version %s
         """
         out = Manifest(eupsenv=eupsenv)
         out.read(filename, setproduct=True, shouldRecurse=shouldRecurse)
+        out.remapEntries()
         return out
 
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
