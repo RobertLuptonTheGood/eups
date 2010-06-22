@@ -88,8 +88,8 @@ class DistribServer(object):
             try:
                 file = self.getFileForProduct("", product, version, flavor, 
                                               "manifest", noaction=noaction)
-                return Manifest.fromFile(file, 
-                              self.getConfigProperty("RECURSE_OVER_MANIFEST"))
+                return Manifest.fromFile(file, self.getConfigProperty("RECURSE_OVER_MANIFEST"),
+                                         verbosity=self.verbose)
             except RuntimeError, e:
                 raise RuntimeError("Trouble reading manifest for %s %s (%s): %s"
                                    % (product, version, flavor, e))
@@ -954,6 +954,8 @@ class WebTransporter(Transporter):
                 raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
               except urllib2.URLError:
                 raise ServerNotResponding("Failed to contact URL %s" % self.loc)
+            except KeyboardInterrupt:
+                raise EupsException("^C")
             finally: 
                 if url is not None: url.close()
                 if out is not None: out.close()
@@ -1027,6 +1029,8 @@ class WebTransporter(Transporter):
             raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
           except urllib2.URLError:
             raise ServerNotResponding("Failed to contact URL %s" % self.loc)
+          except KeyboardInterrupt:
+            raise EupsException("^C")
         finally: 
             if url is not None: url.close()
 
@@ -1610,7 +1614,7 @@ EUPS distribution manifest for %s (%s). Version %s
                 if not flavor:
                     p.flavor = flavor
                 if not p.flavor:
-                    p.flavor = self.eups.flavor
+                    p.flavor = self.eups.flavor()
                 if not p.instDir:
                     p.instDir = "none"
                 if not p.tablefile:
@@ -1639,7 +1643,7 @@ EUPS distribution manifest for %s (%s). Version %s
                                  If None (default), the default value will be
                                  retained (usually False).
         """
-        out = Manifest(eupsenv=eupsenv)
+        out = Manifest(eupsenv=eupsenv, verbosity=verbosity)
         out.read(filename, setproduct=True, shouldRecurse=shouldRecurse)
         out.remapEntries()
         return out
@@ -1649,11 +1653,24 @@ EUPS distribution manifest for %s (%s). Version %s
     def remapEntries(self):
         """Allow the user to modify entries in the Manifest
 
-The mapping is defined by the file userDataDir/manifest.remap, which consists of three columns:
-   product    version-in-manifest   desired-version
+The mapping is defined by the file userDataDir/manifest.remap, which consists of up to three columns:
+productName[:version-in-manifest]    [[outProductName:]desired-version]    [flavor]
 
+Comments (starting with #) are skipped
 If version-in-manifest is "Any" the desired-version is used for all products
-If desired-version is "None" or omitted, the product is deleted from the Manifest
+If oproductName is present, productName is replaced by outProductName
+If desired-version is "None" or omitted, the product is deleted from the Manifest.
+If flavor is supplied, the mapping is only applied for that flavor
+
+E.g.
+   doxygen:1.5.9                1.6.3
+   python:Any                   2.6.2
+   tcltk                        None
+   tcltk:Any                    dummy:1.0               DarwinX86
+
+Means that instead of installing doxygen 1.5.9 version 1.6.3 should be used; that any version of python should
+be replaced by version 2.6.2; that on any platform other than DarwinX86 tcltk should be ignored; and that on
+DarwinX86 machines any version of tcltk should be replace by product dummy, version 1.0
 """
         if not self.eups.userDataDir:
             return
@@ -1675,32 +1692,58 @@ If desired-version is "None" or omitted, the product is deleted from the Manifes
 
             vals = line.split()
 
-            product, inversion, outversion = 3*[None]
+            product, inversion, outproduct, outversion, flavor = 5*[None]
             if len(vals) > 0:
-                product = vals[0]
-
-            if len(vals) > 1:
-                inversion = vals[1]
-                if inversion in ("any", "Any"):
+                mat = re.search(r"^([^:]+)(?::(.*))?", vals[0])
+                product, inversion = mat.groups()
+                                
+                if inversion in (None, "any", "Any"):
                     inversion = "any"
 
-            if len(vals) > 2:
-                outversion = vals[2]
-                if outversion in ("none", "None"):
+            if len(vals) > 1:
+                mat = re.search(r"^([^:]+)(?::(.*))?", vals[1])
+                outproduct, outversion = mat.groups()
+                if not outversion:
+                    outversion = outproduct
+                    outproduct = product
+
+                if outversion in ("any", "none", "None"):
                     outversion = None
 
+            if len(vals) > 2:
+                flavor = vals[2]
+                
             if len(vals) > 3:
                 print >> sys.stderr, "Expected 3 fields in \"%s\" (%s:%d)" % (line, mapFile, lineNo)
                 
-            if not product:
-                print >> sys.stderr, "Expected 3 fields in \"%s\" (%s:%d)" % (line, mapFile, lineNo)
-                
-            if not mapping.has_key(product):
-                mapping[product] = {}
+            if not flavor:
+                flavor = "generic"
+
+            if not mapping.has_key(flavor):
+                mapping[flavor] = {}
+
+            if not mapping[flavor].has_key(product):
+                mapping[flavor][product] = {}
 
             if inversion:
-                mapping[product][inversion] = outversion
+                mapping[flavor][product][inversion] = (outproduct, outversion)
 
+        #
+        # Retrieve the correct flavor
+        #
+        mapping2 = {}
+        if mapping.has_key("generic"):
+            mapping2 = mapping["generic"]
+
+        if mapping.has_key(eups.flavor()):
+            for p, iMap in mapping[eups.flavor()].items():
+                for iv, val in iMap.items():
+                    mapping2[p][iv] = val
+
+        mapping = mapping2
+        #
+        # Remap the incoming manifest
+        #
         products = []
         for p in self.products:
             if mapping.has_key(p.product):
@@ -1709,7 +1752,13 @@ If desired-version is "None" or omitted, the product is deleted from the Manifes
                 else:
                     for versName in (p.version, "any"):
                         if mapping[p.product].has_key(versName):
-                            p.version = mapping[p.product][versName]
+                            productName, versionName = mapping[p.product][versName]
+
+                            if self.verbose > 0:
+                                print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
+                                      (p.product, versName, productName, versionName)
+
+                            p = Dependency(productName, versionName, None, None, None, None)
                             break
 
             if p.version:
