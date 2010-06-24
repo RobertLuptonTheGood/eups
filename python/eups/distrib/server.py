@@ -8,6 +8,7 @@ import fnmatch
 import tempfile
 import urllib2
 import eups
+import eups.hooks as hooks
 import eups.utils as utils
 
 from eups.exceptions import EupsException
@@ -1672,14 +1673,58 @@ Means that instead of installing doxygen 1.5.9 version 1.6.3 should be used; tha
 be replaced by version 2.6.2; that on any platform other than DarwinX86 tcltk should be ignored; and that on
 DarwinX86 machines any version of tcltk should be replace by product dummy, version 1.0
 """
-        if not self.eups.userDataDir:
-            return
-        
-        mapFile = os.path.join(self.eups.userDataDir, "manifest.remap")
-        if not os.path.exists(mapFile):
-            return
-        
+
         mapping = {}
+        for dirname in hooks.customisationDirs:
+            self._readRemapFile(dirname, mapping)
+        #
+        # Retrieve the correct flavor
+        #
+        mapping2 = {}
+        if mapping.has_key("generic"):
+            mapping2 = mapping["generic"]
+
+        if mapping.has_key(eups.flavor()):
+            for p, iMap in mapping[eups.flavor()].items():
+                for iv, val in iMap.items():
+                    mapping2[p][iv] = val
+
+        mapping = mapping2
+        #
+        # Remap the incoming manifest
+        #
+        products = []
+        for p in self.products:
+            if mapping.has_key(p.product):
+                if not len(mapping[p.product]):
+                    p.version = None
+                else:
+                    for versName in (p.version, "any"):
+                        if mapping[p.product].has_key(versName):
+                            productName, versionName = mapping[p.product][versName]
+
+                            if self.verbose > 0:
+                                print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
+                                      (p.product, versName, productName, versionName)
+
+                            p = Dependency(productName, versionName, None, None, None, None)
+                            break
+
+            if p.version:
+                products.append(p)
+
+        self.products = products
+
+    def _readRemapFile(self, dirname, mapping={}, filename="manifest.remap"):
+        """Read a product mapping from dirname/filename"""
+        
+        if not dirname:
+            return mapping
+        
+        mapFile = os.path.join(dirname, filename)
+        if not os.path.exists(mapFile):
+            return mapping
+        
         lineNo = 0
         for line in open(mapFile, "r").readlines():
             lineNo += 1
@@ -1728,43 +1773,8 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
             if outversion:
                 mapping[flavor][product][inversion] = (outproduct, outversion)
 
-        #
-        # Retrieve the correct flavor
-        #
-        mapping2 = {}
-        if mapping.has_key("generic"):
-            mapping2 = mapping["generic"]
+        return mapping
 
-        if mapping.has_key(eups.flavor()):
-            for p, iMap in mapping[eups.flavor()].items():
-                for iv, val in iMap.items():
-                    mapping2[p][iv] = val
-
-        mapping = mapping2
-        #
-        # Remap the incoming manifest
-        #
-        products = []
-        for p in self.products:
-            if mapping.has_key(p.product):
-                if not len(mapping[p.product]):
-                    p.version = None
-                else:
-                    for versName in (p.version, "any"):
-                        if mapping[p.product].has_key(versName):
-                            productName, versionName = mapping[p.product][versName]
-
-                            if self.verbose > 0:
-                                print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
-                                      (p.product, versName, productName, versionName)
-
-                            p = Dependency(productName, versionName, None, None, None, None)
-                            break
-
-            if p.version:
-                products.append(p)
-
-        self.products = products
 
 class ServerConf(object):
     """a factory class for creating DistribServer classes based on the 

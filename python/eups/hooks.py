@@ -108,28 +108,28 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True):
     @param quiet      Be extra quiet
     """
 
-    global customisationFiles
+    global customisationDirs, customisationFiles
     if customisationFiles is not None:
         return customisationFiles
 
-    customDirs = []
+    customisationDirs = []
 
     # a site-level directory can have configuration stuff in it
     if os.environ.has_key("EUPS_SITEDATA"):
-        customDirs.append(os.environ["EUPS_SITEDATA"])
+        customisationDirs.append(os.environ["EUPS_SITEDATA"])
     elif os.environ.has_key("EUPS_DIR"):
-        customDirs.append(os.path.join(os.environ["EUPS_DIR"], "site"))
+        customisationDirs.append(os.path.join(os.environ["EUPS_DIR"], "site"))
 
     # ~/.eups can have user configuration stuff in it
     if os.environ.has_key("EUPS_USERDATA"):
-        customDirs.append(os.environ["EUPS_USERDATA"])
+        customisationDirs.append(os.environ["EUPS_USERDATA"])
     else:
-        customDirs.append(os.path.join(os.path.expanduser("~"), ".eups"))
+        customisationDirs.append(os.path.join(os.path.expanduser("~"), ".eups"))
 
     # load the configuration by directories; later ones override prior ones
     customisationFiles = []             # files that we'd load
 
-    for dir in customDirs:
+    for dir in customisationDirs:
         cfiles = loadCustomizationFromDir(dir, verbose, log, execute=execute)
         if cfiles:
             customisationFiles += cfiles
