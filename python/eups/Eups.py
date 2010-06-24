@@ -1068,7 +1068,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
             try:
-                productName = os.environ[key].split()[0]
+                productName, versionName = os.environ[key].split()[0:2]
             except IndexError:          # Oh dear;  $SETUP_productName must be malformed
                 continue
 
@@ -1079,7 +1079,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 product = self.findSetupProduct(productName)
                 if not product:
                     if self.quiet <= 0:
-                        print >> sys.stderr, "Product %s is not setup" % productName
+                        print >> sys.stderr, "Unable to find %s %s although it is seen in the environment" % \
+                              (productName, versionName)
                     continue
 
             except EupsException, e:
@@ -1187,7 +1188,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             return True
 
         prod = self.findSetupProduct(product)
-        if eupsPathDir is not None and eupsPathDir != prod.stackRoot():
+        if not prod or \
+           (eupsPathDir is not None and eupsPathDir != prod.stackRoot()):
             return False
 
         return versionName is None or versionName == prod.version
