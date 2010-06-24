@@ -229,7 +229,7 @@ Common"""
                 self._errstrm.write(" %s" % self.cmd)
             print >> self._errstrm, ": %s" % msg
 
-    def deprecated(self, msg, volume=0):
+    def deprecated(self, msg, volume=1):
         """
         indicate that deprecated arguments were used.  This currently is 
         implemented to print the message to sys.stderr, but in the future,
