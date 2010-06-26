@@ -55,7 +55,7 @@ class EupsCmd(object):
     specializations that handle each command.  
     """
 
-    usage = "%prog [--debug=OPTS|-h|--help|-V|--version] command [options]"
+    usage = "%prog [--debug=OPTS|-h|--help|-V|--version|--vro] command [options]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -101,6 +101,8 @@ Common"""
                             help="Print extra messages about progress (repeat for ever more chat)")
         self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
                             help="Print eups version number")
+        self.clo.add_option("--vro", dest="vro", action="store", metavar="LIST",
+                            help="Set the Version Resolution Order")
 
     def addEupsOptions(self):
         """
@@ -241,7 +243,7 @@ Common"""
                 preamble += " %s" % self.cmd
             utils.deprecated("%s: %s" % (preamble, msg), strm=self._errstrm)
 
-    def createEups(self, opts=None):
+    def createEups(self, opts=None, versionName=None):
         if opts is None:
             opts = self.opts
 
@@ -262,8 +264,10 @@ Common"""
         Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force,
                          ignore_versions=ignorever, exact_version=exactver,
-                         keep=keep, verbose=opts.verbose, quiet=opts.quiet,
+                         keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin)
+
+        Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 
         try:
             eups.commandCallbacks.apply(Eups, self.cmd, self.opts, self.args)
@@ -411,11 +415,14 @@ will also be printed.
             version = self.args[1]
 
         if self.opts.current: 
-            self.deprecated("Note: -c|--current is deprecated; use --tag")
+            self.deprecated("Note: -c|--current is deprecated; use --tag current")
             if self.opts.tag:
                 self.opts.tag += " current"
             else:
                 self.opts.tag = "current"
+
+        if not self.opts.vro:
+            self.opts.vro = hooks.config.Eups.VRO
 
         if not self.opts.quiet and \
            self.opts.depth and not self.opts.depends:
@@ -423,7 +430,7 @@ will also be printed.
 
         try:
             n = eups.printProducts(sys.stdout, product, version, 
-                                   self.createEups(), tags=self.opts.tag, 
+                                   self.createEups(versionName=version), tags=self.opts.tag, 
                                    setup=self.opts.setup, 
                                    tablefile=self.opts.tablefile, 
                                    directory=self.opts.printdir, 

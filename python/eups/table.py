@@ -387,7 +387,8 @@ but no other interpretation is applied
 
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, setupType=None, followExact=None):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0,
+                     setupType=None, followExact=None):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional) tuples
@@ -401,6 +402,7 @@ but no other interpretation is applied
                                   table file.  If None or not specified,
                                   it defaults to Eups.exact_version.
         """
+
         if followExact is None:
             followExact = Eups.exact_version
 
@@ -413,43 +415,44 @@ but no other interpretation is applied
         deps = []
         for a in self.actions(Eups.flavor, setupType=setupType):
             if a.cmd == Action.setupRequired:
-                productName = a.args[0]
-                if len(a.args) > 1:
-                    # the rest contrains the version; parse it
-                    versionArg = " ".join(a.args[1:])
-                    mat = re.search(self._versionre, versionArg)
-                    if mat:
-                        # contains both exact version and expression
-                        exactVersion, logicalVersion = mat.groups()
-                        if followExact:
-                            versionArg = exactVersion
-                        else:
-                            versionArg = logicalVersion
-                else:
-                    # no version information provide
-                    versionArg = None
+                optional = a.extra
+
+                requestedVRO, productName, vers, versExpr, noRecursion = a.processArgs(Eups)
+
+                Eups.pushStack("vro", requestedVRO)
+
+                q = None
+                if optional:
+                    q = utils.Quiet(Eups)
 
                 try:
-                    product = Eups.getProduct(productName, versionArg)
+                    product = Eups.findProductFromVRO(productName, vers, versExpr)
+
+                    if not product:
+                        raise ProductNotFound(productName)
 
                     val = [product, a.extra]
                     if recursive:
                         val += [recursionDepth]
                     deps += [val]
 
-                    if recursive and not recursiveDict.has_key(prodkey(product)):
+                    if recursive and not noRecursion and not recursiveDict.has_key(prodkey(product)):
                         recursiveDict[prodkey(product)] = 1
                         deptable = product.getTable()
                         if deptable:
                             deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict, recursionDepth+1)
                         
                 except ProductNotFound, e:
-                    product = eups.Product(productName, versionArg) # it doesn't exist, but it's still a dep.
+                    product = eups.Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra]
                     if recursive:
                         val += [recursionDepth]
                     deps += [val]
+
+                del q
+
+                Eups.popStack("vro")
 
         return deps
 
@@ -544,11 +547,9 @@ class Action(object):
             pass
         else:
             print >> sys.stderr, "Unimplemented action", self.cmd
-    #
-    # Here are the real execute routines
-    #
-    def execute_setupRequired(self, Eups, recursionDepth, fwd=True):
-        """Execute setupRequired"""
+
+    def processArgs(self, Eups, fwd=True):
+        """Process the arguments in a setup command found in a table file"""
 
         optional = self.extra
 
@@ -588,7 +589,7 @@ class Action(object):
             args += [_args[i]]
 
         productName = args[0]
-        
+
         vers = None
         if not fwd:                     # unsetup
             product = Eups.findSetupProduct(productName)
@@ -617,7 +618,7 @@ class Action(object):
 
         if not fwd:
             requestedTag = None         # ignore if not setting up
-            
+
         if requestedTag and vers:
             print >> sys.stderr, "You specified version \"%s\" and tag \"%s\"; ignoring the latter" % \
                   (vers, requestedTag)
@@ -643,6 +644,18 @@ class Action(object):
         else:
             requestedVRO = vro
 
+        return requestedVRO, productName, vers, versExpr, noRecursion
+
+    #
+    # Here are the real execute routines
+    #
+    def execute_setupRequired(self, Eups, recursionDepth, fwd=True):
+        """Execute setupRequired"""
+
+        optional = self.extra
+
+        requestedVRO, productName, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
+
         Eups.pushStack("env")
         Eups.pushStack("vro", requestedVRO)
                 
@@ -657,8 +670,7 @@ class Action(object):
         except Exception, e:
             productOK, reason = False, e
 
-        if q:
-            del q
+        del q
 
         Eups.popStack("vro")
 

@@ -36,7 +36,7 @@ config.Eups = defineProperties("userTags preferredTags globalTags reservedTags v
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = ""
-config.Eups.preferredTags = "current stable newest"
+config.Eups.preferredTags = "version versionExpr current stable newest"
 config.Eups.globalTags = "current stable"
 config.Eups.reservedTags = None
 config.Eups.verbose = 0

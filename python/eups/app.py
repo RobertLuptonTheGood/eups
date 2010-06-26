@@ -123,10 +123,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         
         if dependencies:
             recursionDepth = 0 
-#             if not info:
-#                 if eupsenv.verbose or not _msgs.has_key(name):
-#                     _msgs[name] = version
-#                     info += "%-40s %s" % (name, version)
+
             if includeProduct(recursionDepth):
                 info += "%-40s %s" % (name, version)
 
