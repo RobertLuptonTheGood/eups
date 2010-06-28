@@ -729,7 +729,12 @@ def productDir(productName, versionName=Setup(), eupsenv=None):
     prod = eupsenv.findProduct(productName, versionName)
     if not prod:
         return None
-    return prod.dir
+
+    pdir = prod.dir
+    if pdir == "none":
+        pdir = None
+        
+    return pdir
 
 def getSetupVersion(productName, eupsenv=None):
     """
