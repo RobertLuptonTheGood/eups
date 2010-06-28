@@ -678,7 +678,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             cmds += [cmd]
     elif fwd and version is None:
         print >> sys.stderr, \
-            "Unable to find a preferred version of", productName
+            "Unable to find an acceptable version of", productName
         cmds += ["false"]               # as in /bin/false
     else:
         if fwd:

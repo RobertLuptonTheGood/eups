@@ -174,6 +174,9 @@ class Eups(object):
         # indexed by dictionary names in the EUPS_PATH (as set by -z); each value in this dictionary should
         # be split
         #
+        if not vro:
+            vro = hooks.config.Eups.VRO
+
         if not isinstance(vro, dict):
             vro = {"default" : vro}
 
@@ -1068,9 +1071,15 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
             try:
-                productName, versionName = os.environ[key].split()[0:2]
+                productInfo = os.environ[key].split()
             except IndexError:          # Oh dear;  $SETUP_productName must be malformed
                 continue
+
+            productName = productInfo[0]
+            try:
+                versionName = productInfo[1]
+            except IndexError:
+                versionName = None
 
             if requestedProductName and productName != requestedProductName:
                 continue
@@ -2647,7 +2656,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         # Note that the order of these tests is significant
         if tag:
             vroTag = tag
-        elif productDir:
+        elif productDir and productDir != 'none':
             vroTag = "path"
         elif versionName:
             vroTag = "commandLineVersion"
@@ -2659,7 +2668,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif self._vroDict.has_key("default"):
             vroTag = "default"
         else:
-            raise RuntimeError, "Complain to RHL about getVRO"
+            raise RuntimeError, ("Complain to RHL about getVRO (vro = %s, vroTag == %s)" %
+                                 (self._vroDict, vroTag))
 
         vro = self._vroDict[vroTag]
 

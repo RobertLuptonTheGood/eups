@@ -267,7 +267,17 @@ Common"""
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin)
 
-        Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
+        if hasattr(opts, "productDir"):
+            productDir = opts.productDir
+        else:
+            productDir = None
+            
+        if hasattr(opts, "tag"):
+            tag = opts.tag
+        else:
+            tag = None
+        
+        Eups.selectVRO(tag, productDir, versionName, opts.dbz)
 
         try:
             eups.commandCallbacks.apply(Eups, self.cmd, self.opts, self.args)
@@ -420,9 +430,6 @@ will also be printed.
                 self.opts.tag += " current"
             else:
                 self.opts.tag = "current"
-
-        if not self.opts.vro:
-            self.opts.vro = hooks.config.Eups.VRO
 
         if not self.opts.quiet and \
            self.opts.depth and not self.opts.depends:
@@ -1940,7 +1947,7 @@ same arguments.
         else:
             versionName = None
 
-        myeups = eups.Eups(readCache=True, force=self.opts.force, vro=hooks.config.Eups.VRO)
+        myeups = eups.Eups(readCache=True, force=self.opts.force)
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 

@@ -200,9 +200,6 @@ product and all its dependencies into the environment so that it can be used.
                 self.err("You may not specify both --just and --max_depth")
                 return 3
             self.opts.max_depth = 0
-
-        if not self.opts.vro:
-            self.opts.vro = hooks.config.Eups.VRO
         #
         # Do the work
         #

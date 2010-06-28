@@ -445,8 +445,10 @@ class Repositories(object):
                                 "Warning: recursive install failed for", prod.product, prod.version
 
                     elif not prod.distId:
-                        raise ServerError("Can't find a package for %s %s (%s)"
-                                    % (prod.product, prod.version, prod.flavor))
+                        msg = "Can't find a package for %s %s" % (prod.product, prod.version)
+                        if prod.flavor:
+                            msg += " (%s)" % prod.flavor
+                        raise ServerError(msg)
 
                 if not thisinstalled:
                     if self.verbose >= 0:
@@ -454,13 +456,15 @@ class Repositories(object):
                               "Installing %s %s for %s..." % (prod.product, prod.version, instflavor)
                     pkg = self.findPackage(prod.product, prod.version, prod.flavor)
                     if not pkg:
-                        raise ServerError("Can't find a package for %s %s (%s)"
-                                          % (prod.product, prod.version, prod.flavor))
+                        msg = "Can't find a package for %s %s" % (prod.product, prod.version)
+                        if prod.flavor:
+                            msg += " (%s)" % prod.flavor
+                        raise ServerError(msg)
 
                     # Look up the product, which may be found on a different pkgroot
                     pkgroot = pkg[3]
 
-                    dman = self.repos[pkg[3]].getManifest(pkg[0], pkg[1], pkg[2])
+                    dman = self.repos[pkgroot].getManifest(pkg[0], pkg[1], pkg[2])
                     prod = dman.getDependency(prod.product)
                         
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
