@@ -198,17 +198,16 @@ class Repository(object):
             
         versions = [version]
         supportedTags = self.getSupportedTags() + ["newest"]
-        if version and isinstance(version, Tag):
+        if version and isinstance(version, Tag) and not version.isPseudo():
             if not version.isGlobal():
-                raise TagNotRecognized(tag.name, "global", 
-                                       msg="Non-global tag %s requested." % 
-                                           version.name)
+                raise TagNotRecognized(version.name, "global", 
+                                       msg="Non-global tag \"%s\" requested." % version.name)
         if not version:
             versions = self.eups.getPreferredTags()
 
         for vers in versions:
-            if isinstance(vers, Tag) and \
-               vers.name not in supportedTags:
+            if isinstance(vers, Tag) and not vers.isPseudo() and \
+                   vers.name not in supportedTags:
                 if self.verbose > 0:
                     print >> self.log, \
                         "Tag %s not supported at %s" % (vers.name, self.pkgroot)
@@ -264,9 +263,8 @@ class Repository(object):
             tag = None
             if version and isinstance(version, Tag):
                 if not version.isGlobal():
-                    raise TagNotRecognized(tag.name, "global", 
-                                           msg="Non-global tag %s requested." % 
-                                               version.name)
+                    raise TagNotRecognized(version.name, "global", 
+                                           msg="Non-global tag \"%s\" requested." % version.name)
                 tag = version.name
                 version = None
 

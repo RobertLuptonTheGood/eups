@@ -197,7 +197,7 @@ class Repositories(object):
                                        msg="Non-global tag %s requested." % 
                                            version.name)
         if not version:
-            versions = map(lambda t: Tag(t), self.eups.getPreferredTags())
+            versions = map(lambda t: self.eups.tags.getTag(t), self.eups.getPreferredTags())
 
         newest = None
 
@@ -328,8 +328,6 @@ class Repositories(object):
                         (product, version))
 
         (product, version, flavor, pkgroot) = pkg
-#        opts = self._mergeOptions(options)
-#        productRoot = utils.findWritableDb(self.eups.path)
         productRoot = self.getInstallRoot()
         if productRoot is None:
             raise EupsException("Unable to find writable place to install in EUPS_PATH")
@@ -415,6 +413,7 @@ class Repositories(object):
                     print >> self.log, \
                         "Required product %s %s is already installed; use --force to reinstall" % \
                         (prod.product, prod.version)
+                productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
             else:
                 recurse = searchDep
@@ -561,22 +560,21 @@ class Repositories(object):
 
     def _updateServerTags(self, pkgroot, prod, stackRoot, flavor):
 
-        tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version,
-                                                  flavor)
+        tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
         self.eups.supportServerTags(tags, pkgroot)
+
+        if not tags:
+            return
 
         if self.verbose > 1:
             print >> self.log, \
-                "Assigning Server Tags to %s %s: %s" % \
-                (prod.product, prod.version, tags)
+                "Assigning Server Tags to %s %s: %s" % (prod.product, prod.version, tags)
 
-        dprod = self.eups.findProduct(prod.product, prod.version,
-                                      stackRoot, flavor)
+        dprod = self.eups.findProduct(prod.product, prod.version, stackRoot, flavor)
         if dprod is None:
             if self.verbose >= 0 and not self.eups.quiet:
                 print >> self.log, \
-                  "Unable to server assign tags: Failed to find product %s %s"\
-                  % (prod.product, prod.version)
+                  "Unable to server assign tags: Failed to find product %s %s" % (prod.product, prod.version)
             return
 
         for tag in tags:
