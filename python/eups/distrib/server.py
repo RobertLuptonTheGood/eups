@@ -947,16 +947,16 @@ class WebTransporter(Transporter):
             url = None
             out = None
             try:
-              try:                               # for python 2.4 compat
-                url = urllib2.urlopen(self.loc)
-                out = open(filename, 'w')
-                out.write(url.read())
-              except urllib2.HTTPError:
-                raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-              except urllib2.URLError:
-                raise ServerNotResponding("Failed to contact URL %s" % self.loc)
-            except KeyboardInterrupt:
-                raise EupsException("^C")
+                try:                               # for python 2.4 compat
+                    url = urllib2.urlopen(self.loc)
+                    out = open(filename, 'w')
+                    out.write(url.read())
+                except urllib2.HTTPError:
+                    raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
+                except urllib2.URLError:
+                    raise ServerNotResponding("Failed to contact URL %s" % self.loc)
+                except KeyboardInterrupt:
+                    raise EupsException("^C")
             finally: 
                 if url is not None: url.close()
                 if out is not None: out.close()
