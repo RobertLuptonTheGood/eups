@@ -118,8 +118,12 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if root == "none":  root = " (none)"
         info = ""
 
-        if setup and not eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
-            continue
+        if setup:
+            if not eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
+                continue
+        else:
+            if not pi._prodStack:       # only found in the environment
+                continue
         
         if dependencies:
             recursionDepth = 0 
