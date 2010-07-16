@@ -611,9 +611,10 @@ The what argument tells us what sort of state is expected (allowed values are de
     def findProductFromVRO(self, name, version=None, versionExpr=None, eupsPathDirs=None, flavor=None,
                            noCache=False):
         """
-        return a product matching the given constraints by searching the VRO.  By default, the 
-        cache will be searched when available; otherwise, the product 
-        database will be searched.  Return None if a match was not found.
+        return a product matching the given constraints by searching the VRO (we also return info about the
+        VRO element that matched).  By default, the cache will be searched when available; otherwise, the
+        product database will be searched.  Return (None, []) if a match was not found.
+        
         @param name          the name of the desired product
         @param version       the desired version.  This can in one of the 
                                 following forms:
@@ -641,7 +642,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if isinstance(eupsPathDirs, str):
             eupsPathDirs = [eupsPathDirs]
 
-        product = None
+        product, vroReason = None, None
 
         vro = self.getPreferredTags()
         for i in range(len(vro)):
@@ -662,12 +663,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                         product = self._selectPreferredProduct(products, ["newest"])
 
                         if product:
+                            vroReason = (vroTag, versionExpr)
                             break
                 #
                 # If we failed to find a versionExpr, we can still use the explicit version
                 #
                 # Search path for an explicit version
                 #
+                vroTag = "version"
                 for root in eupsPathDirs:
                     if noCache or not self.versions.has_key(root) or not self.versions[root]:
                         # go directly to the EUPS database
@@ -679,6 +682,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         try:
                             product = self._databaseFor(root).findProduct(name, version, flavor)
                             if product:
+                                vroReason = (vroTag, version)
                                 break
                         except ProductNotFound:
                             product = None
@@ -687,9 +691,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                         try:
                             self.versions[root].ensureInSync(verbose=self.verbose)
                             product = self.versions[root].getProduct(name, version, flavor)
+                            vroReason = (vroTag, version)
                             break
                         except ProductNotFound:
                             pass
+
+                if product:
+                    break
 
             elif vroTag == "warn":
                 preVro = vro[0:i]
@@ -714,6 +722,23 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # search for a tagged version
                 product = self._findTaggedProduct(name, self.tags.getTag(vroTag), eupsPathDirs,
                                                   flavor, noCache)
+                vroReason = (vroTag, None)
+
+                if self.alreadySetupProducts.has_key(name): # name is already setup
+                    oproduct, ovroReason = self.alreadySetupProducts[name]
+                    if ovroReason:
+                        ovroTag = ovroReason[0] # tag used to select the product last time we saw it
+
+                        try:
+                            if vro.index(vroTag) > vro.index(ovroTag): # old vro tag takes priority
+                                if self.verbose > 1:
+                                    print >> sys.stderr, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
+                                          (13*" ", ovroTag, vroTag, oproduct.name, oproduct.version)
+                                product, vroReason = oproduct, ovroReason
+                        except Exception, e:
+                            utils.debug("RHL", name, vroReason, e)
+                            pass
+
             else:
                 print >> sys.stderr, "YOU CAN'T GET HERE", vroTag
                 if False:
@@ -727,7 +752,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if self.verbose > 2:
                 print >> sys.stderr, ("VRO used %-12s " % (vroTag)),
             
-        return product
+        return [product, vroReason]
 
     def findProduct(self, name, version=None, eupsPathDirs=None, flavor=None,
                     noCache=False):
@@ -1398,13 +1423,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if self.verbose > 2:
                     print >> sys.stderr, ("VRO used %-12s " % ("path")),
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
+                vroReason = ("path", productRoot)
             else:
-                product = self.findProductFromVRO(productName, versionName, versionExpr)
+                product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr)
                 if not product and self.alreadySetupProducts.has_key(productName):
 
                     # We couldn't find it, but maybe it's already setup 
                     # locally?   That'd be OK
-                    product = self.alreadySetupProducts[productName]
+                    product = self.alreadySetupProducts[productName][0]
                     if not self.keep and product.version != versionName:
                         product = None
 
@@ -1413,8 +1439,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     # It's not there.  Try a set of other flavors that might 
                     # fit the bill
                     for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
-                        product = self.findProductFromVRO(productName, versionName, versionExpr,
-                                                          flavor=fallbackFlavor)
+                        product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
+                                                                     flavor=fallbackFlavor)
 
                         if product:        
                             setupFlavor = fallbackFlavor
@@ -1440,7 +1466,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 q = Quiet(self)
                 self.alreadySetupProducts = {}
                 for p in self.getSetupProducts():
-                    self.alreadySetupProducts[p.name] = p
+                    self.alreadySetupProducts[p.name] = (p, None)
                 del q
 
         try:
@@ -1522,14 +1548,14 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
 
-                # we're not suppose switch versions once a product is setup (self.keep); 
+                # we're not supposed to switch versions once a product is setup (self.keep); 
                 # enforce this now
                 #
                 # Developers' Note:  In previous versions, the self.keep would allow the requested 
                 # product to over-ride an already setup version if the requested version was later.
                 # This behavior has been changed: self.keep always keeps a previously setup version
                 #
-                keptProduct = self.alreadySetupProducts[product.name]
+                keptProduct = self.alreadySetupProducts[product.name][0]
                 if keptProduct.version != product.version and \
                        ((self.quiet <= 0 and self.verbose > 0) or self.verbose > 2):
                     msg = "Though %s %s is requested/needed, version %s will remain setup" % \
@@ -1558,7 +1584,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             #
             # Remember that we've set this up in case we want to keep it later
             #
-            self.alreadySetupProducts[product.name] = product
+            self.alreadySetupProducts[product.name] = (product, vroReason)
         elif fwd:
             assert not setupToplevel
         else:
@@ -1576,7 +1602,6 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if recursionDepth == 0:            # we can cleanup
             if fwd:
-                # del self.alreadySetupProducts
                 del self._msgs["setup"]
 
         return True, product.version, None
@@ -2467,11 +2492,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> sys.stderr, ("Warning: %s" % (e))
                 continue
 
-            for pd, od in deps:
-                if pi.name == pd.name and pi.version == pd.version:
+            for dep_product, dep_versionExpr, dep_optional in deps:
+                if pi.name == dep_product.name and pi.version == dep_product.version:
                     continue
 
-                useInfo._remember(pi.name, pi.version, (pd.name, pd.version, od))
+                useInfo._remember(pi.name, pi.version, (dep_product.name, dep_product.version, dep_optional))
 
         useInfo._invert(depth)
 

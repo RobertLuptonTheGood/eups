@@ -426,14 +426,16 @@ but no other interpretation is applied
                     q = utils.Quiet(Eups)
 
                 try:
-                    product = Eups.findProductFromVRO(productName, vers, versExpr)
-
+                    product, vroReason = Eups.findProductFromVRO(productName, vers, versExpr)
                     if not product:
                         raise ProductNotFound(productName)
 
-                    val = [product, a.extra]
+                    val = [product]
+                    val.append(a.extra)
                     if recursive:
-                        val += [recursionDepth]
+                        val.append(recursionDepth)
+                    else:
+                        val.append(None)
                     deps += [val]
 
                     if recursive and not noRecursion and not recursiveDict.has_key(prodkey(product)):
@@ -447,7 +449,9 @@ but no other interpretation is applied
 
                     val = [product, a.extra]
                     if recursive:
-                        val += [recursionDepth]
+                        val.append(recursionDepth)
+                    else:
+                        val.append(None)
                     deps += [val]
 
                 del q
