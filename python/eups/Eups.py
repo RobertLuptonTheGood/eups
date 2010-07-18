@@ -409,7 +409,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             for t in tagNames:
                 t = Tag.parse(t)
                 if not (t.isUser() or self.tags.isRecognized(t.name)):
-                    if self.force:
+                    if True or self.force:
                         print >> sys.stderr, "Unknown tag found in %s stack: \"%s\"; defining" % (path, t)
                         tags.registerTag(t.name, t.group)
                     else:

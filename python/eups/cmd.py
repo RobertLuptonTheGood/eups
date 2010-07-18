@@ -2031,9 +2031,9 @@ same arguments.
 
     def execute(self):
         if len(self.args) == 0:
-            self.err("Please specify a product name")
-            return 3
-        product = self.args[0]          # product's value is not actually used
+            product = None
+        else:
+            product = self.args[0]      # product's value is not actually used
 
         if len(self.args) > 1:
             versionName = self.args[1]

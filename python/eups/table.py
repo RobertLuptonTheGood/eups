@@ -787,7 +787,7 @@ class Action(object):
             value = args[1]
 
         if Eups.force and Eups.oldEnviron.has_key(key):
-            del oldEnviron[key]
+            del Eups.oldEnviron[key]
 
         if fwd:
             try:                            # look for values that are optional environment variables: $?{XXX}

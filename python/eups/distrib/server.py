@@ -651,7 +651,7 @@ class ConfigurableDistribServer(DistribServer):
         # shouldn't happen
         src = self.getConfigProperty("%s_URL" % ftype) % data
         if self.verbose > 0:
-            print >> self.log, "Looking on server for", src
+            print >> self.log, "Failed to find %s in %s; looking on server" % (src, locations)
         return self.cacheFile(filename, src, noaction)
 
     def getTagNames(self, flavor=None, noaction=False):
