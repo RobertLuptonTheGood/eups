@@ -907,7 +907,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # consult the cache
                 try: 
                     self.versions[root].ensureInSync(verbose=self.verbose)
-                    return self.versions[root].getTaggedProduct(name, flavor, tag)
+                    prod = self.versions[root].getTaggedProduct(name, flavor, tag)
+                    if prod:
+                        return prod
                 except ProductNotFound:
                     pass
 

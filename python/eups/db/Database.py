@@ -464,15 +464,14 @@ class Database(object):
 
         return changed
 
-    def getTaggedVersion(self, tag, productName, flavor):
+    def getChainFile(self, tag, productName):
         """
-        return the version name of the product that has the given tag assigned
+        return the ChainFile for the version name of the product that has the given tag assigned
         to it.  None is return if the tag is not assigned to any version.
         ProductNotFound is raised if no version of the product is declared.
         @param tag          the string name for the tag.  A user tag must be
                               prepended by a "user:" label to be found
         @param productName  the name of the product
-        @param flavor       the flavor for the product
         """
         pdir = self._productDir(productName)
         if not os.path.exists(pdir):
@@ -491,9 +490,24 @@ class Database(object):
         if not os.path.exists(tfile):
             return None
 
-        tf = ChainFile(tfile)
-        return tf.getVersion(flavor)
+        return ChainFile(tfile)
         
+    def getTaggedVersion(self, tag, productName, flavor):
+        """
+        return the version name of the product that has the given tag assigned
+        to it.  None is return if the tag is not assigned to any version.
+        ProductNotFound is raised if no version of the product is declared.
+        @param tag          the string name for the tag.  A user tag must be
+                              prepended by a "user:" label to be found
+        @param productName  the name of the product
+        @param flavor       the flavor for the product
+        """
+
+        tf = self.getChainFile(tag, productName)
+        if tf:
+            return tf.getVersion(flavor)
+        else:
+            return None
 
     def assignTag(self, tag, productName, version, flavors=None):
         """

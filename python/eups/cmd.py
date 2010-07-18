@@ -1274,14 +1274,14 @@ where it is installed.
 
 class AdminCmd(EupsCmd):
 
-    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|clearServerCache] [-h|--help] [-r root]"
+    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|clearServerCache|info] [-h|--help] [-r root]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""manage internal cache data.  By default, these operations apply to the 
+"""manage eups internals (e.g. cache data).  By default, these operations apply to the 
 user caches; with -A, they will apply to all caches under EUPS_PATH directories
 that are writable by the user.  
 """
@@ -1290,18 +1290,34 @@ that are writable by the user.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
         self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
                             help="apply cache operations to caches under EUPS_PATH")
         self.clo.add_option("-r", "--root", dest="root", action="store", 
                             help="Location of manifests/buildfiles/tarballs " +
                             "(may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
 
+        self.clo.disable_interspersed_args() # associate opts with subcommands
+
+    def run(self):
+        if len(self.args) > 0:
+            return self.execute()
+        return EupsCmd.run(self)
+
     def execute(self):
         if len(self.args) < 1:
-            self.err("Please specify a distrib subcommand")
+            self.err("Please specify an admin subcommand")
             print >> self._errstrm, self.clo.get_usage()
             return 2
         subcmd = self.args[0]
+
+        ecmd = makeEupsCmd("%s %s" % (self.cmd, subcmd), self.clargs, self.prog)
+        if ecmd:
+            return ecmd.run()
+
+        self.err("Unrecognized admin subcommand: %s" % subcmd)
 
         if subcmd == "clearCache":
             eups.clearCache(inUserDir=not self.opts.asAdmin)
@@ -1323,6 +1339,83 @@ that are writable by the user.
 
         return 0
 
+class AdminInfoCmd(EupsCmd):
+    usage = "%prog admin info [-h|--help] [options] product [version]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Provide info about the specified product
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
+        # this will override the eups option version
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="[info] list only versions having this tag name")
+
+    def execute(self):
+        self.args.pop(0)                # remove the "info"
+        
+        if len(self.args) == 0:
+            self.err("Please specify a product name")
+            return 2
+        productName = self.args[0]
+
+        versionName = None
+        if len(self.args) > 1:
+            versionName = self.args[1]
+
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
+
+        if self.opts.tag:
+            if versionName:
+                self.err("You may not specify a tag and an explicit version: %s --tag %s %s" %
+                         (productName, self.opts.tag, versionName))
+                return 2
+                
+            prod = myeups.findTaggedProduct(productName, self.opts.tag)
+            if prod:
+                versionName = prod.version
+            else:
+                self.err("Unable to lookup %s --tag %s" % (productName, self.opts.tag))
+                return 2
+
+        if len(self.args) > 2:
+            self.err("Unexpected trailing arguments: %s" % self.args[2])
+            return 2
+
+        import eups.db.VersionFile as VersionFile
+
+        for eupsDb in myeups.versions.keys():
+            db = myeups._databaseFor(eupsDb)
+            if self.opts.tag:
+                vfile = db.getChainFile(self.opts.tag, productName).file
+            else:
+                vfile = db._findVersionFile(productName, versionName)
+                
+            if vfile:
+                print vfile
+                return 0
+
+        self.err("Unable to lookup version file for %s %s" % (productName, versionName))
+        return 1
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class DistribCmd(EupsCmd):
 
@@ -2048,6 +2141,7 @@ register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
 register("remove",       RemoveCmd)
 register("admin",        AdminCmd)
+register("admin info",   AdminInfoCmd)
 register("distrib",      DistribCmd)
 register("distrib list",    DistribListCmd)
 register("distrib install", DistribInstallCmd)
