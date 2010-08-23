@@ -655,7 +655,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                     continue
 
                 if self.isLegalRelativeVersion(version): # version is actually a versionExpr
-                    vroTag, versionExpr = "versionExpr", version
+                    if vroTag == "version":
+                        continue
+                    
+                    versionExpr = version
                     
                 if vroTag == "versionExpr" and versionExpr:
                     if self.isLegalRelativeVersion(versionExpr):  # raises exception if bad syntax used
