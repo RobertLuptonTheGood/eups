@@ -1521,7 +1521,7 @@ class DistribListCmd(EupsCmd):
         if not pkgroots and os.environ.has_key("EUPS_PKGROOT"):
             pkgroots = os.environ["EUPS_PKGROOT"]
         if not pkgroots:
-            self.err("Please specify a repository with -r or $EUPS_PKGROOTS")
+            self.err("Please specify a repository with -r or $EUPS_PKGROOT")
             return 2
 
         # FIXME: enable use of these options
