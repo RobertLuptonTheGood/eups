@@ -2679,7 +2679,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Is tagName the name of a reserved tag?"""
         return self._reservedTags.count(str(tagName)) > 0
 
-    def selectVRO(self, tag, productDir, versionName, dbz=None):
+    def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None):
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")
 
         """

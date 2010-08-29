@@ -541,6 +541,8 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
     if not eupsenv:
         eupsenv = Eups(readCache=False)
+        if version:
+            eupsenv.selectVRO(versionName=version)
 
     if isinstance(prefTags, str):
         prefTags = prefTags.split()
