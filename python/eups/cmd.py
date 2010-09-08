@@ -95,6 +95,8 @@ Common"""
                             help="turn on specified debugging behaviors (allowed: raise)")
         self.clo.add_option("-h", "--help", dest="help", action="store_true",
                             help="show command-line help and exit")
+        self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
+                            help="Don\'t actually do anything (for debugging purposes)")
         self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="Suppress messages to user (overrides -v)")
         self.clo.add_option("-v", "--verbose", dest="verbose", action="count", default=0,
@@ -103,25 +105,23 @@ Common"""
                             help="Print eups version number")
         self.clo.add_option("--vro", dest="vro", action="store", metavar="LIST",
                             help="Set the Version Resolution Order")
+        self.clo.add_option("-Z", "--database", dest="path", action="store",
+                            help="The colon-separated list of product stacks (databases) to use. " +
+                            "Default: $EUPS_PATH")
+        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
+                            help="Select the product paths which contain this directory.  " +
+                            "Default: all in path")
+        self.clo.add_option("--with-eups", dest="path", action="store",
+                            help="synonym for -Z/--database")
 
     def addEupsOptions(self):
         """
         set the common command line options
         """
-        self.clo.add_option("-Z", "--database", dest="path", action="store",
-                            help="The colon-separated list of product stacks (databases) to use. " +
-                            "Default: $EUPS_PATH")
         self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
                             help="Assume this target platform flavor (e.g. 'Linux')")
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
-        self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
-                            help="Don\'t actually do anything (for debugging purposes)")
-        self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
-                            help="Select the product paths which contain this directory.  " +
-                            "Default: all in path")
-        self.clo.add_option("--with-eups", dest="path", action="store",
-                            help="synonym for --database")
 
     def execute(self):
         """
