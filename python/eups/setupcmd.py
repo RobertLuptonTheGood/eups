@@ -241,7 +241,7 @@ product and all its dependencies into the environment so that it can be used.
             e.status = -1
             raise
 
-        if Eups.verbose > 2:
+        if Eups.verbose > 3:
             self.err("\n\t".join(["Issuing commands:"] + cmds))
 
         print ";\n".join(cmds)

@@ -1,3 +1,17 @@
+2010-09-02 rhl
+
+	Tags in startup.py are now all lists (allowing you to append without worrying about whitespace);
+	watch out for python's nasty habit of treating a string as a list of characters...
+
+	Added ability to specify a file as a tag (-t FILENAME) which contains a set of "product version" pairs;
+	"setupRequired(product version)" is also permitted
+
+	Automatically added a tag to the start of the VRO if no VRO is explicitly specified for that tag
+
+	Fixed --keep; it now works by adding "keep" to the VRO
+
+        Many changes (I should look them up and document them.)
+
 2009-10-12 gk
 	Changed the Makefile in doc so that the install never fails for documentation errors.
 	ticket https://trac.sdss3.org/ticket/325

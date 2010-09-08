@@ -5,7 +5,7 @@ common high-level EUPS functions appropriate for calling from an application.
 import re, os, sys, time
 from Eups           import Eups
 from exceptions     import ProductNotFound
-from tags           import Tags, Tag, TagNotRecognized
+from tags           import Tags, Tag, TagNotRecognized, checkTagsList
 from VersionParser  import VersionParser
 from stack          import ProductStack, persistVersionName as cacheVersion
 from distrib.server import ServerConf
@@ -45,11 +45,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         eupsenv = Eups()
     if tags:
         tags = tags.split()
-        badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), tags)
-        if badtags:
-            raise TagNotRecognized(str(badtags), 
-                                   msg="Unsupported tag(s): %s" % 
-                                       ", ".join(badtags))
+        checkTagsList(eupsenv, tags)
     elif setup:
         tags = ["setup"]
 
@@ -550,23 +546,10 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         prefTags = [prefTags]
 
     if prefTags:
-        badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), prefTags)
-        if badtags:
-            raise TagNotRecognized(str(badtags),
-                                   msg="Unsupported tags: %s" % 
-                                       map(lambda t: str(t), badtags))
-        prefTags = map(lambda t: t.name, map(eupsenv.tags.getTag, prefTags))
+        checkTagsList(eupsenv, prefTags)
 
-    oldPrefTags = eupsenv.getPreferredTags()
-    try:
-        # prepend the given tags to the preferred list.
-        if False and prefTags:          # Superceded by VRO
-            eupsenv.setPreferredTags(prefTags + oldPrefTags)
-
-        ok, version, reason = eupsenv.setup(productName, version, fwd,
-                                            setupType=setupType, productRoot=productRoot, tablefile=tablefile)
-    finally:
-        eupsenv.setPreferredTags(oldPrefTags)
+    ok, version, reason = eupsenv.setup(productName, version, fwd,
+                                        setupType=setupType, productRoot=productRoot, tablefile=tablefile)
         
     cmds = []
     if ok:
@@ -590,8 +573,12 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             else:
                 if not re.search(r"^LOCAL:", version):
                     if eupsenv.verbose > 0:
-                        print >> sys.stderr, "No versions of %s are tagged %s; setup version is %s" % \
-                              (productName, ",".join(prefTags), version)
+                        extra = ""
+                        if os.path.isfile(prefTags[0]):
+                            extra = " in"
+
+                        print >> sys.stderr, "No versions of %s are tagged%s %s; setup version is %s" % \
+                              (productName, extra, ",".join(prefTags), version)
 
         #
         # Set new variables

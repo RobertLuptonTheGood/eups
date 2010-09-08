@@ -29,7 +29,7 @@ class Eups(object):
 
     This class also maintains state about the user's preferences, including:
       o  the software stacks to be managed by EUPS (i.e. EUPS_PATH)
-      o  behavioral preferences such as verbosity, over-riding safe-guards 
+      o  behavioral preferences such as verbosity, overriding safe-guards 
          (the "force" option), etc.
     """
 
@@ -248,7 +248,7 @@ class Eups(object):
             (hooks.config.Eups.globalTags, None), # None => global
             (["newest",], None),
             (hooks.config.Eups.userTags, Tags.user),
-            (["setup", "path", "version", "versionExpr", "warn"], Tags.pseudo),
+            (["commandLineVersion",  "keep", "path", "setup", "version", "versionExpr", "warn",], Tags.pseudo),
             ]:
             if isinstance(tags, str):
                 tags = tags.split()
@@ -291,6 +291,18 @@ class Eups(object):
         for k in ["newest",]:
             if not self._reservedTags.count(k):
                 self._reservedTags.append(k)
+        #
+        # and some are used internally by eups
+        #
+        self._internalTags = []
+        for k in ["commandLineVersion", "keep", "version", "versionExpr", "warn"]:
+            self._internalTags.append(k)
+        #
+        # Check that nobody's used an internal tag by mistake (setup -t keep would be bad...)
+        #
+        for t in self.tags.getTags():
+            if (t.isUser() or t.isGlobal()) and self.isInternalTag(t, True):
+                pass
         #
         # Find locally-setup products in the environment
         #
@@ -492,6 +504,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     notokay.append(t)
             elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
                 tags.append(t)
+            elif os.path.isfile(t):
+                tags.append(t)
             else:
                 notokay.append(t)
 
@@ -609,7 +623,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
 
     def findProductFromVRO(self, name, version=None, versionExpr=None, eupsPathDirs=None, flavor=None,
-                           noCache=False):
+                           noCache=False, recursionDepth=0):
         """
         return a product matching the given constraints by searching the VRO (we also return info about the
         VRO element that matched).  By default, the cache will be searched when available; otherwise, the
@@ -633,6 +647,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param noCache       if true, the software inventory cache should not be 
                                 used to find products; otherwise, it will be used
                                 to the extent it is available.  
+        @param recursionDepth Recursion depth (0 => top, so e.g. keep should be ignored)
         """
 
         if not flavor:
@@ -650,7 +665,22 @@ The what argument tells us what sort of state is expected (allowed values are de
             if vroTag in ("path", ":") or re.search(r"^\d+$", vroTag):
                 continue
 
+            elif recursionDepth > 0 and vroTag in ("keep",):
+                product = self.alreadySetupProducts.get(name)
+                if product:
+                    product = product[0]
+                    vroReason = [vroTag, None]
+                    break
+                    
+            elif vroTag == "commandLineVersion":
+                if self.alreadySetupProducts.has_key(name): # name is already setup
+                    oproduct, ovroReason = self.alreadySetupProducts[name]
+                    if ovroReason and ovroReason[0] == "commandLineVersion":
+                        product, vroReason = oproduct, ovroReason
+                        break
+
             elif vroTag in ("version", "versionExpr",):
+            
                 if self.ignore_versions:
                     continue
 
@@ -666,7 +696,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         product = self._selectPreferredProduct(products, ["newest"])
 
                         if product:
-                            vroReason = (vroTag, versionExpr)
+                            vroReason = [vroTag, versionExpr]
                             break
                 #
                 # If we failed to find a versionExpr, we can still use the explicit version
@@ -685,7 +715,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         try:
                             product = self._databaseFor(root).findProduct(name, version, flavor)
                             if product:
-                                vroReason = (vroTag, version)
+                                vroReason = [vroTag, version]
                                 break
                         except ProductNotFound:
                             product = None
@@ -694,13 +724,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                         try:
                             self.versions[root].ensureInSync(verbose=self.verbose)
                             product = self.versions[root].getProduct(name, version, flavor)
-                            vroReason = (vroTag, version)
+                            vroReason = [vroTag, version]
                             break
                         except ProductNotFound:
                             pass
 
                 if product:
-                    break
+                    if recursionDepth == 0:
+                        vroReason[0] = "commandLineVersion"
 
             elif vroTag == "warn":
                 preVro = vro[0:i]
@@ -721,11 +752,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> sys.stderr, "            VRO [%s] failed to match for %s %s; trying [%s]" % \
                           (", ".join(preVro), name, vname, ", ".join(postVro))
 
-            elif self.tags.isRecognized(vroTag):
+            elif self.tags.isRecognized(vroTag) or os.path.isfile(vroTag):
                 # search for a tagged version
-                product = self._findTaggedProduct(name, self.tags.getTag(vroTag), eupsPathDirs,
+                if os.path.isfile(vroTag):
+                    product = self._findTaggedProductFromFile(name, vroTag, eupsPathDirs, flavor, noCache)
+                else:
+                    product = self._findTaggedProduct(name, self.tags.getTag(vroTag), eupsPathDirs,
                                                   flavor, noCache)
-                vroReason = (vroTag, None)
+
+                if not product:
+                    continue
+                
+                vroReason = [vroTag, None]
 
                 if self.alreadySetupProducts.has_key(name): # name is already setup
                     oproduct, ovroReason = self.alreadySetupProducts[name]
@@ -738,7 +776,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                 if self.verbose > 1:
                                     print >> sys.stderr, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
                                           (13*" ", ovroTag, vroTag, oproduct.name, oproduct.version)
-                                product, vroReason = oproduct, ovroReason
+                                product, vroReason, vroTag = oproduct, ovroReason, ovroTag
                         except Exception, e:
                             utils.debug("RHL", name, vroReason, e)
                             pass
@@ -754,7 +792,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if product:
             if self.verbose > 2:
-                print >> sys.stderr, ("VRO used %-12s " % (vroTag)),
+                print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
             
         return [product, vroReason]
 
@@ -858,8 +896,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         if isinstance(eupsPathDirs, str):
             eupsPathDirs = [eupsPathDirs]
 
-        tag = self.tags.getTag(tag)  # may raise TagNotRecongized
-        return self._findTaggedProduct(name, tag, eupsPathDirs, flavor, noCache)
+        try:
+            tag = self.tags.getTag(tag)
+            return self._findTaggedProduct(name, tag, eupsPathDirs, flavor, noCache)
+        except TagNotRecognized:
+            return self._findTaggedProductFromFile(name, tag, eupsPathDirs, flavor, noCache)
 
     def _findTaggedProduct(self, name, tag, eupsPathDirs=None, flavor=None, noCache=False):
         """
@@ -918,6 +959,88 @@ The what argument tells us what sort of state is expected (allowed values are de
                     pass
 
         return None
+
+    def _findTaggedProductFromFile(self, name, fileName, eupsPathDirs=None, flavor=None, noCache=False):
+        """
+        find the first product listed in a tagFile, i.e. a file containing lines of
+           productName    version [....]
+        or
+           setupRequired(productName [-X ...] version ...)
+           
+        @param name          the name of the product
+        @param tag           the file listing productNames and versions
+        @param eupsPathDirs  the Eups path directories to search
+        @param flavor        the desired flavor
+        @param noCache       if true, do not use the product inventory cache;
+                               else (the default), a cache will be used if
+                               available.
+        """
+
+        if not flavor:
+            flavor = self.flavor
+        if eupsPathDirs is None:
+            eupsPathDirs = self.path
+        if isinstance(eupsPathDirs, str):
+            eupsPathDirs = [eupsPathDirs]
+        #
+        # Read file seeing if it lists a desired version of product name
+        #
+        try:
+            fd = open(fileName, "r")
+        except IOError:
+            raise TagNotRecognized(str(fileName))
+
+        version = None
+
+        lineNo = 0                      # for diagnostics
+        for line in fd.readlines():
+            lineNo += 1
+            line = re.sub("^\s*", "", line)
+            line = re.sub("\s*$", "", line)
+
+            if re.search(r"^#", line):
+                continue
+            #
+            # The line may either be "product version [...]" or # "setupRequired(product version)"
+            #
+            mat = re.search(r"^setupRequired\(([^)]+)\)", line)
+            if mat:
+                fields = mat.group(1)
+                fields = re.sub(r"-\S+\s+", "", fields) # strip options without arguments; we chould do better
+                fields = re.sub(r"\s*\[[^]]+\]", "", fields) # strip relative expression
+
+                fields = fields.split()
+                if len(fields) > 2:
+                    raise TagNotRecognized("Suspicious line %d in %s: \"%s\"" % (lineNo, fileName, line))
+
+            else:
+                fields = line.split()
+
+            if len(fields) < 2:
+                raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo, fileName, line))
+
+            productName, versionName = fields[0:2]
+
+            if productName == name:
+                version = versionName
+                break
+
+        if not version:
+            return None                 # not found in this file
+
+        product = self.findProduct(name, version, eupsPathDirs, flavor, noCache)
+
+        if not product:
+            msg = "Unable to find product %s %s specified in %s" % (name, version, fileName)
+            if self.force:
+                print >> sys.stderr, msg + "; ignoring"
+                return None
+
+            msg += " (specify --force to continue)"
+            print >> sys.stderr, msg
+            raise RuntimeError(msg)
+
+        return product
 
     def _findNewestProduct(self, name, eupsPathDirs, flavor, minver=None, 
                            noCache=False):
@@ -1421,17 +1544,18 @@ The what argument tells us what sort of state is expected (allowed values are de
             # get the product to setup
             if productRoot:
                 vro = self.getPreferredTags()
-                if len(vro) > 0 and self.getPreferredTags()[0] != "path":
+                if len(vro) > 0 and vro.count("path") == 0:
                     if self.verbose:
-                        print >> sys.stderr, "Using %s, although \"path\" is not specified in VRO" % \
-                              (productRoot)
+                        print >> sys.stderr, "Using %s, although \"path\" is not specified in VRO %s" % \
+                              (productRoot, vro)
 
                 if self.verbose > 2:
                     print >> sys.stderr, ("VRO used %-12s " % ("path")),
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
-                vroReason = ("path", productRoot)
+                vroReason = ["path", productRoot]
             else:
-                product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr)
+                product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
+                                                             recursionDepth=recursionDepth)
                 if not product and self.alreadySetupProducts.has_key(productName):
 
                     # We couldn't find it, but maybe it's already setup 
@@ -1474,6 +1598,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 for p in self.getSetupProducts():
                     self.alreadySetupProducts[p.name] = (p, None)
                 del q
+
+                self.alreadySetupProducts[product.name] = (product, vroReason)
 
         try:
             table = product.getTable()
@@ -1542,39 +1668,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                 else:
 
                     # the currently setup version is different from what was requested
-                    if recursionDepth > 0 and not self.keep: 
+                    if recursionDepth > 0 and not (False and self.keep): 
 
                         # Warn the user that we're switching versions (top level shouldn't whine)
-                        msg = "%s %s is currently setup; over-riding with %s" % \
+                        msg = "%s %s is currently setup; overriding with %s" % \
                               (product.name, sprod.version, product.version)
 
                         if self.quiet <= 0 and self.verbose > 0 and not (self.keep and setup_msgs.has_key(msg)):
                             print >> sys.stderr, "            %s%s" % (recursionDepth*" ", msg)
                         setup_msgs[msg] = 1
-
-            if recursionDepth > 0 and self.keep and product.name in self.alreadySetupProducts.keys():
-
-                # we're not supposed to switch versions once a product is setup (self.keep); 
-                # enforce this now
-                #
-                # Developers' Note:  In previous versions, the self.keep would allow the requested 
-                # product to over-ride an already setup version if the requested version was later.
-                # This behavior has been changed: self.keep always keeps a previously setup version
-                #
-                keptProduct = self.alreadySetupProducts[product.name][0]
-                if keptProduct.version != product.version and \
-                       ((self.quiet <= 0 and self.verbose > 0) or self.verbose > 2):
-                    msg = "Though %s %s is requested/needed, version %s will remain setup" % \
-                          (product.name, product.version, keptProduct.version)
-
-                    if not setup_msgs.has_key(msg):
-                        if not self.verbose:
-                            print >> sys.stderr, msg
-                        else:
-                            print >> sys.stderr, "            %s" % (len(indent)*" " + msg)
-                        setup_msgs[msg] = 1
-
-                return True, keptProduct.version, None
 
             q = Quiet(self)
             self.unsetupSetupProduct(product)
@@ -2679,6 +2781,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Is tagName the name of a reserved tag?"""
         return self._reservedTags.count(str(tagName)) > 0
 
+    def isInternalTag(self, tagName, abort=False):
+        """Is tagName the name of an internal tag such as "keep"?"""
+        isInternal = self._internalTags.count(str(tagName)) > 0
+
+        if isInternal and abort:
+            raise RuntimeError, ("Error: tag \"%s\" is reserved to the implementation" % tagName)
+
     def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None):
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")
 
@@ -2687,6 +2796,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         # Note that the order of these tests is significant
         if tag:
             vroTag = tag
+            self.isInternalTag(tag, True)
         elif productDir and productDir != 'none':
             vroTag = "path"
         elif versionName:
@@ -2695,7 +2805,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             vroTag = "default"
 
         if self._vroDict.has_key(vroTag):
-            pass
+            tag = None                  # no need to prepend it to VRO as they set this tag's VRO explicitly
         elif self._vroDict.has_key("default"):
             vroTag = "default"
         else:
@@ -2709,14 +2819,28 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self._vro = vro[dbz]
             elif vro.has_key("default"):
                 self._vro = vro["default"]
+                if versionName:
+                    self._vro[0:0] = ["commandLineVersion"]
             else:
                 raise RuntimeError, ("Unable to find entry for %s in VRO dictionary for tag %s" %
                                      (dbz, vroTag))
         else:
             self._vro = vro
 
+        if self.keep:
+            self._vro[0:0] = ["keep"]
+
+        extra = ""                                  # extra string for message to user
+        if tag:                                     # need to put tag near the front of the VRO
+            if self._vro.count("path"):             # ... but not before path
+                where = self._vro.index("path") + 1
+            else:
+                where = 0
+            self._vro[where:where] = [str(tag)]
+            extra = " + tag \"%s\"" % tag
+
         if self.verbose > 1:
-            print >> sys.stderr, "Using VRO for \"%s\": %s" % (vroTag, self._vro)
+            print >> sys.stderr, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)
         #
         # The VRO used to be called the "preferredTags";  for now use the old name
         #

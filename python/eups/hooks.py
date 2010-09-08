@@ -35,10 +35,10 @@ config = defineProperties("Eups distrib site user")
 config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
 config.Eups.setType("verbose", int)
 
-config.Eups.userTags = ""
-config.Eups.preferredTags = "version versionExpr current stable newest"
-config.Eups.globalTags = "current stable"
-config.Eups.reservedTags = None
+config.Eups.userTags = []
+config.Eups.preferredTags = "version versionExpr current stable newest".split()
+config.Eups.globalTags = "current stable".split()
+config.Eups.reservedTags = "keep commandLineVersion".split()
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
 config.Eups.setupTypes = "build"

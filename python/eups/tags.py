@@ -515,5 +515,19 @@ class TagNameConflict(EupsException):
         self.name = name,
         self.found = found
             
+def checkTagsList(eupsenv, tagList):
+    """Check that all tags in list are valid"""
+    badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), tagList)
+
+    for tag in badtags:
+        if os.path.isfile(tag):
+            if eupsenv.verbose > 1:
+                print >> sys.stderr, "File %s defines a tag" % tag
+            badtags.remove(tag)
+            
+    if badtags:
+        raise TagNotRecognized(str(badtags), 
+                               msg="Unsupported tag(s): %s" % ", ".join(map(lambda t: str(t), badtags)))
+
 __all__ = "Tags Tag TagNotRecognized TagNameConflict".split()
 
