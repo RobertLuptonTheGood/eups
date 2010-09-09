@@ -83,7 +83,7 @@ try:
 except NameError:
     customisationFiles = None
 
-def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True):
+def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[]):
     """
     load all site and/or user customizations.  Customizations can come in two
     forms: a configuration properties file and/or a startup script file.  
@@ -120,6 +120,9 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True):
     elif os.environ.has_key("EUPS_DIR"):
         customisationDirs.append(os.path.join(os.environ["EUPS_DIR"], "site"))
 
+    for d in path:
+        customisationDirs.append(os.path.join(d, "site"))
+        
     # ~/.eups can have user configuration stuff in it
     if os.environ.has_key("EUPS_USERDATA"):
         customisationDirs.append(os.environ["EUPS_USERDATA"])

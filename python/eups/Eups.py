@@ -37,6 +37,36 @@ class Eups(object):
     #  managed software stack
     ups_db = "ups_db"
 
+    # staticmethod;  would use a decorator if we knew we had a new enough python
+    def setEupsPath(path=None, dbz=None):
+        if not path:
+            if os.environ.has_key("EUPS_PATH"):
+                path = os.environ["EUPS_PATH"]
+            else:
+                path = []
+
+        if isinstance(path, str):
+            path = filter(lambda el: el, path.split(":"))
+
+        if dbz:
+            # if user provides dbz, restrict self.path to those
+            # directories that start with dbz
+            path = filter(lambda p: re.search(r"/%s(/|$)" % dbz, p), path)
+            os.environ["EUPS_PATH"] = ":".join(path)
+
+        eups_path = []
+        for p in path:
+            if not os.path.isdir(p):
+                print >> sys.stderr, \
+                      "%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p
+                continue
+
+            eups_path += [os.path.normpath(p)]
+
+        return eups_path
+
+    setEupsPath = staticmethod(setEupsPath)
+
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=0, quiet=0,
                  noaction=False, force=False, ignore_versions=False, exact_version=False,
@@ -65,11 +95,7 @@ class Eups(object):
                                   user's configuration.
         @param preferredTags      List of tags to process in order; None will be intepreted as the default
         """
-        #
-        # Load local customisations
-        #
-        hooks.loadCustomization(verbose)
-                 
+
         self.verbose = verbose
 
         if not shell:
@@ -93,29 +119,7 @@ class Eups(object):
             flavor = utils.determineFlavor()
         self.flavor = flavor
 
-        if not path:
-            if os.environ.has_key("EUPS_PATH"):
-                path = os.environ["EUPS_PATH"]
-            else:
-                path = []
-
-        if isinstance(path, str):
-            path = filter(lambda el: el, path.split(":"))
-                
-        if dbz:
-            # if user provides dbz, restrict self.path to those
-            # directories that start with dbz
-            path = filter(lambda p: re.search(r"/%s(/|$)" % dbz, p), path)
-            os.environ["EUPS_PATH"] = ":".join(path)
-
-        self.path = []
-        for p in path:
-            if not os.path.isdir(p):
-                print >> sys.stderr, \
-                      "%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p
-                continue
-
-            self.path += [os.path.normpath(p)]
+        self.path = Eups.setEupsPath(path, dbz)
 
         if not self.path and not root:
             if dbz:
@@ -123,6 +127,11 @@ class Eups(object):
             else:
                 raise EupsException("No EUPS_PATH is defined")
 
+        #
+        # Load local customisations
+        #
+        hooks.loadCustomization(verbose, path=self.path)
+                 
         self.oldEnviron = os.environ.copy() # the initial version of the environment
 
         self.aliases = {}               # aliases that we should set
@@ -2809,8 +2818,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif self._vroDict.has_key("default"):
             vroTag = "default"
         else:
-            raise RuntimeError, ("Complain to RHL about getVRO (vro = %s, vroTag == %s)" %
-                                 (self._vroDict, vroTag))
+            raise RuntimeError, ("Unable to lookup vroTag == %s in %s" % (vroTag, self._vroDict))
 
         vro = self._vroDict[vroTag]
 
