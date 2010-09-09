@@ -540,7 +540,7 @@ class StartupCmd(EnvListCmd):
     noDescriptionFormatting = False
 
     description = \
-"""Print the start-up files that customize EUPS as given via EUPS_STARTUP.  
+"""Print the start-up files that customize EUPS (including $EUPS_STARTUP).
 """
 
     def __init__(self, args=None, toolname=None, cmd=None):
@@ -548,8 +548,13 @@ class StartupCmd(EnvListCmd):
         self._init("EUPS_STARTUP")
 
     def execute(self):
-        self.printEnv(hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
-                                              quiet=self.opts.quiet))
+        for f in hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
+                                         quiet=self.opts.quiet):
+            
+            if not self.opts.verbose and os.stat(f).st_size == 0:
+                continue
+
+            print "%-40s" % f
 
 class PkgrootCmd(EnvListCmd):
 
