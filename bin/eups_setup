@@ -39,7 +39,7 @@ allowRaise = "raise" in debugOptions
 verbosity = setup.opts.verbose
 if setup.opts.quiet:
     verbosity = -1
-eups.hooks.loadCustomization(verbosity)
+eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(dbz=setup.opts.dbz))
 
 # run the command
 if allowRaise:
