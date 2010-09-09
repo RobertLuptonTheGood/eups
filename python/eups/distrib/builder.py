@@ -656,10 +656,11 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
         var = var.upper()
 
         if subs.has_key(var):
-            if not subs[var]:
-                raise RuntimeError, "I can't guess a %s for you -- please set $%s" % (var, var)
-
-            value = subs[var]
+            if subs[var]:
+                value = subs[var]
+            else:
+                print >> sys.stderr, "I can't guess a %s for you -- please set $%s" % (var, var)
+                value = var
 
             while op:                      # a python operation to be applied to value.
                 # We could just eval the expression, but that allows a malicious user to execute random python,
