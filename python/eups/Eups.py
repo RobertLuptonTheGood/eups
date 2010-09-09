@@ -55,6 +55,7 @@ class Eups(object):
             os.environ["EUPS_PATH"] = ":".join(path)
 
         eups_path = []
+        path = path[:]; path.reverse()  # the first elements on EUPS_PATH have the highest priority
         for p in path:
             if not os.path.isdir(p):
                 print >> sys.stderr, \

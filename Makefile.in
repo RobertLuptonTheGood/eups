@@ -67,19 +67,24 @@ install : show
 	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
 	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
 declare :
-	@vers="$$(bin/eups --version 2>&1 | awk '/^Version/ {print $$2}')"; \
+	@vers="`env EUPS_DIR=. bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
 	eups declare --root $(EUPS_DIR) eups $$vers && \
 	echo eups declare --root $(EUPS_DIR) eups $$vers
 show :
 	@echo "You will be installing ups in \$$EUPS_DIR  = $(EUPS_DIR)"
 	@echo "Ups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 	@echo "Your EUPS database[s] will be              $(EUPS_DB)"
-	@vers="$$(bin/eups --version 2>&1 | awk '/^Version/ {print $$2}')"; \
-	 echo "Your EUPS version is $$vers"
-	@ if [ -d $(EUPS_DIR)/site ]; then \
-		echo "Your site configuration files are `ls $(EUPS_DIR)/site/*`"; \
+	@vers="`env EUPS_DIR=. bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
+	 echo "Your EUPS version is                       $$vers"
+	@ \
+	EUPS_DB_DIR=`echo $(EUPS_PATH) | sed -e 's/:.*//'`; \
+	if [ -d $$EUPS_DB_DIR/site ]; then \
+		echo "Your site configuration files are:"; \
+		for f in `ls $$EUPS_DB_DIR/site/*[a-z] | grep -v Makefile`; do \
+		    echo "   $$f"; \
+		done; \
 	else \
-		echo "Your site configuration files will be in $(EUPS_DIR)/site"; \
+		echo "Your site configuration files will be in   $$EUPS_DB_DIR/site"; \
 	fi
 #
 # Rebuild configure; almost no-one should need to do this
