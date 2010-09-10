@@ -25,12 +25,12 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                               will be created.  
     @param tags            restrict the listing to products with these tag names
     @param setup           restrict the listing to products that are currently
-                              setup
+                              setup (or print actually setup versions with dependencies)
     @param tablefile       include the path to each product's table file
     @param directory       include each product's installation directory
-    @param dependencies    
-    @param showVersion     
-    @param setupType       
+    @param dependencies    print the product's dependencies
+    @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
+    @param setupType       process dependencies as if -t setupType had been specified to setup
     @param depth           a string giving an expression for determining
                              whether a dependency of a certain depth should
                              be included.  This string can be a simple integer
@@ -46,7 +46,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     if tags:
         tags = tags.split()
         checkTagsList(eupsenv, tags)
-    elif setup:
+    elif setup and not dependencies:
         tags = ["setup"]
 
     # If productDir is provided only list its dependencies;  we do this by setting it up
@@ -114,7 +114,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if root == "none":  root = " (none)"
         info = ""
 
-        if setup:
+        if setup and not dependencies:
             if not eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
                 continue
         else:
@@ -138,6 +138,16 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     if not includeProduct(recursionDepth):
                         continue
 
+                    if setup:           # get the version that's actually setup
+                        setupProduct = eupsenv.findSetupProduct(product.name)
+                        if not setupProduct:
+                            if eupsenv.verbose > 0:
+                                print >> sys.stderr, \
+                                      "Product %s is a dependency, but is not setup; skipping" % product.name
+                            continue
+
+                        product = setupProduct
+
                     if eupsenv.verbose or not _msgs.has_key(product.name):
                         _msgs[product.name] = product.version
 
@@ -149,8 +159,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                             if recursionDepth%2 == 1: 
                                 indent += "|" 
 
-                        versionName = product.version
-                        info += "%-40s %s" % (("%s%s" % (indent, product.name)), versionName)
+                        info += "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
 
         elif directory or tablefile:
             if eupsenv.verbose:
