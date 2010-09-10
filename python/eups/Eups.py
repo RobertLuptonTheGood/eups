@@ -676,6 +676,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         vro = self.getPreferredTags()
         for i in range(len(vro)):
             vroTag = vro[i]
+            vroTag0 = vroTag            # we may modify vroTag
+            
             if vroTag in ("path", ":") or re.search(r"^\d+$", vroTag):
                 continue
 
@@ -779,22 +781,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                 
                 vroReason = [vroTag, None]
 
-                if self.alreadySetupProducts.has_key(name): # name is already setup
-                    oproduct, ovroReason = self.alreadySetupProducts[name]
-                    if ovroReason:
-                        ovroTag = ovroReason[0] # tag used to select the product last time we saw it
-
-                        try:
-                            if not vro.count(ovroTag) or \
-                                   vro.index(vroTag) > vro.index(ovroTag): # old vro tag takes priority
-                                if self.verbose > 1:
-                                    print >> sys.stderr, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
-                                          (13*" ", ovroTag, vroTag, oproduct.name, oproduct.version)
-                                product, vroReason, vroTag = oproduct, ovroReason, ovroTag
-                        except Exception, e:
-                            utils.debug("RHL", name, vroReason, e)
-                            pass
-
             else:
                 print >> sys.stderr, "YOU CAN'T GET HERE", vroTag
                 if False:
@@ -805,6 +791,22 @@ The what argument tells us what sort of state is expected (allowed values are de
                 break
 
         if product:
+            if self.alreadySetupProducts.has_key(name): # name is already setup
+                oproduct, ovroReason = self.alreadySetupProducts[name]
+                if ovroReason:
+                    ovroTag = ovroReason[0] # tag used to select the product last time we saw it
+
+                    try:
+                        if not vro.count(ovroTag) or \
+                               vro.index(vroTag0) > vro.index(ovroTag): # old vro tag takes priority
+                            if self.verbose > 1:
+                                print >> sys.stderr, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
+                                      (13*" ", ovroTag, vroTag0, oproduct.name, oproduct.version)
+                            product, vroReason, vroTag = oproduct, ovroReason, ovroTag
+                    except Exception, e:
+                        utils.debug("RHL", name, vroTag, vro, vroReason, e)
+                        pass
+
             if self.verbose > 2:
                 print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
             
