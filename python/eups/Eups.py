@@ -248,10 +248,14 @@ class Eups(object):
                                                       updateCache=True, 
                                                       autosave=False,
                                                       verbose=self.verbose)
+        # 
+        # load up the recognized tags.
+        # 
+        user = pwd.getpwuid(os.geteuid())[0] # our username is always a valid user tag (if not already global)
+        if hooks.config.Eups.userTags.count(user) == 0 and \
+           hooks.config.Eups.globalTags.count(user) == 0:
+            hooks.config.Eups.userTags.append(user)
 
-        # 
-        # load up the recognized tags.  
-        # 
         self.tags = Tags()
 
         for tags, group in [
