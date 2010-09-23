@@ -863,7 +863,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print >> sys.stderr, "Skipping missing EUPS stack:", dbpath
+                        print >> sys.stderr, "Skipping missing EUPS stack:", self.getUpsDB(root)
                     continue
 
                 try:
@@ -1232,6 +1232,17 @@ The what argument tells us what sort of state is expected (allowed values are de
             return "none"
         return os.path.join(eupsPathDir, self.ups_db)
     
+
+    def includeUserDataDirInPath(self):
+        """Include the ~/.eups versions of directories on self.path in the search path"""
+        dataDir = self.userDataDir
+        if os.path.isdir(self.getUpsDB(dataDir)):
+            self.path.append(dataDir)
+
+            self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
+                                                            updateCache=True, autosave=False,
+                                                            verbose=self.verbose)
+
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""
 
@@ -1980,6 +1991,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif not utils.isDbWritable(eupsPathDir):
             eupsPathDir = None
 
+        if self.isUserTag(tag):
+            userDataDir = self.userDataDir
+            ups_db = self.getUpsDB(userDataDir)
+            if not os.path.isdir(ups_db):
+                os.makedirs(ups_db)
+            eupsPathDir = userDataDir
+
         if not eupsPathDir: 
             raise EupsException(
                 "Unable to find writable stack in EUPS_PATH to declare %s %s" % 
@@ -2149,13 +2167,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         if tag:
             # we just want to update the tag
             if verbose:
-                info = "Assigning %s to %s %s" % (tag, productName, versionName)
+                info = "Assigning tag \"%s\" to %s %s" % (tag, productName, versionName)
                 print >> sys.stderr, info
             if not self.noaction:
                 if isinstance(tag, str):
                     tag = [self.tags.getTag(tag)]
 
-                self.assignTag(tag[0], productName, versionName)
+                self.assignTag(tag[0], productName, versionName, eupsPathDir)
 
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
                   undeclareCurrent=None):
@@ -2341,10 +2359,10 @@ The what argument tells us what sort of state is expected (allowed values are de
             eupsPathDirs = [eupsPathDirs]
 
         # start by iterating through each stack path
-        for dir in eupsPathDirs:
-            if not self.versions.has_key(dir):
+        for d in eupsPathDirs:
+            if not self.versions.has_key(d):
                 continue
-            stack = self.versions[dir]
+            stack = self.versions[d]
             stack.ensureInSync(verbose=self.verbose)
 
             # iterate through the flavors of interest
@@ -2363,8 +2381,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                     # peel off newest version if specifically desired 
                     if tags and "newest" in tags:
-                        newest = self.findTaggedProduct(pname, "newest", dir,
-                                                        flavor)
+                        newest = self.findTaggedProduct(pname, "newest", d, flavor)
 
                     # select out matched versions
                     vers = stack.getVersions(pname, flavor)
@@ -2389,8 +2406,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             if tagset.intersects(prod.tags):
                                 out.append(prod)
 
-                            elif "setup" in tags and \
-                               self.isSetup(prod.name, prod.version, dir):
+                            elif "setup" in tags and self.isSetup(prod.name, prod.version, d):
                                 out.append(prod)
                                 
                         else:
@@ -2411,7 +2427,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                     # append any matched setup products having current
                     # name, flavor and stack directory
-                    for key in filter(lambda k: k.startswith("%s:%s:%s" % (pname,flavor,dir)), setup.keys()):
+                    for key in filter(lambda k: k.startswith("%s:%s:%s" % (pname, flavor, d)), setup.keys()):
                         out.append(setup[key])
                         del setup[key]
 
@@ -2803,6 +2819,10 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if isInternal and abort:
             raise RuntimeError, ("Error: tag \"%s\" is reserved to the implementation" % tagName)
+
+    def isUserTag(self, tagName):
+        """Is tagName the name of a user tag?"""
+        return self.tags.groupFor(tagName) == self.tags.user
 
     def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None):
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")

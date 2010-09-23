@@ -278,6 +278,9 @@ Common"""
             tag = None
         
         Eups.selectVRO(tag, productDir, versionName, opts.dbz)
+        
+        if Eups.isUserTag(tag):
+            Eups.includeUserDataDirInPath()
 
         try:
             eups.commandCallbacks.apply(Eups, self.cmd, self.opts, self.args)
@@ -1266,6 +1269,9 @@ where it is installed.
             e.status = 9
             raise
 
+        if myeups.isUserTag(self.opts.tag):
+            myeups.includeUserDataDirInPath()
+            
         try:
             myeups.remove(product, version, self.opts.recursive,
                           checkRecursive=not self.opts.noCheck, 
@@ -1319,10 +1325,8 @@ that are writable by the user.
         subcmd = self.args[0]
 
         ecmd = makeEupsCmd("%s %s" % (self.cmd, subcmd), self.clargs, self.prog)
-        if ecmd:
+        if ecmd:                        # new way of parsing
             return ecmd.run()
-
-        self.err("Unrecognized admin subcommand: %s" % subcmd)
 
         if subcmd == "clearCache":
             eups.clearCache(inUserDir=not self.opts.asAdmin)
@@ -1341,6 +1345,9 @@ that are writable by the user.
             myeups = eups.Eups(readCache=False)
             # FIXME: this is not clearing caches in the user's .eups dir.
             ServerConf.clearConfigCache(myeups, pkgroots, self.opts.verbose)
+        else:
+            self.err("Unrecognized admin subcommand: %s" % subcmd)
+            return 10
 
         return 0
 
@@ -2049,6 +2056,9 @@ same arguments.
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 
+        if Eups.isUserTag(tag):
+            Eups.includeUserDataDirInPath()
+            
         print " ".join(myeups.getVRO())
 
         return 0

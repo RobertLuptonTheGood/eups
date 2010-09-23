@@ -214,7 +214,11 @@ product and all its dependencies into the environment so that it can be used.
                              max_depth=self.opts.max_depth, vro=self.opts.vro,
                              exact_version=self.opts.exact_version)
 
-            Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
+            tag = self.opts.tag
+            Eups.selectVRO(tag, self.opts.productDir, versionName, self.opts.dbz)
+
+            if Eups.isUserTag(tag):
+                Eups.includeUserDataDirInPath()
 
             if self.opts.unsetup:
                 cmdName = "unsetup"
