@@ -1407,6 +1407,14 @@ class AdminInfoCmd(EupsCmd):
                 self.err("Unable to lookup %s --tag %s" % (productName, self.opts.tag))
                 return 2
 
+        if not versionName:
+            prod = myeups.findProduct(productName)
+            if prod:
+                versionName = prod.version
+            else:
+                self.err("Unable to find a default version of %s" % (productName))
+                return 2
+            
         if len(self.args) > 2:
             self.err("Unexpected trailing arguments: %s" % self.args[2])
             return 2
@@ -1416,7 +1424,9 @@ class AdminInfoCmd(EupsCmd):
         for eupsDb in myeups.versions.keys():
             db = myeups._databaseFor(eupsDb)
             if self.opts.tag:
-                vfile = db.getChainFile(self.opts.tag, productName).file
+                vfile = db.getChainFile(self.opts.tag, productName)
+                if vfile:
+                    vfile = vfile.file
             else:
                 vfile = db._findVersionFile(productName, versionName)
                 
