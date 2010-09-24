@@ -959,7 +959,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                 try:
                     version = db.getTaggedVersion(tag, name, flavor)
                     if version is not None:
-                        return db.findProduct(name, version, flavor)
+                        prod = db.findProduct(name, version, flavor)
+                        if prod:
+                            return prod
+                        else:
+                            if self.verbose > 0:
+                                print >> sys.stderr, "Tag %s is declared in %s, but is missing" % (tag, root)
+                            
                 except ProductNotFound:
                     # product by this name not found in this database
                     continue
