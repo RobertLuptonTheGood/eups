@@ -184,11 +184,18 @@ product and all its dependencies into the environment so that it can be used.
 
         if self.opts.productDir:
             self.opts.productDir = os.path.abspath(self.opts.productDir)
+
             try:
                 productName = eups.utils.guessProduct(os.path.join(self.opts.productDir, "ups"), productName)
             except EupsException, e:
                 e.status = 4
                 raise
+            except RuntimeError, e:
+                if self.opts.tablefile:
+                    pass                # They explicitly listed the table file to use, so trust them
+                else:
+                    e.status = 4
+                    raise
 
         if not productName:
             self.err("Please specify a product")
