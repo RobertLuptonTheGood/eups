@@ -1210,11 +1210,12 @@ alias or an environment variable - clear from the context.)
 \begin{itemize}
    \item \code{addAlias(<Name>,<Value>)}
      Defines a function or an alias.  Arguments should be written in
-     sh format (i.e. \code{\$@} not \code{\textbackslash!*}); don't worry,
+     sh format (i.e. \code{\textbackslash"\$@\textbackslash"} not \code{\textbackslash!*}); don't worry,
      the csh alias will be defined correctly.  E.g.
      \begin{verbatim}
-     addAlias(foo, source `${PRODUCT_DIR}/bin/eups_setup setup $@`;);
+     addAlias(foo, source `${PRODUCT_DIR}/bin/eups_setup setup \"$@\"`;);
      \end{verbatim}
+     Don't forget to escape the quotes.
     
    \item \code{envAppend(<Name>, <Value> [,<delimiter>])}
      Appends \code{<Value>} to \code{<Name>}. The default delimiter is~`:'.

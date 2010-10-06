@@ -267,6 +267,10 @@ but no other interpretation is applied
                 cmd = mat.group(1).lower()
                 args = re.sub(r'^"(.*)"$', r'\1', mat.group(2))
                 #
+                # Protect \" by replacing it with "\002"
+                #
+                args = args.replace(r'\"', r'%c' % 2)
+                #
                 # Special case cmd(..., " ") by protecting " " as "\001"
                 #
                 args = re.sub(r',\s*"(\s)"', r'\1"%c"' % 1, args)
@@ -278,6 +282,7 @@ but no other interpretation is applied
                 args = filter(lambda s: s, re.split("[, ]", args))
                 args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args) # remove quotes
                 args = map(lambda s: re.sub(r'%c' % 1, r' ', s), args) # reinstate \001 as a space
+                args = map(lambda s: re.sub(r'%c' % 2, r'"', s), args) # reinstate \002 as "
 
                 try:
                     cmd = {
