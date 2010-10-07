@@ -393,6 +393,7 @@ Supported commands are:
         pkgroot [n]     Print the current eups pkgroot, or an element thereof
         pkg-config      Return the options associated with product
         remove          Remove an eups product from the system
+        startup         List the startup files used to customize eups
         undeclare       Undeclare a product
         uses            List everything which depends on the specified product and version
 Use
@@ -947,6 +948,20 @@ works around the problem that quoted variables \code{\$\$\{...\}}
 in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\footnote{
   Yes; I filed a Debian bug report (378570) and it's fixed in the next release, 0.21-1}
   
+%------------------------------------------------------------------------------
+
+\item \code{eups startup}
+\begin{verbatim}
+Usage: eups startup [-h|--help]
+
+List the startup files that customize EUPS (including $EUPS_STARTUP).  With
+-v, show non-existent files that would be loaded [in brackets].
+\end{verbatim}
+
+\eups{} can be customised using files in a surprisingly large number of places; \texttt{eups startup}
+lists the startup files that are actually used (with \texttt{-v} non-existent files that would be
+used are also listed, enclosed in square brackets).
+
 %------------------------------------------------------------------------------
 
 \item \code{eups remove}

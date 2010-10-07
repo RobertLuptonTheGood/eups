@@ -248,6 +248,15 @@ class Eups(object):
                                                       updateCache=True, 
                                                       autosave=False,
                                                       verbose=self.verbose)
+        #
+        # 
+        fallbackList = hooks.config.Eups.fallbackFlavors
+        if not isinstance(fallbackList, dict):
+            fallbackList = {None : fallbackList}
+        for flavor, fbl in fallbackList.items():
+            if isinstance(fbl, str):
+                fbl = fbl.split()
+            utils.Flavor().setFallbackFlavors(flavor, fbl)
         # 
         # load up the recognized tags.
         # 
@@ -965,7 +974,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                         else:
                             if self.verbose > 0:
                                 print >> sys.stderr, "Tag %s is declared in %s, but is missing" % (tag, root)
-                            
                 except ProductNotFound:
                     # product by this name not found in this database
                     continue

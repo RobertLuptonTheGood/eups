@@ -380,10 +380,10 @@ class Flavor(object):
     def setFallbackFlavors(self, flavor=None, fallbackList=None):
         """
         Set a list of alternative flavors to be used if a product can't 
-        be found with the given flavor
+        be found with the given flavor.  The defaults are set in hooks.py
         """
         if fallbackList is None:
-            fallbackList = ["generic"]
+            fallbackList = []
         Flavor._fallbackFlavors[flavor] = fallbackList
 
     def getFallbackFlavors(self, flavor=None, includeMe=False):

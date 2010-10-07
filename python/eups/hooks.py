@@ -32,7 +32,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
@@ -46,12 +46,14 @@ config.Eups.setupCmdName = "setup"
 config.Eups.VRO = {
     "default" : "path version current",
 }
+# fallbackFlavors may also be a simple list (which is equivalent to a key of None);
+# if a dict, fallbackFlavors[flavor] is the fallback for flavor (None => any flavor)
+config.Eups.fallbackFlavors = {None : "generic"}
 
 # it is expected that different Distrib classes will have different set-able
 # properties.  The key for looking up Distrib-specific data could the Distrib
 # name.  
 config.distrib = {}
-
     
 startupFileName = "startup.py"
 configFileName = "config.properties"
@@ -59,7 +61,10 @@ configFileName = "config.properties"
 def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False):
     configFiles = [] 
     cfile = os.path.join(customDir, configFileName)
-    if os.path.exists(cfile):
+    if not os.path.exists(cfile):
+        if verbose:
+            configFiles.append("[%s]" % cfile)
+    else:
         if execute:
             if verbose > 1:
                 print >> log, "loading properties from", cfile
@@ -68,7 +73,10 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False
         configFiles.append(cfile)
 
     startup = os.path.join(customDir, startupFileName) 
-    if os.path.exists(startup):
+    if not os.path.exists(startup):
+        if verbose:
+            configFiles.append("[%s]" % startup)
+    else:
         if execute:
             if verbose > 1:
                 print >> log, "sourcing", startup
@@ -83,7 +91,7 @@ try:
 except NameError:
     customisationFiles = None
 
-def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[]):
+def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[], reset=False):
     """
     load all site and/or user customizations.  Customizations can come in two
     forms: a configuration properties file and/or a startup script file.  
@@ -109,8 +117,12 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
     """
 
     global customisationDirs, customisationFiles
+    if reset:
+        customisationFiles = None
+
     if customisationFiles is not None:
-        return customisationFiles
+        if not reset:
+            return customisationFiles
 
     customisationDirs = []
 
