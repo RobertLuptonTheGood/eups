@@ -99,10 +99,12 @@ class Database(object):
         """
         find a product's version file or null product is not declared.
         """
-        out = self._versionFile(productName, version)
-        if not os.path.exists(out):
-            return None
-        return out
+        if version:
+            out = self._versionFile(productName, version)
+            if os.path.exists(out):
+                return out
+
+        return None
 
     def isWritable(self):
         """
