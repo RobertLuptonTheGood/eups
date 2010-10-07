@@ -543,7 +543,8 @@ class StartupCmd(EnvListCmd):
     noDescriptionFormatting = False
 
     description = \
-"""Print the start-up files that customize EUPS (including $EUPS_STARTUP).
+"""List the startup files that customize EUPS (including $EUPS_STARTUP).  With -v, show non-existent files
+that would be loaded [in brackets].
 """
 
     def __init__(self, args=None, toolname=None, cmd=None):
@@ -551,8 +552,11 @@ class StartupCmd(EnvListCmd):
         self._init("EUPS_STARTUP")
 
     def execute(self):
+        Eups = eups.Eups(path=self.opts.path, dbz=self.opts.dbz)
+        path = Eups.path
+
         for f in hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
-                                         quiet=self.opts.quiet):
+                                         quiet=self.opts.quiet, path=path, reset=True):
             
             if not self.opts.verbose and os.stat(f).st_size == 0:
                 continue

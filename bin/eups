@@ -41,7 +41,7 @@ allowRaise = "raise" in debugOptions
 verbosity = cmd.opts.verbose
 if cmd.opts.quiet:
     verbosity = -1
-eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(dbz=cmd.opts.dbz))
+eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(path=cmd.opts.path, dbz=cmd.opts.dbz))
 
 # run the command
 if allowRaise:
