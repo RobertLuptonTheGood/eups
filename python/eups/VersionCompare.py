@@ -2,15 +2,18 @@ import re
 
 class VersionCompare(object):
     """
-    a comparison function class that compares two product versions.
+    A comparison function class that compares two product versions.
     """
     def compare(self, v1, v2, mustReturnInt=True):
         """Compare two versions.
 
-        If mustReturnInt is true, return value must be acceptable to sort(), i.e. an int"""
-        return self.stdCompare(v1, v2)
+If mustReturnInt is True, return value must be acceptable to sort(), i.e. an int
 
-    def stdCompare(self, v1, v2, suffix=True):
+If mustReturnInt is False and you don't want to allow the versions to be sorted, throw ValueError
+        """
+        return self.stdCompare(v1, v2, mustReturnInt=mustReturnInt)
+
+    def stdCompare(self, v1, v2, suffix=True, mustReturnInt=True):
         prim1, sec1, ter1 = self._splitVersion(v1)
         prim2, sec2, ter2 = self._splitVersion(v2)
 
@@ -72,6 +75,7 @@ class VersionCompare(object):
             n = n2
 
         for i in range(n):
+            c12AreIntegral = False      # are c1[i] and c2[i] integers?
             try:                        # try to compare as integers, having stripped a common prefix
                 _c2i = None             # used in test for a successfully removing a common prefix
 
@@ -88,12 +92,16 @@ class VersionCompare(object):
 
                 c1[i] = _c1i
                 c2[i] = _c2i
+                c12AreIntegral = True
             except ValueError:
                 pass
 
             different = cmp(c1[i], c2[i])
             if different:
-                return different
+                if mustReturnInt or c12AreIntegral:
+                    return different
+                else:
+                    raise ValueError("Versions %s and %s cannot be sorted" % (v1, v2))
 
         # So far, the two versions are identical.  The longer version should sort later
         return cmp(n1, n2)

@@ -1453,8 +1453,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 break
 
             if oring:                # Fine;  we have a primitive to OR in
-                if self.version_match_prim(op, vname, v):
-                    return vname
+                try:
+                    if self.version_match_prim(op, vname, v):
+                        return vname
+                except ValueError, e:           # no sort order is defined
+                    return None
 
                 oring = False
             else:
@@ -1469,10 +1472,12 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     Uses version_cmp to define sort order """
 
-        cmp = self.version_cmp(v1, v2, mustReturnInt=False)
-
-        if cmp is None:                 # no sort order is defined
-            return False
+        try:
+            cmp = self.version_cmp(v1, v2, mustReturnInt=False)
+        except ValueError, e:           # no sort order is defined
+            if self.verbose > 2:
+                print >> sys.stderr, e
+            raise
 
         if op == "<":
             return cmp <  0
