@@ -2070,8 +2070,8 @@ same arguments.
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 
-        if Eups.isUserTag(tag):
-            Eups.includeUserDataDirInPath()
+        if myeups.isUserTag(self.opts.tag):
+            myeups.includeUserDataDirInPath()
             
         print " ".join(myeups.getVRO())
 
