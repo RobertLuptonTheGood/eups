@@ -774,8 +774,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                         vname = version
                     else:
                         vname = "\"\""
-                    print >> sys.stderr, "            VRO [%s] failed to match for %s %s; trying [%s]" % \
-                          (", ".join(preVro), name, vname, ", ".join(postVro))
+                    if flavor:
+                        flavorStr = " (Flavor: %s)" % flavor
+                    else:
+                        flavorStr = ""
+
+                    if recursionDepth:
+                        indent = "            "
+                    else:
+                        indent = ""
+                        
+                    print >> sys.stderr, "%sVRO [%s] failed to match for %s version %s; trying [%s]%s" % \
+                          (indent, ", ".join(preVro), name, vname, ", ".join(postVro), flavorStr)
 
             elif self.tags.isRecognized(vroTag) or os.path.isfile(vroTag):
                 # search for a tagged version
