@@ -85,6 +85,13 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     if dependencies:
         _msgs = {}               # maintain list of printed dependencies
         recursionDepth, indent = 0, ""
+
+        if len(productList) > 1:
+            if setup:
+                productList = eupsenv.getSetupProducts(productName)
+            else:
+                raise EupsException("Please choose the version you want listed (%s)" %
+                                    (", ".join([p.version for p in productList])))
         
     productTags = {}             # list of tags indexed by product
 

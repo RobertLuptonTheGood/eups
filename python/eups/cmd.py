@@ -401,7 +401,7 @@ will also be printed.
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
                             help="same as --tag=current (deprecated)")
         self.clo.add_option("-D", "--dependencies", dest="depends", action="store_true", default=False,
-                            help="Print product's dependencies (must also provide the version argument")
+                            help="Print product's dependencies (must specify version if ambiguous). With --setup print the versions of dependent products that are actually setup.")
         self.clo.add_option("--depth", dest="depth", action="store",
                             help="Only list this many layers of dependency")
         self.clo.add_option("-d", "--directory", dest="printdir", action="store_true", default=False,
