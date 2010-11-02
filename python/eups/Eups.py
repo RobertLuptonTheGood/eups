@@ -1004,6 +1004,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
         find the first product listed in a tagFile, i.e. a file containing lines of
            productName    version [....]
+           (optionally prefixed by some number or "|" and " ", as put out by "eups list -D -s")
         or
            setupRequired(productName [-X ...] version ...)
            
@@ -1035,7 +1036,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         lineNo = 0                      # for diagnostics
         for line in fd.readlines():
             lineNo += 1
-            line = re.sub("^\s*", "", line)
+            line = re.sub("^[|\s]*", "", line)
             line = re.sub("\s*$", "", line)
 
             if re.search(r"^#", line):
@@ -1073,7 +1074,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not product:
             msg = "Unable to find product %s %s specified in %s" % (name, version, fileName)
             if self.force:
-                print >> sys.stderr, msg + "; ignoring"
+                print >> sys.stderr, msg + "; ignoring version specification"
                 return None
 
             msg += " (specify --force to continue)"
@@ -1712,7 +1713,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if product.version == sprod.version or product.dir == sprod.dir: # already setup
                     if recursionDepth == 0: # top level should be resetup if that's what they asked for
                         pass
-                    elif self.force:   # force means do it!; so do it.
+                    elif self.force:    # force means do it!; so do it.
                         pass
                     else:
                         # already setup and no need to go further
