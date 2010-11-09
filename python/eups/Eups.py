@@ -1621,6 +1621,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if not self.keep and product.version != versionName:
                         product = None
 
+                if product and versionName and recursionDepth == 0: # Check that we got the desired version
+                    if product.name != versionName:
+                        if self.verbose > 1:
+                            print >> sys.stderr, "Requested %s version %s; %s is not acceptable" % \
+                                  (productName, versionName, product.version)
+                        product = None
+
                 if not product:
 
                     # It's not there.  Try a set of other flavors that might 
