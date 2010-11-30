@@ -156,12 +156,8 @@ but no other interpretation is applied
     def expandEupsVariables(self, product):
         """Expand eups-related variables such as $PRODUCT_DIR"""
 
-        for logical, block in self._actions: 
-            if not VersionParser(logical).eval(): 
-                pass 
-                #continue 
- 
-            for a in block:
+        for logical, ifBlock, elseBlock in self._actions: 
+            for a in ifBlock + elseBlock:
                 for i in range(len(a.args)):
                     value = a.args[i]
 
@@ -240,6 +236,7 @@ but no other interpretation is applied
 
         logical = "True"                 # logical condition required to execute block
         block = []
+        ifBlock = []
         for lineNo, line in contents:
             if False:
                 print line
@@ -247,16 +244,27 @@ but no other interpretation is applied
             #
             # Is this the start of a logical condition?
             #
-            mat = re.search(r"^(:?if\s*\((.*)\)\s*{\s*|})$", line, re.IGNORECASE)
+            mat = re.search(r"^(?:if\s*\((.*)\)\s*{\s*|}\s*(?:(else)\s*{)?)$", line, re.IGNORECASE)
             if mat:
                 if block:
-                    self._actions += [(logical, block)]
+                    if mat.group(2) == "else": # i.e. we saw an } else {
+                        ifBlock = block
+                    else:
+                        if ifBlock:
+                            elseBlock = block
+                        else:
+                            ifBlock = block
+                            elseBlock = []
+                            
+                        self._actions += [(logical, ifBlock, elseBlock)]
+                        ifBlock = []
                     block = []
 
-                if mat.group(2) == None: # i.e. we saw a }
-                    logical = "True"
+                if mat.group(1) != None:
+                    logical = mat.group(1)
                 else:
-                    logical = mat.group(2)
+                    if mat.group(2) == None:   # we got to }
+                        logical = "True"
 
                 continue
             #
@@ -347,7 +355,7 @@ but no other interpretation is applied
                 print >> sys.stderr, "Ignoring unsupported entry %s at %s:%d" % (line, self.file, lineNo)
                 continue
             else:
-                print >> sys.stderr, "Unrecognised line: %s at %s:%d" % (line, self.file, lineNo)
+                print >> sys.stderr, "Unrecognized line: %s at %s:%d" % (line, self.file, lineNo)
                 continue
 
             block += [Action(tableFile, cmd, args, extra)]
@@ -355,7 +363,7 @@ but no other interpretation is applied
         # Push any remaining actions onto current logical block
         #
         if block:
-            self._actions += [(logical, block)]
+            self._actions += [(logical, block, [])]
 
     def actions(self, flavor, setupType=None, verbose=0):
         """Return a list of actions for the specified flavor"""
@@ -364,14 +372,16 @@ but no other interpretation is applied
         if not self._actions:
             return actions
 
-        for logical, block in self._actions:
+        for logical, ifBlock, elseBlock in self._actions:
             parser = VersionParser(logical)
             parser.define("flavor", flavor)
             if setupType:
                 parser.define("type", setupType)
 
             if parser.eval():
-                actions += block
+                actions += ifBlock
+            else:
+                actions += elseBlock
 
         if len(actions) == 0 and verbose > 1:
             msg = "Table %s has no entry for flavor %s" % (self.file, flavor)
@@ -382,10 +392,13 @@ but no other interpretation is applied
 
     def __str__(self):
         s = ""
-        for logical, block in self._actions:
+        for logical, ifBlock, elseBlock in self._actions:
             s += "\n------------------"
             s += '\n' + str(logical)
-            for a in block:
+            for a in ifBlock:
+                s += '\n' + str(a)
+            s += '\n else'
+            for a in elseBlock:
                 s += '\n' + str(a)
 
         return s
@@ -472,19 +485,23 @@ but no other interpretation is applied
         """
 
         opts = {}
-        for logical, block in self._actions:
+        for logical, ifBlock, elseBlocl in self._actions:
             if logical:
-                for a in block:
-                    if a.cmd == Action.declareOptions:
-                        # Get all the args merged together into a list k0 v0 k1 v1 k2 v2 ...
-                        args = []
-                        for opt in a.args:
-                            args += re.split(r"\s*=\s*", opt)
+                block = ifBlock
+            else:
+                block = elseBlock
 
-                        args = [a for a in args if a]
-                        for i in range(0, len(args) - 1, 2):
-                            k, v = args[i], args[i + 1]
-                            opts[k] = v
+            for a in block:
+                if a.cmd == Action.declareOptions:
+                    # Get all the args merged together into a list k0 v0 k1 v1 k2 v2 ...
+                    args = []
+                    for opt in a.args:
+                        args += re.split(r"\s*=\s*", opt)
+
+                    args = [a for a in args if a]
+                    for i in range(0, len(args) - 1, 2):
+                        k, v = args[i], args[i + 1]
+                        opts[k] = v
 
         return opts
 
@@ -581,7 +598,7 @@ class Action(object):
                     i += 1              # skip the argument
                 elif _args[i] in ("-j", "--just"):  # setup just this product
                     noRecursion = True
-                elif _args[i] == "-q":  # e.g. -q build
+                elif _args[i] == "-T":  # e.g. -T build
                     requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
                 elif _args[i] in ("-t", "--tag"): # e.g. -t current
