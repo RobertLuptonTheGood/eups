@@ -261,13 +261,14 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
 
         print >> outstrm, str
 
-def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None):
+def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None, shouldRaise=False):
     """
     Return a list of Product topProduct's dependent products : [(Product, recursionDepth), ...]
-    @param productName     Desired Product
+    @param topProduct      Desired Product
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
     @param setup           Return the versions of dependent products that are actually setup
     @param setupType       process dependencies as if -T setupType had been specified to setup
+    @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
 
     See also getDependencies()
     """
@@ -288,8 +289,12 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None):
             setupProduct = eupsenv.findSetupProduct(product.name)
             if not setupProduct:
                 if not optional:
-                    print >> sys.stderr, \
-                          "Product %s is a dependency, but is not setup; skipping" % product.name
+                    msg = "Product %s is a dependency, but is not setup" % product.name
+                    if shouldRaise:
+                        raise RuntimeError(msg)
+                    else:
+                        print >> sys.stderr, "%s; skipping" % msg
+
                 continue
 
             product = setupProduct
@@ -298,7 +303,7 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None):
 
     return dependentProducts
 
-def getDependencies(productName, versionName, eupsenv=None, setup=False, setupType=None):
+def getDependencies(productName, versionName, eupsenv=None, setup=False, setupType=None, shouldRaise=False):
     """
     Return a list of productName's dependent products : [(productName, productVersion, recursionDepth), ...]
     @param productName     Desired product's name
@@ -306,6 +311,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, setupTy
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
     @param setup           Return the versions of dependent products that are actually setup
     @param setupType       process dependencies as if -T setupType had been specified to setup
+    @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
 
     See also getDependentProducts()
     """
@@ -313,13 +319,10 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, setupTy
     if not eupsenv:
         eupsenv = Eups()
 
-    if isinstance(productName, Product.Product):
-        topProduct = productName
-    else:
-        topProduct = eupsenv.findProduct(productName, versionName)
+    topProduct = eupsenv.findProduct(productName, versionName)
         
-    return [(product.name, product.version, recursionDepth) 
-            for product, recursionDepth in getDependentProducts(topProduct, eupsenv, setup, setupType)]
+    return [(product.name, product.version, recursionDepth) for product, recursionDepth in
+            getDependentProducts(topProduct, eupsenv, setup, setupType, shouldRaise)]
 
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                     verbose=0):
@@ -632,7 +635,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                     print >> sys.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
                           (",".join(prefTags), taggedVersion.version, version)
             else:
-                if not re.search(r"^LOCAL:", version):
+                if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
                     if eupsenv.verbose > 0:
                         extra = ""
                         if os.path.isfile(prefTags[0]):

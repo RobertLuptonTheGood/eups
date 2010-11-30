@@ -9,6 +9,7 @@ import re, sys
 
 import eups
 from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
+import Product
 from tags       import TagNotRecognized
 from VersionParser import VersionParser
 import utils
@@ -937,7 +938,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             if not Eups.version_match(version, logical):
                 print >> sys.stderr, "Warning: %s %s failed to match condition \"%s\"" % (productName, version, logical)
         else:
-            if version and not re.search(r"^LOCAL:", version):
+            if version and not re.search("^" + product.LocalVersionPrefix, version):
                 logical = ">= %s" % version
 
         args = flags + [productName]
@@ -955,15 +956,88 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
 
         return rewrite
     #
-    # Actually do the work
+    # Read the input and split it into "blocks" which are either all setup commands, or all
+    # some other sort of command.
     #
-    
+    products = []                       # all the (top-level) products that we're setting up
+
+    setupBlocks = []                    # sets of contiguous setup commands
+    block = [False, []]                 # [isSetupBlock, [current set of contiguous commands]]
+    setupBlocks.append(block)
+
+    lastSetupBlock = None               # index of the _last_ block of setups
+
     for line in ifd:
         if re.search(r"^\s*#", line):
-            print >> ofd, line,
+            block[1].append(line)
             continue
             
         # Attempt substitutions
-        line = re.sub(r'(setupRequired|setupOptional)\("?([^"]*)"?\)', subSetup, line)
+        rex = r'(setupRequired|setupOptional)\("?([^"]*)"?\)'
 
-        print >> ofd, line,
+        line = re.sub(rex, subSetup, line)
+    
+        mat = re.search(rex, line)
+        if mat:                         # still in same setup block
+            if not block[0]:
+                block = [True, []]
+                setupBlocks.append(block)
+                lastSetupBlock = len(setupBlocks) - 1
+
+            args = mat.group(2)
+            if args:
+                products.append(args.split(" ")[0])
+        else:
+            if block[0]:
+                block = [False, []]
+                setupBlocks.append(block)
+            
+        block[1].append(line)
+    #
+    # Figure out the complete list of products that this table file will setup; only list each once
+    #
+    # Note that these are the complete dependencies of all the products in the table file, but with
+    # the versions that are currently setup
+    #
+    desiredProducts = []
+    for productName in products:
+        for name, version, level in \
+            [(productName, eups.getSetupVersion(productName), None)] + \
+            eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True):
+
+            if re.search("^" + Product.Product.LocalVersionPrefix, version):
+                print >> sys.stderr, "Warning: exact product specification \"%s %s\" is local" % \
+                      (name, version)
+
+            key = (name, version)
+            if desiredProducts.count(key) == 0:
+                desiredProducts.append(key)
+    #
+    # Generate the outputs.  We want to replace the _last_ setups block by an if (type == exact) { } else { }
+    # block;  actually we could do this line by line but that'd make an unreadable table file
+    #
+    indent = "   "
+    i = 0
+    for isSetupBlock, block in setupBlocks:
+        if isSetupBlock:
+            if i == lastSetupBlock:
+                print >> ofd, "if (type == exact) {"
+
+                for n, v in desiredProducts:
+                    print >> ofd, "%ssetupRequired(%-15s -j %s)" % (indent, n, v)
+
+                print >> ofd, "} else {"
+            else:
+                print >> ofd, "if (type != exact) {"
+
+            for line in block:
+                print >> ofd, indent + line,
+
+            print >> ofd, "}"
+        else:
+            for line in block:
+                print >> ofd, line,
+        i += 1
+    #
+    # Now write a block that fully specifies all the required products
+    #
