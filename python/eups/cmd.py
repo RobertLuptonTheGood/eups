@@ -895,7 +895,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
 
 class ExpandtableCmd(EupsCmd):
 
-    usage = "%prog expandbuild [-h|--help] [options] tablefile [outdir]]"
+    usage = "%prog expandtable [-h|--help] [options] tablefile [outdir]]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen

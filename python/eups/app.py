@@ -6,6 +6,7 @@ import re, os, sys, time
 from Eups           import Eups
 from exceptions     import ProductNotFound
 from tags           import Tags, Tag, TagNotRecognized, checkTagsList
+import Product
 from VersionParser  import VersionParser
 from stack          import ProductStack, persistVersionName as cacheVersion
 from distrib.server import ServerConf
@@ -15,7 +16,7 @@ from exceptions import EupsException
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
                   dependencies=False, showVersion=False, setupType=None,
-                  depth=None, giveHints=True, productDir=None):
+                  depth=None, productDir=None):
     """
     print out a listing of products.  Returned is the number of products listed.
     @param ostrm           the output stream to send listing to
@@ -30,7 +31,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     @param directory       include each product's installation directory
     @param dependencies    print the product's dependencies
     @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
-    @param setupType       process dependencies as if -t setupType had been specified to setup
+    @param setupType       process dependencies as if -T setupType had been specified to setup
     @param depth           a string giving an expression for determining
                              whether a dependency of a certain depth should
                              be included.  This string can be a simple integer
@@ -115,6 +116,30 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         depthExpr.define("depth", recursionDepth) 
         return depthExpr.eval() 
 
+    if dependencies:
+        recursionDepth = 0 
+
+        product = productList[0]
+
+        if includeProduct(recursionDepth):
+            print "%-40s %s" % (product.name, product.version)
+
+        for product, recursionDepth in getDependentProducts(product, eupsenv, setup, setupType):
+            if not includeProduct(recursionDepth):
+                continue
+
+            if eupsenv.verbose or not _msgs.has_key(product.name):
+                _msgs[product.name] = product.version
+
+                if not re.search(r"==", depth): 
+                    indent = "| " * (recursionDepth/2) 
+                    if recursionDepth%2 == 1: 
+                        indent += "|" 
+
+                print "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
+
+        return 1
+
     nprod = len(productList)
     for pi in productList:
         name, version, root = pi.name, pi.version, pi.stackRoot() # for convenience
@@ -128,47 +153,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             if not pi._prodStack:       # only found in the environment
                 continue
         
-        if dependencies:
-            recursionDepth = 0 
-
-            if includeProduct(recursionDepth):
-                info += "%-40s %s" % (name, version)
-
-            prodtbl = pi.getTable()
-            if prodtbl:
-
-                for product, optional, recursionDepth in \
-                        prodtbl.dependencies(eupsenv, recursive=True, 
-                                             recursionDepth=1, 
-                                             setupType=setupType):
-
-                    if not includeProduct(recursionDepth):
-                        continue
-
-                    if setup:           # get the version that's actually setup
-                        setupProduct = eupsenv.findSetupProduct(product.name)
-                        if not setupProduct:
-                            if eupsenv.verbose > 0:
-                                print >> sys.stderr, \
-                                      "Product %s is a dependency, but is not setup; skipping" % product.name
-                            continue
-
-                        product = setupProduct
-
-                    if eupsenv.verbose or not _msgs.has_key(product.name):
-                        _msgs[product.name] = product.version
-
-                        if info:
-                            info += "\n"
-
-                        if not re.search(r"==", depth): 
-                            indent = "| " * (recursionDepth/2) 
-                            if recursionDepth%2 == 1: 
-                                indent += "|" 
-
-                        info += "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
-
-        elif directory or tablefile:
+        if directory or tablefile:
             if eupsenv.verbose:
                 info += "%-10s" % (version)
 
@@ -276,6 +261,66 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
 
         print >> outstrm, str
 
+def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None):
+    """
+    Return a list of Product topProduct's dependent products : [(Product, recursionDepth), ...]
+    @param productName     Desired Product
+    @param eupsenv         the Eups instance to use; if None, a default will be created.  
+    @param setup           Return the versions of dependent products that are actually setup
+    @param setupType       process dependencies as if -T setupType had been specified to setup
+
+    See also getDependencies()
+    """
+
+    if not eupsenv:
+        eupsenv = Eups()
+
+    dependentProducts = []
+
+    prodtbl = topProduct.getTable()
+    if not prodtbl:
+        return dependentProducts
+
+    for product, optional, recursionDepth in \
+            prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1, setupType=setupType):
+
+        if setup:           # get the version that's actually setup
+            setupProduct = eupsenv.findSetupProduct(product.name)
+            if not setupProduct:
+                if not optional:
+                    print >> sys.stderr, \
+                          "Product %s is a dependency, but is not setup; skipping" % product.name
+                continue
+
+            product = setupProduct
+
+        dependentProducts.append((product, recursionDepth))
+
+    return dependentProducts
+
+def getDependencies(productName, versionName, eupsenv=None, setup=False, setupType=None):
+    """
+    Return a list of productName's dependent products : [(productName, productVersion, recursionDepth), ...]
+    @param productName     Desired product's name
+    @param versionName     Desired version of product
+    @param eupsenv         the Eups instance to use; if None, a default will be created.  
+    @param setup           Return the versions of dependent products that are actually setup
+    @param setupType       process dependencies as if -T setupType had been specified to setup
+
+    See also getDependentProducts()
+    """
+
+    if not eupsenv:
+        eupsenv = Eups()
+
+    if isinstance(productName, Product.Product):
+        topProduct = productName
+    else:
+        topProduct = eupsenv.findProduct(productName, versionName)
+        
+    return [(product.name, product.version, recursionDepth) 
+            for product, recursionDepth in getDependentProducts(topProduct, eupsenv, setup, setupType)]
+
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                     verbose=0):
     """
@@ -300,7 +345,7 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None):
     expand the version specifications in a table file.  When a version in 
     the original table file is expressed as an expression, the expression is 
     enclosed in brackets and the actual product version used to build the 
-    table file's product.  
+    table file's product is added.  
 
     @param ofd          the output file stream to write expanded tablefile to.
     @param ifd          the input file stream to read the tablefile from.

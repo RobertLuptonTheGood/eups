@@ -41,7 +41,7 @@ config.Eups.globalTags = "current stable".split()
 config.Eups.reservedTags = "keep commandLineVersion".split()
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
-config.Eups.setupTypes = "build"
+config.Eups.setupTypes = "exact build"
 config.Eups.setupCmdName = "setup"
 config.Eups.VRO = {
     "default" : "path version current",
