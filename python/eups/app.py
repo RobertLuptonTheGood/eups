@@ -179,7 +179,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 info += "   "
             else:
                 info += "%-21s " % (name)
-            info += "%-10s" % (version)
+            info += "%-10s " % (version)
             if eupsenv.verbose:
                 if eupsenv.verbose > 1:
                     info += "%-10s" % (pi.flavor)
