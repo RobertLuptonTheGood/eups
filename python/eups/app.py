@@ -795,7 +795,7 @@ def productDir(productName=None, versionName=Setup(), eupsenv=None):
             tags = "setup"
             versionName = ""
             
-        productList = eupsenv.findProducts(productName, versionName)
+        productList = eupsenv.findProducts(productName, versionName, tags)
         productDirs = {}
         for prod in productList:
             pdir = prod.dir
