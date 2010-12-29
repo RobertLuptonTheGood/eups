@@ -452,26 +452,34 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             # if no list cached, try asking the cached product stack
             tags = Tags()
-            tagNames = []
+            tagNames = set()
+            tagUsedInProducts = {}
 
             if self.versions.has_key(path):
                 for t in self.versions[path].getTags():
-                    tagNames.append(t)
+                    tagNames.add(t)
             else:                       # consult the Database
                 db = Database(self.getUpsDB(path))
                 for pname in db.findProductNames():
                     for tag, v, f in db.getTagAssignments(pname):
-                        tagNames.append(tag)
-                            
+                        tagNames.add(tag)
+                        if not tagUsedInProducts.has_key(tag):
+                            tagUsedInProducts[tag] = []
+                        tagUsedInProducts[tag].append(pname)
+
             for t in tagNames:
                 t = Tag.parse(t)
                 if not (t.isUser() or self.tags.isRecognized(t.name)):
+                    msg = "Unknown tag found in %s stack: \"%s\"" % (path, t)
+                    if self.verbose:
+                        msg += " (in [%s])" % (", ".join(sorted(tagUsedInProducts[t.name])))
+
                     if True or self.force:
-                        print >> sys.stderr, "Unknown tag found in %s stack: \"%s\"; defining" % (path, t)
+                        print >> sys.stderr, "%s; defining" % (msg)
+
                         tags.registerTag(t.name, t.group)
                     else:
-                        print >> sys.stderr, \
-                              "Ignoring unknown tag found in %s stack: \"%s\" (consider --force)" % (path, t)
+                        print >> sys.stderr, "%s (consider --force)" % (msg)
                         sys.exit(1)
 
             if self.asAdmin and utils.isDbWritable(p):
