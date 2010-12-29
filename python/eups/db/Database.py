@@ -47,7 +47,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None):
         _databases[key] = _Database(dbpath, defStackRoot)
 
     if userTagRoot:
-         _databases[key].addUserTagDB(userTagRoot)
+        _databases[key].addUserTagDb(userTagRoot, defStackRoot)
 
     return _databases[key]
 
@@ -95,17 +95,33 @@ class _Database(object):
         self.dbpath = dbpath
         self.defStackRoot = defStackRoot
 
-        self.addUserTagDB(None)
+        self.addUserTagDb(None, defStackRoot)
 
-    def addUserTagDB(self, userTagRoot, userId=None):
-        """Add a user tag database; userId == None means me"""
+    def addUserTagDb(self, userTagRoot, upsdb, userId=None):
+        """Add a user tag database for products in upsdb; userId == None means me"""
 
         try:
-            self.userTagDbDir
+            self._userTagDbs
         except AttributeError:
-            self.userTagDbDir = {}
+            self._userTagDbs = {}
 
-        self.userTagDbDir[userId] = userTagRoot
+        if not self._userTagDbs.has_key(upsdb):
+            self._userTagDbs[upsdb] = {}
+            self._userTagDbs[upsdb]["__keys"] = [] # .keys() in the order they were inserted
+            
+        if not self._userTagDbs[upsdb].has_key(userId):
+            self._userTagDbs[upsdb]["__keys"].append(userId) # keep keys in order
+        self._userTagDbs[upsdb][userId] = userTagRoot
+
+    def _getUserTagDb(self, userId=None, upsdb=None, values=False):
+        """Add a user tag database for products in pdir; userId == None means me"""
+        if not upsdb:
+            upsdb = self.defStackRoot
+
+        if values:
+            return [self._userTagDbs[upsdb][k] for k in self._userTagDbs[upsdb]["__keys"]]
+        else:
+            return self._userTagDbs[upsdb][userId]
 
     def _productDir(self, productName, dbdir=None):
         if not dbdir:  dbdir = self.dbpath
@@ -179,8 +195,8 @@ class _Database(object):
             raise ProductNotFound(productName, version, flavor, self.dbpath)
 
         tags = self._findTagsInDir(pdir, productName, version, flavor)
-        if self.userTagDbDir[None]:
-            udir = self._productDir(productName, self.userTagDbDir[None])
+        if self._getUserTagDb():
+            udir = self._productDir(productName, self._getUserTagDb())
             if os.path.isdir(udir):
                 tags.extend(map(lambda t: "user:"+t, 
                                 self._findTagsInDir(udir, productName, 
@@ -343,8 +359,8 @@ class _Database(object):
         out = []
         loc = [None, None]
         if glob:  loc[0] = self._productDir(productName) 
-        if user and self.userTagDbDir[None]:  
-            loc[1] = self._productDir(productName, self.userTagDbDir[None]) 
+        if user and self._getUserTagDb():
+            loc[1] = self._productDir(productName, self._getUserTagDb())
 
         tgroup = ""
         for i in xrange(len(loc)):
@@ -512,8 +528,7 @@ class _Database(object):
 
         pdirs = []
         if tag.isUser():
-            print >> sys.stderr, "XXX RHL Need to get tags per-DB and with priority for user"
-            for d in self.userTagDbDir.values():
+            for d in self._getUserTagDb(values=True):
                 if d:
                     pdirs.append(self._productDir(productName, d))
         else:
@@ -559,9 +574,6 @@ class _Database(object):
         if isinstance(tag, str):
             tag = eups.tags.Tag(tag)
 
-        if tag.isUser() and not self.userTagDbDir[None]:
-            raise RuntimeError("Unable to assign user tags (user db not available)")
-
         vf = VersionFile(self._versionFile(productName, version))
         declaredFlavors = vf.getFlavors()
         if len(declaredFlavors) == 0:
@@ -587,7 +599,10 @@ class _Database(object):
                                    % (productName, version))
 
         if tag.isUser():
-            pdir = self._productDir(productName, self.userTagDbDir[None])
+            if not self._getUserTagDb():
+                raise RuntimeError("Unable to assign user tags (user db not available)")
+
+            pdir = self._productDir(productName, self._getUserTagDb())
             if not os.path.exists(pdir):
                 os.makedirs(pdir)
         else:
@@ -617,9 +632,9 @@ class _Database(object):
         """
         dbroot = self.dbpath
         if tag.startswith("user:"):
-            if not self.userTagDbDir[None]:
+            dbroot = self._getUserTagDb(upsdb=self.defStackRoot)
+            if not dbroot:
                 return False
-            dbroot = self.userTagDbDir[None]
             tag = tag[len("user:"):]
 
         if not productNames:
