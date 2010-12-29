@@ -99,7 +99,7 @@ Common"""
                             help="Don\'t actually do anything (for debugging purposes)")
         self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="Suppress messages to user (overrides -v)")
-        self.clo.add_option("-T", "--type", dest="setupType", action="store",
+        self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to use (e.g. exact)")
         self.clo.add_option("-v", "--verbose", dest="verbose", action="count", default=0,
                             help="Print extra messages about progress (repeat for ever more chat)")
@@ -245,7 +245,7 @@ Common"""
                 preamble += " %s" % self.cmd
             utils.deprecated("%s: %s" % (preamble, msg), strm=self._errstrm)
 
-    def createEups(self, opts=None, versionName=None):
+    def createEups(self, opts=None, versionName=None, setupType=""):
         if opts is None:
             opts = self.opts
 
@@ -254,9 +254,11 @@ Common"""
         else:
             readCache = True
 
-        exactver = False
-        if hasattr(opts, "exactver"):
-            exactver = opts.exactver
+        if hasattr(opts, "exact_version") and opts.exact_version:
+            if opts.setupType:
+                opts.setupType += ","
+            opts.setupType += "exact"
+            
         ignorever = False
         if hasattr(opts, "ignorever"):  ignorever = opts.ignorever
         keep = False
@@ -266,7 +268,7 @@ Common"""
             
         Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force, 
-                         ignore_versions=ignorever, exact_version=exactver,
+                         ignore_versions=ignorever, setupType=self.opts.setupType,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin)
 
@@ -409,9 +411,8 @@ will also be printed.
                             help="Only list this many layers of dependency")
         self.clo.add_option("-d", "--directory", dest="printdir", action="store_true", default=False,
                             help="Include the product's installation directory")
-        self.clo.add_option("-e", "--exact", dest="exactver", action="store_true", default=False,
-                            help="Follow the as-installed versions, not the conditionals in the table file " +
-                            "(ignored unless -d is specified)")
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
+                            help="Follow the as-installed versions, not the conditionals in the table file ")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
@@ -420,7 +421,7 @@ will also be printed.
                             help="Print the name of the product's table file")
         self.clo.add_option("-t", "--tag", dest="tag", action="store",
                             help="List only versions having this tag name")
-        self.clo.add_option("-T", "--type", dest="setupType", action="store",
+        self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to assume (ignored unless -d is specified)")
 
     def execute(self):
@@ -443,13 +444,13 @@ will also be printed.
 
         try:
             n = eups.printProducts(sys.stdout, product, version, 
-                                   self.createEups(versionName=version), tags=self.opts.tag, 
+                                   self.createEups(versionName=version, setupType=self.opts.setupType),
+                                   tags=self.opts.tag, 
                                    setup=self.opts.setup, 
                                    tablefile=self.opts.tablefile, 
                                    directory=self.opts.printdir, 
                                    dependencies=self.opts.depends, 
                                    showVersion=self.opts.version, 
-                                   setupType=self.opts.setupType, 
                                    depth=self.opts.depth,
                                    productDir=self.opts.productDir)
             if n == 0:
@@ -735,9 +736,8 @@ class UsesCmd(EupsCmd):
         # these are specific to this command
         self.clo.add_option("-d", "--depth", dest="depth", action="store", type="int", default=9999, 
                             help="Only search down this many layers of dependency")
-        self.clo.add_option("-e", "--exact", dest="exactver", action="store_true", default=False, 
-                            help="Consider the as-installed versions, not the conditionals in the table file "+
-                            "(ignored unless -d is specified)")
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
+                            help="Consider the as-installed versions, not the conditionals in the table file ")
         self.clo.add_option("-o", "--optional", dest="optional", action="store_true", default=False, 
                             help="Show optional setups")
         self.clo.add_option("-t", "--tag", dest="tag", action="store", 
@@ -2048,6 +2048,8 @@ same arguments.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
+                            help="Consider the as-installed versions, not the conditionals in the table file ")
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
@@ -2069,7 +2071,12 @@ same arguments.
         else:
             versionName = None
 
-        myeups = eups.Eups(readCache=True, force=self.opts.force)
+        if self.opts.exact_version:
+            if self.opts.setupType:
+                self.opts.setupType += ","
+            self.opts.setupType += "exact"
+
+        myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=self.opts.setupType)
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 

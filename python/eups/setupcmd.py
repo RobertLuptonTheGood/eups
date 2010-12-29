@@ -96,14 +96,14 @@ product and all its dependencies into the environment so that it can be used.
                             help="Don't use exact matching even though an explicit version is specified")
         self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
                             help="Assume this target platform flavor (e.g. 'Linux')")
+        self.clo.add_option("-E", "--inexact", dest="inexact_version", action="store_true", default=False,
+                            help="Don't use exact matching even though an explicit version is specified")
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
         self.clo.add_option("-h", "--help", dest="help", action="store_true",
                             help="show command-line help and exit")
         self.clo.add_option("-i", "--ignore-versions", dest="ignoreVer", action="store_true", default=False,
                             help="Ignore any explicit versions in table files")
-        self.clo.add_option("-E", "--inexact", dest="inexact_version", action="store_true", default=False,
-                            help="Don't use exact matching even though an explicit version is specified")
         self.clo.add_option("-j", "--just", dest="nodepend", action="store_true", default=False,
                             help="Just setup product, no dependencies (equivalent to --max-depth 0)")
         self.clo.add_option("-k", "--keep", dest="keep", action="store_true", default=False,
@@ -125,7 +125,7 @@ product and all its dependencies into the environment so that it can be used.
                             "Default: all in path")
         self.clo.add_option("-t", "--tag", dest="tag", action="store",
                             help="assign TAG to the specified product")
-        self.clo.add_option("-T", "--type", dest="setupType", action="store",
+        self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to use (e.g. exact)")
         self.clo.add_option("-u", "--unsetup", dest="unsetup", action="store_true", default=False,
                             help="Unsetup the specifed product")
@@ -137,17 +137,16 @@ product and all its dependencies into the environment so that it can be used.
                             help="Set the Version Resolution Order")
 
     def execute(self):
-        
-        if self.opts.exact_version and self.opts.inexact_version:
-            self.err("Specifying --exact --inexact confuses me, so I'll ignore both")
-            self.opts.exact_version = False
-            self.opts.inexact_version = False
-
         productName = versionName = None
         if len(self.args) > 0:
             productName = self.args[0]
         if len(self.args) > 1:
             versionName = self.args[1]
+
+        if self.opts.exact_version and self.opts.inexact_version:
+            self.err("Specifying --exact --inexact confuses me, so I'll ignore both")
+            self.opts.exact_version = False
+            self.opts.inexact_version = False
 
         if self.opts.tablefile:         # we're setting up a product based only on a tablefile
             if self.opts.unsetup:
@@ -169,18 +168,6 @@ product and all its dependencies into the environment so that it can be used.
             self.err("please specify at least a product name or use -r")
             print >> self._errstrm, self.clo.get_usage()
             return 3
-
-        if not versionName:
-            if self.opts.verbose > 1:
-                if self.opts.inexact_version:
-                    #self.err("--inexact has no effect unless you request a specific version")
-                    pass
-
-        if False:                       # replaced by VRO
-            if versionName and not self.opts.inexact_version:
-                self.opts.exact_version = True # if they specify a version, that's what they want
-                if self.opts.verbose:
-                    self.err("Assuming --exact as you specified a version by name (consider --inexact)")
 
         if self.opts.productDir:
             self.opts.productDir = os.path.abspath(self.opts.productDir)
@@ -207,6 +194,11 @@ product and all its dependencies into the environment so that it can be used.
                 self.err("You may not specify both --just and --max_depth")
                 return 3
             self.opts.max_depth = 0
+
+        if self.opts.exact_version or (versionName and not self.opts.inexact_version):
+            if self.opts.setupType:
+                self.opts.setupType += ","
+            self.opts.setupType += "exact"
         #
         # Do the work
         #
@@ -217,9 +209,8 @@ product and all its dependencies into the environment so that it can be used.
                              readCache=False, force=self.opts.force,
                              quiet=self.opts.quiet, verbose=self.opts.verbose, 
                              noaction=self.opts.noaction, keep=self.opts.keep, 
-                             ignore_versions=self.opts.ignoreVer,
-                             max_depth=self.opts.max_depth, vro=self.opts.vro,
-                             exact_version=self.opts.exact_version)
+                             ignore_versions=self.opts.ignoreVer, setupType=self.opts.setupType,
+                             max_depth=self.opts.max_depth, vro=self.opts.vro)
 
             tag = self.opts.tag
             Eups.selectVRO(tag, self.opts.productDir, versionName, self.opts.dbz)
@@ -241,8 +232,7 @@ product and all its dependencies into the environment so that it can be used.
                 e.status = 9
                 raise
                                   
-            cmds = eups.setup(productName, versionName, self.opts.tag,
-                              self.opts.productDir, self.opts.setupType, 
+            cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
                               Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
 
         except EupsException, e:

@@ -70,10 +70,10 @@ class Eups(object):
 
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=0, quiet=0,
-                 noaction=False, force=False, ignore_versions=False, exact_version=False,
+                 noaction=False, force=False, ignore_versions=False,
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
-                 userDataDir=None, asAdmin=False, validSetupTypes=None, vro={}
+                 userDataDir=None, asAdmin=False, setupType=[], validSetupTypes=None, vro={}
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -88,6 +88,11 @@ class Eups(object):
                                   database directories rather than under the 
                                   user directory.  User tags will not be 
                                   available for writable stacks in path.  
+        @param setupType        the setup type.  This will cause conditional
+                                  sections of the table filebased on "type" 
+                                  (e.g. "if (type == build) {...}") to be 
+                                  executed.  If setupType is a list then the conditional will
+                                  be interpreted as "if (build in type) {...}"
         @param validSetupTypes  the names to recognize as valid setupTypes.  
                                   This list can be given either as a 
                                   space-delimited string or a python list of 
@@ -160,15 +165,33 @@ class Eups(object):
         self._validSetupTypes = validSetupTypes
         if self._validSetupTypes is None:
             self._validSetupTypes = hooks.config.Eups.setupTypes.split()
+        #
+        # Split and check our setupType
+        #
+        if setupType in (None, ""):
+            self.setupType = []
+        elif isinstance(setupType, str):
+            if re.search(r"[\s,]", setupType):
+                self.setupType = re.split(r"[\s,]+", setupType)
+            else:
+                self.setupType = [setupType]
+        else:
+            self.setupType = setupType
 
+        for st in self.setupType:
+            if not self._isValidSetupType(st):
+                raise EupsException('Unknown setup type %s; valid types are: "%s"' % \
+                                    (st, '", "'.join(self._validSetupTypes)))
+        #
         # a look-up of the products that have been setup since the life 
         # of this instance.  Used by setup().
+        #
         self.alreadySetupProducts = {}
 
         self.noaction = noaction
         self.force = force
         self.ignore_versions = ignore_versions
-        self.exact_version = exact_version
+        self.exact_version = self.setupType.count("exact") > 0
         self.max_depth = max_depth      # == 0 => only setup toplevel package
 
         self.locallyCurrent = {}        # products declared local only within self
@@ -1508,7 +1531,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return setupType in self._validSetupTypes
 
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
-              setupToplevel=True, noRecursion=False, setupType=None,
+              setupToplevel=True, noRecursion=False,
               productRoot=None, tablefile=None, versionExpr=None):
         """
         Update the environment to use (or stop using) a specified product.  
@@ -1538,11 +1561,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                                   True.
         @param noRecursion      if True, dependency products should not be 
                                   setup.  The default is False.
-        @param setupType        the setup type.  This will cause conditional
-                                  sections of the table filebased on "type" 
-                                  (e.g. "if (type == build) {...}") to be 
-                                  executed.  If setupType is a list then the conditional will
-                                  be interpreted as "if (build in type) {...}"
         @param productRoot      the directory where the product is installed
                                   to assume.  This is useful for products 
                                   that are not currently declared.
@@ -1648,19 +1666,6 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                     if not product:
                         return False, versionName, ProductNotFound(productName, versionName)
-
-        if setupType is None:
-            setupType = []
-        elif isinstance(setupType, str):
-            if re.search(r"[\s,]", setupType):
-                setupType = re.split(r"[\s,]+", setupType)
-            else:
-                setupType = [setupType]
-
-        for st in setupType:
-            if not self._isValidSetupType(st):
-                raise EupsException('Unknown setup type %s; valid types are: "%s"' % \
-                                    (st, '", "'.join(self._validSetupTypes)))
         #
         # We have all that we need to know about the product to proceed
         #
@@ -1693,7 +1698,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 verbose = self.verbose
                 if not fwd:
                     verbose -= 1
-                actions = table.actions(setupFlavor, setupType=setupType, verbose=verbose)
+                actions = table.actions(setupFlavor, setupType=self.setupType, verbose=verbose)
             except TableError, e:
                 print >> sys.stderr, "product %s %s: %s" % (product.name, product.version, e)
                 return False, product.version, e
@@ -2498,14 +2503,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         return out
                 
 
-    def dependencies_from_table(self, table, eupsPathDirs=None, setupType=[]):
+    def dependencies_from_table(self, table, eupsPathDirs=None):
         """Return self's dependencies as a list of (Product, optional) tuples
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
         if utils.isRealFilename(tablefile):
             for (product, optional) in \
-                    Table(tablefile).dependencies(self, eupsPathDirs, setupType=setupType):
+                    Table(tablefile).dependencies(self, eupsPathDirs, setupType=self.setupType):
                 dependencies += [(product, optional)]
 
         return dependencies
@@ -2915,9 +2920,23 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if self.exact_version:
             # Remove versionExpr and all user or global tags
-            self._vro = [v for v in self._vro
-                         if (v != "versionExpr" and
-                             not (self.tags.getTag(v).isGlobal() or self.tags.getTag(v).isUser()))]
+            removed = []
+            vro = []
+            for v in self._vro:
+                if v == "versionExpr":
+                    continue
+                v0 = v.split(":")[0] # v may be of form warn:nnn so only the pre-: string is a tagname
+                if self.tags.isRecognized(v0) and \
+                   not (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser()):
+                    vro.append(v)
+                else:
+                    removed.append(v)
+
+            if removed and self.verbose > 1:
+                print >> sys.stderr, "Removed [%s] from VRO as only exact versions are desired" % \
+                      ", ".join(removed)
+
+            self._vro = vro
             # ensure that "version" is on the VRO
             if not self._vro.count("version"):
                 if self._vro.count("path"):             # ... but not before path
@@ -2945,7 +2964,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         del q
 
     def getVRO(self):
-        """Return the VRO (as chosen by setVRO)"""
+        """Return the VRO (as chosen by selectVRO)"""
 
         if not self._vro:
             self.selectVRO()

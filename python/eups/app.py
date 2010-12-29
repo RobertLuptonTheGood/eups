@@ -15,7 +15,7 @@ from exceptions import EupsException
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
-                  dependencies=False, showVersion=False, setupType=None,
+                  dependencies=False, showVersion=False,
                   depth=None, productDir=None):
     """
     print out a listing of products.  Returned is the number of products listed.
@@ -31,7 +31,6 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     @param directory       include each product's installation directory
     @param dependencies    print the product's dependencies
     @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
-    @param setupType       process dependencies as if -T setupType had been specified to setup
     @param depth           a string giving an expression for determining
                              whether a dependency of a certain depth should
                              be included.  This string can be a simple integer
@@ -130,7 +129,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if includeProduct(recursionDepth):
             print "%-40s %s" % (product.name, product.version)
 
-        for product, recursionDepth in getDependentProducts(product, eupsenv, setup, setupType):
+        for product, recursionDepth in getDependentProducts(product, eupsenv, setup):
             if not includeProduct(recursionDepth):
                 continue
 
@@ -267,13 +266,12 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
 
         print >> outstrm, str
 
-def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None, shouldRaise=False):
+def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=False):
     """
     Return a list of Product topProduct's dependent products : [(Product, recursionDepth), ...]
     @param topProduct      Desired Product
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
     @param setup           Return the versions of dependent products that are actually setup
-    @param setupType       process dependencies as if -T setupType had been specified to setup
     @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
 
     See also getDependencies()
@@ -289,7 +287,7 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None, 
         return dependentProducts
 
     for product, optional, recursionDepth in \
-            prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1, setupType=setupType):
+            prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1, setupType=eupsenv.setupType):
 
         if setup:           # get the version that's actually setup
             setupProduct = eupsenv.findSetupProduct(product.name)
@@ -309,14 +307,13 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, setupType=None, 
 
     return dependentProducts
 
-def getDependencies(productName, versionName, eupsenv=None, setup=False, setupType=None, shouldRaise=False):
+def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False):
     """
     Return a list of productName's dependent products : [(productName, productVersion, recursionDepth), ...]
     @param productName     Desired product's name
     @param versionName     Desired version of product
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
     @param setup           Return the versions of dependent products that are actually setup
-    @param setupType       process dependencies as if -T setupType had been specified to setup
     @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
 
     See also getDependentProducts()
@@ -328,7 +325,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, setupTy
     topProduct = eupsenv.findProduct(productName, versionName)
         
     return [(product.name, product.version, recursionDepth) for product, recursionDepth in
-            getDependentProducts(topProduct, eupsenv, setup, setupType, shouldRaise)]
+            getDependentProducts(topProduct, eupsenv, setup, shouldRaise)]
 
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                     verbose=0):
@@ -560,14 +557,14 @@ def Setup():
     """
     return Tag("setup")
 
-def osetup(Eups, productName, version=None, fwd=True, setupType=None):
+def osetup(Eups, productName, version=None, fwd=True, setupType=[]):
     """
     Identical to setup() but with a deprecated signature.
     """
     return setup(productName, version, None, setupType, Eups, fwd)
 
 def setup(productName, version=None, prefTags=None, productRoot=None, 
-          setupType=None, eupsenv=None, fwd=True, tablefile=None):
+          eupsenv=None, fwd=True, tablefile=None):
     """
     Return a set of shell commands which, when sourced, will setup a product.  
     (If fwd is false, unset it up.)
@@ -589,10 +586,6 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                              If set, Eups will not consult its database for
                              the product's location, but rather set it up as
                              a "LOCAL" product.  
-    @param setupType       the setup type.  This will cause conditional
-                             sections of the table filebased on "type" 
-                             (e.g. "if (type == build) {...}") to be 
-                             executed.  
     @param eupsenv         the Eups instance to use to do the setup.  If 
                              None, one will be created for it.
     @param fwd             If False, actually do an unsetup.
@@ -603,7 +596,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         utils.deprecated("setup(): assuming deprecated function signature", 
                          productName.quiet)
         if productRoot is None:  productRoot = True
-        return osetup(productName, version, prefTags, productRoot, setupType)
+        return osetup(productName, version, prefTags, productRoot, ProductName.setupType)
 
     if not eupsenv:
         eupsenv = Eups(readCache=False)
@@ -619,7 +612,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         checkTagsList(eupsenv, prefTags)
 
     ok, version, reason = eupsenv.setup(productName, version, fwd,
-                                        setupType=setupType, productRoot=productRoot, tablefile=tablefile)
+                                        productRoot=productRoot, tablefile=tablefile)
         
     cmds = []
     if ok:

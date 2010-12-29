@@ -406,8 +406,7 @@ but no other interpretation is applied
 
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0,
-                     setupType=[], followExact=None):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional) tuples
@@ -432,7 +431,7 @@ but no other interpretation is applied
         prodkey = lambda p: "%s-%s" % (p.name, p.version)
 
         deps = []
-        for a in self.actions(Eups.flavor, setupType=setupType):
+        for a in self.actions(Eups.flavor, setupType=Eups.setupType):
             if a.cmd == Action.setupRequired:
                 optional = a.extra
 
