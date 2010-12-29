@@ -1,3 +1,21 @@
+2010-12-15 rhl
+	Made expandtable set the exact versions in an if (type == "exact") block
+
+	Allow more than one setupType (e.g. -T "build exact" or -T "build,exact").  Interpret
+	      if (type == "exact")
+	as
+	      if ("exact" in type)
+
+	Make -e equivalent to -T exact, and reinstate the behaviour that specifying an explicit version
+	sets --exact (unless you say --inexact)
+
+	Make setupType == exact remove user/global tags from the VRO (with the exception of tags explicitly
+	set with e.g. -t XXX)
+
+	The result of these changes is that you can setup the exact versions that a product was installed with,
+	without any guesswork with
+		setup foo x.y.z
+
 2010-09-02 rhl
 
 	Tags in startup.py are now all lists (allowing you to append without worrying about whitespace);
