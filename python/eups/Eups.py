@@ -536,7 +536,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 userCacheDir = utils.userStackCacheFor(p, userDataDir=utils.defaultUserDataDir(owner))
                 extraDb = Database(self.getUpsDB(p), userCacheDir)
 
-                db.addUserTagDB(userCacheDir, userId=owner)
+                db.addUserTagDb(userCacheDir, p, userId=owner)
 
                 if not self.versions.has_key(p):
                     continue
@@ -746,8 +746,6 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not vro:
             vro = self.getPreferredTags()
 
-        if False:
-            import pdb; pdb.set_trace() 
         for i in range(len(vro)):
             vroTag = vro[i]
             vroTag0 = vroTag            # we may modify vroTag
@@ -1043,8 +1041,6 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 db = self._databaseFor(root)
                 try:
-                    if False:
-                        import pdb; pdb.set_trace() 
                     version = db.getTaggedVersion(tag, name, flavor)
                     if version is not None:
                         prod = db.findProduct(name, version, flavor)
@@ -1859,7 +1855,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return self.setup(productName, versionName, fwd=False)
 
-    def assignTag(self, tag, productName, versionName, eupsPathDir=None):
+    def assignTag(self, tag, productName, versionName, eupsPathDir=None, eupsPathDirForRead=None):
         """
         assign the given tag to a product.  The product that it will be
         assigned to will be the first product found in the EUPS_PATH
@@ -1873,7 +1869,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         # convert tag name to a Tag instance; may raise TagNotRecognized
         tag = self.tags.getTag(tag)
 
-        product = self.getProduct(productName, versionName, eupsPathDir)
+        if not eupsPathDirForRead:
+            eupsPathDirForRead = eupsPathDir
+
+        product = self.getProduct(productName, versionName, eupsPathDirForRead)
         root = product.stackRoot()
 
         if tag.isGlobal() and not utils.isDbWritable(product.db):
@@ -1911,7 +1910,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         tag = self.tags.getTag(tag)
 
         if not eupsPathDir and self.isUserTag(tag):
-            eupsPathDir = self.userDataDir
+            assert self.userDataDir in self.path
 
         msg = None
         if versionName:
@@ -1925,7 +1924,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if str(tag) not in prod.tags:
                 msg = "Product %s is not tagged \"%s\"" % (productName, tag.name)
                 if eupsPathDir:
-                    msg += " within %s" % str(eupsPathDir)
+                    msg += " in [%s]" % " ".join(self.path)
 
         elif not eupsPathDir or isinstance(eupsPathDir, list):
             prod = self.findProduct(productName, tag, eupsPathDir, self.flavor)
@@ -2088,23 +2087,25 @@ The what argument tells us what sort of state is expected (allowed values are de
             assert productDir
 
             if not os.path.isdir(productDir):
-                raise EupsException("Product %s %s's productDir %s is not a directory" % (productName, versionName, productDir))
+                raise EupsException("Product %s %s's productDir %s is not a directory" % \
+                                    (productName, versionName, productDir))
 
         if tablefile is None:
             tablefile = "%s.table" % productName
 
-        if not eupsPathDir:             # look for proper home on self.path
+        eupsPathDirForRead = eupsPathDir # eups_path directory where we can find (but not modify) the product
+        if eupsPathDir:
+            if not utils.isDbWritable(eupsPathDir):
+                eupsPathDir = None
+        else:                           # look for proper home on self.path
             for d in self.path:
-                if os.path.commonprefix([productDir, d]) == d and \
-                   utils.isDbWritable(self.getUpsDB(d)):
+                if os.path.commonprefix([productDir, d]) == d:
                     eupsPathDir = d
+                    eupsPathDirForRead = d
                     break
 
-            if not eupsPathDir:
+            if not eupsPathDir or not utils.isDbWritable(self.getUpsDB(eupsPathDir)):
                 eupsPathDir = utils.findWritableDb(self.path)
-
-        elif not utils.isDbWritable(eupsPathDir):
-            eupsPathDir = None
 
         if self.isUserTag(tag):
             ups_db = self.getUpsDB(self.userDataDir)
@@ -2116,6 +2117,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             raise EupsException(
                 "Unable to find writable stack in EUPS_PATH to declare %s %s" % 
                 (productName, versionName))
+
+        assert eupsPathDirForRead
 
         ups_dir, tablefileIsFd = "ups", False
         if not utils.isRealFilename(tablefile):
@@ -2134,7 +2137,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 tablefile = "%s.table" % versionName
 
                 ups_dir = os.path.join("$UPS_DB",               productName, self.flavor)
-                tdir = os.path.join(self.getUpsDB(eupsPathDir), productName, self.flavor)
+                tdir = os.path.join(self.getUpsDB(eupsPathDirForRead), productName, self.flavor)
 
                 if not os.path.isdir(tdir):
                     os.makedirs(tdir)
@@ -2189,13 +2192,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
         dodeclare = True
-        prod = self.findProduct(productName, versionName, eupsPathDir)
+        prod = self.findProduct(productName, versionName, eupsPathDirForRead)
         if prod is not None and not self.force:
             _version, _eupsPathDir, _productDir, _tablefile = \
                       prod.version, prod.stackRoot(), prod.dir, prod.tablefile
 
             assert _version == versionName
-            assert eupsPathDir == _eupsPathDir
+            assert _eupsPathDir == eupsPathDirForRead
 
             differences = []
             if _productDir and productDir != _productDir:
@@ -2287,7 +2290,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if isinstance(tag, str):
                     tag = [self.tags.getTag(tag)]
 
-                self.assignTag(tag[0], productName, versionName, eupsPathDir)
+                eupsDirs = [eupsPathDirForRead, eupsPathDir]
+                for eupsDir in eupsDirs:
+                    try:
+                        self.assignTag(tag[0], productName, versionName, eupsPathDir, eupsDir)
+                        break
+                    except ProductNotFound:
+                        if eupsDir == eupsDirs[-1]: # no more to try
+                            raise
 
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
                   undeclareCurrent=None):
@@ -2329,7 +2339,13 @@ The what argument tells us what sort of state is expected (allowed values are de
             utils.deprecated("Eups.undeclare(): undeclareCurrent param is deprecated; use tag param.", self.quiet)
 
         if tag:
-            return self.unassignTag(tag, productName, versionName, eupsPathDir)
+            stat = self.unassignTag(tag, productName, versionName, eupsPathDir)
+            if self.isUserTag(tag):
+                # We may have declared this version (in ~/.eups/ups_db) as well as tagging it, but
+                # we aren't going to delete it now.  It does no harm, as the DB is generally only
+                # consulted when processing user tags.
+                pass
+            return stat
 
         product = None
         if not versionName:
