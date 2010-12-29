@@ -770,11 +770,11 @@ def unsetup(productName, version=None, eupsenv=None):
     """
     return setup(productName, version, fwd=False)
 
-def productDir(productName=None, versionName=Setup(), eupsenv=None):
+def productDir(productName, versionName=Setup(), eupsenv=None):
     """
     return the installation directory (PRODUCT_DIR) for the specified 
     product.  None is returned if no matching product can be found
-    @param productName   the name of the product of interest; if None return a dictionary of all productDirs
+    @param productName   the name of the product of interest
     @param version       the desired version.  This can in one of the 
                          following forms:
                           *  an explicit version 
@@ -786,24 +786,10 @@ def productDir(productName=None, versionName=Setup(), eupsenv=None):
     @param eupsenv       The Eups instance to use to find the product.  If 
                             not provided, a default will created.  
     """
+    if not productName:
+        raise EupsException("productDir(): no product name specified")
     if not eupsenv:
         eupsenv = Eups()
-
-    if not productName:
-        tags = None
-        if versionName == Setup():
-            tags = "setup"
-            versionName = ""
-            
-        productList = eupsenv.findProducts(productName, versionName, tags)
-        productDirs = {}
-        for prod in productList:
-            pdir = prod.dir
-            if pdir == "none":
-                pdir = None
-            productDirs[prod.name] = pdir
-
-        return productDirs
 
     prod = eupsenv.findProduct(productName, versionName)
     if not prod:
