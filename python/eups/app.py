@@ -84,6 +84,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             msg = productName
             if versionName:
                 msg += " %s" % versionName
+            if tags:
+                msg += " tagged %s" % " ".join([Tag(t).name for t in tags])
             raise EupsException("Unable to find product %s" % msg)
 
     productList.sort(lambda a,b: cmp(a, b), 
@@ -551,13 +553,6 @@ def Current():
     utils.deprecated("Use of Current() is deprecated (and ignored).")
     return None
 
-def Setup():
-    """
-    a deprecated means of getting an instance of the standard setup tag.
-    Prefer eups.Tag("setup") instead.
-    """
-    return Tag("setup")
-
 def osetup(Eups, productName, version=None, fwd=True, setupType=[]):
     """
     Identical to setup() but with a deprecated signature.
@@ -765,11 +760,11 @@ def unsetup(productName, version=None, eupsenv=None):
     """
     return setup(productName, version, fwd=False)
 
-def productDir(productName, versionName=Setup(), eupsenv=None):
+def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
     """
     return the installation directory (PRODUCT_DIR) for the specified 
     product.  None is returned if no matching product can be found
-    @param productName   the name of the product of interest
+    @param productName   the name of the product of interest; if None return a dictionary of all productDirs
     @param version       the desired version.  This can in one of the 
                          following forms:
                           *  an explicit version 
@@ -781,10 +776,24 @@ def productDir(productName, versionName=Setup(), eupsenv=None):
     @param eupsenv       The Eups instance to use to find the product.  If 
                             not provided, a default will created.  
     """
-    if not productName:
-        raise EupsException("productDir(): no product name specified")
     if not eupsenv:
         eupsenv = Eups()
+
+    if not productName:
+        tags = None
+        if versionName == Tag("setup"):
+            tags = versionName
+            versionName = ""
+            
+        productList = eupsenv.findProducts(productName, versionName, tags)
+        productDirs = {}
+        for prod in productList:
+            pdir = prod.dir
+            if pdir == "none":
+                pdir = None
+            productDirs[prod.name] = pdir
+
+        return productDirs
 
     prod = eupsenv.findProduct(productName, versionName)
     if not prod:
