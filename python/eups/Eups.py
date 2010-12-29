@@ -2104,8 +2104,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                     eupsPathDirForRead = d
                     break
 
+            if not eupsPathDirForRead:
+                eupsPathDirForRead = eupsPathDir
+                
             if not eupsPathDir or not utils.isDbWritable(self.getUpsDB(eupsPathDir)):
                 eupsPathDir = utils.findWritableDb(self.path)
+
+            if not eupsPathDirForRead:
+                eupsPathDirForRead = eupsPathDir
 
         if self.isUserTag(tag):
             ups_db = self.getUpsDB(self.userDataDir)
@@ -2118,7 +2124,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 "Unable to find writable stack in EUPS_PATH to declare %s %s" % 
                 (productName, versionName))
 
-        assert eupsPathDirForRead
+        if not eupsPathDirForRead:
+            raise RuntimeError("eupsPathDirForRead is None; complain to RHL")
 
         ups_dir, tablefileIsFd = "ups", False
         if not utils.isRealFilename(tablefile):
