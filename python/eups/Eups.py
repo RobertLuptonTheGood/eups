@@ -549,6 +549,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                     notokay.append(t)
             elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
                 tags.append(t)
+            elif re.search(r"^file:", t):
+                t = re.sub(r"^file:", "", t)
+                if os.path.isfile(t):
+                    tags.append(t)
+                else:
+                    notokay.append(t)
             elif os.path.isfile(t):
                 tags.append(t)
             else:
@@ -668,7 +674,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
 
     def findProductFromVRO(self, name, version=None, versionExpr=None, eupsPathDirs=None, flavor=None,
-                           noCache=False, recursionDepth=0):
+                           noCache=False, recursionDepth=0, vro=None):
         """
         return a product matching the given constraints by searching the VRO (we also return info about the
         VRO element that matched).  By default, the cache will be searched when available; otherwise, the
@@ -704,7 +710,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         product, vroReason = None, None
 
-        vro = self.getPreferredTags()
+        if not vro:
+            vro = self.getPreferredTags()
+            
         for i in range(len(vro)):
             vroTag = vro[i]
             vroTag0 = vroTag            # we may modify vroTag
@@ -1102,7 +1110,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                 return None
 
             msg += " (specify --force to continue)"
-            print >> sys.stderr, msg
             raise RuntimeError(msg)
 
         return product
@@ -1631,25 +1638,39 @@ The what argument tells us what sort of state is expected (allowed values are de
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
                 vroReason = ["path", productRoot]
             else:
-                product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
-                                                             recursionDepth=recursionDepth)
-                if not product and self.alreadySetupProducts.has_key(productName):
+                vro = self.getPreferredTags()
+                while vro:
+                    product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
+                                                                 recursionDepth=recursionDepth, vro=vro)
+                    if not product and self.alreadySetupProducts.has_key(productName):
 
-                    # We couldn't find it, but maybe it's already setup 
-                    # locally?   That'd be OK
-                    product = self.alreadySetupProducts[productName][0]
-                    if not self.keep and product.version != versionName:
-                        product = None
+                        # We couldn't find it, but maybe it's already setup 
+                        # locally?   That'd be OK
+                        product = self.alreadySetupProducts[productName][0]
+                        if not self.keep and product.version != versionName:
+                            product = None
+                            vro = []    # no-where else to search
 
-                if product and versionName and recursionDepth == 0: # Check that we got the desired version
-                    if product.version != versionName:
-                        if self.verbose > 1:
-                            print >> sys.stderr, "Requested %s version %s; %s is not acceptable" % \
-                                  (productName, versionName, product.version)
-                        product = None
+                    if product and versionName and recursionDepth == 0: # Check that we got the desired version
+                        if product.version != versionName:
+                            #
+                            # Maybe we'll find the product again further down the VRO
+                            #
+                            vro = vro[vro.index(vroReason[0]) + 1:]
+
+                            if self.verbose > 1:
+                                msg = ("Requested %s version %s; " + 
+                                       "version %s found on VRO as \"%s\" is not acceptable") % \
+                                      (productName, versionName, product.version, vroReason[0])
+                                if vro:
+                                    msg += "; proceeding"
+                                print >> sys.stderr, msg
+                            product = None
+
+                    if product:         # got it
+                        break
 
                 if not product:
-
                     # It's not there.  Try a set of other flavors that might 
                     # fit the bill
                     for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
@@ -1850,16 +1871,18 @@ The what argument tells us what sort of state is expected (allowed values are de
         # convert tag name to a Tag instance; may raise TagNotRecognized
         tag = self.tags.getTag(tag)
 
+        if not eupsPathDir and self.isUserTag(tag):
+            eupsPathDir = self.userDataDir
+
         msg = None
         if versionName:
             # user asked for a specific version
-            prod = self.findProduct(productName, versionName, eupsPathDir, 
-                                    self.flavor)
+            prod = self.findProduct(productName, versionName, eupsPathDir, self.flavor)
             if prod is None:
-                raise ProductNotFound(productName, versionName, self.flavor,
-                                      eupsPathDir)
+                raise ProductNotFound(productName, versionName, self.flavor, eupsPathDir)
             dbpath = prod.db
             eupsPathDir = prod.stackRoot()
+
             if str(tag) not in prod.tags:
                 msg = "Product %s is not tagged \"%s\"" % (productName, tag.name)
                 if eupsPathDir:
@@ -1881,7 +1904,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             dbpath = prod.db
             eupsPathDir = prod.stackRoot()
         else:
-            dbpath = self.getUpsDir(eupsPathDir)
+            dbpath = self.getUpsDB(eupsPathDir)
 
         if msg is not None:
             if self.quiet <= 0:
@@ -2045,11 +2068,10 @@ The what argument tells us what sort of state is expected (allowed values are de
             eupsPathDir = None
 
         if self.isUserTag(tag):
-            userDataDir = self.userDataDir
-            ups_db = self.getUpsDB(userDataDir)
+            ups_db = self.getUpsDB(self.userDataDir)
             if not os.path.isdir(ups_db):
                 os.makedirs(ups_db)
-            eupsPathDir = userDataDir
+            eupsPathDir = self.userDataDir
 
         if not eupsPathDir: 
             raise EupsException(

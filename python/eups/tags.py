@@ -518,6 +518,7 @@ def checkTagsList(eupsenv, tagList):
     badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), tagList)
 
     for tag in badtags:
+        tag = re.sub(r"^file:", "", tag)
         if os.path.isfile(tag):
             if eupsenv.verbose > 1:
                 print >> sys.stderr, "File %s defines a tag" % tag

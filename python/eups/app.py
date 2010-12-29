@@ -611,6 +611,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     if prefTags:
         checkTagsList(eupsenv, prefTags)
 
+    versionRequested = version
     ok, version, reason = eupsenv.setup(productName, version, fwd,
                                         productRoot=productRoot, tablefile=tablefile)
         
@@ -619,13 +620,13 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         #
         # Check that we got the desired tag
         #
-        if eupsenv.quiet <= 0 and prefTags:
+        if eupsenv.quiet <= 0 and prefTags and not versionRequested:
             for tag in prefTags:
                 taggedVersion = eupsenv.findTaggedProduct(productName, tag)
                 if taggedVersion:
                     break
 
-            if taggedVersion:
+            if not taggedVersion:
                 if version == taggedVersion.version: # OK, we got it
                     pass
                 elif productRoot:       # they asked for a particular directory

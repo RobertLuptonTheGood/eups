@@ -22,7 +22,8 @@
 	watch out for python's nasty habit of treating a string as a list of characters...
 
 	Added ability to specify a file as a tag (-t FILENAME) which contains a set of "product version" pairs;
-	"setupRequired(product version)" is also permitted
+	"setupRequired(product version)" is also permitted.  The file may be explicitly indicated as
+	-t file:FILENAME in case "file" is also a valid tagname (which takes priority)
 
 	Automatically added a tag to the start of the VRO if no VRO is explicitly specified for that tag
 
