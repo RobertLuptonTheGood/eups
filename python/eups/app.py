@@ -80,10 +80,11 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
     productList = eupsenv.findProducts(productName, versionName, tags)
     if not productList:
-        msg = productName
-        if versionName:
-            msg += " %s" % versionName
-        raise EupsException("Unable to find product %s" % msg)
+        if productName:
+            msg = productName
+            if versionName:
+                msg += " %s" % versionName
+            raise EupsException("Unable to find product %s" % msg)
 
     productList.sort(lambda a,b: cmp(a, b), 
                      lambda p: ":".join([p.name, p.version]))
