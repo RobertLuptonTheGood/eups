@@ -627,7 +627,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                 if taggedVersion:
                     break
 
-            if not taggedVersion:
+            if taggedVersion:
                 if version == taggedVersion.version: # OK, we got it
                     pass
                 elif productRoot:       # they asked for a particular directory

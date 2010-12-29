@@ -14,7 +14,44 @@ tagFileExt = "chain"
 tagFileTmpl = "%s." + tagFileExt
 tagFileRe = re.compile(r'^(\w.*)\.%s$' % tagFileExt)
 
-class Database(object):
+try:
+    _databases
+except NameError:
+    _databases = {}                     # the actual Database objects, making Database(XXX) a singleton 
+
+def Database(dbpath, userTagRoot=None, defStackRoot=None):
+    """Return the singleton _Database object identified by this function call's arguments
+    
+        @param dbpath        the full path to the directory (usually called 
+                                "ups_db") containing a EUPS software database.
+        @param userTagRoot   a full path to a user-writable directory where 
+                                user tag assignment may be recorded.  The 
+                                file/directory structure maintained will be 
+                                the same assumed by dbpath, though only 
+                                chain files will be consulted.  If None, 
+                                user tags will not be accessible or assignable.
+        @param defStackRoot  the default path for product stack root directory.
+                                When product install directories are specified
+                                with relative paths, they will be assumed to be
+                                relative to this root directory.  If None, 
+                                it defaults to the parent directory of dbpath.
+                                Specify an empty string ("") is the default is 
+                                a bad assumption.
+        """
+
+    if defStackRoot is None:
+        defStackRoot = os.path.dirname(dbpath)
+
+    key = (dbpath, defStackRoot)
+    if not _databases.has_key(key):
+        _databases[key] = _Database(dbpath, defStackRoot)
+
+    if userTagRoot:
+         _databases[key].addUserTagDB(userTagRoot)
+
+    return _databases[key]
+
+class _Database(object):
     """
     An interface to the product database recorded on disk.  This interface will
     enforce restrictions on product names, flavors, and versions.
@@ -50,34 +87,25 @@ class Database(object):
     @author Raymond Plante
     """
 
-    def __init__(self, dbpath, userTagRoot=None, defStackRoot=None):
+    def __init__(self, dbpath, defStackRoot):
         """
-        create an instance of a database.
-        @param dbpath        the full path to the directory (usually called 
-                                "ups_db") containing a EUPS software database.
-        @param userTagRoot   a full path to a user-writable directory where 
-                                user tag assignment may be recorded.  The 
-                                file/directory structure maintained will be 
-                                the same assumed by dbpath, though only 
-                                chain files will be consulted.  If None, 
-                                user tags will not be accessible or assignable.
-        @param defStackRoot  the default path for product stack root directory.
-                                When product install directories are specified
-                                with relative paths, they will be assumed to be
-                                relative to this root directory.  If None, 
-                                it defaults to the parent directory of dbpath.
-                                Specify an empty string ("") is the default is 
-                                a bad assumption.
-        """
+        create an instance of a database; see Database() for details"""
 
         # path to the database directory (ups_db)
         self.dbpath = dbpath
-        if defStackRoot is None:
-            defStackRoot = os.path.dirname(self.dbpath)
         self.defStackRoot = defStackRoot
 
-        # path to the user tag database for products in this database.  
-        self.usertagdb = userTagRoot
+        self.addUserTagDB(None)
+
+    def addUserTagDB(self, userTagRoot, userId=None):
+        """Add a user tag database; userId == None means me"""
+
+        try:
+            self.userTagDbDir
+        except AttributeError:
+            self.userTagDbDir = {}
+
+        self.userTagDbDir[userId] = userTagRoot
 
     def _productDir(self, productName, dbdir=None):
         if not dbdir:  dbdir = self.dbpath
@@ -141,7 +169,7 @@ class Database(object):
         """
         return a list of tags for a given product.  An empty list is 
         returned if no tags are assigned.  ProductNotFound is raised if 
-        no version of the product is not currently declared.
+        no version of the product is declared.
         @param productName : the name of the desired product
         @param version :     the desired version of the product
         @param flavor :      the desired platform flavor
@@ -151,8 +179,8 @@ class Database(object):
             raise ProductNotFound(productName, version, flavor, self.dbpath)
 
         tags = self._findTagsInDir(pdir, productName, version, flavor)
-        if self.usertagdb:
-            udir = self._productDir(productName, self.usertagdb)
+        if self.userTagDbDir[None]:
+            udir = self._productDir(productName, self.userTagDbDir[None])
             if os.path.isdir(udir):
                 tags.extend(map(lambda t: "user:"+t, 
                                 self._findTagsInDir(udir, productName, 
@@ -315,8 +343,8 @@ class Database(object):
         out = []
         loc = [None, None]
         if glob:  loc[0] = self._productDir(productName) 
-        if user and self.usertagdb:  
-            loc[1] = self._productDir(productName, self.usertagdb) 
+        if user and self.userTagDbDir[None]:  
+            loc[1] = self._productDir(productName, self.userTagDbDir[None]) 
 
         tgroup = ""
         for i in xrange(len(loc)):
@@ -482,17 +510,21 @@ class Database(object):
         if isinstance(tag, str):
             tag = eups.tags.Tag(tag)
 
+        pdirs = []
         if tag.isUser():
-            if not self.usertagdb:
-                return None
-            
-            pdir = self._productDir(productName, self.usertagdb)
-            
-        tfile = self._tagFileInDir(pdir, tag.name)
-        if not os.path.exists(tfile):
-            return None
+            print >> sys.stderr, "XXX RHL Need to get tags per-DB and with priority for user"
+            for d in self.userTagDbDir.values():
+                if d:
+                    pdirs.append(self._productDir(productName, d))
+        else:
+            pdirs.append(pdir)
 
-        return ChainFile(tfile)
+        for pdir in pdirs:
+            tfile = self._tagFileInDir(pdir, tag.name)
+            if os.path.exists(tfile):
+                return ChainFile(tfile)
+
+        return None
         
     def getTaggedVersion(self, tag, productName, flavor):
         """
@@ -527,7 +559,7 @@ class Database(object):
         if isinstance(tag, str):
             tag = eups.tags.Tag(tag)
 
-        if tag.isUser() and not self.usertagdb:
+        if tag.isUser() and not self.userTagDbDir[None]:
             raise RuntimeError("Unable to assign user tags (user db not available)")
 
         vf = VersionFile(self._versionFile(productName, version))
@@ -555,7 +587,7 @@ class Database(object):
                                    % (productName, version))
 
         if tag.isUser():
-            pdir = self._productDir(productName, self.usertagdb)
+            pdir = self._productDir(productName, self.userTagDbDir[None])
             if not os.path.exists(pdir):
                 os.makedirs(pdir)
         else:
@@ -585,9 +617,9 @@ class Database(object):
         """
         dbroot = self.dbpath
         if tag.startswith("user:"):
-            if not self.usertagdb:
+            if not self.userTagDbDir[None]:
                 return False
-            dbroot = self.usertagdb
+            dbroot = self.userTagDbDir[None]
             tag = tag[len("user:"):]
 
         if not productNames:

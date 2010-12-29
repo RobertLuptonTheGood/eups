@@ -678,7 +678,7 @@ class ProductStack(object):
            Database(cacheDir).isNewerThan(cache_mtime):
             return False
 
-        # this is slightly inaccurate: data for any flavor in the database
+        # this is slightly inaccurate: if data for any flavor in the database
         # is newer than this time, this isNewerThan() returns True
         return not Database(self.dbpath).isNewerThan(cache_mtime)
 
@@ -842,7 +842,7 @@ class ProductStack(object):
 
         out = ProductStack(dbpath, persistDir, False)
 
-        cacheOkay = out._tryCache(dbpath, persistDir, flavors)
+        cacheOkay = out._tryCache(dbpath, persistDir, flavors, verbose=verbose)
         if not cacheOkay:
             cacheOkay = out._tryCache(dbpath, dbpath, flavors)
             if cacheOkay:

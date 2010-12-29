@@ -529,10 +529,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # Now see if we need to read some other user's tags
         #
+        db = Database(self.getUpsDB(path))
+
         for tag, owner in self.tags.owners.items():
             for p in self.path:
                 userCacheDir = utils.userStackCacheFor(p, userDataDir=utils.defaultUserDataDir(owner))
                 extraDb = Database(self.getUpsDB(p), userCacheDir)
+
+                db.addUserTagDB(userCacheDir, userId=owner)
 
                 if not self.versions.has_key(p):
                     continue
@@ -741,7 +745,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if not vro:
             vro = self.getPreferredTags()
-            
+
+        if False:
+            import pdb; pdb.set_trace() 
         for i in range(len(vro)):
             vroTag = vro[i]
             vroTag0 = vroTag            # we may modify vroTag
@@ -1037,6 +1043,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 db = self._databaseFor(root)
                 try:
+                    if False:
+                        import pdb; pdb.set_trace() 
                     version = db.getTaggedVersion(tag, name, flavor)
                     if version is not None:
                         prod = db.findProduct(name, version, flavor)
