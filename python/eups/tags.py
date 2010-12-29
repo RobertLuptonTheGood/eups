@@ -13,9 +13,7 @@ class Tags(object):
     """
     a manager of a set of known tag names.  Tags are organized into 
     groups; however, the same name may not be allowed in more than one 
-    group.  Two groups are handled by default: global and user.  
-
-    @author  Raymond Plante
+    group.  Three groups are handled by default: global, pseudo, and user.  
     """
 
     # the group string name indicating the global tag group

@@ -77,6 +77,8 @@ names are declared using VersionParser.define()
 
         try:                            # maybe it's an int
             tok = int(tok)
+        except TypeError:
+            pass
         except ValueError:
             pass
 
@@ -135,7 +137,10 @@ names are declared using VersionParser.define()
             return lhs
 
         if op == "==":
-            return lhs == self._prim()
+            if isinstance(lhs, list):
+                return self._prim() in lhs
+            else:
+                return lhs == self._prim()
         elif op == "=~":
             return re.search(self._prim(), lhs)
         elif op == "!=":

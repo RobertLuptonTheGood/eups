@@ -299,7 +299,6 @@ class Eups(object):
         q = Quiet(self)
         self._kindlySetPreferredTags(preferredTags)
         del q
-
         #
         # Find which tags are reserved to the installation
         #
@@ -774,18 +773,20 @@ The what argument tells us what sort of state is expected (allowed values are de
                         vname = version
                     else:
                         vname = "\"\""
-                    if flavor:
-                        flavorStr = " (Flavor: %s)" % flavor
-                    else:
-                        flavorStr = ""
 
                     if recursionDepth:
                         indent = "            "
                     else:
                         indent = ""
                         
-                    print >> sys.stderr, "%sVRO [%s] failed to match for %s version %s; trying [%s]%s" % \
-                          (indent, ", ".join(preVro), name, vname, ", ".join(postVro), flavorStr)
+                    msg = "%sVRO [%s] failed to match for %s version %s" % \
+                          (indent, ", ".join(preVro), name, vname,)
+                    if postVro:
+                        msg += "; trying [%s]" % (", ".join(postVro))
+                    if flavor:
+                        msg += " (Flavor: %s)" % flavor
+
+                    print >> sys.stderr, msg
 
             elif self.tags.isRecognized(vroTag) or os.path.isfile(vroTag):
                 # search for a tagged version
@@ -1540,7 +1541,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param setupType        the setup type.  This will cause conditional
                                   sections of the table filebased on "type" 
                                   (e.g. "if (type == build) {...}") to be 
-                                  executed.  
+                                  executed.  If setupType is a list then the conditional will
+                                  be interpreted as "if (build in type) {...}"
         @param productRoot      the directory where the product is installed
                                   to assume.  This is useful for products 
                                   that are not currently declared.
@@ -1634,7 +1636,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     # fit the bill
                     for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
                         product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
-                                                                     flavor=fallbackFlavor)
+                                                                     flavor=fallbackFlavor,
+                                                                     recursionDepth=recursionDepth)
 
                         if product:        
                             setupFlavor = fallbackFlavor
@@ -1646,10 +1649,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if not product:
                         return False, versionName, ProductNotFound(productName, versionName)
 
-        if setupType and not self._isValidSetupType(setupType):
-            raise EupsException('Unknown type %s; expected one of "%s"' % \
-                                (setupType, '", "'.join(self._validSetupTypes)))
+        if setupType is None:
+            setupType = []
+        elif isinstance(setupType, str):
+            if re.search(r"[\s,]", setupType):
+                setupType = re.split(r"[\s,]+", setupType)
+            else:
+                setupType = [setupType]
 
+        for st in setupType:
+            if not self._isValidSetupType(st):
+                raise EupsException('Unknown setup type %s; valid types are: "%s"' % \
+                                    (st, '", "'.join(self._validSetupTypes)))
         #
         # We have all that we need to know about the product to proceed
         #
@@ -2487,7 +2498,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return out
                 
 
-    def dependencies_from_table(self, table, eupsPathDirs=None, setupType=None):
+    def dependencies_from_table(self, table, eupsPathDirs=None, setupType=[]):
         """Return self's dependencies as a list of (Product, optional) tuples
 
         N.b. the dependencies are not calculated recursively"""
@@ -2901,6 +2912,19 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if self.keep:
             self._vro[0:0] = ["keep"]
+
+        if self.exact_version:
+            # Remove versionExpr and all user or global tags
+            self._vro = [v for v in self._vro
+                         if (v != "versionExpr" and
+                             not (self.tags.getTag(v).isGlobal() or self.tags.getTag(v).isUser()))]
+            # ensure that "version" is on the VRO
+            if not self._vro.count("version"):
+                if self._vro.count("path"):             # ... but not before path
+                    where = self._vro.index("path") + 1
+                else:
+                    where = 0
+                self._vro[where:where] = ["version"]
 
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO

@@ -125,8 +125,8 @@ product and all its dependencies into the environment so that it can be used.
                             "Default: all in path")
         self.clo.add_option("-t", "--tag", dest="tag", action="store",
                             help="assign TAG to the specified product")
-        self.clo.add_option("-T", "--type", dest="setuptype", action="store",
-                            help="the setup type to assume (ignored unless -d is specified)")
+        self.clo.add_option("-T", "--type", dest="setupType", action="store",
+                            help="the setup type to use (e.g. exact)")
         self.clo.add_option("-u", "--unsetup", dest="unsetup", action="store_true", default=False,
                             help="Unsetup the specifed product")
         self.clo.add_option("-v", "--verbose", dest="verbose", action="count", default=0,
@@ -242,7 +242,7 @@ product and all its dependencies into the environment so that it can be used.
                 raise
                                   
             cmds = eups.setup(productName, versionName, self.opts.tag,
-                              self.opts.productDir, self.opts.setuptype, 
+                              self.opts.productDir, self.opts.setupType, 
                               Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
 
         except EupsException, e:

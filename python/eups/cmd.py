@@ -99,6 +99,8 @@ Common"""
                             help="Don\'t actually do anything (for debugging purposes)")
         self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="Suppress messages to user (overrides -v)")
+        self.clo.add_option("-T", "--type", dest="setupType", action="store",
+                            help="the setup type to use (e.g. exact)")
         self.clo.add_option("-v", "--verbose", dest="verbose", action="count", default=0,
                             help="Print extra messages about progress (repeat for ever more chat)")
         self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
@@ -253,7 +255,8 @@ Common"""
             readCache = True
 
         exactver = False
-        if hasattr(opts, "exactver"):  exactver = opts.exactver
+        if hasattr(opts, "exactver"):
+            exactver = opts.exactver
         ignorever = False
         if hasattr(opts, "ignorever"):  ignorever = opts.ignorever
         keep = False
@@ -262,7 +265,7 @@ Common"""
         if hasattr(opts, "asAdmin"):  asAdmin = opts.asAdmin
             
         Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
-                         readCache=readCache, force=opts.force,
+                         readCache=readCache, force=opts.force, 
                          ignore_versions=ignorever, exact_version=exactver,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin)
@@ -417,7 +420,7 @@ will also be printed.
                             help="Print the name of the product's table file")
         self.clo.add_option("-t", "--tag", dest="tag", action="store",
                             help="List only versions having this tag name")
-        self.clo.add_option("-T", "--type", dest="setuptype", action="store",
+        self.clo.add_option("-T", "--type", dest="setupType", action="store",
                             help="the setup type to assume (ignored unless -d is specified)")
 
     def execute(self):
@@ -446,7 +449,7 @@ will also be printed.
                                    directory=self.opts.printdir, 
                                    dependencies=self.opts.depends, 
                                    showVersion=self.opts.version, 
-                                   setupType=self.opts.setuptype, 
+                                   setupType=self.opts.setupType, 
                                    depth=self.opts.depth,
                                    productDir=self.opts.productDir)
             if n == 0:

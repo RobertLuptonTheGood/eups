@@ -366,7 +366,7 @@ but no other interpretation is applied
         if block:
             self._actions += [(logical, block, [])]
 
-    def actions(self, flavor, setupType=None, verbose=0):
+    def actions(self, flavor, setupType=[], verbose=0):
         """Return a list of actions for the specified flavor"""
 
         actions = []
@@ -387,7 +387,7 @@ but no other interpretation is applied
         if len(actions) == 0 and verbose > 1:
             msg = "Table %s has no entry for flavor %s" % (self.file, flavor)
             if setupType:
-                msg += ", type " + setupType
+                msg += ", type " + ", ".join(setupType)
             print >> sys.stderr, msg
         return actions
 
@@ -407,7 +407,7 @@ but no other interpretation is applied
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
     def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0,
-                     setupType=None, followExact=None):
+                     setupType=[], followExact=None):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional) tuples
