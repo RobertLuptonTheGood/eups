@@ -139,16 +139,19 @@ def userStackCacheFor(eupsPathDir, userDataDir=None):
 
     return os.path.join(userDataDir,"_caches_", eupsPathDir[1:])
 
-def defaultUserDataDir():
+def defaultUserDataDir(user=""):
     """
     return the default user data directory.  This will be the value of 
     $EUPS_USERDATA if set; otherwise, it is ~/.eups. 
     """
 
-    if os.environ.has_key("EUPS_USERDATA"):
+    if not user and os.environ.has_key("EUPS_USERDATA"):
         userDataDir = os.environ["EUPS_USERDATA"]
     else:
-        userDataDir = os.path.join(os.path.expanduser("~"), ".eups")
+        home = os.path.expanduser("~%s" % user)
+        if home[0] == "~":              # failed to expand
+            raise RuntimeError("%s doesn't appear to be a valid username" % user)
+        userDataDir = os.path.join(home, ".eups")
 
     return userDataDir
 
