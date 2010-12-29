@@ -6,6 +6,7 @@ import filecmp
 import fnmatch
 import tempfile
 
+import utils
 from stack      import ProductStack, CacheOutOfSync
 from db         import Database
 from tags       import Tags, Tag, TagNotRecognized
@@ -13,9 +14,7 @@ from exceptions import ProductNotFound, EupsException, TableError, TableFileNotF
 from table      import Table
 from Product    import Product
 from Uses       import Uses
-import utils 
 import hooks
-from utils      import Flavor, Quiet
 
 class Eups(object):
     """
@@ -253,7 +252,7 @@ class Eups(object):
         #   * read the cached version of product info
         #
         self.versions = {}
-        neededFlavors = Flavor().getFallbackFlavors(self.flavor, True)
+        neededFlavors = utils.Flavor().getFallbackFlavors(self.flavor, True)
         if readCache:
           for p in self.path:
 
@@ -299,7 +298,10 @@ class Eups(object):
             if isinstance(tags, str):
                 tags = tags.split()
             for tag in tags:
-                self.tags.registerTag(tag, group)
+                try:
+                    self.tags.registerTag(tag, group)
+                except RuntimeError, e:
+                    raise RuntimeError("Unable to process tag %s: %s" % (tag, e))
 
         self._loadServerTags()
         self._loadUserTags()
@@ -319,7 +321,7 @@ class Eups(object):
             for t in tags:
                 preferredTags.append(t)
                 
-        q = Quiet(self)
+        q = utils.Quiet(self)
         self._kindlySetPreferredTags(preferredTags)
         del q
         #
@@ -353,7 +355,7 @@ class Eups(object):
         #
         self.localVersions = {}
 
-        q = Quiet(self)
+        q = utils.Quiet(self)
         for product in self.getSetupProducts():
             try:
                 if product.version.startswith(Product.LocalVersionPrefix):
@@ -453,7 +455,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             # if no list cached, try asking the cached product stack
             tags = Tags()
             tagNames = set()
-            tagUsedInProducts = {}
+            tagUsedInProducts = {}      # used for better diagnostics
 
             if self.versions.has_key(path):
                 for t in self.versions[path].getTags():
@@ -496,8 +498,8 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _loadUserTags(self):
         for path in self.path:
             # start by looking for a cached list
-            dir = self._userStackCache(path)
-            if not dir or not os.path.isdir(dir) or self.tags.loadUserTags(dir):
+            dirName = self._userStackCache(path)
+            if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName):
                 continue
 
             # if no list cached, try asking the cached product stack
@@ -510,7 +512,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             else:
                 # consult the individual User tag Chain files (via Database)
-                db = Database(self.getUpsDB(path), dir)
+                db = Database(self.getUpsDB(path), dirName)
                 for pname in db.findProductNames():
                     for tag, v, f in db.getTagAssignments(pname):
                         t = Tag.parse(tag)
@@ -518,14 +520,33 @@ The what argument tells us what sort of state is expected (allowed values are de
                             tags.registerTag(t.name, t.group)
 
             # cache the user tags:
-            tags.saveUserTags(dir)
+            tags.saveUserTags(dirName)
 
             # now register them with self.tags:
             for tag in tags.getTags():
                 if tag.isUser() and not self.tags.isRecognized(tag):
                     self.tags.registerUserTag(tag.name)
-        
+        #
+        # Now see if we need to read some other user's tags
+        #
+        for tag, owner in self.tags.owners.items():
+            for p in self.path:
+                userCacheDir = utils.userStackCacheFor(p, userDataDir=utils.defaultUserDataDir(owner))
+                extraDb = Database(self.getUpsDB(p), userCacheDir)
 
+                if not self.versions.has_key(p):
+                    continue
+
+                for productName in extraDb.findProductNames():
+                    for etag, versionName, flavor in extraDb.getTagAssignments(productName, glob=False):
+                        if Tag(etag) != tag:
+                            continue
+
+                        try:
+                            self.versions[p].lookup[flavor][productName].tags[etag] = versionName
+                        except KeyError:
+                            continue
+                
     def setPreferredTags(self, tags):
         """
         set a list of tags to prefer when selecting products.  The 
@@ -1297,9 +1318,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         return os.path.join(eupsPathDir, self.ups_db)
     
 
-    def includeUserDataDirInPath(self):
+    def includeUserDataDirInPath(self, dataDir=None):
         """Include the ~/.eups versions of directories on self.path in the search path"""
-        dataDir = self.userDataDir
+        if not dataDir:
+            dataDir = self.userDataDir
+            
         if os.path.isdir(self.getUpsDB(dataDir)):
             self.path.append(dataDir)
 
@@ -1681,7 +1704,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if not product:
                     # It's not there.  Try a set of other flavors that might 
                     # fit the bill
-                    for fallbackFlavor in Flavor().getFallbackFlavors(self.flavor):
+                    for fallbackFlavor in utils.Flavor().getFallbackFlavors(self.flavor):
                         product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
                                                                      flavor=fallbackFlavor,
                                                                      recursionDepth=recursionDepth)
@@ -1702,7 +1725,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         if recursionDepth == 0:
             if fwd:
-                q = Quiet(self)
+                q = utils.Quiet(self)
                 self.alreadySetupProducts = {}
                 for p in self.getSetupProducts():
                     self.alreadySetupProducts[p.name] = (p, None)
@@ -1787,7 +1810,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             print >> sys.stderr, "            %s%s" % (recursionDepth*" ", msg)
                         setup_msgs[msg] = 1
 
-            q = Quiet(self)
+            q = utils.Quiet(self)
             self.unsetupSetupProduct(product)
             del q
 
@@ -2016,7 +2039,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 productName = utils.guessProduct(os.path.join(productDir,"ups"))
 
         if tag and (not productDir or productDir == "/dev/null" or not tablefile):
-            for flavor in Flavor().getFallbackFlavors(self.flavor, True):
+            for flavor in utils.Flavor().getFallbackFlavors(self.flavor, True):
                 info = self.findProduct(productName, versionName, eupsPathDir, flavor)
                 if info is not None:
                     if not productDir:
@@ -2033,7 +2056,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             # Look for productDir on self.path
             #
             for eupsProductDir in self.path:
-                for flavor in Flavor().getFallbackFlavors(self.flavor, True): 
+                for flavor in utils.Flavor().getFallbackFlavors(self.flavor, True): 
                     _productDir = os.path.join(eupsProductDir, flavor, productName, versionName) 
                     if os.path.isdir(_productDir): 
                         productDir = _productDir 
@@ -2386,7 +2409,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                will be searched.  
         """
         if flavors is None:
-            flavors = Flavor().getFallbackFlavors(self.flavor, True)
+            flavors = utils.Flavor().getFallbackFlavors(self.flavor, True)
 
         if tags is not None:
             if isinstance(tags, Tags):
@@ -2701,7 +2724,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for pi in productList:          # for every known product
             try:
-                q = Quiet(self)
+                q = utils.Quiet(self)
                 tbl = pi.getTable()
 
                 if not tbl:
@@ -2989,7 +3012,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # The VRO used to be called the "preferredTags";  for now use the old name
         #
-        q = None # Quiet(self)
+        q = None # utils.Quiet(self)
         self._kindlySetPreferredTags(self._vro)
         del q
 

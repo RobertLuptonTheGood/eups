@@ -730,19 +730,19 @@ class ProductStack(object):
             flavors = [flavors]
 
         for flavor in flavors:
-            file = self._persistPath(flavor,persistDir)
-            self._lock(file)
-            self.modtimes[file] = os.stat(file).st_mtime
-            fd = open(file)
+            fileName = self._persistPath(flavor,persistDir)
+            try:
+                self._lock(fileName)
+            except OSError, e:
+                print >> sys.stderr, "Unable to get lock for %s; bravely proceeding" % (fileName)
+
+            self.modtimes[fileName] = os.stat(fileName).st_mtime
+            fd = open(fileName)
             lookup = cPickle.load(fd)
             fd.close()
-            self._unlock(file)
+            self._unlock(fileName)
 
             self.lookup[flavor] = lookup
-
-
-            
-
 
     # @staticmethod   # requires python 2.4
     def findCachedFlavors(dir):

@@ -34,6 +34,8 @@ class Tags(object):
         #   "_u"   user tags
         self.bygrp = { self.global_: [], self.pseudo: [], self.user: [] }
 
+        self.owners = {}                # owners of the tags (e.g. rhl probably defined the "rhl" tags)
+
         for group in groups:
             if not self.bygrp.has_key(group):
                 self.bygrp[group] = []
@@ -125,7 +127,7 @@ class Tags(object):
         """
         register a tag so that it is recognized.  
 
-        @param name :  the name of the tag
+        @param name :  the name of the tag, or a tuple (tag, user) where user declared tag
         @param group : the class of tag to register it as.  If null, it 
                        will be registered as a global tag.
         @param force : Allows the tag to be redefined, maybe in a different group
@@ -138,6 +140,14 @@ class Tags(object):
         if isinstance(name, Tag):
             name = name.name
 
+        try:
+            name, owner = name
+        except ValueError:
+            owner = None
+
+        if owner and os.path.expanduser("~%s" % owner)[0] == "~":
+            raise RuntimeError("User %s is invalid" % owner)
+
         found = self.groupFor(name)
         if found:
             if found != group and not force:
@@ -148,7 +158,9 @@ class Tags(object):
 
         if not found:
             self.bygrp[group].append(name)
-
+            if owner:
+                self.owners[name] = owner
+            
     def registerUserTag(self, name, force=False):
         """
         register a user tag.  This is equivalent to 
@@ -300,12 +312,12 @@ class Tags(object):
         if not os.path.isdir(userPersistDir):
             raise IOError("Tag cache not an existing directory: " + 
                           userPersistDir)
-        file = os.path.join(userPersistDir, self.persistFilename("user"))
-        if not os.path.exists(file):
+        fileName = os.path.join(userPersistDir, self.persistFilename("user"))
+        if not os.path.exists(fileName):
             # that's okay: no user tags cached
             return False
 
-        self.load(self.user, file)
+        self.load(self.user, fileName)
         return True
 
     def saveGroup(self, group, dir):
@@ -397,16 +409,6 @@ class Tag(object):
         """
         return self.group == Tags.pseudo
 
-    def equals(self, that):
-        """
-        return true if the given tag is the same as this tag.  The given 
-        tag can be either another Tag instance or a string.  This is 
-        equivalent to (self == that).  Two Tag instances are equal if both 
-        their group and name attributes are equal.  A string will be equal
-        to this Tag if it is equal to this Tag's name.  
-        """
-        return self.__cmp__(that)
-
     def __repr__(self):
         if self.isUser():
             return "User Tag: " + self.name
@@ -430,6 +432,9 @@ class Tag(object):
             # allow either a qualified string ("user:beta") if the group matches or 
             # an unqualified string ("beta").  
             return str(self) == that or self.name == that
+
+    def __ne__(self, that):
+        return not (self == that)
 
     # @staticmethod   # requires python 2.4
     def parse(name, defGroup=Tags.global_):
