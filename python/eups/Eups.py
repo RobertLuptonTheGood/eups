@@ -1673,55 +1673,53 @@ The what argument tells us what sort of state is expected (allowed values are de
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
                 vroReason = ["path", productRoot]
             else:
-                vro = self.getPreferredTags()
-                while vro:
-                    product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
-                                                                 recursionDepth=recursionDepth, vro=vro)
-                    if not product and self.alreadySetupProducts.has_key(productName):
+                product = None
+                for fallbackFlavor in utils.Flavor().getFallbackFlavors(self.flavor, includeMe=True):
+                    vro = self.getPreferredTags()
+                    while not product and vro:
+                        product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
+                                                                     flavor=fallbackFlavor,
+                                                                     recursionDepth=recursionDepth, vro=vro)
 
-                        # We couldn't find it, but maybe it's already setup 
-                        # locally?   That'd be OK
-                        product = self.alreadySetupProducts[productName][0]
-                        if not self.keep and product.version != versionName:
-                            product = None
-                            vro = []    # no-where else to search
+                        if not product and self.alreadySetupProducts.has_key(productName):
+                            # We couldn't find it, but maybe it's already setup 
+                            # locally?   That'd be OK
+                            product = self.alreadySetupProducts[productName][0]
+                            if not self.keep and product.version != versionName:
+                                product = None
+                                break   # no-where else to search
 
-                    if product and versionName and recursionDepth == 0: # Check that we got the desired version
-                        if product.version != versionName:
-                            #
-                            # Maybe we'll find the product again further down the VRO
-                            #
-                            vro = vro[vro.index(vroReason[0]) + 1:]
+                        if product and versionName and recursionDepth == 0: # Check we got the desired version
+                            if product.version != versionName:
+                                #
+                                # Maybe we'll find the product again further down the VRO
+                                #
+                                vro = vro[vro.index(vroReason[0]) + 1:]
 
-                            if self.verbose > 1:
-                                msg = ("Requested %s version %s; " + 
-                                       "version %s found on VRO as \"%s\" is not acceptable") % \
-                                      (productName, versionName, product.version, vroReason[0])
-                                if vro:
-                                    msg += "; proceeding"
-                                print >> sys.stderr, msg
-                            product = None
+                                if self.verbose > 1:
+                                    msg = ("Requested %s version %s; " + 
+                                           "version %s found on VRO as \"%s\" is not acceptable") % \
+                                          (productName, versionName, product.version, vroReason[0])
+                                    if vro:
+                                        msg += "; proceeding"
+                                    print >> sys.stderr, msg
+                                product = None
+                                continue
 
-                    if product:         # got it
+                        if product:         # got it
+                            if setupFlavor != fallbackFlavor:
+                                setupFlavor = fallbackFlavor
+                                if self.verbose > 2:
+                                    print >> sys.stderr, "Using flavor %s for %s %s" % \
+                                          (setupFlavor, productName, versionName)
+                        else:
+                            break       # no product, and we've searched the vro already.  Try next flavour
+                        
+                    if product:
                         break
 
                 if not product:
-                    # It's not there.  Try a set of other flavors that might 
-                    # fit the bill
-                    for fallbackFlavor in utils.Flavor().getFallbackFlavors(self.flavor):
-                        product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
-                                                                     flavor=fallbackFlavor,
-                                                                     recursionDepth=recursionDepth)
-
-                        if product:        
-                            setupFlavor = fallbackFlavor
-                            if self.verbose > 2:
-                                print >> sys.stderr, "Using flavor %s for %s %s" % \
-                                    (setupFlavor, productName, versionName)
-                            break
-
-                    if not product:
-                        return False, versionName, ProductNotFound(productName, versionName)
+                    return False, versionName, ProductNotFound(productName, versionName)
         #
         # We have all that we need to know about the product to proceed
         #
