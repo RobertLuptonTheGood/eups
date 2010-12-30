@@ -1,3 +1,9 @@
+2010-12-30 rhl
+	Fixed various aspects of the (type == "exact") processing
+
+	Allow a user to specify that a tag is defined by some other user, e.g.
+	hooks.config.Eups.userTags = [("beta", "rhl")]
+
 2010-12-15 rhl
 	Made expandtable set the exact versions in an if (type == "exact") block
 
@@ -28,6 +34,11 @@
 	Automatically added a tag to the start of the VRO if no VRO is explicitly specified for that tag
 
 	Fixed --keep; it now works by adding "keep" to the VRO
+
+	Added ~/.eups/manifest.remap to allow the user to override/delete versions in a distribution, e.g.
+	doxygen:1.5.9  			1.6.3
+	python:Any			2.6.1
+	tcltk				None
 
         Many changes (I should look them up and document them.)
 
