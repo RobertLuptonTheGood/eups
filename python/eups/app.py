@@ -289,8 +289,7 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
     if not prodtbl:
         return dependentProducts
 
-    for product, optional, recursionDepth in \
-            prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1, setupType=eupsenv.setupType):
+    for product, optional, recursionDepth in prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1):
 
         if setup:           # get the version that's actually setup
             setupProduct = eupsenv.findSetupProduct(product.name)
@@ -326,6 +325,8 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
         eupsenv = Eups()
 
     topProduct = eupsenv.findProduct(productName, versionName)
+    if not topProduct:                  # it's never been declared (at least not with this version)
+        return []
         
     return [(product.name, product.version, recursionDepth) for product, recursionDepth in
             getDependentProducts(topProduct, eupsenv, setup, shouldRaise)]

@@ -923,7 +923,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
 
         version = productList.get(productName, version) # accept the explicit version if provided
 
-        if not version:
+        if version:
+            product = None
+        else:
             product = Eups.findSetupProduct(productName)
             if product:
                 version = product.version
@@ -937,10 +939,10 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             if not Eups.version_match(version, logical):
                 print >> sys.stderr, "Warning: %s %s failed to match condition \"%s\"" % (productName, version, logical)
         else:
-            if version and not re.search("^" + product.LocalVersionPrefix, version):
+            if product and version and not re.search("^" + product.LocalVersionPrefix, version):
                 logical = ">= %s" % version
 
-        args = flags + [productName]
+        args = [productName] + flags
         if version:
             args += [version]
             if versionRegexp and not re.search(versionRegexp, version):
@@ -1000,10 +1002,14 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
     #
     desiredProducts = []
     for productName in products:
-        for name, version, level in \
-            [(productName, eups.getSetupVersion(productName), None)] + \
-            eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True):
+        NVL = []
+        if productList.has_key(productName):
+            NVL.append((productName, productList[productName], None))
+        else:
+            NVL.append((productName, eups.getSetupVersion(productName), None))
+        NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
 
+        for name, version, level in NVL:
             if re.search("^" + Product.Product.LocalVersionPrefix, version):
                 print >> sys.stderr, "Warning: exact product specification \"%s %s\" is local" % \
                       (name, version)
@@ -1017,8 +1023,19 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
     #
     indent = "   "
     i = 0
-    for isSetupBlock, block in setupBlocks:
-        if isSetupBlock:
+    while i < len(setupBlocks):
+        isSetupBlock, block = setupBlocks[i]
+        
+        if not isSetupBlock:
+            if len(block) == 1 and re.search(r"if\s*\(type\s*==\s*exact\)\s*{", block[0]):
+                # This is FRAGILE!!  Should count forward past matching braces
+                i += 3
+                setupBlocks[-1] = (False, []) # the closing "}"
+                continue
+            
+            for line in block:
+                print >> ofd, line,
+        else:
             if i == lastSetupBlock:
                 print >> ofd, "if (type == exact) {"
 
@@ -1030,12 +1047,10 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
                 print >> ofd, "if (type != exact) {"
 
             for line in block:
-                print >> ofd, indent + line,
+                print >> ofd, indent + line.strip()
 
             print >> ofd, "}"
-        else:
-            for line in block:
-                print >> ofd, line,
+
         i += 1
     #
     # Now write a block that fully specifies all the required products
