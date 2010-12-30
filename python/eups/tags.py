@@ -112,7 +112,7 @@ class Tags(object):
         @param tag :    the name as a string or a Tag instance
         @return Tag : a representation of the tag
         """
-        if isinstance(tag, str) and tag.find(':') >= 0:
+        if isinstance(tag, str) and tag != ":" and tag.find(':') >= 0:
             # parse a qualified name
             tag = Tag.parse(tag)
         group = self.groupFor(tag)
