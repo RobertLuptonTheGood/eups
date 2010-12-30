@@ -144,7 +144,10 @@ names are declared using VersionParser.define()
         elif op == "=~":
             return re.search(self._prim(), lhs)
         elif op == "!=":
-            return lhs != self._prim()
+            if isinstance(lhs, list):
+                return not (self._prim() in lhs)
+            else:
+                return lhs != self._prim()
         elif op == "!~":
             return not re.search(self._prim(), lhs)
         elif op == "<":
