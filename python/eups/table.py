@@ -319,7 +319,7 @@ but no other interpretation is applied
             else:
                 cmd = line; args = []
 
-            extra = None
+            extra = {}
             if cmd == Action.prodDir or cmd == Action.setupEnv:
                 pass                 # the actions are always executed
             elif cmd == Action.addAlias:
@@ -328,16 +328,16 @@ but no other interpretation is applied
                 pass
             elif cmd == Action.setupOptional or cmd == Action.setupRequired:
                 if cmd == Action.setupRequired:
-                    extra = False       # optional?
+                    extra["optional"] = False
                 else:
                     cmd = Action.setupRequired
-                    extra = True        # optional?
+                    extra["optional"] = True
             elif cmd == Action.envAppend or cmd == Action.envPrepend:
                 if cmd == Action.envAppend:
                     cmd = Action.envPrepend
-                    extra = True        # append?
+                    extra["append"] = True
                 else:
-                    extra = False       # append?
+                    extra["append"] = False
 
                 if len(args) < 2 or len(args) > 3:
                     msg = "%s expected 2 (or 3) arguments, saw %s at %s:%d" % \
@@ -433,7 +433,7 @@ but no other interpretation is applied
         deps = []
         for a in self.actions(Eups.flavor, setupType=Eups.setupType):
             if a.cmd == Action.setupRequired:
-                optional = a.extra
+                optional = a.extra["optional"]
 
                 requestedVRO, productName, vers, versExpr, noRecursion = a.processArgs(Eups)
 
@@ -449,7 +449,7 @@ but no other interpretation is applied
                         raise ProductNotFound(productName)
 
                     val = [product]
-                    val.append(a.extra)
+                    val.append(a.extra["optional"])
                     if recursive:
                         val.append(recursionDepth)
                     else:
@@ -465,7 +465,7 @@ but no other interpretation is applied
                 except ProductNotFound, e:
                     product = eups.Product(productName, vers) # it doesn't exist, but it's still a dep.
 
-                    val = [product, a.extra]
+                    val = [product, a.extra["optional"]]
                     if recursive:
                         val.append(recursionDepth)
                     else:
@@ -518,14 +518,14 @@ class Action(object):
     addAlias = "addAlias"
     declareOptions = "declareOptions"
     envAppend = "envAppend"             # not used
-    envPrepend = "envPrepend"           # extra: bool append
+    envPrepend = "envPrepend"           # extra: "append"
     envRemove = "envRemove"             # not supported
     envSet = "envSet"
     envUnset = "envUnset"               # not supported
     prodDir = "prodDir"
     setupEnv = "setupEnv"
     setupOptional = "setupOptional"     # not used
-    setupRequired = "setupRequired"     # extra: bool optional
+    setupRequired = "setupRequired"     # extra: "optional"
     sourceRequired = "sourceRequired"   # not supported
 
     def __init__(self, tableFile, cmd, args, extra):
@@ -536,7 +536,7 @@ class Action(object):
                           command line)
         @param args     the list of arguments passed to the command as 
                           instantiated in a table file.
-        @param extra    extra, command-specific data passed by the parser to 
+        @param extra    dictionary of extra, command-specific data passed by the parser to 
                           control the execution of the command.  
         """
         self.tableFile = tableFile
@@ -577,7 +577,7 @@ class Action(object):
     def processArgs(self, Eups, fwd=True):
         """Process the arguments in a setup command found in a table file"""
 
-        optional = self.extra
+        optional = self.extra["optional"]
 
         if optional:
             cmdStr = "setupOptional"    # name of this command, used in diagnostics
@@ -678,7 +678,7 @@ class Action(object):
     def execute_setupRequired(self, Eups, recursionDepth, fwd=True):
         """Execute setupRequired"""
 
-        optional = self.extra
+        optional = self.extra["optional"]
 
         requestedVRO, productName, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
 
@@ -722,7 +722,7 @@ class Action(object):
         """Execute envPrepend"""
 
         args = self.args
-        append = self.extra
+        append = self.extra["append"]
 
         envVar = args[0]                # environment variable to set
         value = args[1]                 # add/subtract this value to the variable
@@ -931,7 +931,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
                 version = product.version
             if not version:
                 if cmd == "setupOptional":
-                    return ""           # it must not have been setup
+                    return original     # it must not have been setup
 
                 print >> sys.stderr, "Trouble finding version for", productName
 
@@ -969,7 +969,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
     lastSetupBlock = None               # index of the _last_ block of setups
 
     for line in ifd:
-        if re.search(r"^\s*#", line):
+        if re.search(r"^\s*(#.*)?$", line):
             block[1].append(line)
             continue
             
@@ -1006,7 +1006,10 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
         if productList.has_key(productName):
             NVL.append((productName, productList[productName], None))
         else:
-            NVL.append((productName, eups.getSetupVersion(productName), None))
+            try:
+                NVL.append((productName, eups.getSetupVersion(productName), None))
+            except ProductNotFound:
+                pass                    # must be setupOptional
         NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
 
         for name, version, level in NVL:
@@ -1046,10 +1049,18 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             else:
                 print >> ofd, "if (type != exact) {"
 
-            for line in block:
-                print >> ofd, indent + line.strip()
+            needCloseBrace = True
+            for j in range(len(block)):
+                line = block[j].strip()
+                if j == len(block) - 1: # this is just cosmetics in the generated file
+                    if not line:
+                        print >> ofd, "}\n"
+                        needCloseBrace = False
+                        break
+                print >> ofd, indent + line
 
-            print >> ofd, "}"
+            if needCloseBrace:
+                print >> ofd, "}"
 
         i += 1
     #
