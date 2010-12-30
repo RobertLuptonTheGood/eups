@@ -1309,6 +1309,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         found = None
         for vers in preferred:
+            if vers == ":" or re.search(r"^\d+$", vers):
+                continue
             vers = self.tags.getTag(vers)
             found = self.findProduct(name, vers, eupsPathDirs, flavor, noCache)
             if found:
@@ -2475,6 +2477,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if version and (not prod.version or \
                                 not fnmatch.fnmatch(prod.version, version)):
                     continue
+
                 if not prod.flavor or prod.flavor not in flavors:
                     continue
 
@@ -2484,7 +2487,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                                      prod.stackRoot() not in eupsPathDirs):
                     continue
                 setup[prodkey(prod)] = prod
-
 
         # now look for products in the cache.  By default, we'll search
         # the stacks in the EUPS_PATH.  
@@ -3005,8 +3007,6 @@ The what argument tells us what sort of state is expected (allowed values are de
             removed = []
             vro = []
             for v in self._vro:
-                if v == "versionExpr":
-                    continue
                 v0 = v.split(":")[0] # v may be of form warn:nnn so only the pre-: string is a tagname
                 if self.tags.isRecognized(v0) and \
                    not (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser()):
@@ -3019,13 +3019,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                       ", ".join(removed)
 
             self._vro = vro
-            # ensure that "version" is on the VRO
-            if not self._vro.count("version"):
-                if self._vro.count("path"):             # ... but not before path
-                    where = self._vro.index("path") + 1
-                else:
-                    where = 0
-                self._vro[where:where] = ["version"]
+            # ensure that "version" and "versionExpr" are on the VRO, after "path" and "version" respectively
+            for v, vv in [("version", "path"), ("versionExpr", "version")]:
+                if not self._vro.count(v):
+                    if self._vro.count(vv):             # ... but not before vv
+                        where = self._vro.index(vv) + 1
+                    else:
+                        where = 0
+                    self._vro[where:where] = [v]
 
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO
