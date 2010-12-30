@@ -987,7 +987,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
 
             args = mat.group(2)
             if args:
-                products.append(args.split(" ")[0])
+                products.append((args.split(" ")[0], mat.group(1) == "setupOptional"))
         else:
             if block[0]:
                 block = [False, []]
@@ -1001,7 +1001,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
     # the versions that are currently setup
     #
     desiredProducts = []
-    for productName in products:
+    for productName, optional in products:
         NVL = []
         if productList.has_key(productName):
             NVL.append((productName, productList[productName], None))
@@ -1009,8 +1009,12 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             try:
                 NVL.append((productName, eups.getSetupVersion(productName), None))
             except ProductNotFound:
-                pass                    # must be setupOptional
-        NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
+                assert optional
+        try:
+            NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
+        except:
+            if not optional:
+                raise
 
         for name, version, level in NVL:
             if re.search("^" + Product.Product.LocalVersionPrefix, version):
