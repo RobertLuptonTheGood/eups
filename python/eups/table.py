@@ -463,7 +463,7 @@ but no other interpretation is applied
                             deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict, recursionDepth+1)
                         
                 except ProductNotFound, e:
-                    product = eups.Product(productName, vers) # it doesn't exist, but it's still a dep.
+                    product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra["optional"]]
                     if recursive:
