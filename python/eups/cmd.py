@@ -1276,9 +1276,6 @@ where it is installed.
             e.status = 9
             raise
 
-        if myeups.isUserTag(self.opts.tag):
-            myeups.includeUserDataDirInPath()
-            
         try:
             myeups.remove(product, version, self.opts.recursive,
                           checkRecursive=not self.opts.noCheck, 
