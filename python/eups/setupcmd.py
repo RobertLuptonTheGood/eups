@@ -231,7 +231,14 @@ product and all its dependencies into the environment so that it can be used.
             except Exception, e:
                 e.status = 9
                 raise
-                                  
+            # If we are asking for an exact setup but don't specify a version or tag we won't find
+            # one as current is removed from the VRO.  Do an explicit lookup including current
+            if not versionName and not tag:
+                product, vroReason = Eups.findProductFromVRO(productName,
+                                                             vro=["current"] + Eups.getPreferredTags())
+                if product:
+                    versionName = product.version
+
             cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
                               Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
 
