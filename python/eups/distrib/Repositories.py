@@ -572,7 +572,7 @@ class Repositories(object):
 
         if self.verbose > 1:
             print >> self.log, \
-                "Assigning Server Tags to %s %s: %s" % (prod.product, prod.version, tags)
+                "Assigning Server Tags to %s %s: %s" % (prod.product, prod.version, ", ".join(tags))
 
         dprod = self.eups.findProduct(prod.product, prod.version, stackRoot, flavor)
         if dprod is None:
@@ -584,7 +584,7 @@ class Repositories(object):
         for tag in tags:
            if tag not in dprod.tags:
               if not self.eups.quiet:
-                 print >> self.log, "Assigning Server Tag %s to %s %s" % \
+                 print >> self.log, "Assigning Server Tag %s to dependency %s %s" % \
                      (tag, dprod.name, dprod.version)
               try:
 
