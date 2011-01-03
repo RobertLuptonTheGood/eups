@@ -930,10 +930,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             if product:
                 version = product.version
             if not version:
-                if cmd == "setupOptional":
-                    return original     # it must not have been setup
-
-                print >> sys.stderr, "Trouble finding version for", productName
+                if cmd == "setupRequired":
+                    print >> sys.stderr, "Failed to find setup version of", productName
+                return original     # it must not have been setup
 
         if logical:
             if not Eups.version_match(version, logical):
@@ -1008,8 +1007,10 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
         else:
             try:
                 NVL.append((productName, eups.getSetupVersion(productName), None))
-            except ProductNotFound:
-                assert optional
+            except ProductNotFound, e:
+                if not optional:
+                    raise RuntimeError(e)
+                    
         try:
             NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
         except:
