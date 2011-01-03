@@ -1092,6 +1092,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # Read file seeing if it lists a desired version of product name
         #
+        fileName = re.sub(r"^file:", "", fileName)
+        fileName = os.path.expanduser(fileName)
+
         try:
             fd = open(fileName, "r")
         except IOError:
