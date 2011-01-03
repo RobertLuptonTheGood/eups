@@ -1,0 +1,5 @@
+EUPS distribution manifest for doxygen (1.5.8). Version 1.0
+#
+# pkg   flavor  version tablefile              installation_directory installID
+#------ ------- ------- ---------------------- ---------------------- ---------
+doxygen Linux   1.5.8   external/doxygen.table external/doxygen/1.5.8 external/doxygen/1.5.8/Linux/doxygen-1.5.8-Linux.tar.gz

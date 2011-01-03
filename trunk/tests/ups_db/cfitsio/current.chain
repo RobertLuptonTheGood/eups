@@ -1,0 +1,10 @@
+FILE = version
+PRODUCT = cfitsio
+CHAIN = current
+#***************************************
+
+#Group:
+   FLAVOR = Linux
+   VERSION = 3006.2
+   QUALIFIERS = ""
+#End:

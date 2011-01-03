@@ -1,0 +1,55 @@
+#!/bin/sh
+failed=0
+
+#=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+vars="AAA BBB LLL XXX YYY ZZZ"
+
+for f in $vars; do unset $f; done
+setup -f Foo -r . test1
+if [ "$XXX" != "1" -o "$YYY" != 2 -o "$ZZZ" != 3 -o \
+     "$AAA" != 4 -o \
+     "$BBB" != "" -o \
+     "$LLL" != 1 -o "$MMM" != "" \]; then
+    echo "test1:Foo failed" >&2
+    failed=$[$failed+1]
+fi
+
+for f in $vars; do unset $f; done
+setup -t build -f Foo -r . test1
+if [ "$XXX" != "1" -o "$YYY" != 2 -o "$ZZZ" != 3 -o \
+     "$AAA" != 4 -o \
+     "$BBB" != 1 -o \
+     "$LLL" != 1 -o "$MMM" != "" \]; then
+    echo "test1:Foo -b failed" >&2
+    failed=$[$failed+1]
+fi
+
+for f in $vars; do unset $f; done
+setup -f Goo -r . test1
+if [ "$XXX" != "1" -o "$YYY" != 2 -o "$ZZZ" != 3 -o \
+     "$AAA" != 4 -o \
+     "$BBB" != "" -o \
+     "$LLL" != "" -o "$MMM" != "" ]; then
+    echo "test1:Goo failed" >&2
+    failed=$[$failed+1]
+fi
+
+for f in $vars; do unset $f; done
+setup -f Xoo -r . test1
+if [ "$XXX" != "1" -o "$YYY" != "" -o "$ZZZ" != "" -o \
+     "$AAA" != 4 -o \
+     "$BBB" != "" -o \
+     "$LLL" != "1" -o "$MMM" != "1" ]; then
+    echo "test1:Xoo failed" >&2
+    failed=$[$failed+1]
+fi
+
+#=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+if [ $failed = 0 ]; then
+    echo "All tests passed" >&2
+else
+    echo "$failed tests failed" >&2
+fi
+exit $failed

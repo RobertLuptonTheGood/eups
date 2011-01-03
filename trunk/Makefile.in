@@ -1,0 +1,105 @@
+###############################################################################
+# Sloan Digital Sky Survey (SDSS)
+# N. Padmanabhan, D. Schlegel, D. Finkbeiner, R. H. Lupton, C. P. Loomis
+###############################################################################
+
+SHELL = /bin/sh
+#
+# Set by configure
+#
+prefix = @prefix@
+EUPS_PATH = @EUPS_PATH@
+EUPS_DIR = @EUPS_DIR@
+SETUP_ALIASES = @SETUP_ALIASES@
+EUPS_DB = $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d/ups_db\n"}')
+#
+export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES
+#
+SUBDIRS = @MAKE_SUBDIRS@
+
+.PHONY : show install clean
+install : show
+	@if [ "$(EUPS_PATH)" = "" ]; then \
+		echo You have not specified EUPS_PATH >&2; \
+		exit 1; \
+	fi 
+
+	@ for d in $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}'); do \
+		if [ ! -d $$d ]; then \
+			mkdir -p $$d; \
+		fi; \
+	done
+
+	@ for db in $(EUPS_DB); do \
+		if [ -d $$db ]; then \
+			echo "EUPS database $$db already exists"; \
+		else \
+			mkdir -p $$db; \
+		fi; \
+	done
+
+	@:
+	@: Check the inode number for . and $(EUPS_DIR) to find out if two
+	@: directories are the same\; they may have different names due to
+	@: symbolic links and automounters
+	@:
+	@if [ -d $(EUPS_DIR) ]; then \
+	    if [ `ls -id $(EUPS_DIR) | awk '{print $$1}'` = `ls -id . | awk '{print $$1}'` ]; then \
+		echo "The destination directory is the same" \
+			"as the current directory; aborting." >&2; \
+		echo ""; \
+		exit 1; \
+	   fi; \
+	fi
+
+	@ if [ -d $(EUPS_DIR) ]; then \
+		$(RM) -r `ls -d $(EUPS_DIR)/* | awk '{ if($$1 != "site") { print } }'`; \
+	else \
+		mkdir -p $(EUPS_DIR); \
+	fi
+	@ for f in $(SUBDIRS); do \
+		(\
+		   if [ ! -d $(EUPS_DIR)/$$f ]; then mkdir $(EUPS_DIR)/$$f; fi; \
+		   cd $$f ; \
+		   echo In $$f; $(MAKE) $(MFLAGS) install \
+                ); \
+	done
+	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
+	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
+declare :
+	@vers="`env EUPS_DIR=. bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
+	eups declare --root $(EUPS_DIR) eups $$vers && \
+	echo eups declare --root $(EUPS_DIR) eups $$vers
+show :
+	@echo "You will be installing ups in \$$EUPS_DIR  = $(EUPS_DIR)"
+	@echo "Ups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
+	@echo "Your EUPS database[s] will be              $(EUPS_DB)"
+	@vers="`env EUPS_DIR=. bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
+	 echo "Your EUPS version is                       $$vers"
+	@ \
+	EUPS_DB_DIR=`echo $(EUPS_PATH) | sed -e 's/:.*//'`; \
+	if [ -d $$EUPS_DB_DIR/site ]; then \
+		echo "Your site configuration files are:"; \
+		for f in `ls $$EUPS_DB_DIR/site/*[a-z] | grep -v Makefile`; do \
+		    echo "   $$f"; \
+		done; \
+	else \
+		echo "Your site configuration files will be in   $$EUPS_DB_DIR/site"; \
+	fi
+#
+# Rebuild configure; almost no-one should need to do this
+#
+configure : configure.ac
+	@ echo "Rebuilding ./configure"
+	autoconf
+#
+# Run tests
+#
+test : 
+	@ echo "Running tests"
+	python tests/testAll.py
+clean :
+	- /bin/rm -f *~ core
+	@ for f in $(SUBDIRS); do \
+		(cd $$f ; echo In $$f; $(MAKE) $(MFLAGS) clean ); \
+	done

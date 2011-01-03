@@ -1,0 +1,99 @@
+#!/bin/sh
+#
+# A master script to call the various eups programs.  Maybe one day they'll go away?
+#
+args=""
+while [ X"$1" != X"" ]; do
+    case $1 in
+     -V|--version)
+        $EUPS_DIR/bin/eups_declare --version
+	exit 1;;
+     -*)
+        if [ X$args != X"" ]; then
+	   args="$args "
+	fi
+        args="${args}$1"
+	shift;;
+     *)
+        break;;
+    esac
+done
+
+if [ X"$1" = X"" ]; then
+   cat >&2 <<EOF
+Usage:
+	eups [--help|--version] command [options]
+Supported commands are:
+	declare		Declare a product
+	distrib		Install a product from a remote distribution,
+			or create such a distribution 
+	expandbuild	Expand variables in a build file
+	expandtable	Insert explicit version tags into a table file
+	flags		Show the value of \$EUPS_FLAGS
+	flavor		Return the current flavor
+	list            List some or all products
+        path [n]        Print the current eups path, or an element thereof
+	pkg-config	Return the options associated with product
+	remove          Remove an eups product from the system
+	undeclare	Undeclare a product
+        uses            List everything which depends on the specified product and version
+Use
+	eups --help cmd
+for help with command "cmd"
+EOF
+    exit 1
+fi
+#
+# Do the work
+#
+cmd=$1; shift
+
+case $cmd in
+ declare|distrib|expandbuild|expandtable|flavor|pkg-config|remove|undeclare|uses)
+    eval $EUPS_DIR/bin/eups_$cmd "$args $@";;
+ flags)
+    if [ X"$EUPS_FLAGS" = X"" ]; then
+	echo "You have no EUPS_FLAGS set"
+    else
+	echo "EUPS_FLAGS == $EUPS_FLAGS"
+    fi;;
+ list)
+    source `$EUPS_DIR/bin/eups_setup $cmd $args "$@"`;;
+ path)
+    which=""
+    case $1 in
+     -[0-9]|[0-9])
+        which=$1;;
+     -h|--help)
+       cat <<EOF
+Print the components of EUPS_PATH.
+With n, print the n'th component
+EOF
+        exit 0;;
+     -*)
+        echo "Unsupported argument[s] to eups $cmd: $args" >&2; exit 1;;  
+    esac
+
+    echo $EUPS_PATH | \
+	perl -ne "\$n='$which';"'chomp;
+	          @p=split(":");
+		  if($n ne "") {
+		     if ($n < 0) { $n += @p; }
+		     print "$p[$n]\n";
+		  } else {
+		     print "\t".join("\n\t", @p)."\n";
+		  }'
+		  ;;
+ setup|unsetup)
+    case $1 in
+      "")
+       args=" ";;
+      -h|--help)
+       setup $args
+       exit $?;;
+    esac
+    echo "Please use the command \"${cmd}$args $@\" which modifies your environment";;
+ *)
+    echo "Unknown eups command \"$cmd\"" >&2;
+    eups --help
+esac

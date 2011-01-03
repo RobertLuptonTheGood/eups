@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = mpich2
+VERSION = 1.0.5p4
+#***************************************
+
+Group:
+   FLAVOR = Linux
+   QUALIFIERS = ""
+   DECLARER = Raymond L. Plante
+   DECLARED = 2009/03/22 14:24:17 CDT
+   PROD_DIR = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/mpich2/1.0.5p4
+   UPS_DIR = ups
+   TABLE_FILE = none
+End:

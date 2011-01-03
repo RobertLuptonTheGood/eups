@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = tcltk
+VERSION = 8.5a4
+#***************************************
+
+Group:
+   FLAVOR = Linux
+   QUALIFIERS = ""
+   DECLARER = Raymond L. Plante
+   DECLARED = 2009/03/21 20:38:02 CDT
+   PROD_DIR = Linux/tcltk/8.5a4
+   UPS_DIR = ups
+   TABLE_FILE = tcltk.table
+End:

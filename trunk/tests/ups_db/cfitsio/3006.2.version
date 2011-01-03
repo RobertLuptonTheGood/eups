@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = cfitsio
+VERSION = 3006.2
+#***************************************
+
+Group:
+   FLAVOR = Linux
+   QUALIFIERS = ""
+   DECLARER = Raymond L. Plante
+   DECLARED = 2009/03/25 02:29:21 CDT
+   PROD_DIR = Linux/cfitsio/3006.2
+   UPS_DIR = ups
+   TABLE_FILE = none
+End:

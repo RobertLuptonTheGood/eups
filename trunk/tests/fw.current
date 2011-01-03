@@ -1,0 +1,12 @@
+FILE = Version
+PRODUCT = fw
+CHAIN=current
+#***************************************
+FLAVOR = DarwinX86
+VERSION = svn3941
+QUALIFIERS = ""
+   DECLARER = rhl
+   DECLARED = Thu Jan 24 23:43:35 2008
+   MODIFIER = rhl
+   MODIFIED = Thu Jan 24 23:43:35 2008
+#***************************************

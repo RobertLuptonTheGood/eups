@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = doxygen
+VERSION = 1.5.9
+#***************************************
+
+Group:
+   FLAVOR = Linux64
+   QUALIFIERS = ""
+   DECLARER = Raymond Plante
+   DECLARED = 2009/06/04 22:16:12 CDT
+   PROD_DIR = /lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9
+   UPS_DIR = ups
+   TABLE_FILE = /lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9/ups/doxygen.table
+End:
