@@ -463,7 +463,7 @@ class Tag(object):
             elif parts[0] == "" or parts[0] == "global":
                 parts[0] = Tags.global_
             return Tag(parts[1], parts[0])
-    parse = staticmethod(parse) #should work as'f python 2.2
+    parse = staticmethod(parse) #should work as of python 2.2
 
 def UserTag(name):
     """
@@ -523,10 +523,10 @@ def checkTagsList(eupsenv, tagList):
     badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), tagList)
 
     for tag in badtags:
-        tag = re.sub(r"^file:", "", tag)
-        if os.path.isfile(tag):
+        fileName = re.sub(r"^file:", "", tag)
+        if os.path.isfile(os.path.expanduser(fileName)):
             if eupsenv.verbose > 1:
-                print >> sys.stderr, "File %s defines a tag" % tag
+                print >> sys.stderr, "File %s defines a tag" % fileName
             badtags.remove(tag)
             
     if badtags:

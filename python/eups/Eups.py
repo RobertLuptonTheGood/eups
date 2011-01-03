@@ -583,11 +583,12 @@ The what argument tells us what sort of state is expected (allowed values are de
             elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
                 tags.append(t)
             elif re.search(r"^file:", t):
-                t = re.sub(r"^file:", "", t)
+                t0 = t
+                t = os.path.expanduser(re.sub(r"^file:", "", t))
                 if os.path.isfile(t):
                     tags.append(t)
                 else:
-                    notokay.append(t)
+                    notokay.append("%s [no such file]" % t0)
             elif os.path.isfile(t):
                 tags.append(t)
             else:
@@ -600,13 +601,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                                            ", ".join(notokay))
             elif self.quiet <= 0:
                 print >> sys.stderr, \
-                    "Ignoring unsupported tags:", ", ".join(notokay)
+                      "Ignoring unsupported tags:", ", ".join(notokay)
                 tags = filter(self.tags.isRecognized, tags)
 
         if len(tags) == 0:
             if self.quiet <= 0 or self.verbose > 1:
                 print >> sys.stderr, \
-                    "Warning: No recognized tags; not updating preferred list"
+                      "Warning: No recognized tags; not updating preferred list"
         else:
             self.preferredTags = tags
 
