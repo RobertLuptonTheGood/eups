@@ -2148,7 +2148,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 tablefile = "%s.table" % versionName
 
                 ups_dir = os.path.join("$UPS_DB",               productName, self.flavor)
-                tdir = os.path.join(self.getUpsDB(eupsPathDirForRead), productName, self.flavor)
+                tdir = os.path.join(self.getUpsDB(eupsPathDir), productName, self.flavor)
 
                 if not os.path.isdir(tdir):
                     os.makedirs(tdir)
