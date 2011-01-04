@@ -882,7 +882,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     ovroTag = ovroReason[0] # tag used to select the product last time we saw it
 
                     try:
-                        if not vro.count(ovroTag) or \
+                        if vro.count(ovroTag) and \
                                vro.index(vroTag0) > vro.index(ovroTag): # old vro tag takes priority
                             if self.verbose > 1:
                                 print >> sys.stderr, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
