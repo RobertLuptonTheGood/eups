@@ -2591,7 +2591,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return out
                 
 
-    def dependencies_from_table(self, table, eupsPathDirs=None):
+    def dependencies_from_table(self, tablefile, eupsPathDirs=None):
         """Return self's dependencies as a list of (Product, optional) tuples
 
         N.b. the dependencies are not calculated recursively"""
