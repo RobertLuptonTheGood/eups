@@ -388,13 +388,9 @@ class Repositories(object):
             if pver in ances:
                 if self.verbose >= 0:
                     print >> self.log, "Detected circular dependencies", \
-                        "within manifest for %s; short-circuiting." %  \
-                        idstring 
+                          "within manifest for %s; short-circuiting." % idstring.strip()
                     if self.verbose > 2:
-                        print >> self.log, "Package installation already",\
-                            "in progress:"
-                        for a in ances:
-                            print >> self.log, "\t", a
+                        print >> self.log, "Package installation already in progress:%s" % "".join(ances)
                     continue
             ances.append(pver)
 
@@ -420,10 +416,8 @@ class Repositories(object):
                 if recurse is None:  
                     recurse = not prod.distId or prod.shouldRecurse
 
-                recurse = False         # This code used to work, but appears to have bitrotted
-                                        # during the server side re-working
                 if recurse and \
-                   prod.product != product and prod.version != version:
+                       (prod.distId is None or (prod.product != product and prod.version != version)):
 
                     # This is not the top-level product for the current manifest.
                     # We are ignoring the distrib ID; instead we will search 
@@ -501,14 +495,14 @@ class Repositories(object):
             installdir = prod.instDir
             if not os.path.isabs(installdir):
                 installdir = os.path.join(productRoot, installdir)
-            if os.path.exists(installdir):
+            if os.path.exists(installdir) and installdir != "/dev/null":
                 print >> self.log, \
                     "WARNING: Target installation directory exists:", installdir
                 print >> self.log, "        Was --noeups used?  If so and", \
                     "the installation fails,"
                 print >> self.log, \
-                    '         try "eups distrib clean', prod.product, \
-                    prod.version, '" before retrying installation."' 
+                    '         try "eups distrib clean %s %s" before retrying installation.' % \
+                    (prod.product, prod.version)
 
         builddir = self.makeBuildDirFor(productRoot, prod.product,
                                         prod.version, opts, instflavor)
@@ -542,11 +536,16 @@ class Repositories(object):
                 (prod.product, prod.version)
 
         # declare the newly installed package, if necessary
-        root = os.path.join(productRoot, instflavor, prod.instDir)
+        if not instflavor:
+            instflavor = opts["flavor"]
+            
+        if prod.instDir == "/dev/null": # need to guess
+            root = os.path.join(productRoot, instflavor, prod.product, prod.version)
+        else:
+            root = os.path.join(productRoot, instflavor, prod.instDir)
 
         try:
             self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot)
-                                
         except RuntimeError, e:
             print >> sys.stderr, e
             return

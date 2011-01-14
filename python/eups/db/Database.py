@@ -458,7 +458,13 @@ class _Database(object):
         # seal the deal
         if not os.path.exists(pdir):
             os.mkdir(pdir)
-        versionFile.write()
+
+        if prod.dir:
+            trimDir=os.path.join(prod.stackRoot(), prod.dir)
+            if not os.path.exists(trimDir):
+                trimDir = None
+                
+        versionFile.write(trimDir)
 
         # now assign any tags
         for tag in prod.tags:

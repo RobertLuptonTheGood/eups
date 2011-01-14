@@ -2,6 +2,7 @@ import os, re, sys, pwd
 from eups.Product import Product
 from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename
+import eups.utils
 
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 defaultProductUpsDir = "ups"
@@ -481,11 +482,10 @@ Group:
                     if os.path.isfile(value) or os.path.isdir(value):
                         if os.path.commonprefix([trimDir, value]) == trimDir:
                             info[k] = re.sub(r"^%s/" % trimDir, "", value)
-                            utils.debug("Stripping eupsPathDir", self.info[fq][k])
-                            if k == "table_file":
-                                info[k] = \
-                                    re.sub(r"^ups_db/", "", self.info[fq][k])
-                                info["ups_dir"] = "$UPS_DIR";
+                            eups.utils.debug("Stripping eupsPathDir", self.info[fq][k])
+
+                            if k.lower() == "table_file":
+                                info[k] = re.sub(r"^ups/", "$UPS_DIR/", info[k])
 
             for field in self._fields:
                 if field == "PROD_DIR":
@@ -504,6 +504,9 @@ Group:
                             value = "none"
                         else:
                             continue
+
+                    if field.upper() == "TABLE_FILE" and os.path.isabs(value):
+                        print >> sys.stderr, "Detected absolute table filename (tell RHL): %s" % value
 
                     print >> fd, "   %s = %s" % (field.upper(), value)
 

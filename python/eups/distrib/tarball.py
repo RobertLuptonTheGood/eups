@@ -43,10 +43,11 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         This implementation return a location if it ends with ".tar.gz"
         """
-        suffix = ".tar.gz"
-        distID = distID.strip()
-        if distID.endswith(suffix):
-            return distID
+        if distID:
+            suffix = ".tar.gz"
+            distID = distID.strip()
+            if distID.endswith(suffix):
+                return distID
 
         return None
 

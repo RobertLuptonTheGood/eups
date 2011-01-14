@@ -1728,10 +1728,11 @@ tag will be installed.
         dopts = {}
         # handle extra options
         dopts = { 'config': {} }
-        dopts['noeups']     = self.opts.noeups
-        dopts['noaction']   = self.opts.noaction
-        dopts['nobuild']   = self.opts.nobuild
-        dopts['noclean']   = self.opts.noclean
+        dopts['noeups']   = self.opts.noeups
+        dopts['noaction'] = self.opts.noaction
+        dopts['nobuild']  = self.opts.nobuild
+        dopts['noclean']  = self.opts.noclean
+        dopts['flavor']   = myeups.flavor
         if self.opts.serverOpts:
             for opt in self.opts.serverOpts:
                 try:

@@ -70,10 +70,11 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         This implementation return a location if it starts with "pacman:"
         """
-        prefix = "build:"
-        distID = distID.strip()
-        if distID.startswith(prefix):
-            return distID[len(prefix):]
+        if distID:
+            prefix = "build:"
+            distID = distID.strip()
+            if distID.startswith(prefix):
+                return distID[len(prefix):]
 
         return None
 

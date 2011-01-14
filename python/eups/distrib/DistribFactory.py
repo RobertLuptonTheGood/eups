@@ -164,7 +164,7 @@ class DistribFactory:
             if cls.parseDistID(distId):
                 return cls(self.Eups, self.distServer, 
                            flavor, tag, options, verbosity, log)
-        raise RuntimeError("Failed to find Distrib ctor for " + distId)
+        raise RuntimeError("Failed to find Distrib ctor for %s" % distId)
 
     def createDistribByName(self, name, flavor=None, tag=None, 
                             options=None, verbosity=0, log=sys.stderr):

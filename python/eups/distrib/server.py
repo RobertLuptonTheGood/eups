@@ -1703,6 +1703,9 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
                         if mapping[p.product].has_key(versName):
                             productName, versionName = mapping[p.product][versName]
 
+                            if (productName, versionName) == (p.product, p.version): # identity map
+                                break
+
                             if self.verbose > 0:
                                 print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
                                       (p.product, versName, productName, versionName)
