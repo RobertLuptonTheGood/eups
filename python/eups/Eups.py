@@ -845,9 +845,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                         indent = ""
                         
                     msg = "%sVRO [%s] failed to match for %s version %s" % \
-                          (indent, ", ".join(preVro), name, vname,)
+                          (indent, ", ".join(filter(lambda x: not re.search("^(warn|:|\d+)$", x), preVro)),
+                           name, vname,)
                     if postVro:
-                        msg += "; trying [%s]" % (", ".join(postVro))
+                        msg += "; trying [%s]" % \
+                               (", ".join(filter(lambda x: not re.search("^(warn|:|\d+)$", x), postVro)))
                     if flavor:
                         msg += " (Flavor: %s)" % flavor
 
@@ -878,7 +880,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if product:
             if self.alreadySetupProducts.has_key(name): # name is already setup
                 oproduct, ovroReason = self.alreadySetupProducts[name]
-                if ovroReason:
+                if ovroReason:              # we setup this product
                     ovroTag = ovroReason[0] # tag used to select the product last time we saw it
 
                     try:
@@ -891,6 +893,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                     except Exception, e:
                         utils.debug("RHL", name, vroTag, vro, vroReason, e)
                         pass
+                else:                   # setup by previous setup command
+                    if oproduct.version != product.version:
+                        if self.verbose > 1:
+                            print >> sys.stderr, "%s%s %s replaces previously setup %s %s" % (13*" ",
+                                                                             product.name, product.version,
+                                                                             oproduct.name, oproduct.version)
 
             if self.verbose > 2:
                 print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
@@ -3008,7 +3016,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if self.exact_version:
             # Remove versionExpr and all user or global tags
-            removed = []
+            tagVroEntries = []
             vro = []
             for v in self._vro:
                 v0 = v.split(":")[0] # v may be of form warn:nnn so only the pre-: string is a tagname
@@ -3016,11 +3024,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                    not (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser()):
                     vro.append(v)
                 else:
-                    removed.append(v)
+                    tagVroEntries.append(v)
 
-            if removed and self.verbose > 1:
-                print >> sys.stderr, "Removed [%s] from VRO as only exact versions are desired" % \
-                      ", ".join(removed)
+            if tagVroEntries:
+                if self.verbose > 1:
+                    print >> sys.stderr, "Moved [%s] to end of VRO as exact versions are desired" % \
+                          ", ".join(tagVroEntries)
+                if not filter(lambda x: re.search(r"^warn:[01]", x), vro):
+                    vro += ["warn:1"]
+                vro += tagVroEntries
 
             self._vro = vro
             # ensure that "version" and "versionExpr" are on the VRO, after "path" and "version" respectively
