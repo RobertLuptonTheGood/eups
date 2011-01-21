@@ -1,3 +1,11 @@
+2011-01-21 rhl
+	Permitted
+		setup -t XXX -r .
+	to deduce the product (foo) from ups/foo.table and set the version to "none"
+	N.b. the path is probably of the form .../foo so the normal "-r ." deduction would
+	guess that the product was ... and the version foo;  this is correct for installed
+	versions, but -t versions are often not installed
+
 2010-12-30 rhl
 	Fixed various aspects of the (type == "exact") processing
 
