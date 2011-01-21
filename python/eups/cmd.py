@@ -1099,8 +1099,11 @@ only wish to assign a tag, you should use the -t option but not include
             base, p = os.path.split(base)
 
             if product != p:
-                self.err("Guessed product %s from ups directory, but %s from path" % (product, p))
-                return 2
+                if not version and self.opts.tag:
+                    v = "none"          # OK, we're declaring a tagged version so we don't need a name
+                else:
+                    self.err("Guessed product %s from ups directory, but %s from path" % (product, p))
+                    return 2
 
             version = v
 
