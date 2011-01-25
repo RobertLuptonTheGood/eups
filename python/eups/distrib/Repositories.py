@@ -381,6 +381,7 @@ class Repositories(object):
             print >> self.log, "Warning: no installable packages associated", \
                 "with", idstring
 
+        productRoot0 = productRoot      # initial value
         for prod in products:
             pver = prodid(prod.product, prod.version, instflavor)
 
@@ -401,6 +402,8 @@ class Repositories(object):
                 # we've installed this via the current install() call
                 continue
 
+            productRoot = productRoot0
+
             thisinstalled = None
             if not noeups and not self.eups.force:
                 thisinstalled = self.eups.findProduct(prod.product, prod.version, flavor=instflavor)
@@ -409,6 +412,7 @@ class Repositories(object):
                     print >> self.log, \
                         "Required product %s %s is already installed; use --force to reinstall" % \
                         (prod.product, prod.version)
+
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
             else:
