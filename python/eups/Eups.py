@@ -54,7 +54,6 @@ class Eups(object):
             os.environ["EUPS_PATH"] = ":".join(path)
 
         eups_path = []
-        path = path[:]; path.reverse()  # the first elements on EUPS_PATH have the highest priority
         for p in path:
             if not os.path.isdir(p):
                 print >> sys.stderr, \
@@ -135,7 +134,8 @@ class Eups(object):
         #
         # Load local customisations
         #
-        hooks.loadCustomization(verbose, path=self.path)
+        path = self.path[:]; path.reverse()  # the first elements on EUPS_PATH have the highest priority
+        hooks.loadCustomization(verbose, path=path)
                  
         self.oldEnviron = os.environ.copy() # the initial version of the environment
 
