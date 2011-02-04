@@ -1204,7 +1204,8 @@ Optional Packages:
   --with-ups_dir=DIR      Typo for --with-eups_dir=DIR
   --with-eups=DIR         Use DIR as root for installed products (EUPS_PATH)
   --with-eups-db=name     Select directory containing NAME from $EUPS_PATH
-  --with-eups_dir=DIR     Install eups into DIR/{bin,doc}
+  --with-eups_dir=DIR     Install eups into DIR/{bin,doc} (equivalent to
+                          --prefix)
   --with-setup-aliases=name1:name2
 and name2 for unsetupallow name1 as an alias for setup
 
@@ -1666,6 +1667,11 @@ else
 fi
 
 
+
+# Allow them to use --prefix as an alias for --with-eups_dir
+if test X$prefix != XNONE; then
+   with_eups_dir=$prefix
+fi
 
 
 # Check whether --with-eups-db was given.

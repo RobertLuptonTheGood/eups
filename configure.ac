@@ -22,12 +22,17 @@ AC_ARG_WITH(eups,
    ])
 AC_SUBST(EUPS_PATH)
 
+# Allow them to use --prefix as an alias for --with-eups_dir
+if test X$prefix != XNONE; then
+   with_eups_dir=$prefix
+fi
+
 AC_ARG_WITH(eups-db,
    [AS_HELP_STRING(--with-eups-db=name,Select directory containing NAME from $EUPS_PATH)],
    [eups_db=$withval])
 
 AC_ARG_WITH(eups_dir,
-   [AS_HELP_STRING(--with-eups_dir=DIR, [Install eups into DIR/{bin,doc}])],
+   [AS_HELP_STRING(--with-eups_dir=DIR, [Install eups into DIR/{bin,doc} (equivalent to --prefix)])],
    [EUPS_DIR=$withval],
    [if [[ X"$eups_db" = X"" ]]; then
       eups_dir_in_path=$(perl -e "(\$ed='$EUPS_DIR')=~s|/eups$||; @ep=split(':', '$EUPS_PATH'); print (grep(m|^\$ed\$|, @ep)) . \"\n\"")
