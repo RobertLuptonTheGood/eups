@@ -17,7 +17,12 @@ export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES
 #
 SUBDIRS = @MAKE_SUBDIRS@
 
-.PHONY : show install clean
+.PHONY : all show install clean
+
+all : show
+	@ echo
+	@ echo Please use \"make install\" if you want to install eups
+
 install : show
 	@if [ "$(EUPS_PATH)" = "" ]; then \
 		echo You have not specified EUPS_PATH >&2; \
@@ -71,11 +76,11 @@ declare :
 	eups declare --root $(EUPS_DIR) eups $$vers && \
 	echo eups declare --root $(EUPS_DIR) eups $$vers
 show :
-	@echo "You will be installing ups in \$$EUPS_DIR  = $(EUPS_DIR)"
-	@echo "Ups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
-	@echo "Your EUPS database[s] will be              $(EUPS_DB)"
+	@echo "You will be installing ups in \$$EUPS_DIR  =  $(EUPS_DIR)"
+	@echo "Eups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
+	@echo "Your EUPS database[s] will be               $(EUPS_DB)"
 	@vers="`env EUPS_DIR=. PYTHONPATH=python bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
-	 echo "Your EUPS version is                       $$vers"
+	 echo "Your EUPS version is                        $$vers"
 	@ \
 	EUPS_DB_DIR=`echo $(EUPS_PATH) | sed -e 's/:.*//'`; \
 	if [ -d $$EUPS_DB_DIR/site ]; then \
@@ -84,7 +89,7 @@ show :
 		    echo "   $$f"; \
 		done; \
 	else \
-		echo "Your site configuration files will be in   $$EUPS_DB_DIR/site"; \
+		echo "Your site configuration files will be in    $$EUPS_DB_DIR/site"; \
 	fi
 #
 # Rebuild configure; almost no-one should need to do this
