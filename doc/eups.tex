@@ -104,16 +104,24 @@ multiple versions.
 
 If you want to play with \eups{} you may want to install a copy.
 
-You can check out a copy from \code{svn} if you have access to
-NCSA machines (public access should be available soon):
+You can check out a copy from \code{svn} from NCSA:
 \begin{verbatim}
-  svn co svn+ssh://svn.lsstcorp.org/eups/trunk eups
+  svn co svn://svn.lsstcorp.org/eups/trunk eups
+\end{verbatim}
+or to get an released version e.g.
+\begin{verbatim}
+  svn co svn://svn.lsstcorp.org/eups/tags/1.2.6 eups
+\end{verbatim}
+You can of course list available versions with
+\begin{verbatim}
+  svn ls svn://svn.lsstcorp.org/eups/tags
 \end{verbatim}
 
 Alternatively, grab the tarball
 \begin{verbatim}
 http://www.astro.princeton.edu/~act/packages/eups.tar.gz
 \end{verbatim}
+which is probably out of date.
 
 Then unpack it, configure, and install.  E.g.
 \begin{verbatim}
@@ -150,7 +158,7 @@ the \code{declare} command,
 
   \item
     \code{v5\_4\_25} specifies the version number (by convention this
-    is a cvs tag)
+    is a cvs or svn tag)
 
   \item
     \code{-f Darwin} specifies the flavor (i.e. my computer's hardware and
@@ -369,6 +377,86 @@ To use \eups{} from python, you need to \code{import eups};
 
 \section{\eups{} Reference Manual}
 
+\subsection{\eups{} concepts and jargon}
+
+\begin{description}
+\item[package]
+   A logical unit that you would like to version using \eups{}
+\item[root]
+   The directory associated with a package (if any).  For the common case of
+   a package containing source code the root would usually contain include and library subdirectories,
+   although this is not required.
+\item[tag]
+   A name attached to a set of one or more packages, which can be used to override the version that would otherwise be selected
+\item[version]
+   A string specifying which version of a package is being used.  Conventionally these correspond to names
+   generated from your source code manager (e.g. \code{svn}), but this is not required.
+\item[VRO]
+  The \code{V}ersion \code{R}esolution \code{O}rder;  the order in which possible versions of a package are
+  considered.
+\end{description}
+
+\subsection{How to customize \eups{}}
+You can customize \eups's behaviour in two ways:
+\begin{itemize}
+\item By setting an environment variable \code{\$EUPS\_STARTUP} which points to a python script
+\item By putting a \file{startup.py} in a well known place, usually \file{\$HOME/.eups} but in fact \eups{}
+  searches a number of place in order.
+\end{itemize}
+
+You can list your startup files with \code{eups startup}; with \code{-v} files that would be consulted if they
+are existed are also listed.  You'll see that there are two sorts of file;  \file{startup.py} and \file{config.properties}.  You should ignore the latter, and they are not further documented here.
+
+For example if \code{\$EUPS\_STARTUP=\$HOME/Python/foo.py} and \code{\$EUPS\_PATH=/u/lsst/products:/u/lsst/coreProducts}, then \code{eups -v startup} reports
+\begin{verbatim}
+/u/lsst/products/eups/site/startup.py             
+/u/lsst/products/site/startup.py
+[/u/lsst/coreProducts/site/startup.py]
+/Users/rhl/.eups/startup.py             
+/Users/rhl/Python/foo.py                
+\end{verbatim}
+These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
+
+\subsubsection{Contents of startup files}
+
+\begin{description}
+  \item[Hook commands]
+    There are a number of variables that can be set using syntax such as\hfil\break
+    \code{hooks.config.Eups.reservedTags += ["stable"]}
+
+    \item[userTags]
+      XXX
+    \item[preferredTags]
+      XXX
+    \item[globalTags]
+    \item[reservedTags]
+    \item[verbose]
+    \item[asAdmin]
+    \item[setupTypes]
+    \item[setupCmdName]
+    \item[VRO]
+    \item[fallbackFlavors]
+\end{description}
+
+For example, I have
+\begin{verbatim}
+import eups, os, pwd, sys
+
+user = pwd.getpwuid(os.geteuid())[0]
+
+hooks.config.Eups.globalTags += ["test"]
+hooks.config.Eups.userTags = [user]
+hooks.config.Eups.reservedTags += ["stable"]
+hooks.config.Eups.VRO = {
+    "commandLineVersion" : "path version warn:2 stable current",
+    "default" :             { "default" : "path versionExpr current",
+                              "dss" :     "path version current",
+                              #"lsst" :    "path stable+versionExpr warn versionExpr current",
+                              "lsst" :    "path current warn versionExpr",
+                             },
+    "rhl" :                "path rhl current version warn:0 versionExpr",
+    }
+\end{verbatim}
 \subsection{\eups{} commands}
 
 \begin{itemize}
@@ -388,23 +476,24 @@ Supported commands are:
         expandtable     Insert explicit version tags into a table file
         flags           Show the value of \$EUPS_FLAGS
         flavor          Return the current flavor
+        help            Provide help on eups commands
         list            List some or all products
         path [n]        Print the current eups path, or an element thereof
         pkgroot [n]     Print the current eups pkgroot, or an element thereof
         pkg-config      Return the options associated with product
         remove          Remove an eups product from the system
-        startup         List the startup files used to customize eups
+        tags            List information about supported and known tags
         undeclare       Undeclare a product
-        uses            List everything which depends on the specified product and version
+        uses            List everything which depends on the specified product 
+                        and version
+        vro             Show the Version Resolution Order that would be used
+
 Use
         eups --help cmd
 for help with command "cmd"
 \end{verbatim}				% $
   
-A consistent front-end to all the other \eups{} commands.  For historical
-reasons most commands of the form \code{eups cmd} may also be written as
-\code{eups\_cmd}, but this will eventually go away so you should break yourself
-of the habit of typing underscore.
+A consistent front-end to all the other \eups{} commands.
 
 There's no \code{eups setup} or \code{eups unsetup} as these actions
 modify your environment and are in fact aliases for commands
@@ -425,6 +514,7 @@ All \code{eups} commands support a common set of options:
                            Alias: --with-eups
    -v, --verbose           Be chattier (repeat for even more chat)
    -V, --version           Print eups version number and exit
+   --vro=LIST              Set the Version Resolution Order
 \end{verbatim}
 
 The flavor is usually determined by the command \code{\$EUPS\_DIR/bin/eups flavor}, but may be set using the
@@ -437,7 +527,7 @@ The desired database can also be specified explicitly with the \code{-Z} option 
 \item \code{eups admin}
 \begin{verbatim}
 Usage:
-    eups [commonOptions] admin [options] buildCache | clearCache | listCache | clearLocks | clearServerCache
+    eups admin [options] [buildCache|clearCache|listCache|clearLocks|clearServerCache|info]
 
 Options:
    -r, --root       arg    Location of manifests/buildfiles/tarballs (may be a URL or scp specification).
