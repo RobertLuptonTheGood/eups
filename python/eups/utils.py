@@ -106,13 +106,18 @@ def dirEnvNameFor(productName):
     """
     return productName.upper() + "_DIR"
 
+def setupEnvPrefix():
+    """Return the prefix used for the implementation-detail environment variable
+    describing how the setup was carried out
+    """
+    return "SETUP_"
+
 def setupEnvNameFor(productName):
     """
     return the name of the environment variable that provides the 
-    setup information for a product.  This is of the form, "SETUP_prod".
+    setup information for a product.  This is of the form "setupEnvPrefix() + prod".
     """
-    # Return the name of the product's how-I-was-setup environment variable
-    name = "SETUP_" + productName
+    name = setupEnvPrefix() + productName
 
     if os.environ.has_key(name):
         return name                 # exact match

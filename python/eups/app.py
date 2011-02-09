@@ -656,14 +656,14 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                    re.search(r"[\s<>|&;()]", val):   # quote characters that the shell cares about
                 val = "'%s'" % val
 
-            if eupsenv.shell == "sh" or eupsenv.shell == "zsh":
+            if eupsenv.shell in ("sh", "zsh",):
                 cmd = "export %s=%s" % (key, val)
-            elif eupsenv.shell == "csh":
+            elif eupsenv.shell in ("csh",):
                 cmd = "setenv %s %s" % (key, val)
 
             if eupsenv.noaction:
-                if eupsenv.verbose < 2 and re.search(r"SETUP_", key):
-                    continue            # the SETUP_PRODUCT variables are an implementation detail
+                if eupsenv.verbose < 2 and re.search(utils.setupEnvPrefix(), key):
+                    continue            # these variables are an implementation detail
 
                 cmd = "echo \"%s\"" % cmd
 
@@ -684,7 +684,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                 cmd = "unsetenv %s" % (key)
 
             if eupsenv.noaction:
-                if eupsenv.verbose < 2 and re.search(r"SETUP_", key):
+                if eupsenv.verbose < 2 and re.search(utils.setupEnvPrefix(), key):
                     continue            # an implementation detail
 
                 cmd = "echo \"%s\"" % cmd

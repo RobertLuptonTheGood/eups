@@ -651,7 +651,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         try:
             sproductName = args.pop(0)
-        except IndexError:          # Oh dear;  $SETUP_productName must be malformed
+        except IndexError:          # Oh dear;  "$setupEnvPrefix()_productName" must be malformed
             return None, eupsPathDir, productDir, tablefile, flavor
             
         if sproductName != productName:
@@ -1351,14 +1351,14 @@ The what argument tells us what sort of state is expected (allowed values are de
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""
 
-        re_setup = re.compile(r"^SETUP_(\w+)$")
+        re_setup = re.compile(r"^%s(\w+)$" % utils.setupEnvPrefix())
 
         productList = []
 
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
             try:
                 productInfo = os.environ[key].split()
-            except IndexError:          # Oh dear;  $SETUP_productName must be malformed
+            except IndexError:          # Oh dear;  "$setupEnvPrefix()_productName" must be malformed
                 continue
 
             productName = productInfo[0]
