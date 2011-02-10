@@ -140,6 +140,9 @@ class Tags(object):
         if isinstance(name, Tag):
             name = name.name
 
+        if re.search(r"^\d+$", name):
+            raise RuntimeError("An integer is not a valid tagname")
+
         try:
             name, owner = name
         except ValueError:

@@ -751,7 +751,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             vroTag = vro[i]
             vroTag0 = vroTag            # we may modify vroTag
             
-            if vroTag in ("path", ":") or re.search(r"^\d+$", vroTag):
+            if vroTag in ("path", ":") or re.search(r"^\d+$", vroTag): # numbers come from e.g. warn:1
                 continue
 
             elif recursionDepth > 0 and vroTag in ("keep",):

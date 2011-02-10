@@ -53,7 +53,8 @@ class Product(object):
             print >> sys.stderr, "Note: detected use of deprecated API; use Eups.getProduct() instead."
             name = version
             version = flavor
-            if not version:  version = "none"
+            if not version:
+                version = "none"
 
         self.name = name
         self.version = version

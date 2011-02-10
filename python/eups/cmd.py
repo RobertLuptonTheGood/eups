@@ -1100,7 +1100,7 @@ only wish to assign a tag, you should use the -t option but not include
 
             if product != p:
                 if not version and self.opts.tag:
-                    v = "none"          # OK, we're declaring a tagged version so we don't need a name
+                    v = "tag:%s" % self.opts.tag # We're declaring a tagged version so we don't need a name
                 else:
                     self.err("Guessed product %s from ups directory, but %s from path" % (product, p))
                     return 2
