@@ -277,14 +277,14 @@ Common"""
         else:
             productDir = None
             
-        if hasattr(opts, "tag"):
-            tag = opts.tag
+        if hasattr(opts, "tag") and opts.tag:
+            tag = [opts.tag]
         else:
             tag = None
         
         Eups.selectVRO(tag, productDir, versionName, opts.dbz)
         
-        if Eups.isUserTag(tag):
+        if tag and Eups.isUserTag(tag[0]):
             Eups.includeUserDataDirInPath()
 
         try:
@@ -2055,8 +2055,8 @@ same arguments.
                             help="Force requested behaviour")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
-        self.clo.add_option("-t", "--tag", dest="tag", action="store",
-                            help="List only versions having this tag name")
+        self.clo.add_option("-t", "--tag", dest="tag", action="append",
+                            help="Set the VRO based on this tag name")
         self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
                             help="Select the product paths which contain this directory.  " +
                             "Default: all in path")
@@ -2072,7 +2072,8 @@ same arguments.
         else:
             versionName = None
 
-        if self.opts.exact_version:
+        self.opts.inexact_version = False
+        if self.opts.exact_version or (versionName and not self.opts.inexact_version):
             if self.opts.setupType:
                 self.opts.setupType += ","
             self.opts.setupType += "exact"
@@ -2081,7 +2082,13 @@ same arguments.
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 
-        if myeups.isUserTag(self.opts.tag):
+        isUserTag = False
+        if self.opts.tag:
+            for t in self.opts.tag:
+                if myeups.isUserTag(t):
+                    isUserTag = True
+                    break
+        if isUserTag:
             myeups.includeUserDataDirInPath()
             
         print " ".join(myeups.getVRO())

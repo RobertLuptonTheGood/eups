@@ -2980,8 +2980,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         # Note that the order of these tests is significant
         if tag:
-            vroTag = tag
-            self.isInternalTag(tag, True)
+            for t in tag:
+                self.isInternalTag(tag, True) # will abort if tag is internal
+            vroTag = tag[0]
         elif productDir and productDir != 'none':
             vroTag = "path"
         elif versionName:
@@ -3046,12 +3047,13 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO
-            if self._vro.count("path"):             # ... but not before path
-                where = self._vro.index("path") + 1
-            else:
-                where = 0
-            self._vro[where:where] = [str(tag)]
-            extra = " + tag \"%s\"" % tag
+            for t in reversed(tag):
+                if self._vro.count("path"):             # ... but not before path
+                    where = self._vro.index("path") + 1
+                else:
+                    where = 0
+                self._vro[where:where] = [str(t)]
+            extra = " + tag \"%s\"" % t
 
         if self.verbose > 1:
             print >> sys.stderr, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)

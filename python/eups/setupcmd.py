@@ -123,7 +123,7 @@ product and all its dependencies into the environment so that it can be used.
         self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
                             help="Select the product paths which contain this directory.  " +
                             "Default: all in path")
-        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+        self.clo.add_option("-t", "--tag", dest="tag", action="append",
                             help="assign TAG to the specified product")
         self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to use (e.g. exact)")
@@ -212,10 +212,15 @@ product and all its dependencies into the environment so that it can be used.
                              ignore_versions=self.opts.ignoreVer, setupType=self.opts.setupType,
                              max_depth=self.opts.max_depth, vro=self.opts.vro)
 
-            tag = self.opts.tag
-            Eups.selectVRO(tag, self.opts.productDir, versionName, self.opts.dbz)
+            Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 
-            if Eups.isUserTag(tag):
+            isUserTag = False
+            if self.opts.tag:
+                for t in self.opts.tag:
+                    if Eups.isUserTag(t):
+                        isUserTag = True
+                        break
+            if isUserTag:
                 Eups.includeUserDataDirInPath()
 
             if self.opts.unsetup:
@@ -233,7 +238,7 @@ product and all its dependencies into the environment so that it can be used.
                 raise
             # If we are asking for an exact setup but don't specify a version or tag we won't find
             # one as current is removed from the VRO.  Do an explicit lookup including current
-            if not versionName and not tag:
+            if not versionName and not self.opts.tag:
                 product, vroReason = Eups.findProductFromVRO(productName,
                                                              vro=["current"] + Eups.getPreferredTags())
                 if product:
