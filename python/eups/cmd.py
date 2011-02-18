@@ -404,7 +404,7 @@ will also be printed.
 
         # these are specific to this command
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
-                            help="same as --tag=current (deprecated)")
+                            help="same as --tag=current")
         self.clo.add_option("-D", "--dependencies", dest="depends", action="store_true", default=False,
                             help="Print product's dependencies (must specify version if ambiguous). With --setup print the versions of dependent products that are actually setup.")
         self.clo.add_option("--depth", dest="depth", action="store",
@@ -1071,7 +1071,7 @@ only wish to assign a tag, you should use the -t option but not include
         EupsCmd.addOptions(self)
 
         self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
-                            help="same as --tag=current (deprecated)")
+                            help="same as --tag=current")
         
 
     def execute(self):
@@ -1192,8 +1192,7 @@ version currently declared.
         EupsCmd.addOptions(self)
 
         self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
-                            help="same as --tag=current (deprecated)")
-        
+                            help="same as --tag=current")
 
     def execute(self):
         if len(self.args) == 0:
@@ -2049,6 +2048,8 @@ same arguments.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
+        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
+                            help="same as --tag=current")
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
                             help="Consider the as-installed versions, not the conditionals in the table file ")
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
@@ -2077,6 +2078,9 @@ same arguments.
             if self.opts.setupType:
                 self.opts.setupType += ","
             self.opts.setupType += "exact"
+
+        if self.opts.current:
+            self.opts.tag += ['current']
 
         myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=self.opts.setupType)
 
