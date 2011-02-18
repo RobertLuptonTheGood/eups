@@ -384,7 +384,7 @@ def declare(productName, versionName, productDir=None, eupsPathDir=None,
     Attempts to change other data for a product requires self.force
     to be true. 
 
-    If the product has not installation directory or table file,
+    If the product has no installation directory or table file,
     these parameters should be set to "none".  If either are None,
     some attempt is made to surmise what these should be.  If the 
     guessed locations are not found to exist, this method will
@@ -809,7 +809,7 @@ def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
 def getSetupVersion(productName, eupsenv=None):
     """
     return the version name for the currently setup version of a given product.
-    This is equivalent to eupsenv.
+
     @param productName   the name of the setup product
     @param eupsenv       the Eups instance to use; if None (default), a 
                              default will be created.
