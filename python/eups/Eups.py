@@ -3054,6 +3054,17 @@ The what argument tells us what sort of state is expected (allowed values are de
                     where = 0
                 self._vro[where:where] = [str(t)]
             extra = " + tag \"%s\"" % t
+        #
+        # Clean the VRO to remove duplicates
+        #
+        entries = {}
+        uniqueVro = []
+        for e in self._vro:
+            if not entries.has_key(e):
+                uniqueVro.append(e)
+                if not re.search(r"^warn(:\d+)?$", e):
+                    entries[e] = 1
+        self._vro = uniqueVro
 
         if self.verbose > 1:
             print >> sys.stderr, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)
