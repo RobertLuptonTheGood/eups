@@ -427,7 +427,8 @@ class Repository(object):
         except KeyError:
             distrib = None
         if distrib is None:
-            raise RuntimeError("%s: Distrib name not recognized" % distribTypeName)
+            raise RuntimeError("%s: Distrib name not recognized (known types are \"%s\")" %
+                               (distribTypeName, '", "'.join(self.distFactory.lookup.keys())))
 
         # load manifest data
         if manifest is None:

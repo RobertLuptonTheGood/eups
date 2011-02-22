@@ -197,7 +197,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
             if self.allowIncomplete:
                 return None
 
-            raise RuntimeError, "I'm giving up. Use --incomplete if you want to proceed with a partial distribution"
+            raise RuntimeError("I'm giving up. Use --incomplete if you want to proceed with a partial distribution")
 
         builderDir = os.path.join(serverDir, "builds")
         if not os.path.isdir(builderDir):

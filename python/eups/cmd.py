@@ -278,7 +278,9 @@ Common"""
             productDir = None
             
         if hasattr(opts, "tag") and opts.tag:
-            tag = [opts.tag]
+            tag = opts.tag
+            if isinstance(tag, str):
+                tag = [tag]
         else:
             tag = None
         
@@ -1915,6 +1917,8 @@ class DistribCreateCmd(EupsCmd):
                             help="Create an installation specialised to the current flavor")
         self.clo.add_option("--flavor", dest="flavor", action="store",
                             help="Assume this target platform flavor (e.g. 'Linux')")
+        self.clo.add_option("-t", "--tag", dest="tag", action="append",
+                            help="Set the VRO based on this tag name")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -1941,7 +1945,7 @@ class DistribCreateCmd(EupsCmd):
             else:
                 self.opts.repos = []
         if not self.opts.serverDir:
-            for pkgroot in repos:
+            for pkgroot in self.opts.repos:
                 if utils.isDbWritable(pkgroot):
                     self.opts.serverDir = pkgroot
                     break
@@ -1952,7 +1956,7 @@ class DistribCreateCmd(EupsCmd):
             self.err("Server directory is not writable: " + self.opts.serverDir)
             return 3
         if not self.opts.serverDir:
-            self.err("No writeable package server found; use --serverDir")
+            self.err("No writeable package server found; use --server-dir")
             return 3
 
         try:
@@ -1961,19 +1965,21 @@ class DistribCreateCmd(EupsCmd):
             e.status = 9
             raise
 
+        myeups.selectVRO(self.opts.tag, None, None, self.opts.dbz)
+
         dopts = {}
         # handle extra options
         dopts = { 'config': {} }
-        dopts['noeups']     = self.opts.noeups
         dopts['noaction']   = self.opts.noaction
+        dopts["allowIncomplete"] = self.opts.allowIncomplete
         if self.opts.serverOpts:
             for opt in self.opts.serverOpts:
                 try:
                     name, val = opt.split("=",1)
                 except ValueError:
-                    self.err("server option not of form NAME=VALUE: "+opt)
+                    self.err("server option not of form NAME=VALUE: %s" % (opt))
                     return 3
-                dopts[name] = value
+                dopts[name] = val
 
         if not self.opts.distribTypeName:
             self.err("Please specify a distribution type name (e.g. -d tarball, etc)")
@@ -1994,7 +2000,7 @@ class DistribCreateCmd(EupsCmd):
             server = distrib.Repository(myeups, self.opts.serverDir, 
                                         self.opts.flavor, options=dopts, 
                                         verbosity=self.opts.verbose, log=log)
-            server.create(self.opts, self.opts.distribTypeName, product,
+            server.create(self.opts.distribTypeName, product,
                           version, nodepend=self.opts.nodepend, options=dopts,
                           manifest=self.opts.manifest, 
                           packageId=self.opts.packageId, repositories=repos)
@@ -2082,6 +2088,12 @@ same arguments.
         if self.opts.current:
             self.opts.tag += ['current']
 
+        if self.opts.setupType:
+            self.opts.setupType = self.opts.setupType.split()
+        else:
+            self.opts.setupType = []
+        
+        self.opts.setupType.append("build")
         myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=self.opts.setupType)
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)

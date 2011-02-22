@@ -377,8 +377,11 @@ class Distrib(object):
         if ptablefile is None:
             # consult the EUPS database
             try:
-                tprod = self.Eups.getProduct(product, version)
-                dependencies = tprod.getTable().dependencies(self.Eups, recursive=recursive, setupType="build")
+                table = self.Eups.getProduct(product, version).getTable()
+                if table:
+                    dependencies = table.dependencies(self.Eups, recursive=recursive)
+                else:
+                    dependencies = []
             except eups.ProductNotFound, e:
                 if self.noeups:
                     if self.verbose > 0:
@@ -396,21 +399,18 @@ class Distrib(object):
         #
         # We have our dependencies; proceed
         #
-        for (dprod, dopt) in dependencies:
+        for (dprod, dopt, recursionDepth) in dependencies:
             productName = dprod.name
             versionName = dprod.version
 
-            try:
-                versionName = \
-                    self.Eups.getProduct(productName, versionName).version
-            except eups.ProductNotFound, e:
-                if self.allowIncomplete and \
-                   self.Eups.isLegalRelativeVersion(versionName):
-                    print >> self.log, "%s; using preferrd instead" % e
-                    versionName = \
-                            self.Eups.getProduct(productName).version
-                else:
-                    raise
+            product, vroReason = self.Eups.findProductFromVRO(productName, versionName)
+
+            if product:
+                versionName = product.version
+            else:
+                if dopt:
+                    continue
+                raise eups.ProductNotFound(productName)
 
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)
