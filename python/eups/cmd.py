@@ -1577,6 +1577,7 @@ class DistribListCmd(EupsCmd):
             repos = distrib.Repositories(pkgroots, options, myeups, 
                                          verbosity=self.opts.verbose)
 
+            #import pdb; pdb.set_trace() 
             data = repos.listPackages(product, version, self.opts.flavor)
         except eups.EupsException, e:
             e.status = 1

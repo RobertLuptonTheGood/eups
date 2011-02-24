@@ -889,6 +889,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             if self.verbose > 1:
                                 print >> sys.stderr, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
                                       (13*" ", ovroTag, vroTag0, oproduct.name, oproduct.version)
+                                
                             product, vroReason, vroTag = oproduct, ovroReason, ovroTag
                     except Exception, e:
                         utils.debug("RHL", name, vroTag, vro, vroReason, e)
@@ -3048,11 +3049,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO
             for t in reversed(tag):
-                if self._vro.count("path"):             # ... but not before path
-                    where = self._vro.index("path") + 1
-                else:
-                    where = 0
-                self._vro[where:where] = [str(t)]
+                self._vro[0:0] = [str(t)]
             extra = " + tag \"%s\"" % t
         #
         # Clean the VRO to remove duplicates
