@@ -681,11 +681,14 @@ The what argument tells us what sort of state is expected (allowed values are de
             productDir = None           # If we set productDir, the Product ctor ignores the local version
         else:
             if self.tags.isRecognized(versionName) and utils.isRealFilename(eupsPathDir):
-                # get qualified tag name (the database needs to see user tags as "user:...")
-                tag = str(self.tags.getTag(versionName))
-                vers = self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName, flavor)
-                if vers is not None:
-                    versionName = vers
+                # It might be a tag; see if it's a regular version
+                product = self.findProduct(productName, versionName, eupsPathDirs=eupsPathDir, flavor=flavor)
+                if not product:
+                    # get qualified tag name (the database needs to see user tags as "user:...")
+                    tag = str(self.tags.getTag(versionName))
+                    vers = self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName, flavor)
+                    if vers is not None:
+                        versionName = vers
 
             try:
                 productDir = environ[self._envarDirName(productName)]
