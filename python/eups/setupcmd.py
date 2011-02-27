@@ -238,7 +238,7 @@ product and all its dependencies into the environment so that it can be used.
                 raise
             # If we are asking for an exact setup but don't specify a version or tag we won't find
             # one as current is removed from the VRO.  Do an explicit lookup including current
-            if not versionName and not self.opts.tag:
+            if False and not versionName and not self.opts.tag:
                 product, vroReason = Eups.findProductFromVRO(productName,
                                                              vro=["current"] + Eups.getPreferredTags())
                 if product:
