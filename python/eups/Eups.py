@@ -293,7 +293,8 @@ class Eups(object):
             (hooks.config.Eups.globalTags, None), # None => global
             (["newest",], None),
             (hooks.config.Eups.userTags, Tags.user),
-            (["commandLineVersion",  "keep", "path", "setup", "version", "versionExpr", "warn",], Tags.pseudo),
+            (["commandLine", "keep", "path",
+              "setup", "version", "versionExpr", "warn",], Tags.pseudo),
             ]:
             if isinstance(tags, str):
                 tags = tags.split()
@@ -342,7 +343,7 @@ class Eups(object):
         # and some are used internally by eups
         #
         self._internalTags = []
-        for k in ["commandLineVersion", "keep", "version", "versionExpr", "warn"]:
+        for k in ["commandLine", "keep", "version", "versionExpr", "warn"]:
             self._internalTags.append(k)
         #
         # Check that nobody's used an internal tag by mistake (setup -t keep would be bad...)
@@ -764,10 +765,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                     vroReason = [vroTag, None]
                     break
                     
-            elif vroTag == "commandLineVersion":
+            elif vroTag == "commandLine":
                 if self.alreadySetupProducts.has_key(name): # name is already setup
                     oproduct, ovroReason = self.alreadySetupProducts[name]
-                    if ovroReason and ovroReason[0] == "commandLineVersion":
+                    if ovroReason and ovroReason[0] == "commandLine":
                         product, vroReason = oproduct, ovroReason
                         break
 
@@ -823,7 +824,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 if product:
                     if recursionDepth == 0:
-                        vroReason[0] = "commandLineVersion"
+                        vroReason[0] = "commandLine"
 
             elif vroTag == "warn":
                 preVro = vro[0:i]
@@ -1681,15 +1682,15 @@ The what argument tells us what sort of state is expected (allowed values are de
             # get the product to setup
             if productRoot:
                 vro = self.getPreferredTags()
-                if len(vro) > 0 and vro.count("path") == 0:
+                if len(vro) > 0 and vro.count("commandLine") == 0:
                     if self.verbose:
-                        print >> sys.stderr, "Using %s, although \"path\" is not specified in VRO %s" % \
+                        print >> sys.stderr, "Using %s, although \"commandLine\" is not specified in VRO %s" % \
                               (productRoot, vro)
 
+                vroReason = ["commandLine", productRoot]
                 if self.verbose > 2:
-                    print >> sys.stderr, ("VRO used %-12s " % ("path")),
+                    print >> sys.stderr, ("VRO used %-12s " % vroReason[0]),
                 product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
-                vroReason = ["path", productRoot]
             else:
                 product = None
                 for fallbackFlavor in utils.Flavor().getFallbackFlavors(self.flavor, includeMe=True):
@@ -2990,7 +2991,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif productDir and productDir != 'none':
             vroTag = "path"
         elif versionName:
-            vroTag = "commandLineVersion"
+            vroTag = "commandLine"
         else:
             vroTag = "default"
 
@@ -3009,7 +3010,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             elif vro.has_key("default"):
                 self._vro = vro["default"]
                 if versionName:
-                    self._vro[0:0] = ["commandLineVersion"]
+                    self._vro[0:0] = ["commandLine"]
             else:
                 raise RuntimeError, ("Unable to find entry for %s in VRO dictionary for tag %s" %
                                      (dbz, vroTag))
@@ -3052,7 +3053,15 @@ The what argument tells us what sort of state is expected (allowed values are de
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO
             for t in reversed(tag):
-                self._vro[0:0] = [str(t)]
+                where = 0
+                for el in ("commandLine",):
+                    if self._vro.count(el):
+                        w = self._vro.index(el) + 1
+                        if w > where:
+                            where = w
+
+                self._vro[where:where] = [str(t)]
+
             extra = " + tag \"%s\"" % t
         #
         # Clean the VRO to remove duplicates
