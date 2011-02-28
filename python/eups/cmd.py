@@ -409,7 +409,7 @@ will also be printed.
         self.clo.add_option("-d", "--directory", dest="printdir", action="store_true", default=False,
                             help="Include the product's installation directory")
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
-                            help="Follow the as-installed versions, not the conditionals in the table file ")
+                            help="Follow the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
@@ -734,7 +734,7 @@ class UsesCmd(EupsCmd):
         self.clo.add_option("-d", "--depth", dest="depth", action="store", type="int", default=9999, 
                             help="Only search down this many layers of dependency")
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
-                            help="Consider the as-installed versions, not the conditionals in the table file ")
+                            help="Consider the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("-o", "--optional", dest="optional", action="store_true", default=False, 
                             help="Show optional setups")
         self.clo.add_option("-t", "--tag", dest="tag", action="store", 
@@ -1548,9 +1548,11 @@ class DistribListCmd(EupsCmd):
         if len(self.args) > 1:
             version = self.args[1]
 
-        pkgroots = self.opts.root
-        if not pkgroots and os.environ.has_key("EUPS_PKGROOT"):
+        if self.opts.root:
+            pkgroots = "|".join(self.opts.root)
+        else:
             pkgroots = os.environ["EUPS_PKGROOT"]
+
         if not pkgroots:
             self.err("Please specify a repository with -r or $EUPS_PKGROOT")
             return 2
@@ -1575,10 +1577,8 @@ class DistribListCmd(EupsCmd):
         myeups = eups.Eups(readCache=False)
 
         try:
-            repos = distrib.Repositories(pkgroots, options, myeups, 
-                                         verbosity=self.opts.verbose)
+            repos = distrib.Repositories(pkgroots, options, myeups, verbosity=self.opts.verbose)
 
-            #import pdb; pdb.set_trace() 
             data = repos.listPackages(product, version, self.opts.flavor)
         except eups.EupsException, e:
             e.status = 1
@@ -1749,7 +1749,9 @@ tag will be installed.
                 dopts[name] = value
 
 
-        if not self.opts.root:
+        if self.opts.root:
+            self.opts.root = "|".join(self.opts.root)
+        else:
             if not os.environ.has_key("EUPS_PKGROOT"):
                 self.err("No repositories specified; please set -r or EUPS_PKGROOT")
                 return 3
@@ -1915,7 +1917,9 @@ class DistribCreateCmd(EupsCmd):
         self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
                             help="pass a customized option to all repositories " +
                             "(form NAME=VALUE, repeat as needed)")
-        self.clo.add_option("-f", "--use-flavor", dest="useflavor", action="store_true", default=False,
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
+                            help="Follow the as-installed versions, not the dependencies in the table file")
+        self.clo.add_option("-f", "--use-flavor", dest="useFlavor", action="store", default=None,
                             help="Create an installation specialised to the current flavor")
         self.clo.add_option("--flavor", dest="flavor", action="store",
                             help="Assume this target platform flavor (e.g. 'Linux')")
@@ -1946,16 +1950,20 @@ class DistribCreateCmd(EupsCmd):
                 self.opts.repos = os.environ["EUPS_PKGROOT"].split("|")
             else:
                 self.opts.repos = []
+
+        if not self.opts.useFlavor:
+            self.opts.useFlavor = self.flavor
+
         if not self.opts.serverDir:
             for pkgroot in self.opts.repos:
                 if utils.isDbWritable(pkgroot):
                     self.opts.serverDir = pkgroot
                     break
         elif not os.path.exists(self.opts.serverDir):
-            self.err("Server directory does not exist: " + self.opts.serverDir)
-            return 3
+            self.err("Server directory %s does not exist; creating " % self.opts.serverDir)
+            os.makedirs(self.opts.serverDir)
         elif not utils.isDbWritable(self.opts.serverDir):
-            self.err("Server directory is not writable: " + self.opts.serverDir)
+            self.err("Server directory %s is not writable: " % self.opts.serverDir)
             return 3
         if not self.opts.serverDir:
             self.err("No writeable package server found; use --server-dir")
@@ -1974,6 +1982,7 @@ class DistribCreateCmd(EupsCmd):
         dopts = { 'config': {} }
         dopts['noaction']   = self.opts.noaction
         dopts["allowIncomplete"] = self.opts.allowIncomplete
+        dopts["exact"] = self.opts.exact_version
         if self.opts.serverOpts:
             for opt in self.opts.serverOpts:
                 try:
@@ -2000,7 +2009,7 @@ class DistribCreateCmd(EupsCmd):
                                              log=log)
 
             server = distrib.Repository(myeups, self.opts.serverDir, 
-                                        self.opts.flavor, options=dopts, 
+                                        self.opts.useFlavor, options=dopts, 
                                         verbosity=self.opts.verbose, log=log)
             server.create(self.opts.distribTypeName, product,
                           version, nodepend=self.opts.nodepend, options=dopts,
@@ -2059,7 +2068,7 @@ same arguments.
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
                             help="same as --tag=current")
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
-                            help="Consider the as-installed versions, not the conditionals in the table file ")
+                            help="Consider the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 

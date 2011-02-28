@@ -333,18 +333,18 @@ class Distrib(object):
         """
         self.unimplemented("createDependencies")
 
-    def _createDeps(self, product, version, flavor=None, tag=None, 
-                    recursive=False):
+    def _createDeps(self, productName, versionName, flavor=None, tag=None, 
+                    recursive=False, exact=False):
         """return a list of product dependencies for a given project.  This 
         function returns a proto-dependency list providing only as much 
         generic information as is possible without knowing the details of 
-        how the data is organized on the server.  Thus, the dependecy list
+        how the data is organized on the server.  Thus, the dependency list
         will not include 
         """
         if flavor is None:  flavor = self.flavor
         if tag is None:  tag = self.tag
 
-        productList = Manifest(product, version, self.Eups,
+        productList = Manifest(productName, versionName, self.Eups,
                                self.verbose-1, self.log)
         dependencies = None
         ptablefile = None
@@ -355,14 +355,14 @@ class Distrib(object):
                     "to be recursive when using noeups option"
 
             # add a record for the top product
-            productList.addDependency(product, version, flavor, 
+            productList.addDependency(productName, versionName, flavor, 
                                       None, None, None, False)
 
             # use the server as source of package information
-            ptablefile = self.findTableFile(product, version, self.flavor)
+            ptablefile = self.findTableFile(productName, versionName, self.flavor)
             if not ptablefile and self.distServer:
                 try:
-                    ptablefile = self.distServer.getTableFile(product, version, self.flavor)
+                    ptablefile = self.distServer.getTableFile(productName, versionName, self.flavor)
                 except RemoteFileNotFound, e:
                     pass
 
@@ -370,18 +370,22 @@ class Distrib(object):
                 dependencies = self.Eups.dependencies_from_table(ptablefile)
             else:
                 if self.verbose > 0:
-                    print >> self.log, "Failed to find %s's table file; trying eups" % product
+                    print >> self.log, "Failed to find %s's table file; trying eups" % productName
         else:
-            productList = Manifest(product, version, self.Eups, self.verbose-1, self.log)
+            productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
 
         if ptablefile is None:
             # consult the EUPS database
             try:
-                table = self.Eups.getProduct(product, version).getTable()
+                product = self.Eups.getProduct(productName, versionName)
+                table = product.getTable()
+                if table:
+                    dependenciesOLD = table.dependencies(self.Eups, recursive=recursive)
+
+                dependencies = []
+                table = product.getTable()
                 if table:
                     dependencies = table.dependencies(self.Eups, recursive=recursive)
-                else:
-                    dependencies = []
             except eups.ProductNotFound, e:
                 if self.noeups:
                     if self.verbose > 0:
@@ -393,7 +397,7 @@ class Distrib(object):
         #
         if self.noeups and dependencies is None:
             if self.verbose > 0:
-                print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % product
+                print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % productName
 
             dependencies = self.Eups.dependencies_from_table("none")
         #
@@ -735,7 +739,7 @@ class DefaultDistrib(Distrib):
         self.setGroupPerms(out)
         
     def createDependencies(self, product, version, flavor=None, tag=None, 
-                           recursive=False):
+                           recursive=False, exact=False):
         """create a list of product dependencies based on what is known from 
         the system.
 
@@ -753,8 +757,9 @@ class DefaultDistrib(Distrib):
                                 dependencies of this product; otherwise, it 
                                 will include the dependencies of the dependencies
                                 recursively.  Default: False
+        @param exact          Generate the complete list of dependencies that eups list -D --exact would return
         """
-        deps = self._createDeps(product, version, flavor, tag, recursive)
+        deps = self._createDeps(product, version, flavor, tag, recursive, exact)
 
         # go through dependencies and fill in the missing info
         for prod in deps.getProducts():

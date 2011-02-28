@@ -109,7 +109,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
         tree.
         @param serverDir    the directory to initialize
         """
-
         eupsDistrib.DefaultDistrib.initServerTree(self, serverDir)
 
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)

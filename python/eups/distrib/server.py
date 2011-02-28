@@ -111,8 +111,7 @@ class DistribServer(object):
                    filter(lambda f: f.endswith(".list"), 
                           self.listFiles("", noaction)))
 
-    def getTagNamesFor(self, product, version, flavor="generic", 
-                       tags=None, noaction=False):
+    def getTagNamesFor(self, product, version, flavor="generic", tags=None, noaction=False):
         """
         return as a list of strings all of the tag names assigned to 
         the given product by the server.
@@ -1412,6 +1411,8 @@ class Dependency(object):
         self.flavor = flavor
         self.tablefile = tablefile
         self.instDir = instDir
+        if distId == "None":
+            distId == None
         self.distId = distId
         self.isOpt = isOptional
         self.shouldRecurse = shouldRecurse

@@ -62,7 +62,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)
         if not os.path.exists(config):
-            configcontents = """# Configuration for a Builder-based server
+            configcontents = """# Configuration for a tarball-based server
 MANIFEST_URL = %(base)s/manifests/%(product)s-%(version)s.manifest
 TARBALL_URL = %(base)s/%(path)s
 DIST_URL = %(base)s/%(path)s

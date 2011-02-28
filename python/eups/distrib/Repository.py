@@ -415,7 +415,6 @@ class Repository(object):
         if not self.isWritable():
             raise RuntimeError("Unable to create packages for this repository (Choose a local repository)")
         
-
         opts = self._mergeOptions(options)
 
         try:
@@ -433,7 +432,7 @@ class Repository(object):
         # load manifest data
         if manifest is None:
             # create it from what we (eups) know about it
-            man = distrib.createDependencies(product, version, self.flavor)
+            man = distrib.createDependencies(product, version, self.flavor, exact=opts["exact"])
         else:
             # load it from the given file
             man = Manifest.fromFile(manifest, self.eups, self.eups.verbose-1)
@@ -512,25 +511,24 @@ class Repository(object):
             #
             if repos and not self.eups.force:
                 # look for the requested flavor
-                already_available = bool(repos.findPackage(dp.product, 
-                                                           dp.version, 
-                                                           dp.flavor))
+                already_available = bool(repos.findPackage(dp.product, dp.version, dp.flavor))
                 if not already_available and dp.flavor != "generic":
-                    already_available = bool(repos.findPackage(dp.product, 
-                                                               dp.version, 
-                                                               dp.flavor))
+                    already_available = bool(repos.findPackage(dp.product, dp.version, "generic"))
 
                 if already_available:
                     created.append(pver)
+                    
+                    dp.distId = "search"
+                    dp.tablefile = None
+                    dp.instDir = None
+
                     continue
 
             # we now should attempt to create this package because it appears 
             # not to be available
-            man = distrib.createDependencies(dp.product, dp.version, 
-                                             self.flavor)
+            man = distrib.createDependencies(dp.product, dp.version, self.flavor)
 
-            id = distrib.createPackage(self.pkgroot, dp.product, dp.version, 
-                                       self.flavor)
+            id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor)
             created.append(pver)
             dp.distId = id
                 
