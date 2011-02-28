@@ -71,7 +71,8 @@ class Eups(object):
                  noaction=False, force=False, ignore_versions=False,
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
-                 userDataDir=None, asAdmin=False, setupType=[], validSetupTypes=None, vro={}
+                 userDataDir=None, asAdmin=False, setupType=[], validSetupTypes=None, vro={},
+                 exact_version=None
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -98,6 +99,7 @@ class Eups(object):
                                   None, the list will be set according to the
                                   user's configuration.
         @param preferredTags      List of tags to process in order; None will be intepreted as the default
+        @param exact_version      Where possible, use the exact versions that were previously declared
         """
 
         self.verbose = verbose
@@ -163,7 +165,11 @@ class Eups(object):
             validSetupTypes = validSetupTypes.split()
         self._validSetupTypes = validSetupTypes
         if self._validSetupTypes is None:
-            self._validSetupTypes = hooks.config.Eups.setupTypes.split()
+            self._validSetupTypes = hooks.config.Eups.setupTypes
+            if isinstance(self._validSetupTypes, str):
+                utils.deprecated("Setting config.Eups.setupTypes with a string is deprecated; " +
+                                 "please use a list.", self.quiet)
+                self._validSetupTypes.split()
         #
         # Split and check our setupType
         #
@@ -190,6 +196,9 @@ class Eups(object):
         self.noaction = noaction
         self.force = force
         self.ignore_versions = ignore_versions
+        if exact_version is not None and exact_version and self.setupType.count("exact") == 0:
+            self.setupType.append("exact")
+
         self.exact_version = self.setupType.count("exact") > 0
         self.max_depth = max_depth      # == 0 => only setup toplevel package
 
@@ -293,8 +302,8 @@ class Eups(object):
             (hooks.config.Eups.globalTags, None), # None => global
             (["newest",], None),
             (hooks.config.Eups.userTags, Tags.user),
-            (["commandLine", "keep", "path",
-              "setup", "version", "versionExpr", "warn",], Tags.pseudo),
+            (["commandLine", "keep", "path", "setup", "type",
+              "version", "versionExpr", "warn",], Tags.pseudo),
             ]:
             if isinstance(tags, str):
                 tags = tags.split()
@@ -343,7 +352,7 @@ class Eups(object):
         # and some are used internally by eups
         #
         self._internalTags = []
-        for k in ["commandLine", "keep", "version", "versionExpr", "warn"]:
+        for k in ["commandLine", "keep", "type", "version", "versionExpr", "warn"]:
             self._internalTags.append(k)
         #
         # Check that nobody's used an internal tag by mistake (setup -t keep would be bad...)
@@ -572,13 +581,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         _tags = tags
         tags = []; notokay = []
         for t in _tags:
-            if re.search(r":\d+$", t):
-                t, suffix = t.split(":")
+            if re.search(r":.+$", t):
+                tbase, suffix = t.split(":")
 
-                if self.tags.isRecognized(t):
+                if self.tags.isRecognized(tbase):
                     tags.append(t)
-                    tags.append(":")
-                    tags.append(suffix)
                 else:
                     notokay.append(t)
             elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
@@ -754,8 +761,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         for i in range(len(vro)):
             vroTag = vro[i]
             vroTag0 = vroTag            # we may modify vroTag
+
+            preVro =  vro[0    :i]
+            postVro = vro[i + 1:]
             
-            if vroTag in ("path", ":") or re.search(r"^\d+$", vroTag): # numbers come from e.g. warn:1
+            if vroTag in ("path"):
                 continue
 
             elif recursionDepth > 0 and vroTag in ("keep",):
@@ -774,12 +784,17 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             elif vroTag in ("version", "versionExpr",):
             
-                if self.ignore_versions:
+                if not version or self.ignore_versions:
                     continue
 
                 if self.isLegalRelativeVersion(version): # version is actually a versionExpr
                     if vroTag == "version":
-                        continue
+                        if "version" in postVro:
+                            continue
+                        else:
+                            print >> sys.stderr, "Failed to find %s %s for flavor %s" % \
+                                  (name, version, flavor)
+                            break
                     
                     versionExpr = version
                     
@@ -825,17 +840,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if product:
                     if recursionDepth == 0:
                         vroReason[0] = "commandLine"
+                else:
+                    if not "version" in postVro and not "versionExpr" in postVro:
+                        print >> sys.stderr, "Failed to find %s %s for flavor %s" % \
+                              (name, version, flavor)
+                        break
 
-            elif vroTag == "warn":
-                preVro = vro[0:i]
-                debugLevel = 1
-                try:
-                    if vro[i + 1] == ":":
-                        debugLevel = int(vro[i + 2])
-                        i += 2
-                except IndexError:
-                    pass
-                postVro = vro[i + 1:]
+            elif re.search(r"^warn(:\d+)?$", vroTag):
+                debugLevel = int(vroTag.split(":")[1])
 
                 if self.verbose >= debugLevel + 0*self.quiet:
                     if version:
@@ -847,13 +859,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                         indent = "            "
                     else:
                         indent = ""
-                        
+
                     msg = "%sVRO [%s] failed to match for %s version %s" % \
-                          (indent, ", ".join(filter(lambda x: not re.search("^(warn|:|\d+)$", x), preVro)),
+                          (indent, ", ".join(filter(lambda x: not re.search("^warn(:\d+)?$", x), preVro)),
                            name, vname,)
                     if postVro:
                         msg += "; trying [%s]" % \
-                               (", ".join(filter(lambda x: not re.search("^(warn|:|\d+)$", x), postVro)))
+                               (", ".join(filter(lambda x: not re.search("^warn(:\d+)?$", x), postVro)))
                     if flavor:
                         msg += " (Flavor: %s)" % flavor
 
@@ -871,6 +883,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                     continue
                 
                 vroReason = [vroTag, None]
+
+            elif re.search(r"^type:(.+)$", vroTag):
+                setupType = vroTag.split(":")[1]
+                self.setupType += [setupType]
+
+                if setupType == "exact":
+                    self.exact_version = True
+                    self.makeVroExact()
 
             else:
                 print >> sys.stderr, "YOU CAN'T GET HERE", vroTag
@@ -2978,9 +2998,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Is tagName the name of a user tag?"""
         return self.tags.groupFor(tagName) == self.tags.user
 
-    def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None):
+    def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None, inexact_version=False):
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")
-
+        @param inexact_version    Process the VRO to remove type:exact?
         """
 
         # Note that the order of these tests is significant
@@ -3020,35 +3040,23 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.keep:
             self._vro[0:0] = ["keep"]
 
-        if self.exact_version:
-            # Remove versionExpr and all user or global tags
-            tagVroEntries = []
-            vro = []
-            for v in self._vro:
-                v0 = v.split(":")[0] # v may be of form warn:nnn so only the pre-: string is a tagname
-                if self.tags.isRecognized(v0) and \
-                   not (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser()):
-                    vro.append(v)
-                else:
-                    tagVroEntries.append(v)
+        #
+        # They might have explicitly asked to add/remove type:exact entries
+        #
+        if self.exact_version:          # this is a property of self
+            self.makeVroExact()
+        if inexact_version:             # this is a request to not process type:exact in the vro
+            self._vro = filter(lambda el: el != "type:exact", self._vro)
 
-            if tagVroEntries:
-                if self.verbose > 1:
-                    print >> sys.stderr, "Moved [%s] to end of VRO as exact versions are desired" % \
-                          ", ".join(tagVroEntries)
-                if not filter(lambda x: re.search(r"^warn:[01]", x), vro):
-                    vro += ["warn:1"]
-                vro += tagVroEntries
+        extra = ""                                  # extra string for message to user
+        if tag:                                     # need to put tag near the front of the VRO,
+            where = 0
+            for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
+                if v == "commandLine" or re.search(r"^type:.+", v):
+                    where = i + 1
 
-            self._vro = vro
-            # ensure that "version" and "versionExpr" are on the VRO, after "path" and "version" respectively
-            for v, vv in [("version", "path"), ("versionExpr", "version")]:
-                if not self._vro.count(v):
-                    if self._vro.count(vv):             # ... but not before vv
-                        where = self._vro.index(vv) + 1
-                    else:
-                        where = 0
-                    self._vro[where:where] = [v]
+            for t in reversed(tag):
+                self._vro[where:where] = [str(t)]
 
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO
@@ -3070,10 +3078,16 @@ The what argument tells us what sort of state is expected (allowed values are de
         uniqueVro = []
         for e in self._vro:
             if not entries.has_key(e):
+                if re.search(r"^warn(:\d+)?$", e): # allow multiple warnings on VRO
+                    if not re.search(r"^warn:\d+$", e): # change warn --> warn:1
+                        e = "warn:1"
+                else:
+                    entries[e] = 1      # we've seen this one
+
                 uniqueVro.append(e)
-                if not re.search(r"^warn(:\d+)?$", e):
-                    entries[e] = 1
         self._vro = uniqueVro
+
+        self._vro = Eups.__mergeWarnings(self._vro)
 
         if self.verbose > 1:
             print >> sys.stderr, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)
@@ -3083,6 +3097,85 @@ The what argument tells us what sort of state is expected (allowed values are de
         q = None # utils.Quiet(self)
         self._kindlySetPreferredTags(self._vro)
         del q
+
+    # staticmethod;  would use a decorator if we knew we had a new enough python
+    def __mergeWarnings(vro):
+        """Replace consecutive sequences of warn:X by warn:min (otherwise we may get repeated warnings);
+such sequences can be generated while rewriting the VRO"""
+
+        vro = vro[:]; vro.append(None) # use None as an end-marker
+        cleanedVro = []
+
+        e, i = True, -1
+        while e is not None:
+            i += 1
+            e = vro[i]
+
+            debugLevelMin = None
+            for j in range(i, len(vro)):
+                e = vro[j]
+                mat = e and re.search(r"^warn:(\d+)$", e)
+                if not mat:             # neither warn:XXX nor the end-marker
+                    if debugLevelMin is not None:
+                        cleanedVro.append("warn:%d" % debugLevelMin)
+                    i = j
+                    break
+
+                debugLevel = int(mat.group(1))
+                if debugLevelMin is None or debugLevel < debugLevelMin:
+                    debugLevelMin = debugLevel
+
+            if e:
+                cleanedVro.append(e)
+
+        return cleanedVro
+
+    __mergeWarnings = staticmethod(__mergeWarnings)
+
+    def makeVroExact(self):
+        """Modify the VRO to support setup --exact even if the table files don't have an
+           if(type == exact) { block }"""
+        # Move all user or global tags (and non-recognized strings) to the end of the VRO
+        vro0 = self._vro
+
+        tagVroEntries = []              # user/global tags found on the VRO
+        movedTags = False               # did we actually move any tags?
+        vro = []
+        for v in self._vro:
+            # v may be of form warn:nnn or type:XXX so only the pre-: string is a tagname
+            v0 = v.split(":")[0]
+
+            if not self.tags.isRecognized(v0) or \
+                   (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser()):
+                if not tagVroEntries.count(v):
+                    tagVroEntries.append(v)
+            else:
+                if tagVroEntries:       # there are tags to be moved, so ...
+                    movedTags = True    # ... we'll move them
+                vro.append(v)
+
+        if tagVroEntries:
+            if movedTags:
+                if not filter(lambda x: re.search(r"^warn:[01]", x), vro):
+                    vro += ["warn:1"]
+            vro += tagVroEntries
+
+        self._vro = vro
+
+        if False:
+            # ensure that "version" and "versionExpr" are on the VRO, after "path" and "version" respectively
+            for v, vv in [("version", "path"), ("versionExpr", "version")]:
+                if not self._vro.count(v):
+                    if self._vro.count(vv):             # ... but not before vv
+                        where = self._vro.index(vv) + 1
+                    else:
+                        where = 0
+                    self._vro[where:where] = [v]
+
+        if tagVroEntries:               # we moved tags to the end of the VRO
+            if self.verbose > 1 and movedTags and vro0 != self._vro:
+                print >> sys.stderr, "Moved [%s] to end of VRO as exact versions are desired" % \
+                      ", ".join(tagVroEntries)
 
     def getVRO(self):
         """Return the VRO (as chosen by selectVRO)"""

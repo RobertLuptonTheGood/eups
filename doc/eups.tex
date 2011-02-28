@@ -1,12 +1,26 @@
 \documentclass{article}
 \ExecuteOptions{dvips,color}
 \usepackage{fullpage}
+\usepackage{color}
+\IfFileExists{hyperref.sty}{\usepackage{hyperref}}{}
 %
 \newcommand{\XXX}[1]{\textbf{XXX} #1}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\file}[1]{\texttt{#1}}
 \newcommand{\eups}{\code{ExtUPS}}
 \newcommand{\pacman}{\code{pacman}}
+\newcommand{\rarrow}{$\Rightarrow$}
+\newcommand{\darrow}{$\Downarrow$}
+%
+% Redefine verbatim to integrate better into running text
+%
+\usepackage{verbatim}
+\let\overbatim=\verbatim
+\let\oendverbatim=\endverbatim
+\renewenvironment{verbatim}
+{\center\minipage{16cm}\overbatim}
+{\oendverbatim\endminipage\endcenter}
+
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 \begin{document}
@@ -49,12 +63,15 @@ We assume that the task of actually managing individual components
 (e.g. tracking code versions) is being handled with some other system,
 such as \code{cvs} or \code{svn}.
 
+See Appendix \ref{AppInstalling} if you want to know how to install your own copy of \eups.
+
 \section{The \code{setup} command}
 
 \eups
 \footnote{%
   The name comes from \code{UPS} (\code{Unix Product Support}), a
-  tool written at Fermi National Accelerator Laboratory, FNAL. \eups{}
+  tool written at Fermi National Accelerator Laboratory, FNAL. \eups{} (pronounced ``E-ups'',
+  or just ``ups'', or sometimes even ``eeups'' as a single word) 
   was basically a reimplementation first in perl and now python of those parts of \code{UPS}
   that we have found especially valuable;  we have now made extensive extensions.}
 achieves all of these goals. A component (refered to as a `product')
@@ -97,49 +114,8 @@ table file leads to the following actions:
 \end{description}
 
 So far we have achieved the first of the goals listed in the introduction,
-describing a hierarchy.  The next section describes how to maintain
-multiple versions.
-
-\section{Installing \eups}
-
-If you want to play with \eups{} you may want to install a copy.
-
-You can check out a copy from \code{svn} from NCSA:
-\begin{verbatim}
-  svn co svn://svn.lsstcorp.org/eups/trunk eups
-\end{verbatim}
-or to get an released version e.g.
-\begin{verbatim}
-  svn co svn://svn.lsstcorp.org/eups/tags/1.2.6 eups
-\end{verbatim}
-You can of course list available versions with
-\begin{verbatim}
-  svn ls svn://svn.lsstcorp.org/eups/tags
-\end{verbatim}
-
-Alternatively, grab the tarball
-\begin{verbatim}
-http://www.astro.princeton.edu/~act/packages/eups.tar.gz
-\end{verbatim}
-which is probably out of date.
-
-Then unpack it, configure, and install.  E.g.
-\begin{verbatim}
-zcat eups.tar.gz | tar -xf -
-cd eups
-./configure --with-eups=/u/act/products
-make show
-make install
-\end{verbatim}
-
-The \code{make install} command will tell you to source a file
-with a name such as
-\begin{verbatim}
-/u/act/products/eups/bin/setups.sh
-\end{verbatim}
-which will make \eups{} commands available to you; csh users should
-use \code{setups.csh}.  You'll probably want to add this line to your
-shell startup file (.bashrc or .tcshrc).
+describing a hierarchy.   The next section describes how to maintain
+multiple versions of products.
 
 \section{Declaring Products and Versions}
 
@@ -162,19 +138,20 @@ the \code{declare} command,
 
   \item
     \code{-f Darwin} specifies the flavor (i.e. my computer's hardware and
-    operating system)
+    operating system).  You should almost always omit an explicit flavor declaration;
+    it's not needed and you can get it wrong.
 
   \item
     \code{-r /u/products/Darwin/photo/v5\_4\_25} is the directory where
     the specified version can be found. The name is purely conventional,
     but the convention is pretty transparent.
 
-  \item
     This directory is typically created by an \code{install} target
     in a Makefile, but it could simply be your current working
-    copy:
+    copy: \footnote{It's probably better to use a tag (Sec. \ref{tags}) here: \code{eups declare -t rhl -r .}}
+    \vspace{-7mm}
 \begin{verbatim}
-       declare photo cvs -f Darwin -r ~/photo
+       eups declare photo cvs -r ~/photo
 \end{verbatim}
 \end{itemize}
 
@@ -194,18 +171,238 @@ setupRequired("astrotools v4_10_1")
 \end{verbatim}
 The table file being used is the one in the \emph{installed} directory,
 and the \code{make install} command was free (and indeed encouraged) to
-rewrite the table file to specify explicit version numbers.
+rewrite the table file to specify explicit version numbers using the \code{eups expandtable} command.
 
 We have now achieved all of our five goals (although we have not
 yet described how to make use of our success): I have defined
 a version \code{v5\_4\_25} of a product \code{photo}, which is
 to be found in a given directory for a given architecture,
-and specified how its environment should be Furthermore,
+and specified how its environment should be configured. Furthermore,
 this version depends on a specific version (\code{v4\_10\_1}) of
 \code{astrotools}, and so on. By convention, each of these version
 numbers corresponds to a cvs tag in some repository, so I am
 able to recover the complete set of releases used to build and
 run this version of \code{photo} by examining the \eups{} database.
+
+\section{The \code{setup} command continued}
+
+\subsection{How \eups{} decides which version of a package to setup}
+\label{SetupVersionChoice}
+
+We rather blithely described how \eups{} chooses a version with the phrase,
+``When setting up a product, a user may specify a version, or accept the current default''.  Unfortunately,
+it isn't always quite so simple.
+
+Consider a simple ``dependency tree'' of products such as:
+\setlength{\unitlength}{1mm}
+\begin{center}
+\begin{picture}(100,10)
+\thinlines
+\put(10,0){\framebox(20,10){A 1.2}}
+\put(30,5){\vector(1,0){10}}
+\put(40,0){\framebox(20,10){B 2.2}}
+\put(60,5){\vector(1,0){10}}
+\put(70,0){\framebox(20,10){C 1.3}}
+\end{picture}
+\end{center}
+i.e. version 1.2 of product A sets up version 2.2 of B which sets up version 1.3 of C.  This chain is
+defined by the product's table files; i.e.. A 1.2's table looks something like:
+\begin{verbatim}
+setupRequired(B 2.2)
+\end{verbatim}
+and B 2.2's table:
+\begin{verbatim}
+setupRequired(C 1.3)
+\end{verbatim}
+
+When we say \code{setup A 1.2} setup's task is simple;  it looks up A's table file and finds
+\code{setupRequired(B 2.2)}; so it sets up B 2.2 finding \code{setupRequired(C 1.3)}, so it
+  sets up C 1.3 and that's it (as C has no dependencies).
+
+\eups{} can also handle \code{setup A} (i.e. no explicit version).  In this case it looks for the version of
+A that has been tagged `current'; if A 1.2 is current, then \code{setup A} has the same result as
+\code{setup A 1.2}.
+\footnote{You can actually
+  change this behaviour to make any tag the default by changing the VRO; see Sec. \ref{VRO}}
+
+Unfortunately even specifying explicit versions of dependent products doesn't completely define which
+products should be setup.
+
+Consider
+\begin{center}
+\begin{picture}(100,25)
+\thinlines
+\put(10,0){\framebox(20,10){D 2.0}}
+\put(30,5){\vector(1,0){10}}
+\put(40,0){\framebox(20,10){C 2.0}}
+
+\put(10,15){\framebox(20,10){A 1.2}}
+\put(30,20){\vector(1,0){10}}
+\put(40,15){\framebox(20,10){B 2.2}}
+\put(60,20){\vector(1,0){10}}
+\put(70,15){\framebox(20,10){C 1.3}}
+\end{picture}
+\end{center}
+
+\newcommand{\DiamondDependencyFigure}{
+\begin{center}
+\begin{picture}(100,22.5)
+\thinlines
+\put(10,7.5){\framebox(20,10){A 1.2}}
+\put(30,12.5){\vector(1,0){10}}
+\put(40,7.5){\framebox(20,10){B 2.2}}
+\put(60,12.5){\vector(3,2){10}}
+\put(60,12.5){\vector(3,-2){10}}
+\put(70,12.5){\framebox(20,10){\color{blue}C 1.3}}
+
+\put(70,0){\framebox(20,10){D 2.0}}
+\put(90,5){\vector(1,0){10}}
+\put(100,0){\framebox(20,10){\color{blue}C 2.0}}
+\end{picture}
+\end{center}
+}
+
+If we change B 2.2's table file to read
+\begin{verbatim}
+setupRequired(C 1.3)
+setupRequired(D 2.0)
+\end{verbatim}
+i.e. if we add a dependency on D version 2.0 to B version 2.2, we have:
+\DiamondDependencyFigure
+Note that there are two separate requests for C;
+this is referred to as a ``diamond dependency'' by analogy to multiple inheritance in OO languages.
+\eups{} is unable to handle this without help.  One solution is that \code{eups expandtable} writes the
+complete set of setup products into the table file (see Sec. \ref{expandtable} for details) and when
+you specify an exact version or use the \code{--exact} flag this set of
+versions is used. For example, if C 1.3 was setup when you installed and declared A 1.2, then the command
+\code{setup A 1.2} would result in A 1.2, B 2.2, D 2.0, and C 1.3 being setup.
+
+Another possibility is to always accept the latest version of a product; this is
+supported but has proved to be fragile as it turns out to be hard to define an absolute order for versions.
+
+Another way to get exactly your desired mix-n-match of versions is to use tags; tagging your favourite
+version of C preempts any other choice (see Sec. \ref{tags}).
+
+There are a couple of other \code{setup} options that can be used to control dependencies.  One is
+\code{--just} which is equivalent to \code{--max-depth 0}; that is, don't setup any dependencies (so
+\code{setup --just A 1.2} wouldn't setup B, whereas
+\code{setup --max-depth 1 A 1.2} would setup B but not C or D.
+
+Another is \code{--keep} which means that any products that you've already setup are preserved; e.g.
+after \code{setup C 1.0; setup --keep A 1.2} would
+result in A 1.2, B 2.2, D 2.0, and C 1.0 being setup.
+
+\subsection{The VRO}
+\label{VRO}
+
+When looking for a version of a product, \code{setup} searches a list known as the VRO (the \code{V}ersion
+\code{R}esolution \code{O}rder) looking for a valid recipe to find a version; you can see the current vro with
+\code{eups vro}.  Some entries on the VRO are directives (e.g.  \code{keep}), while others tell \eups{} how to
+look for a product (e.g. \code{version}).
+
+For example, a VRO of \code{version current} means that when looking for a product, \eups{} should
+first try to an explicit version specification, and only then a version with tag \code{current} (it
+is a VRO like this that makes \code{current} be the default version).  That is,
+if foo 6.6.6 is current and we see a table file such as
+\begin{verbatim}
+setupRequired(foo 1.2.3)
+\end{verbatim}
+a VRO of \code{version current} would use  \code{version} to setup foo 1.2.3.
+If the VRO had been \code{current version} then foo 6.6.6 would have been setup instead.
+
+As the VRO is processed, entries are interpreted as follows:
+\begin{description}
+\item[current]
+   Use a version tagged \code{current}
+\item[commandLineVersion]
+   Use the version explicitly specified on the command line
+\item[keep]
+   If a version of the product is already setup, accept it as the new version
+\item[newest]
+   Use the most recent version [not well tested; caveat usor]
+\item[path]
+   Use the version specified by an explicit path on the command line (i.e. \code{-r ...})
+\item[\textit{tagname}]
+   Use the version with a specific tag (see Sec. \ref{tags})
+\item[type:\textit{typename}]
+   Set the build type, exactly as if you'd said \code{--type \textit{typename}}.  This directive is seen
+   when this element of the VRO is processed, so you probably want to put it first.  Its major use is to
+   set \code{type:exact};  this is the the mechanism used to make commands like \code{setup foo 1.2}
+   behave as if you'd typed \code{setup --exact foo 1.2}.
+\item[version]
+   Use a version of the product specified explicitly (e.g. \code{1.2.3})
+\item[versionExpr]
+   Use a version that satisfies an expression (e.g. \code{>= 1.2.3})
+   (explicit versions are allowed too, and imply equality)
+\item[warn]
+   Print a warning message if the version resolution reaches this point in the VRO without finding a version.
+   You can add a verbosity level (e.g. \code{warn:2}) to specify the minimum verbosity to print the message.
+\end{description}
+
+The VRO can be set by the \code{--vro} option, or (more commonly) by setting \code{hooks.config.Eups.VRO}
+in a startup file (Sec. \ref{customization}).  \code{hooks.config.Eups.VRO} is a dictionary with
+keys that specify the VRO to use with a commandLineVersion, with a tag (e.g. \code{rhl}) or a default value;
+the default can itself be a dictionary with keys corresponding to elements of the \code{\$EUPS\_PATH} (cf. the
+\code{-z} option).  The \code{eups vro} command can be used to show what VRO would be used (e.g. \code{eups vro -tag rhl afw 1.2})
+
+\subsection{Tags}
+\label{tags}
+
+It's possible to associate a name with a set of versions; tags are specified as \code{-t XXX} or
+\code{--tag XXX}.  After tagging a variety of products as \code{rhl}, I can say \code{setup -t rhl photo}
+to get a version of the product \code{photo} setup
+using dependencies that I've honoured with the tag \code{rhl}; other products are found on the VRO as usual.
+
+Tags may be set with a command such as \code{eups declare -t rhl afw 1.2.3} or
+\code{eups declare -t rhl -r .}\footnote{yes; no version name is required as the tagname suffices to
+  identify the product's version.}
+There are two sorts of tags; user tags are only available to
+you, while global tags are visible to all users of your \eups{} database.\footnote{You are permitted to use
+  other people's user tags if you can read their \file{\~{}/.eups} directory; e.g. to use my beta tag put
+  \code{hooks.config.Eups.userTags += [("beta", "rhl")]} into \textit{your} \file{\~{}/.eups/startup.py} file}
+Additionally, tags may be labelled as `reserved' which means that you're not supposed to meddle with them;
+they are designed for centrally-assigned tags such as `pre-release' or `golden'.
+
+Tags must be declared before use (to avoid
+typos such as \code{-t rkl} when you obviously meant \code{-t rhl}).
+This is done in one of the startup files (see Sec.
+\ref{customization}), typically \code{\$HOME/.eups/startup.py} with code such as
+\begin{verbatim}
+hooks.config.Eups.globalTags += ["test"]
+hooks.config.Eups.userTags += ["t1570"]
+\end{verbatim}
+This declares tags \code{test} and \code{t1570}.  In addition, your username (in my case \code{rhl}) is
+automatically defined as a valid user tag.
+
+You can list all known tags with \code{eups tags}; user tags are prefixed \code{user:}.  For example,
+\begin{verbatim}
+$ eups tags
+current newest stable user:rhl
+\end{verbatim}
+
+When using a tag, the tag is automatically inserted near the front of the VRO;
+\begin{verbatim}
+$ eups vro
+path versionExpr warn current
+$ eups vro -t rhl
+path rhl versionExpr warn current
+\end{verbatim}
+In other words, your tagged products take priority over any other version specification (except an explicit
+path).
+
+As an alternative declaring a version with a known tagname, the `tagname' in \code{-t \textit{tagname}} may be a file
+consisting of pairs \code{product version ...} such as that produced with the
+\code{eups list --setup} command
+\footnote{You may also say \code{file:XXX} to explicitly specify that \code{XXX} should
+  be interpreted as a file, not a tagname}
+
+For example, to share a setup with a colleague I could say:
+\begin{verbatim}
+$ eups list --setup > mysetups.txt
+$ emacs mysetups.txt       # remove products I don't care about
+$ setup -t mysetups.txt afw
+\end{verbatim}
+and then tell her to repeat that last line.
 
 \section{How do I Actually Use this System to Manage Code?}
 
@@ -220,9 +417,10 @@ INCS = -I$(ASTROTOOLS_DIR)/include \
 LIBS =   -L$(ASTROTOOLS_DIR)/lib -lastrom \
          -L$(PHOTO_DIR)/lib -lphoto -lmeasureObj \
          ...
-\end{verbatim} %$
+\end{verbatim}
+				% $ for emacs
 
-Section \ref{autoconf} discusses a strategy for managing include files
+App. \ref{autoconf} discusses a strategy for managing include files
 and libraries using configure and make; but the gnu build tools are
 complicated and (some would say) confusing and clunky, so you may
 not want to learn them.  One option is to add some more magic
@@ -257,7 +455,8 @@ declare :
         
 current : declare
         eups declare $(PRODUCT) $(VERSION) --current --force
-\end{verbatim}                          % $
+\end{verbatim}
+				% $ for emacs
 
 \code{EUPS\_ROOT} is taken to be the last element in \code{EUPS\_PATH} (that's
 the \code{-1} in \code{eups path -1}),
@@ -291,112 +490,99 @@ and svn users.
 
 Write me.
 
+\appendix
+
 \section{Using \eups{} with python}
 
 \eups{} is written in python, so you can use it in scripts by simply importing it.
 
-There's also an option parsing class \code{Getopt} (used by \code{eups distrib}) that
-offers features not present in python's regular \code{getopt} module.
-
 To use \eups{} from python, you need to \code{import eups};
-\code{help(eups)} then reveals:
-\begin{verbatim}
-    current(product='', dbz='', flavor='')
-        Return the current version of a product; if product is omitted,
-        return a list of (product, version) for all products
+The functions in \code{eups.app} define the supported API:
+\begin{description}
+  \item[clearCache]
+        remove the product cache for given stacks/databases and flavors
     
-    database(product, version='current', dbz='', flavor='')
-        Return the database for the specified product and version
+  \item[declare]
+        Declare a product.  That is, make this product known to EUPS.  
     
-    declare(product, version, flavor, dbz, tablefile, products_root, product_dir, declare_current=False, noaction=False)
-        Declare a product.  product_dir may be None to just declare the product current (or
-        use declareCurrent)
+  \item[expandBuildFile]
+        expand the template variables in a .build script to produce an 
+        explicitly executable shell scripts.  
     
-    declareCurrent(product, version, flavor, dbz, noaction=False)
-        Declare a product current
+  \item[expandTableFile]
+        expand the version specifications in a table file.  When a version in 
+        the original table file is expressed as an expression, the expression is 
+        enclosed in brackets and the actual product version used to build the 
+        table file's product is added.  
     
-    dependencies(product, version, dbz='', flavor='')
-        Return a product's dependencies in the form of a list of tuples
-        (product, version, flavor)
+  \item[getDependencies]
+        Return a list of productName's dependent products
     
-    dependencies_from_table(tableFile)
-        Return a list of tuples (product, version) that need to be
-        setup, given a table file.
-        
-        N.b. Note that conditionals aren't handled properly
-        N.b. This is the top-level requirements, it isn't computed recursively
+  \item[getDependentProducts]
+        Return a list of Product topProduct's dependent products
     
-    directory(product, version='current', dbz='', flavor='')
-        Return the PRODUCT_DIR for the specified product and version
+  \item[getSetupVersion]
+        return the version name for the currently setup version of a given product.
     
-    expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None)
-        Expand a build file, reading from ifd and writing to ofd
-    
-    flavor()
-        Return the current flavor
-    
-    isCurrent(product, version, dbz='', flavor='')
-        Return True iff the the specified product and version is current
-    
-    isSetup(product, version, dbz='', flavor='')
-        Return True iff the the specified product and version is setup
-    
-    list(product, version='', dbz='', flavor='', quiet=False)
-        Return a list of declared versions of a product; if the
-        version is specified, just return the properties of that version.
-        The version may be "current" or "setup" to return the current
-        or setup version.
-        
-        The return value for each product is a list of lists:
-           [[version, database, directory, isCurrent, isSetup], ...]
-        (if only one version matches, the return is a single list; if no versions
-        match, you'll get None)
-    
-    productDir = directory(product, version='current', dbz='', flavor='')
-        Return the PRODUCT_DIR for the specified product and version
-    
-    setup(product='', dbz='', flavor='')
-        Return the setup version of a product; if product is omitted,
-        return a list of (product, version) for all products
-    
-    table(product, version, flavor='')
-        Return the full path of a product's tablefile
-    
-    undeclare(product, version, flavor=None, dbz=None, undeclare_current=False, noaction=False)
-        Undeclare a product.
-    
-    undeclareCurrent(flavor, dbz, product, version, noaction=False)
-        Undeclare a product current
-    
-    version(versionString='$HeadURL: $')
-        Return a version name based on a cvs or svn ID string
-	($Name$ or $HeadURL$); the default is the \eups{} version.
-\end{verbatim}
+  \item[listCache]
+        List the contents of the cache    
 
-\appendix
+  \item[printProducts]
+        print out a listing of products.  Returned is the number of products listed.
+    
+  \item[printUses]
+        print a listing of products that make use of a given product.  
+    
+  \item[productDir]
+        return the installation directory (PRODUCT\_DIR) for the specified product
+    
+  \item[setup]
+        Return a set of shell commands which, when sourced, will setup a product.  
+    
+  \item[undeclare]
+        Undeclare a product.  That is, remove knowledge of this
+        product from EUPS.  This method can also be used to just
+        remove a tag from a product without fully undeclaring it.
+    
+  \item[unsetup]
+        Return a set of shell commands which, when sourced, will unsetup a product.
+\end{description}
 
 \section{\eups{} Reference Manual}
 
 \subsection{\eups{} concepts and jargon}
 
 \begin{description}
-\item[package]
-   A logical unit that you would like to version using \eups{}
+\item[current]
+  The special \textit{tag} used to indicate the default version of a \textit{product}.
+\item[dependency]
+  A \textit{product} B is a dependency of A if B needs to be setup as part of setting up A.
+\item[flavor]
+  The computer architecture for which your \textit{product}s are valid.  This is often more-or-less
+  a summary of your \code{uname}; examples are \code{DarwinX86}, \code{Linux}, \code{Linux64}.
+\item[product]
+  A logical unit that you would like to version using \eups{}
 \item[root]
-   The directory associated with a package (if any).  For the common case of
-   a package containing source code the root would usually contain include and library subdirectories,
-   although this is not required.
+  The directory associated with a \textit{product} (if any).  For the common case of
+  a \textit{product} containing source code the root would usually contain include and library subdirectories,
+  although this is not required.
 \item[tag]
-   A name attached to a set of one or more packages, which can be used to override the version that would otherwise be selected
+  A name attached to a set of one or more \textit{products}, which can be used to override the version
+  that would otherwise be selected.  Note that this use of the word \textit{tag} is unrelated to its use
+  in source code managers such as \code{svn} or \code{hg}.
+\item[table]
+  A \textit{product}'s \textit{table file} lists the actions that \eups{}
+  needs to carry out when setting up the \textit{product}.
 \item[version]
-   A string specifying which version of a package is being used.  Conventionally these correspond to names
-   generated from your source code manager (e.g. \code{svn}), but this is not required.
+  A string specifying which version of a \textit{product} is being used.  Conventionally these correspond to names
+  generated from your source code manager (e.g. \code{svn}), but this is not required.
 \item[VRO]
-  The \code{V}ersion \code{R}esolution \code{O}rder;  the order in which possible versions of a package are
-  considered.
+  The \code{V}ersion \code{R}esolution \code{O}rder;  the order in which possible versions of
+  a \textit{product} are considered.
 \end{description}
 
 \subsection{How to customize \eups{}}
+\label{customization}
 You can customize \eups's behaviour in two ways:
 \begin{itemize}
 \item By setting an environment variable \code{\$EUPS\_STARTUP} which points to a python script
@@ -405,7 +591,7 @@ You can customize \eups's behaviour in two ways:
 \end{itemize}
 
 You can list your startup files with \code{eups startup}; with \code{-v} files that would be consulted if they
-are existed are also listed.  You'll see that there are two sorts of file;  \file{startup.py} and \file{config.properties}.  You should ignore the latter, and they are not further documented here.
+are existed are also listed.  \footnote{Once upon a time there were two sorts of startup file: \file{startup.py} and \file{config.properties}.  The latter are currently disabled in \file{hooks.py}}
 
 For example if \code{\$EUPS\_STARTUP=\$HOME/Python/foo.py} and \code{\$EUPS\_PATH=/u/lsst/products:/u/lsst/coreProducts}, then \code{eups -v startup} reports
 \begin{verbatim}
@@ -440,30 +626,18 @@ These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
 
 For example, I have
 \begin{verbatim}
-import eups, os, pwd, sys
-
-user = pwd.getpwuid(os.geteuid())[0]
 
 hooks.config.Eups.globalTags += ["test"]
-hooks.config.Eups.userTags = [user]
+hooks.config.Eups.userTags += ["t1570"]
 hooks.config.Eups.reservedTags += ["stable"]
-hooks.config.Eups.VRO = {
-    "commandLineVersion" : "path version warn:2 stable current",
-    "default" :             { "default" : "path versionExpr current",
-                              "dss" :     "path version current",
-                              #"lsst" :    "path stable+versionExpr warn versionExpr current",
-                              "lsst" :    "path current warn versionExpr",
-                             },
-    "rhl" :                "path rhl current version warn:0 versionExpr",
-    }
+hooks.config.Eups.VRO["default"]["dss"] = "type:exact path version current"
 \end{verbatim}
-\subsection{\eups{} commands}
 
-\begin{itemize}
+\subsection{\eups{} commands}
 
 %------------------------------------------------------------------------------
 
-\item \code{eups}
+\subsubsection{\code{eups}}
 \begin{verbatim}
 Usage:
         eups [--help|--version] command [options]
@@ -491,7 +665,8 @@ Supported commands are:
 Use
         eups --help cmd
 for help with command "cmd"
-\end{verbatim}				% $
+\end{verbatim}
+				% $ for emacs
   
 A consistent front-end to all the other \eups{} commands.
 
@@ -524,7 +699,7 @@ The desired database can also be specified explicitly with the \code{-Z} option 
 \code{EUPS\_PATH}), or by using \code{-z} to specify a path component; e.g.  \code{-Z
   /home/proj1/eups:/home/proj2/eups -z proj2} would select \code{/home/proj2/eups}.
 
-\item \code{eups admin}
+\subsubsection{\code{eups admin}}
 \begin{verbatim}
 Usage:
     eups admin [options] [buildCache|clearCache|listCache|clearLocks|clearServerCache|info]
@@ -534,7 +709,7 @@ Options:
                            Default: $EUPS_PKGROOT
 \end{verbatim}
 
-\item \code{eups declare}
+\subsubsection{\code{eups declare}}
 \begin{verbatim}
 Usage:
    eups [commonOptions] declare [options] [product [version]]
@@ -607,7 +782,8 @@ If you want to
 know what \code{vw} does, type e.g.
 \begin{verbatim}
 cat $(eups list vw -m)
-\end{verbatim}				%$ for emacs
+\end{verbatim}
+				% $ for emacs
 
 If you specify \code{-c} then it leaves the currently declared version alone, and
 only updates the current.chain.  If you are declaring the first version of a new
@@ -615,7 +791,7 @@ product it's automatically made current.
 
 %------------------------------------------------------------------------------
 
-\item \code{eups distrib}
+\subsubsection{\code{eups distrib}}
 \begin{verbatim}
 Usage:
     eups distrib -V
@@ -646,7 +822,8 @@ Options:
    -t, --tag        arg    Install versions with this tag (e.g. current or stable)
    -v, --verbose           Be chattier (repeat for even more chat)
    -V, --version           Print eups version number and exit
-\end{verbatim}				% $ for emacs
+\end{verbatim}
+				% $ for emacs
 
 Handle the distribution of products and their dependencies as `packages'. A
 package is a set of tarballs (i.e. gzipped tar archives), a set of build files\footnote{%
@@ -660,7 +837,7 @@ listing a product's dependencies, including the names of the proper tarballs/cac
 
 Subcommand options are:
 \begin{itemize}
-\item \code{clean}
+\item\code{clean}
 \begin{verbatim}
 eups distrib clean options product version
 
@@ -780,7 +957,7 @@ that all product directories start with a directory listed in \code{EUPS\_PATH}.
 This is probably a good idea, as otherwise \code{eups distrib} would tar up
 all of /usr/local for you.  
 
-\textit{N.b.} A decent description of the \code{--build} version of this command
+\textit{N.b.} A decent description of the \code{-d builder -S buildFilePath=D:D:} version of this command
 needs to be written!  This would include the \code{--noeups} flag, and its use
 of product.table files in the BuildFilePath
 
@@ -800,7 +977,7 @@ make install
 \end{verbatim}
 and then typed:
 \begin{verbatim}
-eups distrib create -v -s /u/act/products/packages --build ~/ACT/BuildFiles: --current moby &&
+eups distrib create -v -s /u/act/products/packages -d builder -S buildFilePath=~/ACT//BuildFiles:$EUPS_PATH: --current moby &&
 rsync -rv /u/act/products/packages apache2:/u/act/WWW/public
 
 eups distrib -v install --current moby --root http://www.astro.princeton.edu/~act/packages
@@ -839,7 +1016,7 @@ eups distrib create -s /u/act/products/packages --build ups --noeups mwi 2.4
 
 %------------------------------------------------------------------------------
 
-  \item \code{eups expandbuild}
+\subsubsection{\code{eups expandbuild}}
 \begin{verbatim}
 eups expandbuild -h
 Usage:
@@ -897,7 +1074,8 @@ standard out unless you specify \code{--inplace}.
 For example, the make target in a ups directory might contain the line:
 \begin{verbatim}
       eups expandbuild -V $(VERSION) ups/prod1.build $(prefix)/ups
-\end{verbatim}				% $ for emacs
+\end{verbatim}
+				% $ for emacs
 
 There is one special case when rewriting build files:  If the version
 is of the form \code{svn\#\#\#} (e.g. \code{svn666}), any occurrence of
@@ -908,7 +1086,8 @@ which is probably what you want.
 
 %------------------------------------------------------------------------------
 
-  \item \code{eups expandtable}
+\subsubsection{\code{eups expandtable}}
+\label{expandtable}
 \begin{verbatim}
 Usage: eups expandtable [options] file.table [directory]
 Options are
@@ -932,7 +1111,7 @@ You can override the version with e.g. \code{-p astroda=rhl}; more
 than one \code{-p} command is permitted.  If the table file contains
 a constraint on the version (e.g. \code{setupRequired(daf\_base >= 3.2.6)})
 it'll be preserved in the installed file (e.g. \code{setupRequired(daf\_base 3.2.9 [>= 3.2.6])}).
-These options are used by \code{setup}'s \code{-e} and \code{-E} options.
+These options are used by the \code{VRO}'s \code{version} and \code{versionExpr} entries.
 
 If a directory is specified, the modified table file will be written
 there, with the same name as the original; otherwise it's written to
@@ -944,11 +1123,32 @@ this implies \code{--inplace}.
 For example, the make target in a ups directory might contain the line:
 \begin{verbatim}
       eups expandtable -w iop.table $(IOP_DIR)/ups
-\end{verbatim}				% $ for emacs
+\end{verbatim}
+				% $ for emacs
+
+In addition to adding explicit versions of all products listed in the table files, \code{expandtable} also
+writes a logical block to the tablefile that gives the versions of every product that it setup.  Returning
+to the diamond dependency example in Sec. \ref{SetupVersionChoice}:
+\DiamondDependencyFigure
+Let us assume that we chose to use C 2.0 (e.g. by explicitly setting up C 2.0 after setting up A).
+Initially A's table file looked like
+\begin{verbatim}
+setupRequired(B)
+\end{verbatim}
+and \code{eups expandtable} rewrites it as
+\begin{verbatim}
+if (type == exact) {
+   setupRequired(B   -j 2.2)
+   setupRequired(C   -j 2.0)
+   setupRequired(D   -j 2.2)
+} else {
+   setupRequired(B 2.2 [>= 2.2])
+}
+\end{verbatim}
 
 %------------------------------------------------------------------------------
 
-\item \code{eups flags}
+\subsubsection{\code{eups flags}}
 \begin{verbatim}
 Usage:
     eups [commonOptions] flags [options]
@@ -960,7 +1160,7 @@ Print the value of \code{EUPS\_FLAGS}
 
 %------------------------------------------------------------------------------
 
-\item \code{eups flavor}
+\subsubsection{\code{eups flavor}}
 \begin{verbatim}
 Usage:
    eups flavor
@@ -972,7 +1172,7 @@ like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
 
 %------------------------------------------------------------------------------
 
-\item \code{eups list}
+\subsubsection{\code{eups list}}
 \begin{verbatim}
 Usage:
     eups [commonOptions] list [options] [product] [version]
@@ -1020,7 +1220,7 @@ This command is deprecated; use \code{eups list} instead.
 
 %------------------------------------------------------------------------------
 
-\item \code{eups pkg-config}
+\subsubsection{\code{eups pkg-config}}
 \begin{verbatim}
 Usage:
     eups [commonOptions] pkg-config [options] product [version]
@@ -1040,23 +1240,8 @@ in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\foot
   
 %------------------------------------------------------------------------------
 
-\item \code{eups startup}
+\subsubsection{\code{eups remove}}
 \begin{verbatim}
-Usage: eups startup [-h|--help]
-
-List the startup files that customize EUPS (including $EUPS_STARTUP).  With
--v, show non-existent files that would be loaded [in brackets].
-\end{verbatim}
-
-\eups{} can be customised using files in a surprisingly large number of places; \texttt{eups startup}
-lists the startup files that are actually used (with \texttt{-v} non-existent files that would be
-used are also listed, enclosed in square brackets).
-
-%------------------------------------------------------------------------------
-
-\item \code{eups remove}
-\begin{verbatim}
-eups -h remove
 Usage:
     eups [commonOptions] remove [options] [product] [version]
 
@@ -1080,9 +1265,31 @@ You can use \code{eups uses} to check whether a product's in use.
   
 %------------------------------------------------------------------------------
 
-  \item \code{eups undeclare}
+\subsubsection{\code{eups startup}}
 \begin{verbatim}
-eups -h undeclare
+Usage: eups startup [-h|--help]
+
+List the startup files that customize EUPS (including $EUPS_STARTUP).  With
+-v, show non-existent files that would be loaded [in brackets].
+\end{verbatim}
+
+\eups{} can be customised using files in a surprisingly large number of places; \texttt{eups startup}
+lists the startup files that are actually used (with \texttt{-v} non-existent files that would be
+used are also listed, enclosed in square brackets).
+
+%------------------------------------------------------------------------------
+
+\subsubsection{\code{eups tags}}
+\begin{verbatim}
+Usage: eups tags [-h|--help] [options]
+
+Print information about known tags
+\end{verbatim}
+
+%------------------------------------------------------------------------------
+
+\subsubsection{\code{eups undeclare}}
+\begin{verbatim}
 Usage:
     eups [commonOptions] undeclare [options] product [version]
 
@@ -1100,9 +1307,8 @@ you just want to stop any version from being declared current, use
 
 %------------------------------------------------------------------------------
 
-\item \code{eups uses}
+\subsubsection{\code{eups uses}}
 \begin{verbatim}
-eups -h uses     
 Usage:
     eups [commonOptions] uses [options] product [version]
 
@@ -1127,7 +1333,7 @@ the something more than once when setting up a product.
 
 %------------------------------------------------------------------------------
 
-\item \code{setup}
+\subsubsection{\code{setup}}
 \begin{verbatim}
 Setup an eups product
 Usage:
@@ -1145,7 +1351,8 @@ Options:
    -t, --tag        arg    Setup version with this tag (e.g. stable)
    -T, --type       arg    Specify type of setup (permitted values: build)
    -u, --unsetup           Unsetup the specified product
-\end{verbatim}				% $ for emacs
+\end{verbatim}
+				% $ for emacs
 
 This is the workhorse routine. It sets up \code{version} of \code{product}. You
 may omit the \code{version} (in which case you'll get the \code{current} version),
@@ -1197,7 +1404,7 @@ the setup will be aborted) unless you specify \code{--force}.
 
 %------------------------------------------------------------------------------
 
-\item \code{unsetup}
+\subsubsection{\code{unsetup}}
 \begin{verbatim}
 Usage:
    unsetup [options] product
@@ -1209,8 +1416,6 @@ All the notes under \code{setup} apply to
 \code{unsetup}. Unsetting up a product relies on the environment
 variable \code{\$SETUP\_<product>}, so it fails if the variable
 isn't set (unless you use \code{-M}).
-
-\end{itemize}
 
 \subsection{Environment Variables}
 
@@ -1304,7 +1509,6 @@ specified by three types of files:
     We are thinking of providing an option to disable the cache, either because
     you don't have write permission, or because the risk of cache corruption is
     more important to you than speed considerations.
-
 \end{itemize}
 
 \subsubsection{\eups{} commands}
@@ -1555,21 +1759,61 @@ GSL_LIBS = -L$(GSL_DIR)/lib -lgsl -lgslcblas -lm
 \end{verbatim}
 \end{itemize}
   
-\section{Installing \eups{}}
-  
-  To install you need first to generate a Makefile:
+\section{Installing \eups}
+\label{AppInstalling}
+
+If you want to play with \eups{} you may want to install a copy.
+
+You can check out a copy from \code{svn} from NCSA:
 \begin{verbatim}
-./configure && make install
+  svn co svn://svn.lsstcorp.org/eups/trunk eups
+\end{verbatim}
+or to get an released version e.g.
+\begin{verbatim}
+  svn co svn://svn.lsstcorp.org/eups/tags/1.2.6 eups
+\end{verbatim}
+You can of course list available versions with
+\begin{verbatim}
+  svn ls svn://svn.lsstcorp.org/eups/tags
 \end{verbatim}
 
-You can say \code{make show} to show you where things are
+Alternatively, grab the tarball
+\begin{verbatim}
+http://www.astro.princeton.edu/~act/packages/eups.tar.gz
+\end{verbatim}
+which is probably out of date.
+
+Then unpack it, configure, and install.  E.g.
+\begin{verbatim}
+zcat eups.tar.gz | tar -xf -
+cd eups
+./configure --with-eups=/u/act/products
+make show
+make install
+\end{verbatim}
+
+The \code{make install} command will tell you to source a file
+with a name such as
+\begin{verbatim}
+/u/act/products/eups/bin/setups.sh
+\end{verbatim}
+which will make \eups{} commands available to you; csh users should
+use \code{setups.csh}.  You'll probably want to add this line to your
+shell startup file (.bashrc or .tcshrc).
+  
+\subsection{Details, details...}
+
+You can use \code{make show} to show you where things are
 going to be installed:
 \begin{verbatim}
 $ make show
-You will be installing ups in $EUPS_DIR  = /usr/local/share/eups
-Ups will look for products in $EUPS_PATH = /usr/local/share
-Your EUPS database will be                 /usr/local/share/ups_db
-\end{verbatim}				% $ for emacs
+You will be installing ups in $EUPS_DIR  =  /usr/local/products/eups
+Eups will look for products in $EUPS_PATH = /usr/local/products
+Your EUPS database[s] will be               /usr/local/products/ups_db
+Your EUPS version is                        1.2.6
+Your site configuration files will be in    /usr/local/products/site
+\end{verbatim}
+				% $ for emacs
 If you already have the environment variable \code{\$EUPS\_PATH} set,
 then \code{EUPS\_PATH} will default to the old value.
 
@@ -1614,7 +1858,6 @@ command \code{/usr/bin/setup} on many Linux systems.  A typical usage would be
 \begin{verbatim}
 configure --with-setup-aliases=activate:deactivate
 \end{verbatim}
-
 
 \subsubsection{Working with multiple copies of \eups}
 
@@ -1915,7 +2158,8 @@ cd('$HELLO_DIR')
 cd('v1_0_0')
 shell("make")
 shell("make install")
-\end{verbatim}				% $ for emacs
+\end{verbatim}
+				% $ for emacs
 
 \subsection{Using \pacman{} with \eups{}}
 

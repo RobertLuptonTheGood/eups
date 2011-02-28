@@ -245,7 +245,7 @@ Common"""
                 preamble += " %s" % self.cmd
             utils.deprecated("%s: %s" % (preamble, msg), strm=self._errstrm)
 
-    def createEups(self, opts=None, versionName=None, setupType=""):
+    def createEups(self, opts=None, versionName=None):
         if opts is None:
             opts = self.opts
 
@@ -254,23 +254,18 @@ Common"""
         else:
             readCache = True
 
-        if hasattr(opts, "exact_version") and opts.exact_version:
-            if opts.setupType:
-                opts.setupType += ","
-            opts.setupType += "exact"
-            
-        ignorever = False
-        if hasattr(opts, "ignorever"):  ignorever = opts.ignorever
-        keep = False
-        if hasattr(opts, "keep"):  keep = opts.keep
-        asAdmin = False
-        if hasattr(opts, "asAdmin"):  asAdmin = opts.asAdmin
-            
+        self.opts.setupType = self.opts.setupType.split()
+
+        ignorever = hasattr(opts, "ignorever") and opts.ignorever
+        keep = hasattr(opts, "keep") and opts.keep
+        asAdmin = hasattr(opts, "asAdmin") and opts.asAdmin
+        exact_version = hasattr(opts, "exact_version") and opts.exact_version
+
         Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force, 
                          ignore_versions=ignorever, setupType=self.opts.setupType,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
-                         noaction=opts.noaction, asAdmin=asAdmin)
+                         noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
 
         if hasattr(opts, "productDir"):
             productDir = opts.productDir
@@ -446,7 +441,7 @@ will also be printed.
 
         try:
             n = eups.printProducts(sys.stdout, product, version, 
-                                   self.createEups(versionName=version, setupType=self.opts.setupType),
+                                   self.createEups(self.opts, versionName=version),
                                    tags=self.opts.tag, 
                                    setup=self.opts.setup, 
                                    tablefile=self.opts.tablefile, 
@@ -1063,7 +1058,7 @@ only wish to assign a tag, you should use the -t option but not include
                             "(may be \"-\" for stdin).")
         self.clo.add_option("-m", "--table", dest="tablefile", action="store", 
                             help='table file location (may be "none" for no table file)')
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
+        self.clo.add_option("-t", "--tag", dest="tag", action="append", 
                             help="assign TAG to the specified product")
         
         # these options are used to configure the Eups instance
@@ -1072,9 +1067,8 @@ only wish to assign a tag, you should use the -t option but not include
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
+        self.clo.add_option("-c", "--current", dest="tag", action="append_const", const="current",
                             help="same as --tag=current")
-        
 
     def execute(self):
         product, version = None, None
@@ -1082,6 +1076,13 @@ only wish to assign a tag, you should use the -t option but not include
             product = self.args[0]
         if len(self.args) > 1:
             version = self.args[1]
+
+        if self.opts.tag:
+            if len(self.opts.tag) > 1:
+                self.err("You may only set one tag at a time: %s" % ", ".join(self.opts.tag))
+                return 4
+
+            self.opts.tag = self.opts.tag[0]
 
         if not product:
             if self.opts.tablefile == "none" or self.opts.externalTablefile != None:
@@ -2080,12 +2081,6 @@ same arguments.
         else:
             versionName = None
 
-        self.opts.inexact_version = False
-        if self.opts.exact_version or (versionName and not self.opts.inexact_version):
-            if self.opts.setupType:
-                self.opts.setupType += ","
-            self.opts.setupType += "exact"
-
         if self.opts.current:
             self.opts.tag += ['current']
 
@@ -2094,8 +2089,8 @@ same arguments.
         else:
             self.opts.setupType = []
         
-        self.opts.setupType.append("build")
-        myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=self.opts.setupType)
+        myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=self.opts.setupType,
+                           exact_version=self.opts.exact_version)
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
 

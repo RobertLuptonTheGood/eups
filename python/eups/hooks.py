@@ -36,15 +36,18 @@ config.Eups = defineProperties("userTags preferredTags globalTags reservedTags v
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
-config.Eups.preferredTags = "version versionExpr current stable newest".split()
-config.Eups.globalTags = "current stable".split()
-config.Eups.reservedTags = "keep commandLineVersion".split()
+config.Eups.preferredTags = ["version", "versionExpr", "current", "stable", "newest",]
+config.Eups.globalTags = ["current", "stable",]
+config.Eups.reservedTags = ["commandLineVersion", "keep", "type",]
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
-config.Eups.setupTypes = "exact build"
+config.Eups.setupTypes = ["exact", "build",]
 config.Eups.setupCmdName = "setup"
 config.Eups.VRO = {
-    "default" : "path version current",
+    "default" : { "default" : "path versionExpr current", },
+}
+config.Eups.VRO["commandLineVersion"] = {
+    "default" : "%s %s" % ("type:exact", config.Eups.VRO["default"]["default"])
 }
 # fallbackFlavors may also be a simple list (which is equivalent to a key of None);
 # if a dict, fallbackFlavors[flavor] is the fallback for flavor (None => any flavor)
@@ -56,21 +59,25 @@ config.Eups.fallbackFlavors = {None : "generic"}
 config.distrib = {}
     
 startupFileName = "startup.py"
-configFileName = "config.properties"
+if False:
+    configFileName = "config.properties"
+else:
+    configFileName = None
 
 def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False):
     configFiles = [] 
-    cfile = os.path.join(customDir, configFileName)
-    if not os.path.exists(cfile):
-        if verbose:
-            configFiles.append("[%s]" % cfile)
-    else:
-        if execute:
-            if verbose > 1:
-                print >> log, "loading properties from", cfile
-            loadConfigProperties(cfile, verbose, log)
+    if configFileName:
+        cfile = os.path.join(customDir, configFileName)
+        if not os.path.exists(cfile):
+            if verbose:
+                configFiles.append("[%s]" % cfile)
+        else:
+            if execute:
+                if verbose > 1:
+                    print >> log, "loading properties from", cfile
+                loadConfigProperties(cfile, verbose, log)
 
-        configFiles.append(cfile)
+            configFiles.append(cfile)
 
     startup = os.path.join(customDir, startupFileName) 
     if not os.path.exists(startup):
@@ -78,7 +85,7 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False
             configFiles.append("[%s]" % startup)
     else:
         if execute:
-            if verbose > 1:
+            if verbose > 2:
                 print >> log, "sourcing", startup
             execute_file(startup)
 

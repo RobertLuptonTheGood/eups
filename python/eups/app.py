@@ -561,7 +561,7 @@ def osetup(Eups, productName, version=None, fwd=True, setupType=[]):
     return setup(productName, version, None, setupType, Eups, fwd)
 
 def setup(productName, version=None, prefTags=None, productRoot=None, 
-          eupsenv=None, fwd=True, tablefile=None):
+          eupsenv=None, fwd=True, tablefile=None, exact_version=False):
     """
     Return a set of shell commands which, when sourced, will setup a product.  
     (If fwd is false, unset it up.)
@@ -596,7 +596,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         return osetup(productName, version, prefTags, productRoot, ProductName.setupType)
 
     if not eupsenv:
-        eupsenv = Eups(readCache=False)
+        eupsenv = Eups(readCache=False, exact_version=exact_version)
         if version:
             eupsenv.selectVRO(versionName=version)
 
