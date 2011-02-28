@@ -1067,7 +1067,7 @@ only wish to assign a tag, you should use the -t option but not include
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-c", "--current", dest="tag", action="append_const", const="current",
+        self.clo.add_option("-c", "--current", dest="currentTag", action="store_true", default=False,
                             help="same as --tag=current")
 
     def execute(self):
@@ -1077,6 +1077,8 @@ only wish to assign a tag, you should use the -t option but not include
         if len(self.args) > 1:
             version = self.args[1]
 
+        if self.opts.currentTag:
+            self.opts.tag.append("current")
         if self.opts.tag:
             if len(self.opts.tag) > 1:
                 self.err("You may only set one tag at a time: %s" % ", ".join(self.opts.tag))

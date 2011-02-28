@@ -789,7 +789,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 if self.isLegalRelativeVersion(version): # version is actually a versionExpr
                     if vroTag == "version":
-                        if "version" in postVro:
+                        if "versionExpr" in postVro:
                             continue
                         else:
                             print >> sys.stderr, "Failed to find %s %s for flavor %s" % \
