@@ -38,13 +38,13 @@ config.Eups.setType("verbose", int)
 config.Eups.userTags = []
 config.Eups.preferredTags = ["version", "versionExpr", "current", "stable", "newest",]
 config.Eups.globalTags = ["current", "stable",]
-config.Eups.reservedTags = ["commandLineVersion", "keep", "type",]
+config.Eups.reservedTags = ["commandLine", "keep", "type",]
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
 config.Eups.setupTypes = ["exact", "build",]
 config.Eups.setupCmdName = "setup"
 config.Eups.VRO = {
-    "default" : { "default" : "path versionExpr current", },
+    "default" : "commandLine version current",
 }
 config.Eups.VRO["commandLineVersion"] = {
     "default" : "%s %s" % ("type:exact", config.Eups.VRO["default"]["default"])
