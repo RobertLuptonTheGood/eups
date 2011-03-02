@@ -694,7 +694,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if not product:
                     # get qualified tag name (the database needs to see user tags as "user:...")
                     tag = str(self.tags.getTag(versionName))
-                    vers = self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName, flavor)
+                    vers = self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName, flavor,
+                                                                           searchUserDB=True)
                     if vers is not None:
                         versionName = vers
 
@@ -842,8 +843,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                         vroReason[0] = "commandLine"
                 else:
                     if not "version" in postVro and not "versionExpr" in postVro:
-                        print >> sys.stderr, "Failed to find %s %s for flavor %s" % \
-                              (name, version, flavor)
+                        if self.verbose > 0:
+                            print >> sys.stderr, "Failed to find %s %s for flavor %s" % \
+                                  (name, version, flavor)
                         break
 
             elif re.search(r"^warn(:\d+)?$", vroTag):
@@ -1082,7 +1084,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                             return prod
                         else:
                             if self.verbose > 0:
-                                print >> sys.stderr, "Tag %s is declared in %s, but is missing" % (tag, root)
+                                print >> sys.stderr, "Tag %s is declared in %s for %s, but is missing" % \
+                                      (tag, name, root)
                 except ProductNotFound:
                     # product by this name not found in this database
                     continue

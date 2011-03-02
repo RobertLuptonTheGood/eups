@@ -516,7 +516,7 @@ class _Database(object):
 
         return changed
 
-    def getChainFile(self, tag, productName):
+    def getChainFile(self, tag, productName, searchUserDB=False):
         """
         return the ChainFile for the version name of the product that has the given tag assigned
         to it.  None is return if the tag is not assigned to any version.
@@ -533,7 +533,7 @@ class _Database(object):
             tag = eups.tags.Tag(tag)
 
         pdirs = []
-        if tag.isUser():
+        if searchUserDB and tag.isUser():
             for d in self._getUserTagDb(values=True):
                 if d:
                     pdirs.append(self._productDir(productName, d))
@@ -547,10 +547,10 @@ class _Database(object):
 
         return None
         
-    def getTaggedVersion(self, tag, productName, flavor):
+    def getTaggedVersion(self, tag, productName, flavor, searchUserDB=False):
         """
         return the version name of the product that has the given tag assigned
-        to it.  None is return if the tag is not assigned to any version.
+        to it.  None is returned if the tag is not assigned to any version.
         ProductNotFound is raised if no version of the product is declared.
         @param tag          the string name for the tag.  A user tag must be
                               prepended by a "user:" label to be found
@@ -558,7 +558,7 @@ class _Database(object):
         @param flavor       the flavor for the product
         """
 
-        tf = self.getChainFile(tag, productName)
+        tf = self.getChainFile(tag, productName, searchUserDB=searchUserDB)
         if tf:
             return tf.getVersion(flavor)
         else:
