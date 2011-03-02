@@ -971,12 +971,12 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
         if re.search(r"^\s*(#.*)?$", line):
             block[1].append(line)
             continue
-            
+
         # Attempt substitutions
         rex = r'(setupRequired|setupOptional)\("?([^"]*)"?\)'
 
         line = re.sub(rex, subSetup, line)
-    
+
         mat = re.search(rex, line)
         if mat:                         # still in same setup block
             if not block[0]:
@@ -991,8 +991,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
             if block[0]:
                 block = [False, []]
                 setupBlocks.append(block)
-            
-        block[1].append(line)
+
+        if not re.search(r"^\s*}", line):
+            block[1].append(line)
     #
     # Figure out the complete list of products that this table file will setup; only list each once
     #
@@ -1036,9 +1037,10 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
         
         if not isSetupBlock:
             if len(block) == 1 and re.search(r"if\s*\(type\s*==\s*exact\)\s*{", block[0]):
+                # We've found a pre-existing exact block
                 # This is FRAGILE!!  Should count forward past matching braces
                 i += 3
-                setupBlocks[-1] = (False, []) # the closing "}"
+                setupBlocks[i - 1] = (False, []) # the closing "}"
                 continue
             
             for line in block:
