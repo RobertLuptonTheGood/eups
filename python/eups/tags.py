@@ -140,13 +140,13 @@ class Tags(object):
         if isinstance(name, Tag):
             name = name.name
 
-        if re.search(r"^\d+$", name):
-            raise RuntimeError("An integer is not a valid tagname")
-
         try:
             name, owner = name
         except ValueError:
             owner = None
+
+        if re.search(r"^\d+$", name):
+            raise RuntimeError("An integer is not a valid tagname")
 
         if owner and os.path.expanduser("~%s" % owner)[0] == "~":
             raise RuntimeError("User %s is invalid" % owner)
