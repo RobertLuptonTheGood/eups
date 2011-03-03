@@ -1078,6 +1078,8 @@ only wish to assign a tag, you should use the -t option but not include
             version = self.args[1]
 
         if self.opts.currentTag:
+            if not self.opts.tag:
+                self.opts.tag = []
             self.opts.tag.append("current")
         if self.opts.tag:
             if len(self.opts.tag) > 1:
