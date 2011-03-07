@@ -24,7 +24,7 @@ except ImportError:
 import eups.cmd
 import eups.hooks
 
-allowedDebugOptions = ["", "raise"]
+allowedDebugOptions = ["", "raise", "debug"]
 
 # parse the command line
 cmd = eups.cmd.EupsCmd()
@@ -36,6 +36,7 @@ for do in debugOptions:
         print >> sys.stderr, "Unknown debug option: %s; exiting" % do
         sys.exit(1)
 allowRaise = "raise" in debugOptions
+eups.Eups.debugFlag = "debug" in debugOptions
 
 # load any local customizations
 verbosity = cmd.opts.verbose

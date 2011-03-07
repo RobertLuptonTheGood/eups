@@ -22,7 +22,7 @@ except ImportError:
         raise
     import eups.setupcmd
 
-allowedDebugOptions = ["", "raise"]
+allowedDebugOptions = ["", "raise", "debug"]
 
 # parse the command line
 setup = eups.setupcmd.EupsSetup()
@@ -34,6 +34,7 @@ for do in debugOptions:
         print >> sys.stderr, "Unknown debug option: %s; exiting" % do
         sys.exit(1)
 allowRaise = "raise" in debugOptions
+eups.Eups.debugFlag = "debug" in debugOptions
 
 # load any local customizations
 verbosity = setup.opts.verbose
