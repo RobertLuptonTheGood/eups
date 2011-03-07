@@ -231,7 +231,7 @@ product and all its dependencies into the environment so that it can be used.
                     if Eups.isUserTag(t):
                         isUserTag = True
                         break
-            if isUserTag:
+            if isUserTag or True:       # we always need it in the path as things may be declared there
                 Eups.includeUserDataDirInPath()
 
             if False:
