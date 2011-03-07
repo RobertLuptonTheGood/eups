@@ -154,12 +154,13 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if root == "none":  root = " (none)"
         info = ""
 
-        if setup and not dependencies:
+        if setup:
             if not eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
                 continue
         else:
             if not pi._prodStack:       # only found in the environment
-                continue
+                if False:           
+                    continue            # Exclude environment-only products
         
         if directory or tablefile:
             if eupsenv.verbose:
