@@ -281,7 +281,7 @@ Common"""
         
         Eups.selectVRO(tag, productDir, versionName, opts.dbz)
         
-        if tag and Eups.isUserTag(tag[0]):
+        if True or (tag and Eups.isUserTag(tag[0])): # we always need the local definitions
             Eups.includeUserDataDirInPath()
 
         try:
