@@ -32,6 +32,8 @@ class Eups(object):
          (the "force" option), etc.
     """
 
+    debugFlag = False                   # set via --debug=debug
+
     # static variable:  the name of the EUPS database directory inside a EUPS-
     #  managed software stack
     ups_db = "ups_db"
@@ -1077,7 +1079,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 db = self._databaseFor(root)
                 try:
-                    version = db.getTaggedVersion(tag, name, flavor)
+                    version = db.getTaggedVersion(tag, name, flavor,searchUserDB=True)
                     if version is not None:
                         prod = db.findProduct(name, version, flavor)
                         if prod:
@@ -1704,6 +1706,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         else:  # on setup (fwd = True)
             # get the product to setup
             if productRoot:
+                if not os.path.isdir(productRoot):
+                    raise EupsException("Product %s's productDir %s is not a directory" % \
+                                        (productName, productRoot))
+
                 vro = self.getPreferredTags()
                 if len(vro) > 0 and vro.count("commandLine") == 0:
                     if self.verbose:
@@ -1935,7 +1941,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> sys.stderr, "Correcting..."
                 self.versions[root].refreshFromDatabase()
 
-    def unassignTag(self, tag, productName, versionName=None, eupsPathDir=None):
+    def unassignTag(self, tag, productName, versionName=None, eupsPathDir=None, eupsPathDirForRead=None):
         """
         unassign the given tag on a product.    
         @param tag           the tag to assign as tag name or Tag instance 
@@ -1948,6 +1954,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
         # convert tag name to a Tag instance; may raise TagNotRecognized
         tag = self.tags.getTag(tag)
+
+        if not eupsPathDirForRead:
+            eupsPathDirForRead = eupsPathDir
 
         if not eupsPathDir and self.isUserTag(tag):
             assert self.userDataDir in self.path
@@ -2002,7 +2011,6 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         # update the cache
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
-
             self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
             if self.versions[eupsPathDir].unassignTag(str(tag), productName, self.flavor):
                 try:
@@ -2338,6 +2346,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                     tag = [self.tags.getTag(tag)]
 
                 eupsDirs = [eupsPathDirForRead, eupsPathDir]
+                #
+                # Delete all old occurrences of this tag
+                #
+                for p in self.findProducts(productName, None, tag):
+                    self.unassignTag(tag[0], productName, None, p.stackRoot(), eupsPathDir)
+                #
+                # And set it in the Proper Place
+                #                        
                 for eupsDir in eupsDirs:
                     try:
                         self.assignTag(tag[0], productName, versionName, eupsPathDir, eupsDir)
