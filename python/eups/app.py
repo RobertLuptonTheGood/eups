@@ -594,7 +594,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         utils.deprecated("setup(): assuming deprecated function signature", 
                          productName.quiet)
         if productRoot is None:  productRoot = True
-        return osetup(productName, version, prefTags, productRoot, ProductName.setupType)
+        return osetup(productName, version, prefTags, productRoot, productName.setupType)
 
     if not eupsenv:
         eupsenv = Eups(readCache=False, exact_version=exact_version)
