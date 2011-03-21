@@ -1364,7 +1364,12 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Return the ups database directory given a directory from self.path"""
         if not utils.isRealFilename(eupsPathDir):
             return "none"
-        return os.path.join(eupsPathDir, self.ups_db)
+        upsDB = os.path.join(eupsPathDir, self.ups_db)
+
+        if not os.path.isdir(upsDB):
+            raise OSError("%s does not contain a %s directory" % (eupsPathDir, self.ups_db))
+
+        return upsDB
     
 
     def includeUserDataDirInPath(self, dataDir=None):
