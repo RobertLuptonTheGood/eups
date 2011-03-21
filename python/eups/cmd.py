@@ -1505,20 +1505,20 @@ class AdminInfoCmd(EupsCmd):
             e.status = 9
             raise
 
-        if self.opts.tag:
+        tag = myeups.tags.getTag(self.opts.tag)
+
+        if tag:
             if versionName:
                 self.err("You may not specify a tag and an explicit version: %s --tag %s %s" %
-                         (productName, self.opts.tag, versionName))
+                         (productName, tag, versionName))
                 return 2
                 
-            prod = myeups.findTaggedProduct(productName, self.opts.tag)
-            if prod:
-                versionName = prod.version
-            else:
-                self.err("Unable to lookup %s --tag %s" % (productName, self.opts.tag))
+            prod = myeups.findTaggedProduct(productName, tag)
+            if not prod:
+                self.err("Unable to lookup %s --tag %s" % (productName, tag))
                 return 2
 
-        if not versionName:
+        if not (versionName or tag):
             prod = myeups.findProduct(productName)
             if prod:
                 versionName = prod.version
@@ -1534,8 +1534,12 @@ class AdminInfoCmd(EupsCmd):
 
         for eupsDb in myeups.versions.keys():
             db = myeups._databaseFor(eupsDb)
-            if self.opts.tag:
-                vfile = db.getChainFile(self.opts.tag, productName)
+            if tag:
+                try:
+                    vfile = db.getChainFile(tag, productName, searchUserDB=True)
+                except eups.ProductNotFound:
+                    vfile = None
+                    
                 if vfile:
                     vfile = vfile.file
             else:
@@ -1545,7 +1549,16 @@ class AdminInfoCmd(EupsCmd):
                 print vfile
                 return 0
 
-        self.err("Unable to lookup version file for %s %s" % (productName, versionName))
+        if tag:
+            fileType = "tag \"%s\"'s chain" % tag
+        else:
+            fileType = "version"
+
+        msg = "Unable to find %s file for %s" % (fileType, productName)
+        if versionName:
+            msg += " %s" % (versionName)
+            
+        self.err(msg)
         return 1
 
 class AdminListCacheCmd(EupsCmd):
