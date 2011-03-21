@@ -56,7 +56,7 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0
             break
 
         now = int(time.time())
-        if now - s[stat.ST_MTIME] > max_wait:
+        if now - s[stat.ST_MTIME] > max_wait:            
             raise RuntimeError, ("%s has been locked for more than %d seconds (User %s, PID %s)" %
                                  (lockfile, max_wait, fileOwner, pid))
 

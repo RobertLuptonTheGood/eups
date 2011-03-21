@@ -74,7 +74,7 @@ class Eups(object):
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
                  userDataDir=None, asAdmin=False, setupType=[], validSetupTypes=None, vro={},
-                 exact_version=None
+                 exact_version=None, useLocks=True
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -315,8 +315,8 @@ class Eups(object):
                 except RuntimeError, e:
                     raise RuntimeError("Unable to process tag %s: %s" % (tag, e))
 
-        self._loadServerTags()
-        self._loadUserTags()
+        self._loadServerTags(useLocks=useLocks)
+        self._loadUserTags(useLocks=useLocks)
         #
         # Handle preferred tags; this is a list where None means hooks.config.Eups.preferredTags
         #
@@ -458,7 +458,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 pass
         return cachedir
 
-    def _loadServerTags(self):
+    def _loadServerTags(self, useLocks=True):
         for path in self.path:
             # start by looking for a cached list
             if self.tags.loadFromEupsPath(path, self.verbose):
@@ -507,11 +507,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if not (tag.isUser() or self.tags.isRecognized(tag)):
                     self.tags.registerTag(tag.name, tag.group)
 
-    def _loadUserTags(self):
+    def _loadUserTags(self, useLocks=True):
         for path in self.path:
             # start by looking for a cached list
             dirName = self._userStackCache(path)
-            if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName):
+            if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName, useLocks=useLocks):
                 continue
 
             # if no list cached, try asking the cached product stack
@@ -634,6 +634,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         locations = self.path
         if self.userDataDir:
             locations.append(self.userDataDir)
+        
         for p in locations:
             for root, dirs, files in os.walk(p):
                 for lockfile in filter(lambda f: f.endswith(".lock"), files):

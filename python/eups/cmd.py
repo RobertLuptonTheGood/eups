@@ -1317,12 +1317,6 @@ that are writable by the user.
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
-        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
-                            help="apply cache operations to caches under EUPS_PATH")
-        self.clo.add_option("-r", "--root", dest="root", action="store", 
-                            help="Location of manifests/buildfiles/tarballs " +
-                            "(may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
-
         self.clo.disable_interspersed_args() # associate opts with subcommands
 
     def run(self):
@@ -1338,29 +1332,133 @@ that are writable by the user.
         subcmd = self.args[0]
 
         ecmd = makeEupsCmd("%s %s" % (self.cmd, subcmd), self.clargs, self.prog)
-        if ecmd:                        # new way of parsing
+        if ecmd:
             return ecmd.run()
-
-        if subcmd == "clearCache":
-            eups.clearCache(inUserDir=not self.opts.asAdmin)
-        elif subcmd == "buildCache":
-            eups.clearCache(inUserDir=not self.opts.asAdmin)
-            eups.Eups(readCache=True, asAdmin=self.opts.asAdmin)
-        elif subcmd == "listCache":
-            eups.listCache(verbose=self.opts.verbose)
-        elif subcmd == "clearLocks":
-            eups.Eups(readCache=False, verbose=self.opts.verbose).clearLocks()
-        elif subcmd == "clearServerCache":
-            pkgroots = self.opts.root
-            if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
-                pkgroots = os.environ["EUPS_PKGROOT"]
-
-            myeups = eups.Eups(readCache=False)
-            # FIXME: this is not clearing caches in the user's .eups dir.
-            ServerConf.clearConfigCache(myeups, pkgroots, self.opts.verbose)
         else:
             self.err("Unrecognized admin subcommand: %s" % subcmd)
             return 10
+
+        return 0
+
+class AdminBuildCacheCmd(EupsCmd):
+
+    usage = "%prog admin buildCache [-h|--help] [options]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Rebuild the cache"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
+                            help="apply cache operations to caches under EUPS_PATH")
+
+    def execute(self):
+        self.args.pop(0)                # remove the "admin"
+
+        if len(self.args) > 0:
+            self.err("Unexpected arguments: %s" % " ".join(self.args))
+            return 1
+
+        eups.clearCache(inUserDir=not self.opts.asAdmin)
+        eups.Eups(readCache=True, asAdmin=self.opts.asAdmin)
+
+        return 0
+
+class AdminClearCacheCmd(EupsCmd):
+
+    usage = "%prog admin clearCache [-h|--help] [options]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Clear all cache files"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
+                            help="apply cache operations to caches under EUPS_PATH")
+
+
+    def execute(self):
+        self.args.pop(0)                # remove the "admin"
+
+        if len(self.args) > 0:
+            self.err("Unexpected arguments: %s" % " ".join(self.args))
+            return 1
+
+        eups.clearCache(inUserDir=not self.opts.asAdmin)
+
+        return 0
+
+class AdminClearLocksCmd(EupsCmd):
+
+    usage = "%prog admin clearLocks [-h|--help] [options]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Clear all locks held by eups
+"""
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+    def execute(self):
+        self.args.pop(0)                # remove the "admin"
+
+        if len(self.args) > 0:
+            self.err("Unexpected arguments: %s" % " ".join(self.args))
+            return 2
+
+        eups.Eups(readCache=False, verbose=self.opts.verbose, useLocks=False).clearLocks()
+
+        return 0
+
+class AdminClearServerCacheCmd(EupsCmd):
+
+    usage = "%prog admin clearServerCache [-h|--help] [options]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Clear all distrib server cache files"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("-r", "--root", dest="root", action="store", 
+                            help="Location of manifests/buildfiles/tarballs " +
+                            "(may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
+
+    def execute(self):
+        self.args.pop(0)                # remove the "admin"
+
+        if len(self.args) > 0:
+            self.err("Unexpected arguments: %s" % " ".join(self.args))
+            return 1
+
+        pkgroots = self.opts.root
+        if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
+            pkgroots = os.environ["EUPS_PKGROOT"]
+
+        myeups = eups.Eups(readCache=False)
+        # FIXME: this is not clearing caches in the user's .eups dir.
+        ServerConf.clearConfigCache(myeups, pkgroots, self.opts.verbose)
 
         return 0
 
@@ -1390,7 +1488,7 @@ class AdminInfoCmd(EupsCmd):
                             help="[info] list only versions having this tag name")
 
     def execute(self):
-        self.args.pop(0)                # remove the "info"
+        self.args.pop(0)                # remove the "admin"
         
         if len(self.args) == 0:
             self.err("Please specify a product name")
@@ -1449,6 +1547,32 @@ class AdminInfoCmd(EupsCmd):
 
         self.err("Unable to lookup version file for %s %s" % (productName, versionName))
         return 1
+
+class AdminListCacheCmd(EupsCmd):
+
+    usage = "%prog admin listCache [-h|--help] [options]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""List all cache files"""
+
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+    def execute(self):
+        self.args.pop(0)                # remove the "admin"
+
+        if len(self.args) > 0:
+            self.err("Unexpected arguments: %s" % " ".join(self.args))
+            return 1
+
+        eups.listCache(verbose=self.opts.verbose)
+
+        return 0
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -2120,6 +2244,8 @@ same arguments.
 
         return 0
 
+
+
 class HelpCmd(EupsCmd):
 
     usage = "%prog help [-h|--help]"
@@ -2213,7 +2339,12 @@ register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
 register("remove",       RemoveCmd)
 register("admin",        AdminCmd)
-register("admin info",   AdminInfoCmd)
+register("admin buildCache",       AdminBuildCacheCmd)
+register("admin clearCache",       AdminClearCacheCmd)
+register("admin clearServerCache", AdminClearServerCacheCmd)
+register("admin clearLocks",       AdminClearLocksCmd)
+register("admin listCache",        AdminListCacheCmd)
+register("admin info",             AdminInfoCmd)
 register("distrib",      DistribCmd)
 register("distrib list",    DistribListCmd)
 register("distrib install", DistribInstallCmd)
@@ -2222,4 +2353,4 @@ register("distrib create",  DistribCreateCmd)
 register("tags",         TagsCmd)
 register("vro",          VroCmd)
 register("help",         HelpCmd)
-
+    

@@ -303,7 +303,7 @@ class Tags(object):
 
         return loaded
 
-    def loadUserTags(self, userPersistDir):
+    def loadUserTags(self, userPersistDir, useLocks=True):
         """
         load the user tags whose names are persisted in a given directory.  
         That is, find the user tag file in the given directory and load its 
@@ -320,7 +320,7 @@ class Tags(object):
             # that's okay: no user tags cached
             return False
 
-        self.load(self.user, fileName)
+        self.load(self.user, fileName, lock=useLocks)
         return True
 
     def saveGroup(self, group, dir):
