@@ -1105,14 +1105,16 @@ only wish to assign a tag, you should use the -t option but not include
             base, v = os.path.split(os.path.abspath(self.opts.productDir))
             base, p = os.path.split(base)
 
-            if product != p:
-                if not version and self.opts.tag:
-                    v = "tag:%s" % self.opts.tag # We're declaring a tagged version so we don't need a name
-                else:
+            if product == p:
+                if not version:
+                    version = v
+            else:
+                if not (version or self.opts.tag):
                     self.err("Guessed product %s from ups directory, but %s from path" % (product, p))
                     return 2
 
-            version = v
+        if not version and self.opts.tag:
+            version = "tag:%s" % self.opts.tag # We're declaring a tagged version so we don't need a name
 
         if not product:
             self.err("Please specify a product name and version")
@@ -1135,6 +1137,9 @@ only wish to assign a tag, you should use the -t option but not include
                 except IOError, e:
                     self.err("Error opening %s: %s" % (self.opts.externalTablefile, e))
                     return 4
+
+        if self.opts.verbose:
+            print >> sys.stderr, "Declaring %s %s" % (product, version)
 
         try:
             myeups = self.createEups()
