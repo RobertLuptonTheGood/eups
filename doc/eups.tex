@@ -633,9 +633,50 @@ hooks.config.Eups.reservedTags += ["stable"]
 hooks.config.Eups.VRO["default"]["dss"] = "type:exact path version current"
 \end{verbatim}
 
-\subsection{\eups{} commands}
+\subsubsection{Callback functions}
+\label{commandCallbacks}
+
+You can also register callback functions which are called twice; one just before the main initialisation (the
+one that creates the \code{Eups} object) and once just before \eups{} settles down to work.
+
+The arguments to the callbacks are:
+\begin{description}
+  \item \code{Eups}
+    An instance of the class \code{Eups} (or \code{None} the first time the callback is called, before
+    the \code{Eups} object has been created)
+
+  \item \code{cmd}
+    The command being executed (e.g. \code{setup} or \code{list})
+
+  \item \code{opts}
+    The options being passed to the command
+
+  \item \code{args}
+    The arguments being passed to the command
+\end{description}
+
+For example, you could put something like this in a \file{startup.py} file:
+\begin{verbatim}
+import eups
+
+def cmdHook(Eups, cmd, opts, args):
+    import eups
+
+    if not Eups:
+        if cmd in ("setup", "unsetup"):
+            eups.enableLocking(False)
+        return
+
+    if cmd == "setup":
+        if args and args[0] in ("lsst", ):
+            raise eups.OperationForbidden("You may not setup %s because I say so" % args[0])
+
+eups.commandCallbacks.add(cmdHook)
+\end{verbatim}
 
 %------------------------------------------------------------------------------
+
+\subsection{\eups{} commands}
 
 \subsubsection{\code{eups}}
 \begin{verbatim}
@@ -1335,22 +1376,53 @@ the something more than once when setting up a product.
 
 \subsubsection{\code{setup}}
 \begin{verbatim}
-Setup an eups product
-Usage:
-    setup [options] [product [version]]
+Usage: setup [-h|--help|-V|--version] [options] [product [version]]
+
+(Un)Setup an EUPS-managed product.  This will "load" (or "unload") the
+product and all its dependencies into the environment so that it can be used.
+
 Options:
-   -e, --exact             Use the as-installed version, not the conditional in the table file
-   -i, --ignore-versions   Ignore any explicit versions in table files
-   -E, --inexact           Don't use exact matching even though an explicit version is specified
-   -j, --just              Just setup product, no dependencies (equivalent to --max-depth 0)
-   -k, --keep              Keep any products with local setups (i.e. not in EUPS_PATH)
-   -S, --max-depth  arg    Only show this many levels of dependencies (use with -v)
-   -N, --noCheck           Don't check whether recursively removed products are needed
-   -q, --quiet             Be extra quiet
-   -r, --root       arg    Location of product being setup
-   -t, --tag        arg    Setup version with this tag (e.g. stable)
-   -T, --type       arg    Specify type of setup (permitted values: build)
-   -u, --unsetup           Unsetup the specified product
+  -C, --current         deprecated (use --tag=current)
+  -Z PATH, --database=PATH
+                        The colon-separated list of product stacks (databases)
+                        to use. Default: $EUPS_PATH
+  --debug=DEBUG         turn on specified debugging behaviors (allowed: raise)
+  -e, --exact           Don't use exact matching even though an explicit
+                        version is specified
+  -f FLAVOR, --flavor=FLAVOR
+                        Assume this target platform flavor (e.g. 'Linux')
+  -E, --inexact         Don't use exact matching even though an explicit
+                        version is specified
+  -F, --force           Force requested behaviour
+  -h, --help            show command-line help and exit
+  -i, --ignore-versions
+                        Ignore any explicit versions in table files
+  -j, --just            Just setup product, no dependencies (equivalent to
+                        --max-depth 0)
+  -k, --keep            Keep any products already setup (regardless of their
+                        versions)
+  -l, --list            deprecated (use 'eups list')
+  -m TABLEFILE, --table=TABLEFILE
+                        Use this table file
+  -S MAX_DEPTH, --max-depth=MAX_DEPTH
+                        Only show this many levels of dependencies (use with
+                        -v)
+  -n, --noaction        Don't actually do anything (for debugging purposes)
+  -N, --nolocks         Disable locking of eups's internal files
+  -q, --quiet           Suppress messages to user (overrides -v)
+  -r PRODUCTDIR, --root=PRODUCTDIR
+                        root directory of requested product
+  -z DIR, --select-db=DIR
+                        Select the product paths which contain this directory.
+                        Default: all in path
+  -t TAG, --tag=TAG     assign TAG to the specified product
+  -T SETUPTYPE, --type=SETUPTYPE
+                        the setup type to use (e.g. exact)
+  -u, --unsetup         Unsetup the specifed product
+  -v, --verbose         Print extra messages about progress (repeat for ever
+                        more chat)
+  -V, --version         Print eups version number
+  --vro=LIST            Set the Version Resolution Order
 \end{verbatim}
 				% $ for emacs
 
@@ -1401,6 +1473,11 @@ a local product --- use \code{setup --root dir [product]} (e.g. setup -r .).
 
 If \eups{} detects an error, the file-to-source will be empty (i.e.
 the setup will be aborted) unless you specify \code{--force}.
+
+Usually \eups{} will lock files before using them, but this may not be desireable or required when setting up
+products on a quiescent system (i.e. one where no-one is actively declaring products).  You can turn locking
+off with the \code{-N} option.  Another way to achieve this is to use the \code{commandCallbacks} mechanism;
+there's an example in Sec. \ref{commandCallbacks}.
 
 %------------------------------------------------------------------------------
 
