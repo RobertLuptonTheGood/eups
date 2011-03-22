@@ -115,7 +115,9 @@ product and all its dependencies into the environment so that it can be used.
         self.clo.add_option("-S", "--max-depth", dest="max_depth", action="store", type="int", default=-1,
                             help="Only show this many levels of dependencies (use with -v)")
         self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
-                            help="Don\'t actually do anything (for debugging purposes)")
+                            help="Don't actually do anything (for debugging purposes)")
+        self.clo.add_option("-N", "--nolocks", dest="nolocks", action="store_true", default=False,
+                            help="Disable locking of eups's internal files")
         self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="Suppress messages to user (overrides -v)")
         self.clo.add_option("-r", "--root", dest="productDir", action="store",
@@ -142,6 +144,20 @@ product and all its dependencies into the environment so that it can be used.
             productName = self.args[0]
         if len(self.args) > 1:
             versionName = self.args[1]
+
+        if self.opts.unsetup:
+            cmdName = "unsetup"
+        else:
+            cmdName = "setup"
+
+        try:
+            eups.commandCallbacks.apply(None, cmdName, self.opts, self.args)
+        except eups.OperationForbidden, e:
+            e.status = 255
+            raise
+        except Exception, e:
+            e.status = 9
+            raise
 
         if self.opts.exact_version and self.opts.inexact_version:
             self.err("Specifying --exact --inexact confuses me, so I'll ignore both")
@@ -194,6 +210,10 @@ product and all its dependencies into the environment so that it can be used.
                 self.err("You may not specify both --just and --max_depth")
                 return 3
             self.opts.max_depth = 0
+
+        if self.opts.nolocks:
+            import lock
+            lock.disableLocking = True
         #
         # Do the work
         #
@@ -208,11 +228,6 @@ product and all its dependencies into the environment so that it can be used.
                              max_depth=self.opts.max_depth, vro=self.opts.vro,
                              exact_version=self.opts.exact_version)
 
-            if self.opts.unsetup:
-                cmdName = "unsetup"
-            else:
-                cmdName = "setup"
-            
             try:
                 eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
             except eups.OperationForbidden, e:

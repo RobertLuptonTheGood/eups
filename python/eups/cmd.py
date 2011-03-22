@@ -249,6 +249,15 @@ Common"""
         if opts is None:
             opts = self.opts
 
+        try:
+            eups.commandCallbacks.apply(None, self.cmd, self.opts, self.args)
+        except eups.OperationForbidden, e:
+            e.status = 255
+            raise
+        except Exception, e:
+            e.status = 9
+            raise
+
         if self.cmd in "admin flavor flags path".split():
             readCache = False
         else:

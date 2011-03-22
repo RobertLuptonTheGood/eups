@@ -1,3 +1,10 @@
+2011-03-22 rhl
+
+        Added a -N (--nolock) option to setup, and arranged that registered callback functions are called
+	twice (once with a null Eups object);  the first time is early enough to be used to disable locking
+
+	Documented callback functions
+
 2011-01-21 rhl
 	Permitted
 		setup -t XXX -r .

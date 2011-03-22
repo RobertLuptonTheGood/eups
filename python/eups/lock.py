@@ -1,10 +1,17 @@
 import errno, os, stat, sys, time
 import re
 
+try:
+    disableLocking
+except NameError:
+    disableLocking = False              # if true, all locking will be disabled.  Be careful.
+
 def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0, noaction=False):
     """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
 
-    if noaction:
+    if noaction or disableLocking:
+        if verbose > 2:
+            print >> sys.stderr, "Not locking %s" % lockfile
         return
 
     myPid = os.getpid()
@@ -92,7 +99,7 @@ def unlock(lockfile, myIdentity, force=False, verbose=0, noaction=False):
     if not lockfile or not os.path.exists(lockfile):
         return
 
-    if noaction:
+    if noaction or disableLocking:
         return
 
     if verbose > 3:

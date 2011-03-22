@@ -822,3 +822,9 @@ def getSetupVersion(productName, eupsenv=None):
     if not version:
         raise ProductNotFound(productName, msg="%s is not setup" % productName)
     return version
+
+def enableLocking(enableLocking=True):
+    """Enable or disable the use of lock files"""
+    import lock
+    lock.disableLocking = not enableLocking
+    
