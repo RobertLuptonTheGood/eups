@@ -263,7 +263,10 @@ Common"""
         else:
             readCache = True
 
-        self.opts.setupType = self.opts.setupType.split()
+        try:
+            self.opts.setupType = self.opts.setupType.split()
+        except AttributeError:          # already a list
+            pass
 
         ignorever = hasattr(opts, "ignorever") and opts.ignorever
         keep = hasattr(opts, "keep") and opts.keep
