@@ -1170,10 +1170,15 @@ class LocalTransporter(Transporter):
         if noaction:
             if self.verbose > 0:
                 print >> self.log, "simulated listing of", self.loc
-                return []
+            return []
         else:
-            return filter(lambda f: os.path.isfile(os.path.join(self.loc,f)), 
-                          os.listdir(self.loc))
+            if os.path.isdir(self.loc):
+                return filter(lambda f: os.path.isfile(os.path.join(self.loc,f)), 
+                              os.listdir(self.loc))
+            else:
+                if self.verbose > 0:
+                    print >> self.log, "%s does not exist" % self.loc
+                return []
 
 
 class TransporterFactory(object):
