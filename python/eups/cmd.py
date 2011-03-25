@@ -263,10 +263,7 @@ Common"""
         else:
             readCache = True
 
-        try:
-            self.opts.setupType = self.opts.setupType.split()
-        except AttributeError:          # already a list
-            pass
+        setupType = self.opts.setupType.split()
 
         ignorever = hasattr(opts, "ignorever") and opts.ignorever
         keep = hasattr(opts, "keep") and opts.keep
@@ -275,7 +272,7 @@ Common"""
 
         Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=opts.force, 
-                         ignore_versions=ignorever, setupType=self.opts.setupType,
+                         ignore_versions=ignorever, setupType=setupType,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
 
@@ -2252,11 +2249,11 @@ same arguments.
             self.opts.tag += ['current']
 
         if self.opts.setupType:
-            self.opts.setupType = self.opts.setupType.split()
+            setupType = self.opts.setupType.split()
         else:
-            self.opts.setupType = []
+            setupType = []
         
-        myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=self.opts.setupType,
+        myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=setupType,
                            exact_version=self.opts.exact_version)
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
