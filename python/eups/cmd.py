@@ -1706,7 +1706,7 @@ class DistribListCmd(EupsCmd):
         if self.opts.root:
             pkgroots = "|".join(self.opts.root)
         else:
-            pkgroots = os.environ["EUPS_PKGROOT"]
+            pkgroots = os.environ.get("EUPS_PKGROOT")
 
         if not pkgroots:
             self.err("Please specify a repository with -r or $EUPS_PKGROOT")
