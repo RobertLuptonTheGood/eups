@@ -2094,11 +2094,12 @@ class DistribCreateCmd(EupsCmd):
         if len(self.args) == 0:
             self.err("Please specify a product name and version")
             return 2
-        if len(self.args) < 2:
-            self.err("Please also specify a product version")
-            return 2
         product = self.args[0]
-        version = self.args[1]
+
+        if len(self.args) < 2:
+            version = None
+        else:
+            version = self.args[1]
 
         if not self.opts.repos:
             if os.environ.has_key("EUPS_PKGROOT"):
@@ -2108,6 +2109,9 @@ class DistribCreateCmd(EupsCmd):
 
         if not self.opts.useFlavor:
             self.opts.useFlavor = self.flavor
+
+        if not self.opts.setupType:
+            self.opts.setupType = "build"
 
         if not self.opts.serverDir:
             for pkgroot in self.opts.repos:
@@ -2131,6 +2135,17 @@ class DistribCreateCmd(EupsCmd):
             raise
 
         myeups.selectVRO(self.opts.tag, None, None, self.opts.dbz)
+
+        if not version:
+            if self.opts.tag:
+                prod = myeups.findTaggedProduct(product, self.opts.tag[0])
+                
+                if prod:
+                    version = prod.version
+
+        if not version:
+            self.err("Please specify a product version")
+            return 2
 
         dopts = {}
         # handle extra options

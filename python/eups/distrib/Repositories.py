@@ -381,19 +381,30 @@ class Repositories(object):
             print >> self.log, "Warning: no installable packages associated", \
                 "with", idstring
 
+        # check for circular dependencies:
+        if idstring in ances:
+            if self.verbose >= 0:
+                print >> self.log, "Detected circular dependencies", \
+                      "within manifest for %s; short-circuiting." % idstring.strip()
+                if self.verbose > 2:
+                    print >> self.log, "Package installation already in progress:%s" % "".join(ances)
+
+                return True
+
         productRoot0 = productRoot      # initial value
         for prod in products:
             pver = prodid(prod.product, prod.version, instflavor)
 
             # check for circular dependencies:
-            if pver in ances:
-                if self.verbose >= 0:
-                    print >> self.log, "Detected circular dependencies", \
-                          "within manifest for %s; short-circuiting." % idstring.strip()
-                    if self.verbose > 2:
-                        print >> self.log, "Package installation already in progress:%s" % "".join(ances)
-                    continue
-            ances.append(pver)
+            if False:
+                if pver in ances:
+                    if self.verbose >= 0:
+                        print >> self.log, "Detected circular dependencies", \
+                              "within manifest for %s; short-circuiting." % idstring.strip()
+                        if self.verbose > 2:
+                            print >> self.log, "Package installation already in progress:%s" % "".join(ances)
+                        continue
+                ances.append(pver)
 
             if nodepend and prod.product != product and prod.version != version:
                 continue
@@ -412,7 +423,6 @@ class Repositories(object):
                     print >> self.log, \
                         "Required product %s %s is already installed; use --force to reinstall" % \
                         (prod.product, prod.version)
-
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
             else:
@@ -421,7 +431,7 @@ class Repositories(object):
                     recurse = not prod.distId or prod.shouldRecurse
 
                 if recurse and \
-                       (prod.distId is None or (prod.product != product and prod.version != version)):
+                       (prod.distId is None or (prod.product != product or prod.version != version)):
 
                     # This is not the top-level product for the current manifest.
                     # We are ignoring the distrib ID; instead we will search 
@@ -463,9 +473,18 @@ class Repositories(object):
                     pkgroot = pkg[3]
 
                     dman = self.repos[pkgroot].getManifest(pkg[0], pkg[1], pkg[2])
-                    prod = dman.getDependency(prod.product)
+                    nprod = dman.getDependency(prod.product)
+                    if nprod:
+                        prod = nprod
+                    else:
+                        if self.eups.debugFlag:
+                            import pdb; pdb.set_trace() 
+                            pass
                         
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
+
+                    if pver not in ances:
+                        ances.append(pver)
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups 
@@ -515,8 +534,10 @@ class Repositories(object):
         # clean-up if it fails
         self._recordDistID(prod.distId, builddir, pkgroot)
 
-        distrib = self.repos[pkgroot].getDistribFor(prod.distId, opts, 
-                                                    instflavor, tag)
+        try:
+            distrib = self.repos[pkgroot].getDistribFor(prod.distId, opts, instflavor, tag)
+        except RuntimeError, e:
+            raise RuntimeError("Installing %s %s: %s" % (prod.product, prod.version, e))
 
         if self.verbose > 1 and 'NAME' in dir(distrib):
             print >> self.log, "Using Distrib type:", distrib.NAME
@@ -653,9 +674,7 @@ class Repositories(object):
         repos = self.repos[pkgroot]
 
         if rootdir and not os.path.exists(rootdir):
-            msg = "%s %s installation not found at %s" % \
-                (mprod.product, mprod.version, rootdir)
-            raise RuntimeError(msg)
+            raise EupsException("%s %s installation not found at %s" % (mprod.product, mprod.version, rootdir))
 
         # make sure we have a table file if we need it
         upsdir = os.path.join(rootdir, "ups")

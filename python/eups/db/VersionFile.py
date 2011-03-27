@@ -477,16 +477,13 @@ Group:
             info = self.info[fq].copy()
             for k in info.keys():
                 value = info[k]
-                
-                if re.search(r"^%s/" % trimDir, value):
-                    if os.path.isfile(value) or os.path.isdir(value):
-                        if os.path.commonprefix([trimDir, value]) == trimDir:
-                            info[k] = re.sub(r"^%s/" % trimDir, "", value)
-                            if False:
-                                eups.utils.debug("Stripping eupsPathDir", self.info[fq][k])
 
-                            if k.lower() == "table_file":
-                                info[k] = re.sub(r"^ups/", "$UPS_DIR/", info[k])
+                if os.path.isfile(value) or os.path.isdir(value):
+                    if os.path.commonprefix([trimDir, value]) == trimDir:
+                        info[k] = value[len(trimDir) + 1:]
+
+                        if k.lower() == "table_file":
+                            info[k] = re.sub(r"^ups/", "$UPS_DIR/", info[k])
 
             for field in self._fields:
                 if field == "PROD_DIR":
@@ -508,6 +505,7 @@ Group:
 
                     if field.upper() == "TABLE_FILE" and os.path.isabs(value):
                         print >> sys.stderr, "Detected absolute table filename (tell RHL): %s" % value
+                        pass
 
                     print >> fd, "   %s = %s" % (field.upper(), value)
 

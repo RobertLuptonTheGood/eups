@@ -1703,6 +1703,9 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
         for p in self.products:
             if mapping.has_key(p.product):
                 if not len(mapping[p.product]):
+                    if self.verbose > 0:
+                        print >> self.log, "Deleting [%s, %s] from manifest" % (p.product, p.version)
+
                     p.version = None
                 else:
                     for versName in (p.version, "any"):
@@ -2102,10 +2105,13 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         environ['SHELL'] = BASH
         environ['BASH_ENV'] = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
 
+        if environ.has_key("EUPS_PATH"): # keep current path
+            cmd = ("export EUPS_PATH=%s\n" % (environ["EUPS_PATH"])) + cmd
+
         errno = os.spawnle(os.P_WAIT, BASH, BASH, "-c", cmd, environ)
 
         if errno != 0:
-            raise OSError("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno >> 8)))
+            raise OSError("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno)))
 
 def issamefile(file1, file2):
     """Are two files identical?"""

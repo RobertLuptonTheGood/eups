@@ -17,9 +17,11 @@ import utils
 class Table(object):
     """A class that represents a eups table file"""
 
-    def __init__(self, tableFile):
+    def __init__(self, tableFile, topProduct=None):
         """
         Parse a tablefile
+        @param  The tablefile we're reading
+        @param  The Product that owns this tablefile
         @throws TableError       if an IOError occurs while reading the table file
         @throws BadTableContent  if the table file parser encounters unparseable 
                                    content.  Note that BadTableContent is a subclass
@@ -27,6 +29,7 @@ class Table(object):
         """
 
         self.file = tableFile
+        self.topProduct = topProduct
         self.old = False
         self._actions = []
 
@@ -406,10 +409,11 @@ but no other interpretation is applied
 
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None):
+    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None,
+                     productDictionary=None):
         """
         Return the product dependencies as specified in this table as a list 
-        of (Product, optional) tuples
+        of (Product, optional?, recursionDepth) tuples
 
         @param Eups            an Eups instance to use to locate packages
         @param eupsPathDirs    the product stacks to restrict searches to
@@ -419,10 +423,17 @@ but no other interpretation is applied
         @param followExact     follow the exact, as-built versions in the 
                                   table file.  If None or not specified,
                                   it defaults to Eups.exact_version.
+        @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
+                               value being that product's dependencies as a list of
+                               (Product, optional? recursionDepth)
         """
 
         if followExact is None:
             followExact = Eups.exact_version
+
+        setupType = Eups.setupType
+        if not followExact:
+            setupType = [t for t in setupType if t != "exact"]
 
         if recursive and not isinstance(recursive, bool):
             recursiveDict = recursive
@@ -430,8 +441,14 @@ but no other interpretation is applied
             recursiveDict = {}          # dictionary of products we've analysed
         prodkey = lambda p: "%s-%s" % (p.name, p.version)
 
+        if productDictionary is None:
+            productDictionary = {}
+
+        if not productDictionary.has_key(self.topProduct):
+            productDictionary[self.topProduct] = []
+            
         deps = []
-        for a in self.actions(Eups.flavor, setupType=Eups.setupType):
+        for a in self.actions(Eups.flavor, setupType=setupType):
             if a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
 
@@ -460,9 +477,10 @@ but no other interpretation is applied
                         recursiveDict[prodkey(product)] = 1
                         deptable = product.getTable()
                         if deptable:
-                            deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict, recursionDepth+1)
+                            deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict,
+                                                          recursionDepth + 1, followExact, productDictionary)
                         
-                except ProductNotFound, e:
+                except (ProductNotFound, TableFileNotFound), e:
                     product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra["optional"]]
@@ -473,6 +491,7 @@ but no other interpretation is applied
                     deps += [val]
 
                 del q
+                productDictionary[self.topProduct].append(val)
 
                 Eups.popStack("vro")
 

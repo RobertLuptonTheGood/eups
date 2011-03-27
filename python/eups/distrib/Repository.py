@@ -79,10 +79,8 @@ class Repository(object):
             override = None
             if self.options.has_key('serverconf'):
                 override = options['serverconf']
-            self.distServer = ServerConf.makeServer(pkgroot, eupsenv=eupsenv,
-                                                    override=override,
-                                                    verbosity=self.verbose-1, 
-                                                    log=self.log)
+            self.distServer = ServerConf.makeServer(pkgroot, eupsenv=eupsenv, override=override,
+                                                    verbosity=self.verbose, log=self.log)
         if self.distFactory is None:
             self.distFactory = DistribFactory(self.eups, self.distServer)
         elif not self.distServer:

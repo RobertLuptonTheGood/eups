@@ -344,12 +344,10 @@ class Distrib(object):
         if flavor is None:  flavor = self.flavor
         if tag is None:  tag = self.tag
 
-        productList = Manifest(productName, versionName, self.Eups,
-                               self.verbose-1, self.log)
+        productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
         dependencies = None
         ptablefile = None
         if self.noeups:
-
             if recursive and self.verbose > 0:
                 print >> self.log, "Warning dependencies are not guaranteed", \
                     "to be recursive when using noeups option"
@@ -371,25 +369,19 @@ class Distrib(object):
             else:
                 if self.verbose > 0:
                     print >> self.log, "Failed to find %s's table file; trying eups" % productName
-        else:
-            productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
 
         if ptablefile is None:
             # consult the EUPS database
             try:
+                productDictionary = {}
                 product = self.Eups.getProduct(productName, versionName)
-                table = product.getTable()
-                if table:
-                    dependenciesOLD = table.dependencies(self.Eups, recursive=recursive)
-
-                dependencies = []
-                table = product.getTable()
-                if table:
-                    dependencies = table.dependencies(self.Eups, recursive=recursive)
-            except eups.ProductNotFound, e:
+                dependencies = eups.getDependentProducts(product, self.Eups,
+                                                         productDictionary=productDictionary)
+            except (eups.ProductNotFound, eups.TableFileNotFound), e:
                 if self.noeups:
                     if self.verbose > 0:
                         print >> self.log, e
+                    dependencies = []
                 else:
                     raise
         #
@@ -403,6 +395,14 @@ class Distrib(object):
         #
         # We have our dependencies; proceed
         #
+        # The first thing to do is to ensure that more deeply nested products are listed first as we need to
+        # build them first when installing
+        #
+        def byDepth(a, b):
+            """Sort by recursion depth"""
+            return cmp(b[2], a[2])
+        dependencies.sort(byDepth)
+
         for (dprod, dopt, recursionDepth) in dependencies:
             productName = dprod.name
             versionName = dprod.version
@@ -414,14 +414,15 @@ class Distrib(object):
             else:
                 if dopt:
                     continue
-                raise eups.ProductNotFound(productName)
+                raise eups.ProductNotFound("%s %s" % (productName, versionName))
 
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)
         #
         # We need to install those products in the correct order
         #
-        productList.roll()
+        if False:                       # we already enforced the correct order
+            productList.roll()
 
         # now let's go back and fill in the product directory
         for dprod in productList.getProducts():
@@ -728,6 +729,8 @@ class DefaultDistrib(Distrib):
             if os.access(tablefile_for_distrib, os.R_OK) and not force:
                 if self.Eups.verbose > 1:
                     print >> sys.stderr, "Not recreating", tablefile_for_distrib
+            elif not os.path.exists(fulltablename):
+                print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
             else:
                 if self.Eups.verbose > 1:
                     print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
