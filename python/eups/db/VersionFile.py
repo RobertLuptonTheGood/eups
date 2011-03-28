@@ -485,6 +485,9 @@ Group:
                         if k.lower() == "table_file":
                             info[k] = re.sub(r"^ups/", "$UPS_DIR/", info[k])
 
+                    if os.path.isabs(info[k]):
+                        eups.utils.debug("Path %s is absolute" % self.info[k])
+
             for field in self._fields:
                 if field == "PROD_DIR":
                     k = "productDir"
