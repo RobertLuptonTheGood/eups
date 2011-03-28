@@ -772,7 +772,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if vroTag in ("path"):
                 continue
 
-            elif recursionDepth > 0 and vroTag in ("keep",):
+            elif vroTag in ("keep",):
                 product = self.alreadySetupProducts.get(name)
                 if product:
                     product = product[0]
@@ -1449,6 +1449,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if val == None:
             val = ""
         os.environ[key] = val
+        os.putenv(key, val)
 
     def unsetEnv(self, key):
         """Unset an environmental variable"""
