@@ -41,18 +41,15 @@ class Eups(object):
     # staticmethod;  would use a decorator if we knew we had a new enough python
     def setEupsPath(path=None, dbz=None):
         if not path:
-            if os.environ.has_key("EUPS_PATH"):
-                path = os.environ["EUPS_PATH"]
-            else:
-                path = []
+            path = os.environ.get("EUPS_PATH", [])
 
         if isinstance(path, str):
-            path = filter(lambda el: el, path.split(":"))
+            path = path.split(":")
 
         if dbz:
-            # if user provides dbz, restrict self.path to those
-            # directories that start with dbz
-            path = filter(lambda p: re.search(r"/%s(/|$)" % dbz, p), path)
+            # if user provides dbz, restrict self.path to those directories that include /dbz/
+            dbzRe = r"/%s(/|$)" % dbz
+            path = [p for p in path if re.search(dbzRe, p)]
             os.environ["EUPS_PATH"] = ":".join(path)
 
         eups_path = []

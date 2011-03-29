@@ -429,6 +429,8 @@ will also be printed.
                             help="List only versions having this tag name")
         self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to assume (ignored unless -d is specified)")
+        self.clo.add_option("--topological", dest="topological", action="store_true", default=False,
+                            help="Return dependencies after a topological sort")
 
     def execute(self):
         product = version = None
@@ -458,7 +460,7 @@ will also be printed.
                                    dependencies=self.opts.depends, 
                                    showVersion=self.opts.version, 
                                    depth=self.opts.depth,
-                                   productDir=self.opts.productDir)
+                                   productDir=self.opts.productDir, topological=self.opts.topological)
             if n == 0:
                 msg = 'No products found'
 
@@ -494,7 +496,7 @@ class FlagsCmd(EupsCmd):
 
 class EnvListCmd(EupsCmd):
 
-    def _init(self, what, delim=":"):
+    def _init(self, what=None, delim=":"):
         self.what = what
         self.delim = delim
 
@@ -540,9 +542,20 @@ integer argument, n, will cause just the n-th directory to be listed (where
 0 is the first element).
 """
 
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
     def __init__(self, args=None, toolname=None, cmd=None):
         EnvListCmd.__init__(self, args, toolname, cmd)
-        self._init("EUPS_PATH")
+
+    def execute(self):
+        self._init()
+        path = [e for e in self.createEups(self.opts).path if e != utils.defaultUserDataDir()]
+        return self.printEnv(path)
 
 class StartupCmd(EnvListCmd):
 

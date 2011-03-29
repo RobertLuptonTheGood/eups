@@ -16,7 +16,7 @@ from exceptions import EupsException, TableFileNotFound
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
                   dependencies=False, showVersion=False,
-                  depth=None, productDir=None):
+                  depth=None, productDir=None, topological=False):
     """
     print out a listing of products.  Returned is the number of products listed.
     @param ostrm           the output stream to send listing to
@@ -39,6 +39,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              a logical operator and an integer (e.g. 
                              "> 3") implies a comparison with the depth
                              of each dependency (i.e. "depth > 3").  
+    @param topological     List dependencies in topological-sorted order
     """
 
     if not eupsenv:
@@ -101,6 +102,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             else:
                 raise EupsException("Please choose the version you want listed (%s)" %
                                     (", ".join([p.version for p in productList])))
+    else:
+        if topological:
+            raise EupsException("--topological only makes sense with --dependencies")
         
     productTags = {}             # list of tags indexed by product
 
@@ -132,7 +136,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if includeProduct(recursionDepth):
             print "%-40s %s" % (product.name, product.version)
 
-        for product, optional, recursionDepth in getDependentProducts(product, eupsenv, setup):
+        for product, optional, recursionDepth in getDependentProducts(product, eupsenv, setup,
+                                                                      topological=topological):
             if not includeProduct(recursionDepth):
                 continue
 
@@ -271,7 +276,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
         print >> outstrm, str
 
 def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=False,
-                         followExact=None, productDictionary=None):
+                         followExact=None, productDictionary=None, topological=False):
     """
     Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
     @param topProduct      Desired Product
@@ -281,6 +286,8 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
     @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
     @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
                            value being that product's dependencies.
+    @param topological     Perform a topological sort before returning the product list; in this case the
+                           "recursionDepth" is the topological order
 
     See also getDependencies()
     """
@@ -323,8 +330,9 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
     # no clue about the order they need to be setup in.  Get the depth information from a
     # topological sort of the inexact setup
     #
-    if eupsenv.exact_version and followExact is not False and \
-           dependentProducts and max([p[2] for p in dependentProducts]) == 1:
+    if topological or (
+        eupsenv.exact_version and followExact is not False and \
+        dependentProducts and max([p[2] for p in dependentProducts]) == 1):
 
         productDictionary = {}
         getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
@@ -338,19 +346,21 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
                 p = v[0]             # the dependent product
                 pdir[k].append(p)
 
-        sortedProducts = [t for t in utils.topologicalSort(pdir)] # products sorted topologically
+        sortedProducts = [t for t in
+                          utils.topologicalSort(pdir, verbose=eupsenv.verbose)] # products sorted topologically
 
         tsorted_level = {}
         nlevel = len(sortedProducts)
         for i, pp in enumerate(sortedProducts):
             for p in pp:
-                tsorted_level[p.name] = nlevel - i
+                tsorted_level[p.name] = nlevel - i - 1
 
         for p in dependentProducts:
             pname = p[0].name
             if tsorted_level.has_key(pname):
                 p[2] = tsorted_level[pname]
 
+        #import pdb; pdb.set_trace() 
         dependentProducts.sort(lambda a, b: cmp(a[2], b[2])) # sort by topological depth
 
     return dependentProducts
