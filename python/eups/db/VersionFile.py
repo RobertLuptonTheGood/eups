@@ -479,7 +479,7 @@ Group:
                 value = info[k]
 
                 if os.path.isfile(value) or os.path.isdir(value):
-                    if os.path.commonprefix([trimDir, value]) == trimDir:
+                    if trimDir and os.path.commonprefix([trimDir, value]) == trimDir:
                         info[k] = value[len(trimDir) + 1:]
 
                         if k.lower() == "table_file":
