@@ -433,145 +433,175 @@ def createTempDir(path):
 
     return path
 
-if True:
-    def topologicalSort(data):
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+"""
+   Tarjan's algorithm and topological sorting implementation in Python
+
+   by Paul Harrison
+
+   Public domain, do with it as you will
+
+"""
+
+def stronglyConnectedComponents(graph):
+    """ Find the strongly connected components in a graph using
+        Tarjan's algorithm.
+
+        graph should be a dictionary mapping node names to
+        lists of successor nodes.
         """
-        From http://code.activestate.com/recipes/577413-topological-sort (but converted back to python 2.4)
 
-        Author Paddy McCarthy, under the MIT license
+    result = []
+    stack = []
+    low = {}
 
-        Returns a generator;
-               print [str(t) for t in utils.topologicalSort(data)]
-        returns a list of keys, where the earlier elements sort after the later ones.
-        """
+    def visit(node):
+        if node in low: return
 
-        for k, v in data.items():
-            data[k] = set(v)
+        num = len(low)
+        low[node] = num
+        stack_pos = len(stack)
+        stack.append(node)
 
-        for k, v in data.items():
-            v.discard(k) # Ignore self dependencies
+        for successor in graph[node]:
+            visit(successor)
+            low[node] = min(low[node], low[successor])
 
-        extra_items_in_deps = reduce(set.union, data.values()) - set(data.keys())
-        for item in extra_items_in_deps:
-            data[item] = set()
+        if num == low[node]:
+            component = tuple(stack[stack_pos:])
+            del stack[stack_pos:]
+            result.append(component)
+            for item in component:
+                low[item] = len(graph)
 
-        while True:
-            ordered = set(item for item,dep in data.items() if not dep)
-            if not ordered:
-                break
-            yield sorted(ordered)
-            ndata = {}
-            for item, dep in data.items():
-                if item not in ordered:
-                    ndata[item] = (dep - ordered)
+    for node in graph:
+        visit(node)
 
-            data = ndata; del ndata
+    return result
 
-        if data:
-            raise RuntimeError("A cyclic dependency exists amongst %r" % data)
-else:
+
+def _topological_sort(graph):
+    count = { }
+    for node in graph:
+        count[node] = 0
+    for node in graph:
+        for successor in graph[node]:
+            count[successor] += 1
+
+    ready = [ node for node in graph if count[node] == 0 ]
+
+    result = [ ]
+    while ready:
+        node = ready.pop(-1)
+        result.append(node)
+
+        for successor in graph[node]:
+            count[successor] -= 1
+            if count[successor] == 0:
+                ready.append(successor)
+
+    return result
+
+
+def topologicalSort(graph, verbose=False):
+    """
+    From http://code.activestate.com/recipes/577413-topological-sort (but converted back to python 2.4)
+
+    Author Paddy McCarthy, under the MIT license
+
+    Returns a generator;
+           print [str(t) for t in utils.topologicalSort(graph)]
+    returns a list of keys, where the earlier elements sort _after_ the later ones.
     """
 
-       Tarjan's algorithm and topological sorting implementation in Python
+    for k, v in graph.items():
+        graph[k] = set(v)
 
-       by Paul Harrison
+    for k, v in graph.items():
+        v.discard(k) # Ignore self dependencies
 
-       Public domain, do with it as you will
+    extra_items_in_deps = reduce(set.union, graph.values()) - set(graph.keys())
+    for item in extra_items_in_deps:
+        graph[item] = set()
 
-    """
+    #
+    # If there are strongly-connected components, make these components the keys
+    # in the graph, not single elements
+    #
+    def name(p):
+        """Return a p's name (if a Product), else str(p)"""
+        try:
+            return p.name
+        except AttributeError:
+            return str(p)
 
-    def strongly_connected_components(graph):
-        """ Find the strongly connected components in a graph using
-            Tarjan's algorithm.
-
-            graph should be a dictionary mapping node names to
-            lists of successor nodes.
-            """
-
-        result = [ ]
-        stack = [ ]
-        low = { }
-
-        def visit(node):
-            if node in low: return
-
-            num = len(low)
-            low[node] = num
-            stack_pos = len(stack)
-            stack.append(node)
-
-            for successor in graph[node]:
-                visit(successor)
-                low[node] = min(low[node], low[successor])
-
-            if num == low[node]:
-                component = tuple(stack[stack_pos:])
-                del stack[stack_pos:]
-                result.append(component)
-                for item in component:
-                    low[item] = len(graph)
-
-        for node in graph:
-            visit(node)
-
-        return result
+    def nameVersion(p):
+        try:
+            return "[%s version %s]" % (p.name, p.version)
+        except AttributeError:
+            return str(p)
 
 
-    def topological_sort(graph):
-        count = { }
-        for node in graph:
-            count[node] = 0
-        for node in graph:
-            for successor in graph[node]:
-                count[successor] += 1
+    components = stronglyConnectedComponents(graph)
 
-        ready = [ node for node in graph if count[node] == 0 ]
+    for ccomp in components:
+        if len(ccomp) > 1:
+            if verbose:
+                print >> sys.stderr, \
+                      "Detected cycle: %s" % ", ".join([nameVersion(c) for c in ccomp])
+    #
+    # Rebuild the graph using tuples, so as to handle connected components
+    #
+    node_component = {}         # index for which component each node belongs in
+    for component in components:
+        for node in component:
+            node_component[node] = component
 
-        result = [ ]
-        while ready:
-            node = ready.pop(-1)
-            result.append(node)
+    component_graph = {}        # our new graph, indexed by component
+    for component in components:
+        component_graph[component] = set()
 
-            for successor in graph[node]:
-                count[successor] -= 1
-                if count[successor] == 0:
-                    ready.append(successor)
+    for node in graph:
+        node_c = node_component[node]
+        for successor in graph[node]:
+            successor_c = node_component[successor]
+            if node_c != successor_c: # here's where we break the cycle
+                component_graph[node_c].add(successor_c)
 
-        return result
+    graph = component_graph
 
+    while True:
+        ordered = set(item for item,dep in graph.items() if not dep)
+        if not ordered:
+            break
+        yield sorted([x[0] for x in ordered]) # unpack the tuples
+        ngraph = {}
+        for item, dep in graph.items():
+            if item not in ordered:
+                ngraph[item] = (dep - ordered)
 
-    def topologicalSort(graph):
-        """ First identify strongly connected components,
-            then perform a topological sort on these components. """
+        graph = ngraph; del ngraph
 
-        components = strongly_connected_components(graph)
+    if graph:
+        raise RuntimeError("A cyclic dependency exists amongst %s" %
+                           " ".join(sorted([name([x for x in p]) for p in graph.keys()])))
 
-        node_component = { }
-        for component in components:
-            for node in component:
-                node_component[node] = component
-
-        component_graph = { }
-        for component in components:
-            component_graph[component] = [ ]
-
-        for node in graph:
-            node_c = node_component[node]
-            for successor in graph[node]:
-                successor_c = node_component[successor]
-                if node_c != successor_c:
-                    component_graph[node_c].append(successor_c) 
-
-        return topological_sort(component_graph)
-
-
-    if __name__ == '__main__':
-        print robust_topological_sort({
-            0 : [1],
-            1 : [2],
-            2 : [1,3],
-            3 : [3],
-        })
-
-
-    
+if __name__ == "__main__":
+    data = {
+        'des_system_lib':   set('std synopsys std_cell_lib des_system_lib dw02 dw01 ramlib ieee'.split()),
+        'dw01':             set('ieee dw01 dware gtech'.split()),
+        'dw02':             set('ieee dw02 dware'.split()),
+        'dw03':             set('std synopsys dware dw03 dw02 dw01 ieee gtech'.split()),
+        'dw04':             set('dw04 ieee dw01 dware gtech'.split()),
+        'dw05':             set('dw05 ieee dware'.split()),
+        'dw06':             set('dw06 ieee dware'.split()),
+        'dw07':             set('ieee dware'.split()),
+        'dware':            set('ieee dware'.split()),
+        'gtech':            set('ieee gtech'.split()),
+        'ramlib':           set('std ieee'.split()),
+        'std_cell_lib':     set('ieee std_cell_lib'.split()),
+        'synopsys':         set(),
+        }
+    data["dware"].add("dw03")
+    print "\n".join([str(e) for e in topologicalSort(data, True)])
