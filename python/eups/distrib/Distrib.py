@@ -414,7 +414,7 @@ class Distrib(object):
             else:
                 if dopt:
                     continue
-                raise eups.ProductNotFound("%s %s" % (productName, versionName))
+                raise eups.ProductNotFound(productName, versionName)
 
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)

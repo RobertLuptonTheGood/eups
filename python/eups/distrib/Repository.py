@@ -524,7 +524,10 @@ class Repository(object):
 
             # we now should attempt to create this package because it appears 
             # not to be available
-            man = distrib.createDependencies(dp.product, dp.version, self.flavor)
+            try:
+                man = distrib.createDependencies(dp.product, dp.version, self.flavor)
+            except eups.ProductNotFound, e:
+                raise RuntimeError("Creating manifest for %s %s: %s" % (manifest.product, manifest.version, e))
 
             id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor)
             created.append(pver)
