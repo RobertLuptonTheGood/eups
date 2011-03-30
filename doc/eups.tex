@@ -1604,17 +1604,19 @@ alias or an environment variable - clear from the context.)
      Don't forget to escape the quotes.
     
    \item \code{envAppend(<Name>, <Value> [,<delimiter>])}
-     Appends \code{<Value>} to \code{<Name>}. The default delimiter is~`:'.
-     If the value looks like \code{\$?\$name\}},
+     Appends \code{<Value>} to \code{<Name>}. The default delimiter is~`:'; the value may not contain an
+     embedded delimiter (use two separate \code{envAppend} commands instead).
+     If the value looks like \code{\$?\{name\}},
      and there is no such environment variable, the \code{envAppend} command is ignored.
      If \code{<Value>} starts or ends
-     with \code{<Delimiter>, the final value of \code{<Name>} will
+     with \code{<Delimiter>}, the final value of \code{<Name>} will
      have a delimiter pre- or -appended;  this is useful
-     for variables such as \{MANPATH} which use such an empty
+     for variables such as \code{\$MANPATH} which use such an empty
      element to mean, ``use the default path too''. E.g.
      \begin{verbatim}
      envAppend(MANPATH, :${PRODUCT_DIR}/man)
      \end{verbatim}		% $
+
      
    \item \code{envPrepend(<Name>,<Value> [,<delimiter>])}
      Similar to envAppend, but put the value at the beginning

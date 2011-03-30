@@ -780,6 +780,10 @@ class Action(object):
             if not value:
                 return
 
+        if delim in value:
+            msg = "In %s value \"%s\" contains a delimiter '%s'" % (self.tableFile, value, delim)
+            raise BadTableContent(self.tableFile, msg=msg)
+
         if fwd:
             if append:
                 npath = opath + [value]
