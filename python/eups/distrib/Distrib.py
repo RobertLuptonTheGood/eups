@@ -376,7 +376,8 @@ class Distrib(object):
                 productDictionary = {}
                 product = self.Eups.getProduct(productName, versionName)
                 dependencies = eups.getDependentProducts(product, self.Eups,
-                                                         productDictionary=productDictionary)
+                                                         productDictionary=productDictionary,
+                                                         topological=True)
             except (eups.ProductNotFound, eups.TableFileNotFound), e:
                 if self.noeups:
                     if self.verbose > 0:

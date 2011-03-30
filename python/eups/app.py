@@ -330,13 +330,12 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
     # no clue about the order they need to be setup in.  Get the depth information from a
     # topological sort of the inexact setup
     #
-    if topological or (
-        eupsenv.exact_version and followExact is not False and \
-        dependentProducts and max([p[2] for p in dependentProducts]) == 1):
-
-        productDictionary = {}
-        getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
-                             followExact=False, productDictionary=productDictionary)
+    if topological:
+        if not productDictionary or followExact:
+            productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
+                                            # dependencies are usually flattened)
+            getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
+                                 followExact=False, productDictionary=productDictionary)
 
         # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
         pdir = {}
@@ -360,7 +359,6 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
             if tsorted_level.has_key(pname):
                 p[2] = tsorted_level[pname]
 
-        #import pdb; pdb.set_trace() 
         dependentProducts.sort(lambda a, b: cmp(a[2], b[2])) # sort by topological depth
 
     return dependentProducts
