@@ -331,12 +331,11 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
     # topological sort of the inexact setup
     #
     if topological:
-        if not productDictionary or followExact:
-            productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
-                                            # dependencies are usually flattened)
-            getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
-                                 followExact=False, productDictionary=productDictionary)
-
+        productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
+                                        # dependencies are usually flattened)
+        getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
+                             followExact=False, productDictionary=productDictionary)
+        
         # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
         pdir = {}
         for k, values in productDictionary.items():
