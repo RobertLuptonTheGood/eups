@@ -345,16 +345,16 @@ class Distrib(object):
         if tag is None:  tag = self.tag
 
         productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
+
+        # add a record for the top product
+        productList.addDependency(productName, versionName, flavor, None, None, None, False)
+
         dependencies = None
         ptablefile = None
         if self.noeups:
             if recursive and self.verbose > 0:
                 print >> self.log, "Warning dependencies are not guaranteed", \
                     "to be recursive when using noeups option"
-
-            # add a record for the top product
-            productList.addDependency(productName, versionName, flavor, 
-                                      None, None, None, False)
 
             # use the server as source of package information
             ptablefile = self.findTableFile(productName, versionName, self.flavor)
@@ -422,8 +422,7 @@ class Distrib(object):
         #
         # We need to install those products in the correct order
         #
-        if False:                       # we already enforced the correct order
-            productList.roll()
+        productList.roll()              # we put the top-level product at the start of the list
 
         # now let's go back and fill in the product directory
         for dprod in productList.getProducts():
