@@ -1784,6 +1784,9 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
 
             if outversion:
                 mapping[flavor][product][inversion] = (outproduct, outversion)
+            else:
+                if mapping[flavor][product].has_key(inversion):
+                    del mapping[flavor][product][inversion]
 
         return mapping
 
