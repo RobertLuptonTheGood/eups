@@ -475,6 +475,7 @@ Group:
             # Strip trimDir from directory names
             #
             info = self.info[fq].copy()
+
             for k in info.keys():
                 value = info[k]
 
@@ -483,10 +484,16 @@ Group:
                         info[k] = value[len(trimDir) + 1:]
 
                         if k.lower() == "table_file":
-                            info[k] = re.sub(r"^ups/", "$UPS_DIR/", info[k])
+                            dirName = info.get("productDir")
+                            if dirName and info.has_key("ups_dir"):
+                                dirName = os.path.join(dirName, info["ups_dir"])
+
+                            if dirName and os.path.commonprefix([dirName, info[k]]) == dirName:
+                                info[k] = re.sub("^%s/" % dirName, "", info[k])
 
                     if os.path.isabs(info[k]):
-                        eups.utils.debug("Path %s is absolute" % self.info[k])
+                        print >> sys.stderr, \
+                              "Warning: path %s is absolute, not relative to EUPS_PATH" % info[k]
 
             for field in self._fields:
                 if field == "PROD_DIR":
@@ -501,7 +508,6 @@ Group:
                         if k == "productDir":
                             value = "none"
                         elif k == "table_file":
-                            #debug("Setting table_file")
                             value = "none"
                         else:
                             continue

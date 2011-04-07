@@ -772,7 +772,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if vroTag in ("path"):
                 continue
 
-            elif vroTag in ("keep",):
+            elif recursionDepth > 0 and vroTag in ("keep",):
                 product = self.alreadySetupProducts.get(name)
                 if product:
                     product = product[0]
@@ -787,7 +787,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         break
 
             elif vroTag in ("version", "versionExpr",):
-            
+
                 if not version or self.ignore_versions:
                     continue
 
@@ -1449,7 +1449,6 @@ The what argument tells us what sort of state is expected (allowed values are de
         if val == None:
             val = ""
         os.environ[key] = val
-        os.putenv(key, val)
 
     def unsetEnv(self, key):
         """Unset an environmental variable"""
@@ -2346,7 +2345,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if tag:
             # we just want to update the tag
             if verbose:
-                info = "Assigning tag \"%s\" to %s %s" % (tag, productName, versionName)
+                info = "Assigning tag \"%s\" to %s %s" % (tag[0].name, productName, versionName)
                 print >> sys.stderr, info
             if not self.noaction:
                 if isinstance(tag, str):

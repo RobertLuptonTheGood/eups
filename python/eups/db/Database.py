@@ -460,7 +460,7 @@ class _Database(object):
             os.mkdir(pdir)
 
         if prod.dir:
-            trimDir=os.path.join(prod.stackRoot(), prod.dir)
+            trimDir = prod.stackRoot()
             if not os.path.exists(trimDir):
                 trimDir = None
                 
