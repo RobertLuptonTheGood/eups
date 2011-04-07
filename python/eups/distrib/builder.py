@@ -176,7 +176,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:
-            msg = "I can't find a build file %s.build anywhere on builder path \"%s\"" % (productName, self.buildFilePath)
+            msg = "I can't find a build file %s.build for version %s anywhere on builder path \"%s\"" % (productName, versionName, self.buildFilePath)
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
@@ -354,7 +354,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
                                            #: comments as : is an executable command
                     line += " &&"
-            line = re.sub(r"^\s*setup\s", "setup --keep ", line)
+            line = re.sub(r"^\s*setup\s", "setup --keep --type=build ", line)
             if not re.search(r"^\s*(\#.*)?$", line): # don't confuse the test for an empty build file ("not lines")
                 lines += [line]
         del fd
@@ -394,7 +394,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
             cmd = "(%s) > %s 2>&1 " % (str.join("\n", cmd), logfile)
 
         if not self.nobuild:
-            try: 
+            try:
                 eupsServer.system(cmd, self.Eups.noaction)
             except OSError, e:
                 if self.verbose >= 0 and os.path.exists(logfile):

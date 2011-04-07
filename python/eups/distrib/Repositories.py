@@ -117,7 +117,7 @@ class Repositories(object):
         # used by install() to control repeated error messages
         self._msgs = {}
 
-    def listPackages(self, productName=None, versionName=None, flavor=None):
+    def listPackages(self, productName=None, versionName=None, flavor=None, tag=None):
         """Return a list of tuples (pkgroot, package-list)"""
 
         out = []
@@ -125,7 +125,11 @@ class Repositories(object):
             # Note: each repository may have a cached list
             repos = self.repos[pkgroot]
             try:
-                pkgs = repos.listPackages(productName, versionName, flavor)
+                pkgs = repos.listPackages(productName, versionName, flavor, tag)
+            except TagNotRecognized, e:
+                if self.verbose:
+                    print >> self.log, "%s for %s" % (e, pkgroot)
+                continue
             except ServerError, e:
                 if self.quiet <= 0:
                     print >> self.log, "Warning: Trouble contacting", pkgroot
@@ -317,7 +321,7 @@ class Repositories(object):
         """
         if alsoTag is not None:
             if isinstance(alsoTag, str):
-                alsoTag = map(lambda t: Tag(t, Tags.user), alsoTag.split())
+                alsoTag = [self.eups.tags.getTag(t) for t in alsoTag.split()]
             elif isinstance(alsoTag, Tag):
                 alsoTag = [alsoTag]
 
@@ -381,19 +385,30 @@ class Repositories(object):
             print >> self.log, "Warning: no installable packages associated", \
                 "with", idstring
 
+        # check for circular dependencies:
+        if idstring in ances:
+            if self.verbose >= 0:
+                print >> self.log, "Detected circular dependencies", \
+                      "within manifest for %s; short-circuiting." % idstring.strip()
+                if self.verbose > 2:
+                    print >> self.log, "Package installation already in progress:%s" % "".join(ances)
+
+                return True
+
         productRoot0 = productRoot      # initial value
         for prod in products:
             pver = prodid(prod.product, prod.version, instflavor)
 
             # check for circular dependencies:
-            if pver in ances:
-                if self.verbose >= 0:
-                    print >> self.log, "Detected circular dependencies", \
-                          "within manifest for %s; short-circuiting." % idstring.strip()
-                    if self.verbose > 2:
-                        print >> self.log, "Package installation already in progress:%s" % "".join(ances)
-                    continue
-            ances.append(pver)
+            if False:
+                if pver in ances:
+                    if self.verbose >= 0:
+                        print >> self.log, "Detected circular dependencies", \
+                              "within manifest for %s; short-circuiting." % idstring.strip()
+                        if self.verbose > 2:
+                            print >> self.log, "Package installation already in progress:%s" % "".join(ances)
+                        continue
+                ances.append(pver)
 
             if nodepend and prod.product != product and prod.version != version:
                 continue
@@ -412,7 +427,6 @@ class Repositories(object):
                     print >> self.log, \
                         "Required product %s %s is already installed; use --force to reinstall" % \
                         (prod.product, prod.version)
-
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
             else:
@@ -421,7 +435,7 @@ class Repositories(object):
                     recurse = not prod.distId or prod.shouldRecurse
 
                 if recurse and \
-                       (prod.distId is None or (prod.product != product and prod.version != version)):
+                       (prod.distId is None or (prod.product != product or prod.version != version)):
 
                     # This is not the top-level product for the current manifest.
                     # We are ignoring the distrib ID; instead we will search 
@@ -463,9 +477,18 @@ class Repositories(object):
                     pkgroot = pkg[3]
 
                     dman = self.repos[pkgroot].getManifest(pkg[0], pkg[1], pkg[2])
-                    prod = dman.getDependency(prod.product)
+                    nprod = dman.getDependency(prod.product)
+                    if nprod:
+                        prod = nprod
+                    else:
+                        if self.eups.debugFlag:
+                            import pdb; pdb.set_trace() 
+                            pass
                         
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
+
+                    if pver not in ances:
+                        ances.append(pver)
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups 
@@ -476,8 +499,8 @@ class Repositories(object):
                 self._updateServerTags(pkgroot, prod, productRoot, instflavor)
             if alsoTag:
                 if self.verbose > 1:
-                    print >> self.log, "Assigning User Tags to %s %s: %s" % \
-                          (prod.name, prod.version, ", ".join(str(alsoTag)))
+                    print >> self.log, "Assigning Tags to %s %s: %s" % \
+                          (prod.product, prod.version, ", ".join([str(t) for t in alsoTag]))
                 for tag in alsoTag:
                     try:
                         self.eups.assignTag(tag, prod.product, prod.version, productRoot)
@@ -515,8 +538,10 @@ class Repositories(object):
         # clean-up if it fails
         self._recordDistID(prod.distId, builddir, pkgroot)
 
-        distrib = self.repos[pkgroot].getDistribFor(prod.distId, opts, 
-                                                    instflavor, tag)
+        try:
+            distrib = self.repos[pkgroot].getDistribFor(prod.distId, opts, instflavor, tag)
+        except RuntimeError, e:
+            raise RuntimeError("Installing %s %s: %s" % (prod.product, prod.version, e))
 
         if self.verbose > 1 and 'NAME' in dir(distrib):
             print >> self.log, "Using Distrib type:", distrib.NAME
@@ -566,9 +591,8 @@ class Repositories(object):
             self.clean(prod.product, prod.version, options=opts)
 
     def _updateServerTags(self, pkgroot, prod, stackRoot, flavor):
-
         tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
-        self.eups.supportServerTags(tags, pkgroot)
+        self.eups.supportServerTags(tags, pkgroot, stackRoot)
 
         if not tags:
             return
@@ -653,9 +677,7 @@ class Repositories(object):
         repos = self.repos[pkgroot]
 
         if rootdir and not os.path.exists(rootdir):
-            msg = "%s %s installation not found at %s" % \
-                (mprod.product, mprod.version, rootdir)
-            raise RuntimeError(msg)
+            raise EupsException("%s %s installation not found at %s" % (mprod.product, mprod.version, rootdir))
 
         # make sure we have a table file if we need it
         upsdir = os.path.join(rootdir, "ups")

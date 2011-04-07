@@ -11,12 +11,12 @@ from VersionParser  import VersionParser
 from stack          import ProductStack, persistVersionName as cacheVersion
 from distrib.server import ServerConf
 import utils, table, distrib.builder, hooks
-from exceptions import EupsException
+from exceptions import EupsException, TableFileNotFound
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
                   dependencies=False, showVersion=False,
-                  depth=None, productDir=None):
+                  depth=None, productDir=None, topological=False):
     """
     print out a listing of products.  Returned is the number of products listed.
     @param ostrm           the output stream to send listing to
@@ -39,6 +39,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              a logical operator and an integer (e.g. 
                              "> 3") implies a comparison with the depth
                              of each dependency (i.e. "depth > 3").  
+    @param topological     List dependencies in topological-sorted order
     """
 
     if not eupsenv:
@@ -101,6 +102,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             else:
                 raise EupsException("Please choose the version you want listed (%s)" %
                                     (", ".join([p.version for p in productList])))
+    else:
+        if topological:
+            raise EupsException("--topological only makes sense with --dependencies")
         
     productTags = {}             # list of tags indexed by product
 
@@ -132,7 +136,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if includeProduct(recursionDepth):
             print "%-40s %s" % (product.name, product.version)
 
-        for product, recursionDepth in getDependentProducts(product, eupsenv, setup):
+        for product, optional, recursionDepth in getDependentProducts(product, eupsenv, setup,
+                                                                      topological=topological):
             if not includeProduct(recursionDepth):
                 continue
 
@@ -270,13 +275,19 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
 
         print >> outstrm, str
 
-def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=False):
+def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=False,
+                         followExact=None, productDictionary=None, topological=False):
     """
-    Return a list of Product topProduct's dependent products : [(Product, recursionDepth), ...]
+    Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
     @param topProduct      Desired Product
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
     @param setup           Return the versions of dependent products that are actually setup
     @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
+    @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
+    @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
+                           value being that product's dependencies.
+    @param topological     Perform a topological sort before returning the product list; in this case the
+                           "recursionDepth" is the topological order
 
     See also getDependencies()
     """
@@ -286,11 +297,18 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
 
     dependentProducts = []
 
-    prodtbl = topProduct.getTable()
+    try:
+        prodtbl = topProduct.getTable()
+    except TableFileNotFound, e:
+        print >> sys.stderr, e
+        prodtbl = None
+
     if not prodtbl:
         return dependentProducts
 
-    for product, optional, recursionDepth in prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1):
+    for product, optional, recursionDepth in prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1,
+                                                                  followExact=followExact,
+                                                                  productDictionary=productDictionary):
 
         if setup:           # get the version that's actually setup
             setupProduct = eupsenv.findSetupProduct(product.name)
@@ -306,11 +324,46 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
 
             product = setupProduct
 
-        dependentProducts.append((product, recursionDepth))
+        dependentProducts.append([product, optional, recursionDepth])
+    #
+    # If we're getting exact versions they'll all be at the same recursion depth which gives us
+    # no clue about the order they need to be setup in.  Get the depth information from a
+    # topological sort of the inexact setup
+    #
+    if topological:
+        productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
+                                        # dependencies are usually flattened)
+        getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
+                             followExact=False, productDictionary=productDictionary)
+        
+        # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
+        pdir = {}
+        for k, values in productDictionary.items():
+            pdir[k] = []
+            for v in values:
+                p = v[0]             # the dependent product
+                pdir[k].append(p)
+
+        sortedProducts = [t for t in
+                          utils.topologicalSort(pdir, verbose=eupsenv.verbose)] # products sorted topologically
+
+        tsorted_level = {}
+        nlevel = len(sortedProducts)
+        for i, pp in enumerate(sortedProducts):
+            for p in pp:
+                tsorted_level[p.name] = nlevel - i - 1
+
+        for p in dependentProducts:
+            pname = p[0].name
+            if tsorted_level.has_key(pname):
+                p[2] = tsorted_level[pname]
+
+        dependentProducts.sort(lambda a, b: cmp(a[2], b[2])) # sort by topological depth
 
     return dependentProducts
 
-def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False):
+def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False,
+                    followExact=None):
     """
     Return a list of productName's dependent products : [(productName, productVersion, recursionDepth), ...]
     @param productName     Desired product's name
@@ -318,6 +371,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
     @param setup           Return the versions of dependent products that are actually setup
     @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
+    @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
 
     See also getDependentProducts()
     """
@@ -329,8 +383,8 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
     if not topProduct:                  # it's never been declared (at least not with this version)
         return []
         
-    return [(product.name, product.version, recursionDepth) for product, recursionDepth in
-            getDependentProducts(topProduct, eupsenv, setup, shouldRaise)]
+    return [(product.name, product.version, recursionDepth) for product, optional, recursionDepth in
+            getDependentProducts(topProduct, eupsenv, setup, shouldRaise, followExact)]
 
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                     verbose=0):

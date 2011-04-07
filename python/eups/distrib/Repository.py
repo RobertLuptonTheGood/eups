@@ -79,10 +79,8 @@ class Repository(object):
             override = None
             if self.options.has_key('serverconf'):
                 override = options['serverconf']
-            self.distServer = ServerConf.makeServer(pkgroot, eupsenv=eupsenv,
-                                                    override=override,
-                                                    verbosity=self.verbose-1, 
-                                                    log=self.log)
+            self.distServer = ServerConf.makeServer(pkgroot, eupsenv=eupsenv, override=override,
+                                                    verbosity=self.verbose, log=self.log)
         if self.distFactory is None:
             self.distFactory = DistribFactory(self.eups, self.distServer)
         elif not self.distServer:
@@ -230,7 +228,7 @@ class Repository(object):
             self._supportedTags = self.distServer.getTagNames()
         return self._supportedTags
 
-    def listPackages(self, product=None, version=None, flavor=None,
+    def listPackages(self, product=None, version=None, flavor=None, tag=None,
                      queryServer=None, noaction=False):
         """
         return a list of available products on the server.  Each item 
@@ -253,31 +251,27 @@ class Repository(object):
         """
         if queryServer is None:
             queryServer = self._alwaysQueryServer
+            
+        if isinstance(version, Tag) and version.name != "newest":
+            tag = version
+            version = None
 
-        if queryServer or \
-           (isinstance(version, Tag) and version.name != "newest"):
-
+        if queryServer or tag:
             if self.distServer is None:
                 raise RuntimeError("No distribution server set")
 
-            tag = None
-            if version and isinstance(version, Tag):
-                if not version.isGlobal():
-                    raise TagNotRecognized(version.name, "global", 
-                                           msg="Non-global tag \"%s\" requested." % version.name)
-                tag = version.name
-                version = None
-
-                if tag == "newest":
+            if tag:
+                if not tag.isGlobal():
+                    raise TagNotRecognized(tag.name, "global", 
+                                           msg="Non-global tag \"%s\" requested." % tag.name)
+                if tag.name == "newest":
                     return self._listNewestProducts(product, flavor)
 
                 if tag not in self.getSupportedTags():
                     raise TagNotRecognized(tag, "global", 
-                                           msg="tag %s not supported by server."
-                                               % tag)
+                                           msg="tag %s not supported by server" % tag)
 
-            return self.distServer.listAvailableProducts(product, version, 
-                                                         flavor, tag)
+            return self.distServer.listAvailableProducts(product, version, flavor, tag)
 
         else:
             if self._pkgList is None:
@@ -526,7 +520,10 @@ class Repository(object):
 
             # we now should attempt to create this package because it appears 
             # not to be available
-            man = distrib.createDependencies(dp.product, dp.version, self.flavor)
+            try:
+                man = distrib.createDependencies(dp.product, dp.version, self.flavor)
+            except eups.ProductNotFound, e:
+                raise RuntimeError("Creating manifest for %s %s: %s" % (manifest.product, manifest.version, e))
 
             id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor)
             created.append(pver)

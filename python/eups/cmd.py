@@ -429,6 +429,8 @@ will also be printed.
                             help="List only versions having this tag name")
         self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to assume (ignored unless -d is specified)")
+        self.clo.add_option("--topological", dest="topological", action="store_true", default=False,
+                            help="Return dependencies after a topological sort")
 
     def execute(self):
         product = version = None
@@ -458,7 +460,7 @@ will also be printed.
                                    dependencies=self.opts.depends, 
                                    showVersion=self.opts.version, 
                                    depth=self.opts.depth,
-                                   productDir=self.opts.productDir)
+                                   productDir=self.opts.productDir, topological=self.opts.topological)
             if n == 0:
                 msg = 'No products found'
 
@@ -494,7 +496,7 @@ class FlagsCmd(EupsCmd):
 
 class EnvListCmd(EupsCmd):
 
-    def _init(self, what, delim=":"):
+    def _init(self, what=None, delim=":"):
         self.what = what
         self.delim = delim
 
@@ -540,9 +542,20 @@ integer argument, n, will cause just the n-th directory to be listed (where
 0 is the first element).
 """
 
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
     def __init__(self, args=None, toolname=None, cmd=None):
         EnvListCmd.__init__(self, args, toolname, cmd)
-        self._init("EUPS_PATH")
+
+    def execute(self):
+        self._init()
+        path = [e for e in self.createEups(self.opts).path if e != utils.defaultUserDataDir()]
+        return self.printEnv(path)
 
 class StartupCmd(EnvListCmd):
 
@@ -1605,7 +1618,7 @@ class AdminListCacheCmd(EupsCmd):
 
 class DistribCmd(EupsCmd):
 
-    usage = "%prog distrib [list|install|clean|create] [-h|--help] [options] ..."
+    usage = "%prog distrib [clean|create|declare|install|list] [-h|--help] [options] ..."
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1659,6 +1672,77 @@ Common """
 
         return ecmd.run()
 
+class DistribDeclareCmd(EupsCmd):
+
+    usage = "%prog distrib declare [-h|--help] [options] [product [version]]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Declare a tag for an available package from the package distribution repositories.  
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        self.clo.add_option("-f", "--flavor", dest="useFlavor", action="store", default=None,
+                            help="Create tag for this flavor")
+        self.clo.add_option("-s", "--server-dir", dest="serverDir", action="store", metavar="DIR",
+                            help="the directory tree to save created packages under")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="Declare product to have this tag")
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+    def execute(self):
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        productName = versionName = None
+        tagName = None                  # the tag we're declaring
+        if self.args:
+            productName = self.args.pop(0)
+        if self.args:
+            versionName = self.args.pop(0)
+        if self.args:
+            tagName = self.args.pop(0)
+
+        myeups = eups.Eups(readCache=False)
+
+        if not versionName:
+            if self.opts.tag:
+                prod = myeups.findTaggedProduct(productName, self.opts.tag)
+                
+                if prod:
+                    versionName = prod.version
+
+        if not tagName:
+            tagName = self.opts.tag
+
+        if not versionName:
+            self.err("Please specify a product version")
+            return 2
+
+        if not tagName:
+            self.err("Please specify a tag to use (-t is acceptable, but will also specify a version)")
+            return 2
+
+        pkgroot = self.opts.serverDir
+        server = distrib.Repository(myeups, pkgroot)
+        dist = distrib.DefaultDistrib(myeups, server.distServer, verbosity=self.opts.verbose)
+
+        pl = dist.getTaggedRelease(pkgroot, tagName)
+        if not pl:
+            pl = distrib.server.TaggedProductList(tagName)
+        pl.addProduct(productName, versionName, flavor=self.opts.useFlavor)
+        dist.writeTaggedRelease(pkgroot, tagName, pl, self.opts.useFlavor, True)
+        
+        return 0
+
+        
 class DistribListCmd(EupsCmd):
 
     usage = "%prog distrib list [-h|--help] [options] [product [version]]"
@@ -1676,7 +1760,7 @@ class DistribListCmd(EupsCmd):
 
         self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
                             help="register this Distrib class (repeat as needed)")
-        self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", default="generic",
                             help="Specifically list for this flavor")
         self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
                             help="the base URL for a repository to access (repeat as needed).  " +
@@ -1686,6 +1770,8 @@ class DistribListCmd(EupsCmd):
         self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
                             help="pass a customized option to all repositories " +
                             "(form NAME=VALUE, repeat as needed)")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+                            help="List only versions having this tag name")
 
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
@@ -1734,7 +1820,8 @@ class DistribListCmd(EupsCmd):
         try:
             repos = distrib.Repositories(pkgroots, options, myeups, verbosity=self.opts.verbose)
 
-            data = repos.listPackages(product, version, self.opts.flavor)
+            data = repos.listPackages(product, version, self.opts.flavor,
+                                      tag=myeups.tags.getTag(self.opts.tag))
         except eups.EupsException, e:
             e.status = 1
             raise
@@ -1817,8 +1904,10 @@ tag will be installed.
                             help="don't assume manifests completely specify dependencies")
         self.clo.add_option("--root", dest="root", action="append",
                             help="equivalent to --repository (deprecated)")
-        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False, 
-                            help="deprecated (use --tag or --no-server-tags)")
+        self.clo.add_option("-C", "--current-all", dest="current_all", action="store_true", default=False, 
+                            help="Disabled; make all products we install current")
+        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
+                            help="Make top level product current (equivalent to --tag current)")
 
     def execute(self):
         # get rid of sub-command arg
@@ -1829,11 +1918,15 @@ tag will be installed.
            print >> self._errstrm, self.clo.get_usage()
            return 5
 
-        product = self.args[0]
+        productName = self.args[0]
         if len(self.args) > 1:
-            version = self.args[1]
+            versionName = self.args[1]
         else:
-            version = None
+            versionName = None
+
+        if self.opts.current_all:
+            self.err("--current-all (-C) has been removed.\nUse --tag current to set the top level product current, or create a server current.list file")
+            return 2
 
         if self.opts.installStack:
             if not utils.isDbWritable(self.opts.installStack) and \
@@ -1851,6 +1944,12 @@ tag will be installed.
             else:
                 self.opts.path = "%s:%s" % (self.opts.installStack, self.opts.path)
 
+        if self.opts.current: 
+            if self.opts.tag:
+                self.opts.tag += " current"
+            else:
+                self.opts.tag = "current"
+
         try:
             myeups = self.createEups()
         except eups.EupsException, e:
@@ -1862,7 +1961,7 @@ tag will be installed.
                 tag = myeups.tags.getTag(self.opts.tag)
                 prefs = myeups.getPreferredTags()
                 myeups.setPreferredTags([self.opts.tag] + prefs)
-                if not version:  version = tag
+                if not versionName:  versionName = tag
             except eups.TagNotRecognized, e:
                 self.err(str(e))
                 return 4
@@ -1920,7 +2019,7 @@ tag will be installed.
             repos = distrib.Repositories(self.opts.root, dopts, myeups, 
                                          self.opts.flavor, 
                                          verbosity=self.opts.verbose, log=log)
-            repos.install(product, version, self.opts.updateTags, 
+            repos.install(productName, versionName, self.opts.updateTags, 
                           self.opts.tagAs, self.opts.nodepend, 
                           self.opts.noclean, self.opts.noeups, dopts, 
                           self.opts.manifest, self.opts.searchDep)
@@ -1929,6 +2028,9 @@ tag will be installed.
             if log:
                 log.close()
             raise
+
+        if self.opts.tag:               # just the top-level product
+            myeups.assignTag(self.opts.tag, productName, versionName)
 
         if log:  log.close()
         return 0
@@ -2094,11 +2196,12 @@ class DistribCreateCmd(EupsCmd):
         if len(self.args) == 0:
             self.err("Please specify a product name and version")
             return 2
-        if len(self.args) < 2:
-            self.err("Please also specify a product version")
-            return 2
         product = self.args[0]
-        version = self.args[1]
+
+        if len(self.args) < 2:
+            version = None
+        else:
+            version = self.args[1]
 
         if not self.opts.repos:
             if os.environ.has_key("EUPS_PKGROOT"):
@@ -2108,6 +2211,9 @@ class DistribCreateCmd(EupsCmd):
 
         if not self.opts.useFlavor:
             self.opts.useFlavor = self.flavor
+
+        if not self.opts.setupType:
+            self.opts.setupType = "build"
 
         if not self.opts.serverDir:
             for pkgroot in self.opts.repos:
@@ -2131,6 +2237,17 @@ class DistribCreateCmd(EupsCmd):
             raise
 
         myeups.selectVRO(self.opts.tag, None, None, self.opts.dbz)
+
+        if not version:
+            if self.opts.tag:
+                prod = myeups.findTaggedProduct(product, self.opts.tag[0])
+                
+                if prod:
+                    version = prod.version
+
+        if not version:
+            self.err("Please specify a product version")
+            return 2
 
         dopts = {}
         # handle extra options
@@ -2373,6 +2490,7 @@ register("admin clearLocks",       AdminClearLocksCmd)
 register("admin listCache",        AdminListCacheCmd)
 register("admin info",             AdminInfoCmd)
 register("distrib",      DistribCmd)
+register("distrib declare", DistribDeclareCmd)
 register("distrib list",    DistribListCmd)
 register("distrib install", DistribInstallCmd)
 register("distrib clean",   DistribCleanCmd)

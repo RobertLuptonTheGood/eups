@@ -90,6 +90,19 @@ class Product(object):
         # product.  
         self._prodStack = None
 
+    def __hash__(self):                 # needed for set operations (such as toplogicalSort)
+        return (hash(self.name) ^
+                hash(self.version) ^
+                hash(self.flavor))
+
+    def __eq__(self, rhs):
+        return (self.name == rhs.name and
+                self.version == rhs.version and
+                self.flavor == rhs.flavor)                
+
+    def __ne__(self, rhs):
+        return not (self == rhs)
+
     def resolvePaths(self, strict=False):
         """
         Update the internal data so that all paths in the product data
@@ -356,7 +369,7 @@ class Product(object):
             if not os.path.exists(tablepath):
                 raise TableFileNotFound(tablepath, self.name, self.version,
                                         self.flavor)
-            self._table = mod_table.Table(tablepath).expandEupsVariables(self)
+            self._table = mod_table.Table(tablepath, self).expandEupsVariables(self)
 
             if self._prodStack and self.name and self.version and self.flavor:
                 # pass the loaded table back to the cache

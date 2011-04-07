@@ -2,7 +2,7 @@
 #
 # The main eups programme
 #
-import sys, os
+import sys, os, re
 
 # try to recover from an incomplete PYTHONPATH
 try:
@@ -30,7 +30,7 @@ allowedDebugOptions = ["", "raise", "debug"]
 cmd = eups.cmd.EupsCmd()
 
 # set debugging features
-debugOptions = cmd.opts.debug.split(":")
+debugOptions = re.split("[:,]", cmd.opts.debug)
 for do in debugOptions:
     if not do in allowedDebugOptions:
         print >> sys.stderr, "Unknown debug option: %s; exiting" % do

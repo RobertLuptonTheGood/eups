@@ -344,19 +344,17 @@ class Distrib(object):
         if flavor is None:  flavor = self.flavor
         if tag is None:  tag = self.tag
 
-        productList = Manifest(productName, versionName, self.Eups,
-                               self.verbose-1, self.log)
+        productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
+
+        # add a record for the top product
+        productList.addDependency(productName, versionName, flavor, None, None, None, False)
+
         dependencies = None
         ptablefile = None
         if self.noeups:
-
             if recursive and self.verbose > 0:
                 print >> self.log, "Warning dependencies are not guaranteed", \
                     "to be recursive when using noeups option"
-
-            # add a record for the top product
-            productList.addDependency(productName, versionName, flavor, 
-                                      None, None, None, False)
 
             # use the server as source of package information
             ptablefile = self.findTableFile(productName, versionName, self.flavor)
@@ -371,25 +369,20 @@ class Distrib(object):
             else:
                 if self.verbose > 0:
                     print >> self.log, "Failed to find %s's table file; trying eups" % productName
-        else:
-            productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
 
         if ptablefile is None:
             # consult the EUPS database
             try:
+                productDictionary = {}
                 product = self.Eups.getProduct(productName, versionName)
-                table = product.getTable()
-                if table:
-                    dependenciesOLD = table.dependencies(self.Eups, recursive=recursive)
-
-                dependencies = []
-                table = product.getTable()
-                if table:
-                    dependencies = table.dependencies(self.Eups, recursive=recursive)
-            except eups.ProductNotFound, e:
+                dependencies = eups.getDependentProducts(product, self.Eups,
+                                                         productDictionary=productDictionary,
+                                                         topological=True)
+            except (eups.ProductNotFound, eups.TableFileNotFound), e:
                 if self.noeups:
                     if self.verbose > 0:
                         print >> self.log, e
+                    dependencies = []
                 else:
                     raise
         #
@@ -403,6 +396,14 @@ class Distrib(object):
         #
         # We have our dependencies; proceed
         #
+        # The first thing to do is to ensure that more deeply nested products are listed first as we need to
+        # build them first when installing
+        #
+        def byDepth(a, b):
+            """Sort by recursion depth"""
+            return cmp(b[2], a[2])
+        dependencies.sort(byDepth)
+
         for (dprod, dopt, recursionDepth) in dependencies:
             productName = dprod.name
             versionName = dprod.version
@@ -414,14 +415,14 @@ class Distrib(object):
             else:
                 if dopt:
                     continue
-                raise eups.ProductNotFound(productName)
+                raise eups.ProductNotFound(productName, versionName)
 
             productList.addDependency(productName, versionName, flavor,
                                       None, None, None, dopt)
         #
         # We need to install those products in the correct order
         #
-        productList.roll()
+        productList.roll()              # we put the top-level product at the start of the list
 
         # now let's go back and fill in the product directory
         for dprod in productList.getProducts():
@@ -728,6 +729,8 @@ class DefaultDistrib(Distrib):
             if os.access(tablefile_for_distrib, os.R_OK) and not force:
                 if self.Eups.verbose > 1:
                     print >> sys.stderr, "Not recreating", tablefile_for_distrib
+            elif not os.path.exists(fulltablename):
+                print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
             else:
                 if self.Eups.verbose > 1:
                     print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)

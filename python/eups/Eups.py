@@ -41,18 +41,15 @@ class Eups(object):
     # staticmethod;  would use a decorator if we knew we had a new enough python
     def setEupsPath(path=None, dbz=None):
         if not path:
-            if os.environ.has_key("EUPS_PATH"):
-                path = os.environ["EUPS_PATH"]
-            else:
-                path = []
+            path = os.environ.get("EUPS_PATH", [])
 
         if isinstance(path, str):
-            path = filter(lambda el: el, path.split(":"))
+            path = path.split(":")
 
         if dbz:
-            # if user provides dbz, restrict self.path to those
-            # directories that start with dbz
-            path = filter(lambda p: re.search(r"/%s(/|$)" % dbz, p), path)
+            # if user provides dbz, restrict self.path to those directories that include /dbz/
+            dbzRe = r"/%s(/|$)" % dbz
+            path = [p for p in path if re.search(dbzRe, p)]
             os.environ["EUPS_PATH"] = ":".join(path)
 
         eups_path = []
@@ -467,26 +464,29 @@ The what argument tells us what sort of state is expected (allowed values are de
             # if no list cached, try asking the cached product stack
             tags = Tags()
             tagNames = set()
-            tagUsedInProducts = {}      # used for better diagnostics
+            tagUsedInProducts = None    # used for better diagnostics
 
             if self.versions.has_key(path):
                 for t in self.versions[path].getTags():
                     tagNames.add(t)
-            else:                       # consult the Database
-                db = Database(self.getUpsDB(path))
-                for pname in db.findProductNames():
-                    for tag, v, f in db.getTagAssignments(pname):
-                        tagNames.add(tag)
-                        if not tagUsedInProducts.has_key(tag):
-                            tagUsedInProducts[tag] = []
-                        tagUsedInProducts[tag].append(pname)
 
             for t in tagNames:
                 t = Tag.parse(t)
                 if not (t.isUser() or self.tags.isRecognized(t.name)):
                     msg = "Unknown tag found in %s stack: \"%s\"" % (path, t)
                     if self.verbose:
-                        msg += " (in [%s])" % (", ".join(sorted(tagUsedInProducts[t.name])))
+                        if tagUsedInProducts is None:
+                            tagUsedInProducts = {}
+                            db = Database(self.getUpsDB(path))
+                            for pname in db.findProductNames():
+                                for tag, v, f in db.getTagAssignments(pname):
+                                    tagNames.add(tag)
+                                    if not tagUsedInProducts.has_key(tag):
+                                        tagUsedInProducts[tag] = []
+                                    tagUsedInProducts[tag].append(pname)
+
+                        if tagUsedInProducts.has_key(t.name):
+                            msg += " (in [%s])" % (", ".join(sorted(tagUsedInProducts[t.name])))
 
                     if True or self.force:
                         print >> sys.stderr, "%s; defining" % (msg)
@@ -2651,14 +2651,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                 
 
     def dependencies_from_table(self, tablefile, eupsPathDirs=None):
-        """Return self's dependencies as a list of (Product, optional) tuples
+        """Return self's dependencies as a list of (Product, optional, recursionDepth) tuples
 
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
         if utils.isRealFilename(tablefile):
-            for (product, optional) in \
-                    Table(tablefile).dependencies(self, eupsPathDirs, setupType=self.setupType):
-                dependencies += [(product, optional)]
+            for vals in Table(tablefile).dependencies(self, eupsPathDirs, setupType=self.setupType):
+                dependencies += [vals]
 
         return dependencies
 
@@ -2865,7 +2864,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         stacktags = None
         if eupsPathDir and utils.isDbWritable(eupsPathDir):
-            stacktags = loadFromEupsPath(eupsPathDir)
+            stacktags = self._loadServerTags()
 
         needPersist = False
         for tag in tags:
