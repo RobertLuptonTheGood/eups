@@ -117,7 +117,7 @@ class Repositories(object):
         # used by install() to control repeated error messages
         self._msgs = {}
 
-    def listPackages(self, productName=None, versionName=None, flavor=None):
+    def listPackages(self, productName=None, versionName=None, flavor=None, tag=None):
         """Return a list of tuples (pkgroot, package-list)"""
 
         out = []
@@ -125,7 +125,11 @@ class Repositories(object):
             # Note: each repository may have a cached list
             repos = self.repos[pkgroot]
             try:
-                pkgs = repos.listPackages(productName, versionName, flavor)
+                pkgs = repos.listPackages(productName, versionName, flavor, tag)
+            except TagNotRecognized, e:
+                if self.verbose:
+                    print >> self.log, "%s for %s" % (e, pkgroot)
+                continue
             except ServerError, e:
                 if self.quiet <= 0:
                     print >> self.log, "Warning: Trouble contacting", pkgroot
@@ -317,7 +321,7 @@ class Repositories(object):
         """
         if alsoTag is not None:
             if isinstance(alsoTag, str):
-                alsoTag = map(lambda t: Tag(t, Tags.user), alsoTag.split())
+                alsoTag = [self.eups.tags.getTag(t) for t in alsoTag.split()]
             elif isinstance(alsoTag, Tag):
                 alsoTag = [alsoTag]
 
@@ -495,8 +499,8 @@ class Repositories(object):
                 self._updateServerTags(pkgroot, prod, productRoot, instflavor)
             if alsoTag:
                 if self.verbose > 1:
-                    print >> self.log, "Assigning User Tags to %s %s: %s" % \
-                          (prod.name, prod.version, ", ".join(str(alsoTag)))
+                    print >> self.log, "Assigning Tags to %s %s: %s" % \
+                          (prod.product, prod.version, ", ".join([str(t) for t in alsoTag]))
                 for tag in alsoTag:
                     try:
                         self.eups.assignTag(tag, prod.product, prod.version, productRoot)
@@ -587,9 +591,8 @@ class Repositories(object):
             self.clean(prod.product, prod.version, options=opts)
 
     def _updateServerTags(self, pkgroot, prod, stackRoot, flavor):
-
         tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
-        self.eups.supportServerTags(tags, pkgroot)
+        self.eups.supportServerTags(tags, pkgroot, stackRoot)
 
         if not tags:
             return

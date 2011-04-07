@@ -839,11 +839,12 @@ Usage:
     eups distrib -h
     eups distrib clean options product version
     eups distrib create options product [version]
+    eups distrib declare [options] product [version [tag]]
     eups distrib install options product [version]
     eups distrib list [options] [product [version]]
 
     Manage packages either as a user (via clean, install, or list) or as 
-    a provider (via create).
+    a provider (via create or declare).
 
     Use "eups distrib cmd -h" for subcommand options
 
@@ -916,34 +917,104 @@ Options:
 
 \item\code{install}
 \begin{verbatim}
-eups distrib install options product [version]
+usage: eups distrib declare [-h|--help] [options] [product [version]]
 
-Options:
-   -C, --current           Create a list of products that are current; equivalent to --tag=current
-   -d, --declareAs  arg    Declare installed products with this tag
-   -g, --groupAccess arg   Give specified group r/w access to all built packages
-   -m, --manifest   arg    Use this manifest file
-       --nobuild           Don't attempt to build the product; just declare it
-       --noclean           Don't  clean up after successfully building the product
-   -j, --nodepend          Just install product, but not its dependencies
-   -r, --root       arg    Location of manifests/buildfiles/tarballs (may be a URL or scp specification).
-                           Default: $EUPS_PKGROOT
-   -S, --server-class arg  register this DistribServer class (repeat as needed)
-   -t, --tag        arg    Install versions with this tag (e.g. current or stable)
-   -T, --tmp-dir    arg    Build products in this directory
+Declare a tag for an available package from the package distribution
+repositories.
+
+options:
+  -f USEFLAVOR, --flavor=USEFLAVOR
+                        Create tag for this flavor
+  -s DIR, --server-dir=DIR
+                        the directory tree to save created packages under
+  -t TAG, --tag=TAG     Declare product to have this tag
+  --debug=DEBUG         turn on specified debugging behaviors (allowed: raise)
+  -h, --help            show command-line help and exit
+  -n, --noaction        Don't actually do anything (for debugging purposes)
+  -q, --quiet           Suppress messages to user (overrides -v)
+  -T SETUPTYPE, --type=SETUPTYPE
+                        the setup type to use (e.g. exact)
+  -v, --verbose         Print extra messages about progress (repeat for ever
+                        more chat)
+  -V, --version         Print eups version number
+  --vro=LIST            Set the Version Resolution Order
+  -Z PATH, --database=PATH
+                        The colon-separated list of product stacks (databases)
+                        to use. Default: $EUPS_PATH
+  -z DIR, --select-db=DIR
+                        Select the product paths which contain this directory.
+                        Default: all in path
+  --with-eups=PATH      synonym for -Z/--database
 \end{verbatim}
-
-\item\code{list}
+Declare a tag which \code{eups distrib install} will make use of, e.g.
 \begin{verbatim}
-eups distrib list [options] [product [version]]
+eups distrib declare --server-dir=$HOME/packages -t current afw
+\end{verbatim}
+You can disable the installation of the tag with \code{eups distrib install --no-server-tags ...}.
 
-Options:
-   -r, --root       arg    Location of manifests/buildfiles/tarballs (may be a URL or scp specification).
-                           Default: $EUPS_PKGROOT
-   -z, --select-db  arg    Select the product paths which contain this directory.
-                           Default: all
-   -S, --server-class arg  register this DistribServer class (repeat as needed)
-   -t, --tag        arg    Install versions with this tag (e.g. current or stable)
+\item\code{install}
+\begin{verbatim}
+usage: eups distrib install [-h|--help] [options] product [version]
+
+Install a product from a distribution package retrieved from a repository. If
+a version is not specified, the most version with the most preferred  tag will
+be installed.
+
+options:
+  -d TAG, --declareAs=TAG
+                        tag all newly installed products with this user TAG
+                        (repeat as needed)
+  -g GROUP, --groupAccess=GROUP
+                        Give specified group r/w access to all newly installed
+                        packages
+  -I DIR, --install-into=DIR
+                        install into this product stack (Default: the first
+                        writable stack in $EUPS_PATH)
+  -m MANIFEST, --manifest=MANIFEST
+                        Use this manifest file for the requested product
+  -U, --no-server-tags  Prevent automatic assignment of server/global tags
+  --noclean             Don't clean up after successfully building the product
+  -j, --nodepend        Just install product, but not its dependencies
+  -N, --noeups          Don't attempt to lookup product in eups (always
+                        install)
+  -r BASEURL, --repository=BASEURL
+                        the base URL for a repository to access (repeat as
+                        needed).  Default: $EUPS_PKGROOT
+  -t TAG, --tag=TAG     preferentially install products with this TAG
+  --tmp-dir=DIR         Build products in this directory
+  --nobuild             Don't attempt to build the product; just declare it
+  -f FLAVOR, --flavor=FLAVOR
+                        Assume this target platform flavor (e.g. 'Linux')
+  -F, --force           Force requested behaviour
+  -D DISTRIBCLASSES, --distrib-class=DISTRIBCLASSES
+                        register this Distrib class (repeat as needed)
+  --server-option=SERVEROPTS
+                        pass a customized option to all repositories (form
+                        NAME=VALUE, repeat as needed)
+  -S SERVERCLASSES, --server-class=SERVERCLASSES
+                        register this DistribServer class (repeat as needed)
+  --debug=DEBUG         turn on specified debugging behaviors (allowed: raise)
+  -h, --help            show command-line help and exit
+  -n, --noaction        Don't actually do anything (for debugging purposes)
+  -q, --quiet           Suppress messages to user (overrides -v)
+  -T SETUPTYPE, --type=SETUPTYPE
+                        the setup type to use (e.g. exact)
+  -v, --verbose         Print extra messages about progress (repeat for ever
+                        more chat)
+  -V, --version         Print eups version number
+  --vro=LIST            Set the Version Resolution Order
+  -Z PATH, --database=PATH
+                        The colon-separated list of product stacks (databases)
+                        to use. Default: $EUPS_PATH
+  -z DIR, --select-db=DIR
+                        Select the product paths which contain this directory.
+                        Default: all in path
+  --with-eups=PATH      synonym for -Z/--database
+  --recurse             don't assume manifests completely specify dependencies
+  --root=ROOT           equivalent to --repository (deprecated)
+  -C, --current-all     Disabled; make all products we install current
+  -c, --current         Make top level product current (equivalent to --tag
+                        current)
 \end{verbatim}
 \end{itemize}
 

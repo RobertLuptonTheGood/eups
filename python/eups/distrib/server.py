@@ -761,9 +761,8 @@ class ConfigurableDistribServer(DistribServer):
         @param tag         an optional name for a tag assigned to the product
         @param noaction    if True, simulate the retrieval
         """
-        if flavor is not None and tag is not None:
-            return DistribServer.listAvailableProducts(self, product, version,
-                                                       flavor, tag, noaction)
+        if flavor and tag:
+            return DistribServer.listAvailableProducts(self, product, version, flavor, tag, noaction)
 
         data = { "base":   self.base, 
                  "flavor": flavor,
@@ -1285,8 +1284,8 @@ class TaggedProductList(object):
         line = fd.readline()
         mat = re.search(r"^EUPS distribution %s version list. Version (\S+)\s*$" % self.tag, line)
         if not mat:
-            raise RuntimeError("First line of file %s is corrupted:\n\t%s" % 
-                               (filename, line))
+            raise RuntimeError("First line of %s version file %s is corrupted:\n\t%s" % 
+                               (self.tag, filename, line))
         version = mat.groups()[0]
         if version != self.fmtversion:
            print >> self.log, \
@@ -1525,7 +1524,7 @@ class Manifest(object):
         line = fd.readline()
         mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
         if not mat:
-            raise RuntimeError, ("First line of file %s is corrupted:\n\t%s" % (file, line))
+            raise RuntimeError, ("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
         manifest_product, manifest_product_version, version = mat.groups()
 
         version = mat.groups()[2]

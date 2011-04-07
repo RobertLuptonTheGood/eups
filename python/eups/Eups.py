@@ -2863,7 +2863,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         stacktags = None
         if eupsPathDir and utils.isDbWritable(eupsPathDir):
-            stacktags = loadFromEupsPath(eupsPathDir)
+            stacktags = self._loadServerTags()
 
         needPersist = False
         for tag in tags:
