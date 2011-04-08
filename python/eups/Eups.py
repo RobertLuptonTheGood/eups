@@ -723,7 +723,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
 
     def findProductFromVRO(self, name, version=None, versionExpr=None, eupsPathDirs=None, flavor=None,
-                           noCache=False, recursionDepth=0, vro=None):
+                           noCache=False, recursionDepth=0, vro=None, optional=False):
         """
         return a product matching the given constraints by searching the VRO (we also return info about the
         VRO element that matched).  By default, the cache will be searched when available; otherwise, the
@@ -854,7 +854,12 @@ The what argument tells us what sort of state is expected (allowed values are de
             elif re.search(r"^warn(:\d+)?$", vroTag):
                 debugLevel = int(vroTag.split(":")[1])
 
-                if self.verbose >= debugLevel + 0*self.quiet:
+                if optional:
+                    debugLevel += 2
+                if self.quiet:
+                    debugLevel += 0
+                    
+                if self.verbose >= debugLevel:
                     if version:
                         vname = version
                     else:
@@ -1624,7 +1629,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
               setupToplevel=True, noRecursion=False,
-              productRoot=None, tablefile=None, versionExpr=None):
+              productRoot=None, tablefile=None, versionExpr=None, optional=False):
         """
         Update the environment to use (or stop using) a specified product.  
 
@@ -1732,7 +1737,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     vro = self.getPreferredTags()
                     while not product and vro:
                         product, vroReason = self.findProductFromVRO(productName, versionName, versionExpr,
-                                                                     flavor=fallbackFlavor,
+                                                                     flavor=fallbackFlavor, optional=optional,
                                                                      recursionDepth=recursionDepth, vro=vro)
 
                         if not product and self.alreadySetupProducts.has_key(productName):

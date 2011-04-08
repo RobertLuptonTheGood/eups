@@ -711,7 +711,7 @@ class Action(object):
         try:
             productOK, vers, reason = \
                        Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
-                                  versionExpr=versExpr)
+                                  versionExpr=versExpr, optional=optional)
         except Exception, e:
             productOK, reason = False, e
 
