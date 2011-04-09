@@ -2177,7 +2177,7 @@ class DistribCreateCmd(EupsCmd):
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Follow the as-installed versions, not the dependencies in the table file")
         self.clo.add_option("-f", "--use-flavor", dest="useFlavor", action="store", default=None,
-                            help="Create an installation specialised to the current flavor")
+                            help="Create an installation specialised to the specified flavor")
         self.clo.add_option("--flavor", dest="flavor", action="store",
                             help="Assume this target platform flavor (e.g. 'Linux')")
         self.clo.add_option("-t", "--tag", dest="tag", action="append",
@@ -2192,6 +2192,10 @@ class DistribCreateCmd(EupsCmd):
     def execute(self):
         # get rid of sub-command arg
         self.args.pop(0)
+
+        if self.opts.current:
+            self.err("Flag -C/--current is no longer supported.  Please use \"eups distrib declare\"")
+            return 2
 
         if len(self.args) == 0:
             self.err("Please specify a product name and version")

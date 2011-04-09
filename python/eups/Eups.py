@@ -3069,35 +3069,26 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.keep:
             self._vro[0:0] = ["keep"]
 
-        #
-        # They might have explicitly asked to add/remove type:exact entries
-        #
-        if self.exact_version:          # this is a property of self
-            self.makeVroExact()
-        if inexact_version:             # this is a request to not process type:exact in the vro
-            self._vro = filter(lambda el: el != "type:exact", self._vro)
-
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO,
-            where = 0
-            for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
-                if v == "commandLine" or re.search(r"^type:.+", v):
-                    where = i + 1
-
-            for t in reversed(tag):
-                self._vro[where:where] = [str(t)]
-
-        extra = ""                                  # extra string for message to user
-        if tag:                                     # need to put tag near the front of the VRO
-            for t in reversed(tag):
+            if True:
                 where = 0
-                for el in ("commandLine",):
-                    if self._vro.count(el):
-                        w = self._vro.index(el) + 1
-                        if w > where:
-                            where = w
+                for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
+                    if v == "commandLine" or re.search(r"^type:.+", v):
+                        where = i + 1
 
-                self._vro[where:where] = [str(t)]
+                for t in reversed(tag):
+                    self._vro[where:where] = [str(t)]
+            else:
+                for t in reversed(tag): # old version?
+                    where = 0
+                    for el in ("commandLine",):
+                        if self._vro.count(el):
+                            w = self._vro.index(el) + 1
+                            if w > where:
+                                where = w
+
+                    self._vro[where:where] = [str(t)]
 
             extra = " + tag \"%s\"" % t
         #
@@ -3117,7 +3108,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         self._vro = uniqueVro
 
         self._vro = Eups.__mergeWarnings(self._vro)
-
+        #
+        # They might have explicitly asked to add/remove type:exact entries
+        #
+        if self.exact_version:          # this is a property of self
+            self.makeVroExact()
+        if inexact_version:             # this is a request to not process type:exact in the vro
+            self._vro = filter(lambda el: el != "type:exact", self._vro)
         if self.verbose > 1:
             print >> sys.stderr, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)
         #
