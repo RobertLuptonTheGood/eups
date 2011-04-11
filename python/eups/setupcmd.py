@@ -246,8 +246,10 @@ product and all its dependencies into the environment so that it can be used.
                     if Eups.isUserTag(t):
                         isUserTag = True
                         break
-            if isUserTag or True:       # we always need it in the path as things may be declared there
-                Eups.includeUserDataDirInPath()
+
+            Eups.includeUserDataDirInPath()
+            for user in Eups.tags.owners.values():
+                Eups.includeUserDataDirInPath(eups.utils.defaultUserDataDir(user), useLock=False)
 
             if False:
                 # If we are asking for an exact setup but don't specify a version or tag we won't find

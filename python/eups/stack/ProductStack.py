@@ -704,7 +704,7 @@ class ProductStack(object):
             if os.path.exists(file):
                 os.remove(file)
 
-    def reload(self, flavors=None, persistDir=None):
+    def reload(self, flavors=None, persistDir=None, useLock=True):
         """
         throw away all information on products and replace it with the data
         saved in the cache files.
@@ -732,7 +732,8 @@ class ProductStack(object):
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
             try:
-                self._lock(fileName)
+                if useLock:
+                    self._lock(fileName)
             except OSError, e:
                 print >> sys.stderr, "Unable to get lock for %s; bravely proceeding" % (fileName)
 
@@ -806,7 +807,7 @@ class ProductStack(object):
 
     # @staticmethod   # requires python 2.4
     def fromCache(dbpath, flavors, persistDir=None, userTagDir=None, 
-                  updateCache=True, autosave=True, verbose=False):
+                  updateCache=True, autosave=True, useLock=True, verbose=False):
         """
         return a ProductStack that has all products loaded in from the 
         available caches.  If they are out of date (or non-existent), this 
@@ -833,6 +834,7 @@ class ProductStack(object):
                                appear out of date
         @param autosave     if true (default), all updates will be 
                                saved to disk.
+        @param useLock      try to take a lock before reading things
         """
         if not flavors:
             raise RuntimeError("ProductStack.fromCache(): at least one flavor needed as input" +
@@ -842,9 +844,9 @@ class ProductStack(object):
 
         out = ProductStack(dbpath, persistDir, False)
 
-        cacheOkay = out._tryCache(dbpath, persistDir, flavors, verbose=verbose)
+        cacheOkay = out._tryCache(dbpath, persistDir, flavors, useLock=useLock, verbose=verbose)
         if not cacheOkay:
-            cacheOkay = out._tryCache(dbpath, dbpath, flavors)
+            cacheOkay = out._tryCache(dbpath, dbpath, flavors, useLock=useLock)
             if cacheOkay:
                 out._loadUserTags(userTagDir)
 
@@ -858,7 +860,7 @@ class ProductStack(object):
 
     fromCache = staticmethod(fromCache)    # works since python2.2
 
-    def _tryCache(self, dbpath, cacheDir, flavors, verbose=0):
+    def _tryCache(self, dbpath, cacheDir, flavors, verbose=0, useLock=True):
         if not cacheDir or not os.path.exists(cacheDir):
             return False
 
@@ -872,7 +874,7 @@ class ProductStack(object):
                 break
 
         if cacheOkay:
-            self.reload(flavors, cacheDir)
+            self.reload(flavors, cacheDir, useLock=useLock)
 
             # do a final consistency check; do we have the same products
             dbnames = Database(dbpath).findProductNames()

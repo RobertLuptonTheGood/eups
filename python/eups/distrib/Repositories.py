@@ -481,9 +481,7 @@ class Repositories(object):
                     if nprod:
                         prod = nprod
                     else:
-                        if self.eups.debugFlag:
-                            import pdb; pdb.set_trace() 
-                            pass
+                        if self.eups.debugFlag: import pdb; pdb.set_trace() 
                         
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 

@@ -1381,7 +1381,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return upsDB
     
 
-    def includeUserDataDirInPath(self, dataDir=None):
+    def includeUserDataDirInPath(self, dataDir=None, useLock=True):
         """Include the ~/.eups versions of directories on self.path in the search path"""
         if not dataDir:
             dataDir = self.userDataDir
@@ -1391,7 +1391,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
                                                             updateCache=True, autosave=False,
-                                                            verbose=self.verbose)
+                                                            useLock=useLock, verbose=self.verbose)
 
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""
