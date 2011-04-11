@@ -435,7 +435,8 @@ class Repository(object):
         id = distrib.createPackage(self.pkgroot, product, version, self.flavor, overwrite=True)
 
         if not nodepend:
-            created = [ "%s-%s" % (product, version) ]
+            created = {}
+            created["%s-%s" % (product, version)] = None
             self._recursiveCreate(distrib, man, created, True, repositories)
 
         # update the manifest record for the requested product
@@ -473,12 +474,14 @@ class Repository(object):
     def _recursiveCreate(self, distrib, manifest, created=None, 
                          recurse=True, repos=None):
         if created is None: 
-            created = []
+            created = {}
 
-        for dp in manifest.getProducts():
+        for pos, dp in enumerate(manifest.getProducts()):
             pver = "%s-%s" % (dp.product, dp.version)
-            if pver in created:
-                continue
+            if created.has_key(pver):
+                if created[pver]:
+                    manifest.getProducts()[pos] = created[pver]
+                    continue
 
             # check to see if it looks like it is available in the format
             # given in the file
@@ -494,7 +497,7 @@ class Repository(object):
                     if not self.eups.force:
                         if self.verbose > 0:
                             print >> self.log, "Dependency %s %s already deployed; skipping" % (dp.product, dp.version)
-                        created.append(pver)
+                        created[pver] = dp
                         continue
 
                     elif self.verbose > 0:
@@ -510,12 +513,12 @@ class Repository(object):
                     already_available = bool(repos.findPackage(dp.product, dp.version, "generic"))
 
                 if already_available:
-                    created.append(pver)
-                    
                     dp.distId = "search"
                     dp.tablefile = None
                     dp.instDir = None
 
+                    created[pver] = dp
+                    
                     continue
 
             # we now should attempt to create this package because it appears 
@@ -526,7 +529,7 @@ class Repository(object):
                 raise RuntimeError("Creating manifest for %s %s: %s" % (manifest.product, manifest.version, e))
 
             id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor)
-            created.append(pver)
+            created[pver] = dp
             dp.distId = id
                 
             if recurse:
