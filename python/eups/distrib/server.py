@@ -1830,6 +1830,9 @@ class ServerConf(object):
             cached = None
         else:
             cached = self.cachedConfigFile(self.base);
+            if not cached:
+                save = False
+
             if save:
                 # make sure the cache directory exists
                 pdir = os.path.dirname(cached)
@@ -1897,16 +1900,23 @@ class ServerConf(object):
         """
         defaultConfigFile = None
 
-        for stack in self.eups.path:
-            configFile = os.path.join(packageBase, "config.txt")
-            if os.path.isabs(configFile):
-                configFile = configFile[1:]
-            configFile = os.path.join(self.eups.getUpsDB(stack), 
-                                      "_servers_", configFile)
-            if defaultConfigFile is None:
-                defaultConfigFile = configFile
+        configFileRelPath = packageBase
+        if os.path.isabs(configFileRelPath):
+            configFileRelPath = configFileRelPath[1:]
 
-            if os.path.exists(configFile):  return configFile
+        for stack in self.eups.path:
+            configFile = os.path.join(self.eups.getUpsDB(stack), "_servers_", configFileRelPath, "config.txt")
+
+            if not defaultConfigFile:
+                configDir = os.path.split(configFile)[0]
+                try:
+                    os.makedirs(configDir)
+                    defaultConfigDir = configDir
+                except OSError:
+                    continue
+
+            if os.path.exists(configFile):
+                return configFile
 
         return defaultConfigFile
 
