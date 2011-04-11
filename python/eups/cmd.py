@@ -2178,8 +2178,6 @@ class DistribCreateCmd(EupsCmd):
                             help="Follow the as-installed versions, not the dependencies in the table file")
         self.clo.add_option("-f", "--use-flavor", dest="useFlavor", action="store", default=None,
                             help="Create an installation specialised to the specified flavor")
-        self.clo.add_option("--flavor", dest="flavor", action="store",
-                            help="Assume this target platform flavor (e.g. 'Linux')")
         self.clo.add_option("-t", "--tag", dest="tag", action="append",
                             help="Set the VRO based on this tag name")
 
@@ -2214,7 +2212,7 @@ class DistribCreateCmd(EupsCmd):
                 self.opts.repos = []
 
         if not self.opts.useFlavor:
-            self.opts.useFlavor = self.flavor
+            self.opts.useFlavor = self.opts.flavor
 
         if not self.opts.setupType:
             self.opts.setupType = "build"
