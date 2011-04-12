@@ -738,7 +738,7 @@ class DefaultDistrib(Distrib):
         #
         # Finally write the manifest file itself
         #
-        man.write(out, flavor=flavor)
+        man.write(out, flavor=flavor, noOptional=False)
         self.setGroupPerms(out)
         
     def createDependencies(self, product, version, flavor=None, tag=None, 
