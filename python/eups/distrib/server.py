@@ -1910,7 +1910,8 @@ class ServerConf(object):
             if not defaultConfigFile:
                 configDir = os.path.split(configFile)[0]
                 try:
-                    os.makedirs(configDir)
+                    if not os.path.exists(configDir):
+                        os.makedirs(configDir)
                     defaultConfigDir = configDir
                 except OSError:
                     continue

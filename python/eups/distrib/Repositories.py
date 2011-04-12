@@ -457,7 +457,7 @@ class Repositories(object):
                                 "Warning: recursive install failed for", prod.product, prod.version
 
                     elif not prod.distId:
-                        msg = "Can't find a package for %s %s" % (prod.product, prod.version)
+                        msg = "No source is available for package %s %s" % (prod.product, prod.version)
                         if prod.flavor:
                             msg += " (%s)" % prod.flavor
                         raise ServerError(msg)
@@ -465,7 +465,8 @@ class Repositories(object):
                 if not thisinstalled:
                     if self.verbose >= 0:
                         print >> self.log, \
-                              "Installing %s %s for %s..." % (prod.product, prod.version, instflavor)
+                              "Installing %s %s for %s..." % (prod.product, prod.version, prod.flavor)
+
                     pkg = self.findPackage(prod.product, prod.version, prod.flavor)
                     if not pkg:
                         msg = "Can't find a package for %s %s" % (prod.product, prod.version)
@@ -481,7 +482,9 @@ class Repositories(object):
                     if nprod:
                         prod = nprod
                     else:
-                        if self.eups.debugFlag: import pdb; pdb.set_trace() 
+                        if self.eups.debugFlag:
+                            import pdb; pdb.set_trace() 
+                            pass
                         
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 
