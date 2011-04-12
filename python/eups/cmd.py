@@ -409,7 +409,7 @@ will also be printed.
         self.addEupsOptions()
 
         # these are specific to this command
-        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
+        self.clo.add_option("-c", "--current", dest="currentTag", action="store_true", default=False,
                             help="same as --tag=current")
         self.clo.add_option("-D", "--dependencies", dest="depends", action="store_true", default=False,
                             help="Print product's dependencies (must specify version if ambiguous). With --setup print the versions of dependent products that are actually setup.")
@@ -425,7 +425,7 @@ will also be printed.
                             help="List only product's that are setup.")
         self.clo.add_option("-m", "--table", dest="tablefile", action="store_true", default=False,
                             help="Print the name of the product's table file")
-        self.clo.add_option("-t", "--tag", dest="tag", action="store",
+        self.clo.add_option("-t", "--tag", dest="tag", action="append",
                             help="List only versions having this tag name")
         self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to assume (ignored unless -d is specified)")
@@ -439,12 +439,11 @@ will also be printed.
         if len(self.args) > 1:
             version = self.args[1]
 
-        if self.opts.current: 
+        if self.opts.currentTag: 
             self.deprecated("Note: -c|--current is deprecated; use --tag current")
-            if self.opts.tag:
-                self.opts.tag += " current"
-            else:
-                self.opts.tag = "current"
+            if not self.opts.tag:
+                self.opts.tag = []
+            self.opts.tag.append("current")
 
         if not self.opts.quiet and \
            self.opts.depth and not self.opts.depends:

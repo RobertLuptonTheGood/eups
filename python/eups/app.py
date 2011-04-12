@@ -45,7 +45,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     if not eupsenv:
         eupsenv = Eups()
     if tags:
-        tags = tags.split()
+        if isinstance(tags, str):
+            tags = tags.split()
         checkTagsList(eupsenv, tags)
     elif setup and not dependencies:
         tags = ["setup"]
@@ -85,8 +86,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             msg = productName
             if versionName:
                 msg += " %s" % versionName
-            if tags:
-                msg += " tagged %s" % " ".join([Tag(t).name for t in tags])
+            elif tags:
+                msg += " tagged \"%s\"" % ", ".join([Tag(t).name for t in tags])
             raise EupsException("Unable to find product %s" % msg)
 
     productList.sort(lambda a,b: cmp(a, b), 
