@@ -202,7 +202,8 @@ class Repositories(object):
                                        msg="Non-global tag %s requested." % 
                                            version.name)
         if not version:
-            versions = map(lambda t: self.eups.tags.getTag(t), self.eups.getPreferredTags())
+            versions = [self.eups.tags.getTag(t) for t in self.eups.getPreferredTags()
+                        if not re.search(r"^warn:(\d+)$", t)]
 
         newest = None
 
