@@ -484,9 +484,7 @@ class Repositories(object):
                     if nprod:
                         prod = nprod
                     else:
-                        if self.eups.debugFlag:
-                            import pdb; pdb.set_trace() 
-                            pass
+                        if self.eups.debugFlag: import pdb; pdb.set_trace() 
                         
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 
@@ -573,6 +571,8 @@ class Repositories(object):
             
         if prod.instDir == "/dev/null": # need to guess
             root = os.path.join(productRoot, instflavor, prod.product, prod.version)
+        elif prod.instDir == "none":
+            root = None
         else:
             root = os.path.join(productRoot, instflavor, prod.instDir)
 
@@ -683,8 +683,17 @@ class Repositories(object):
             raise EupsException("%s %s installation not found at %s" % (mprod.product, mprod.version, rootdir))
 
         # make sure we have a table file if we need it
-        upsdir = os.path.join(rootdir, "ups")
-        tablefile = os.path.join(upsdir, "%s.table" % mprod.product)
+        
+        if not rootdir:
+            rootdir = "none"
+            
+        if rootdir == "none":
+            rootdir = "/dev/null"
+            upsdir = None
+            tablefile = mprod.tablefile
+        else:
+            upsdir = os.path.join(rootdir, "ups")
+            tablefile = os.path.join(upsdir, "%s.table" % mprod.product)
 
         if not os.path.exists(tablefile):
             if mprod.tablefile == "none":
@@ -699,7 +708,7 @@ class Repositories(object):
                                                            flavor)
                     tablefile = open(tablefile, "r")
                 else:
-                    if not os.path.exists(upsdir):
+                    if upsdir and not os.path.exists(upsdir):
                         os.makedirs(upsdir)
                     tablefile = \
                               repos.distServer.getFileForProduct(mprod.tablefile,
