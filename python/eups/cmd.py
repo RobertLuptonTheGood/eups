@@ -1730,6 +1730,10 @@ class DistribDeclareCmd(EupsCmd):
             return 2
 
         pkgroot = self.opts.serverDir
+        if not pkgroot:
+            self.err("Please use --server-dir to specify where you want to declare this tag")
+            return 2
+            
         server = distrib.Repository(myeups, pkgroot)
         dist = distrib.DefaultDistrib(myeups, server.distServer, verbosity=self.opts.verbose)
 
