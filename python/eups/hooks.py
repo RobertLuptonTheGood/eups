@@ -32,7 +32,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
@@ -52,6 +52,11 @@ config.Eups.VRO["commandLine"] = {
 # fallbackFlavors may also be a simple list (which is equivalent to a key of None);
 # if a dict, fallbackFlavors[flavor] is the fallback for flavor (None => any flavor)
 config.Eups.fallbackFlavors = {None : "generic"}
+#
+# The name (and optionally version (and optionally tag)) of the product that's implicitly added to all table
+# files.  Actually, you mayn't specify both version and tag.
+#
+config.Eups.defaultProduct = {"name" : "toolchain", "version" : None, "tag" : None}
 
 # it is expected that different Distrib classes will have different set-able
 # properties.  The key for looking up Distrib-specific data could the Distrib

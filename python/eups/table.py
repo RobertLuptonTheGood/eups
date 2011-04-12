@@ -13,6 +13,7 @@ import Product
 from tags       import TagNotRecognized
 from VersionParser import VersionParser
 import utils
+import hooks
 
 class Table(object):
     """A class that represents a eups table file"""
@@ -368,6 +369,19 @@ but no other interpretation is applied
         #
         if block:
             self._actions += [(logical, block, [])]
+        #
+        # Setup the default product, usually "toolchain"
+        #
+        args = [hooks.config.Eups.defaultProduct["name"]]
+        if hooks.config.Eups.defaultProduct["version"]:
+            args.append(hooks.config.Eups.defaultProduct["version"])
+        if hooks.config.Eups.defaultProduct["tag"]:
+            args.append("--tag")
+            args.append(hooks.config.Eups.defaultProduct["tag"])
+
+        self._actions += [('True',
+                           [Action("implicit", "setupRequired", args, {"optional": True, "silent" : True})],
+                           [])]
 
     def actions(self, flavor, setupType=[], verbose=0):
         """Return a list of actions for the specified flavor"""
@@ -698,6 +712,7 @@ class Action(object):
         """Execute setupRequired"""
 
         optional = self.extra["optional"]
+        silent = self.extra.get("silent", False)
 
         requestedVRO, productName, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
 
@@ -725,7 +740,7 @@ class Action(object):
             Eups.popStack("env")
             if fwd:
                 if optional:
-                    if Eups.verbose:
+                    if Eups.verbose and not silent:
                         msg = "... optional setup %s failed" % (productName)
                         if Eups.verbose > 1:
                             msg += ": %s" % reason
