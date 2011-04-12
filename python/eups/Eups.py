@@ -50,7 +50,6 @@ class Eups(object):
             # if user provides dbz, restrict self.path to those directories that include /dbz/
             dbzRe = r"/%s(/|$)" % dbz
             path = [p for p in path if re.search(dbzRe, p)]
-            os.environ["EUPS_PATH"] = ":".join(path)
 
         eups_path = []
         for p in path:
@@ -61,6 +60,7 @@ class Eups(object):
 
             eups_path += [os.path.normpath(p)]
 
+        os.environ["EUPS_PATH"] = ":".join(eups_path)
         return eups_path
 
     setEupsPath = staticmethod(setEupsPath)
