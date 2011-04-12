@@ -1853,7 +1853,12 @@ class ServerConf(object):
 
         try:
             if not configFile:
-                self.data = {}
+                msg = "Unable to read configuration for server %s" % packageBase
+                if self.eups.force:
+                    print >> self.log, msg + "; continuing"
+                    self.data = {}
+                else:
+                    raise RuntimeError(msg)
             else:
                 if not os.path.exists(configFile):
                     # if we're going to the server but not saving it, we'll use 
@@ -1905,14 +1910,16 @@ class ServerConf(object):
             configFileRelPath = configFileRelPath[1:]
 
         for stack in self.eups.path:
-            configFile = os.path.join(self.eups.getUpsDB(stack), "_servers_", configFileRelPath, "config.txt")
+            configFile = os.path.join(self.eups.getUpsDB(stack), "_servers_",
+                                      configFileRelPath, serverConfigFilename)
 
             if not defaultConfigFile:
-                configDir = os.path.split(configFile)[0]
+                configDir = os.path.dirname(configFile)
                 try:
                     if not os.path.exists(configDir):
                         os.makedirs(configDir)
-                    defaultConfigDir = configDir
+                    if os.access(configDir, os.W_OK):
+                        defaultConfigFile = configFile # we can create it if we need to
                 except OSError:
                     continue
 
@@ -2007,7 +2014,7 @@ class ServerConf(object):
                 for pkgroot in servers:
                     if os.path.isabs(pkgroot):
                         pkgroot = pkgroot[1:]
-                    file = os.path.join(cache, pkgroot, "config.txt")
+                    file = os.path.join(cache, pkgroot, serverConfigFilename)
                     if os.path.exists(file):
                         if verbosity > 0:
                             print >> log, "Clearing all server config", \
