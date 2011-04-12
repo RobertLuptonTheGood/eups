@@ -103,13 +103,14 @@ class Repositories(object):
                 self.repos[pkgroot] = dist
 
             except ImportError, e:
-                if self.verbose >= 0:
-                    print >> self.log, "Unable to use server:", pkgroot
-                    print >> self.log, \
-                        "  %s; Are you missing a plug-in for this server?" % e
+                msg =  "Unable to use server %s: \"%s\"" % (pkgroot, e)
+                if self.eups.force:
+                    print >> self.log, msg + "; continuing"
+                else:
+                    raise RuntimeError(msg + ". Remove server from PKGROOT or use force")
 
         if len(self.pkgroots) == 0 and self.verbose >= 0:
-            print >> self.log, "No usable package repositories loaded"
+            raise RuntimeError("No usable package repositories loaded")
 
         # a cache of the union of tag names supported by the repositories
         self._supportedTags = None
