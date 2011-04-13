@@ -846,7 +846,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         vroReason[0] = "commandLine"
                 else:
                     if not "version" in postVro and not "versionExpr" in postVro:
-                        if self.verbose > 0:
+                        if self.verbose > self.quiet:
                             print >> sys.stderr, "Failed to find %s %s for flavor %s" % \
                                   (name, version, flavor)
                         break

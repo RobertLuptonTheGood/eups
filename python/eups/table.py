@@ -512,6 +512,7 @@ but no other interpretation is applied
                     deps += [val]
 
                 del q
+
                 productDictionary[self.topProduct].append(val)
 
                 Eups.popStack("vro")

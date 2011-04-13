@@ -334,8 +334,11 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
     if topological:
         productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
                                         # dependencies are usually flattened)
+
+        q = utils.Quiet(eupsenv)
         getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
                              followExact=False, productDictionary=productDictionary)
+        del q
         # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
         pdir = {}
         #
@@ -356,16 +359,19 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
                 pdir[defaultProduct] = list(set(defaultDeps))
 
         for k, values in productDictionary.items():
-            pdir[k] = []
+            if k == defaultProduct:   # don't modify pdir[defaultProduct]; especially don't add defaultProduct
+                continue
+            
+            if not pdir.has_key(k):
+                pdir[k] = []
+
             for v in values:
                 p = v[0]             # the dependent product
 
-                if 0 and defaultProduct and p.name == defaultProduct.name:
-                    pass
-                elif p in pdir[defaultProduct]:
-                    pass
-                else:
-                    pdir[k].append(p)
+                if p in pdir[defaultProduct]:
+                    continue
+
+                pdir[k].append(p)
 
         sortedProducts = [t for t in
                           utils.topologicalSort(pdir, verbose=eupsenv.verbose)] # products sorted topologically
