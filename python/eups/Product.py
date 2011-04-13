@@ -351,7 +351,7 @@ class Product(object):
                 return clone.tablefile
         return self.tablefile
 
-    def getTable(self):
+    def getTable(self, addDefaultProduct=None):
         """
         return an in-memory instance of the product table.  This will be
         loaded from the path returned by tableFileName() (and cached for 
@@ -369,7 +369,8 @@ class Product(object):
             if not os.path.exists(tablepath):
                 raise TableFileNotFound(tablepath, self.name, self.version,
                                         self.flavor)
-            self._table = mod_table.Table(tablepath, self).expandEupsVariables(self)
+            self._table = mod_table.Table(tablepath, self,
+                                          addDefaultProduct=addDefaultProduct).expandEupsVariables(self)
 
             if self._prodStack and self.name and self.version and self.flavor:
                 # pass the loaded table back to the cache

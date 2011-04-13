@@ -336,14 +336,36 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
                                         # dependencies are usually flattened)
         getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
                              followExact=False, productDictionary=productDictionary)
-        
         # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
         pdir = {}
+        #
+        # Remove the defaultProduct from productDictionary
+        #
+        defaultProduct = hooks.config.Eups.defaultProduct["name"]
+        if defaultProduct:
+            kv = [kv for kv in productDictionary.items()
+                                     if kv[0].name == defaultProduct][0]
+            if kv:
+                defaultProduct, ddeps = kv
+
+                defaultDeps = []                
+                for prod, opt, depth in ddeps:
+                    if prod.name != defaultProduct.name:
+                        defaultDeps.append(prod)
+
+                pdir[defaultProduct] = list(set(defaultDeps))
+
         for k, values in productDictionary.items():
             pdir[k] = []
             for v in values:
                 p = v[0]             # the dependent product
-                pdir[k].append(p)
+
+                if 0 and defaultProduct and p.name == defaultProduct.name:
+                    pass
+                elif p in pdir[defaultProduct]:
+                    pass
+                else:
+                    pdir[k].append(p)
 
         sortedProducts = [t for t in
                           utils.topologicalSort(pdir, verbose=eupsenv.verbose)] # products sorted topologically
@@ -354,12 +376,28 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
             for p in pp:
                 tsorted_level[p.name] = nlevel - i - 1
 
+        if defaultProduct:
+            tsorted_level[defaultProduct] = nlevel
+
         for p in dependentProducts:
             pname = p[0].name
             if tsorted_level.has_key(pname):
                 p[2] = tsorted_level[pname]
 
-        dependentProducts.sort(lambda a, b: cmp(a[2], b[2])) # sort by topological depth
+        dependentProducts.sort(lambda a, b: cmp((a[2], a[0].name),
+                                                (b[2], b[0].name))) # sort by topological depth
+        #
+        # Make dependentProducts unique
+        #
+        tmp = []
+        entries = {}
+        for val in reversed(dependentProducts):
+            if entries.has_key(val[0]):
+                continue
+            entries[val[0]] = 1
+            tmp.append(val)
+                
+        dependentProducts = [v for v in reversed(tmp)]
 
     return dependentProducts
 

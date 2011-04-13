@@ -18,7 +18,7 @@ import hooks
 class Table(object):
     """A class that represents a eups table file"""
 
-    def __init__(self, tableFile, topProduct=None):
+    def __init__(self, tableFile, topProduct=None, addDefaultProduct=None):
         """
         Parse a tablefile
         @param  The tablefile we're reading
@@ -35,7 +35,7 @@ class Table(object):
         self._actions = []
 
         if utils.isRealFilename(tableFile):
-            self._read(tableFile)
+            self._read(tableFile, addDefaultProduct)
 
     def _rewrite(self, contents):
         """Rewrite the contents of a tablefile to the canonical form; each
@@ -225,7 +225,7 @@ but no other interpretation is applied
 
         return self
     
-    def _read(self, tableFile):
+    def _read(self, tableFile, addDefaultProduct):
         """Read and parse a table file, setting _actions"""
 
         if not tableFile:               # nothing to do
@@ -372,16 +372,18 @@ but no other interpretation is applied
         #
         # Setup the default product, usually "toolchain"
         #
-        args = [hooks.config.Eups.defaultProduct["name"]]
-        if hooks.config.Eups.defaultProduct["version"]:
-            args.append(hooks.config.Eups.defaultProduct["version"])
-        if hooks.config.Eups.defaultProduct["tag"]:
-            args.append("--tag")
-            args.append(hooks.config.Eups.defaultProduct["tag"])
+        if addDefaultProduct is not False and hooks.config.Eups.defaultProduct["name"]:
+            args = [hooks.config.Eups.defaultProduct["name"]]
+            if hooks.config.Eups.defaultProduct["version"]:
+                args.append(hooks.config.Eups.defaultProduct["version"])
+            if hooks.config.Eups.defaultProduct["tag"]:
+                args.append("--tag")
+                args.append(hooks.config.Eups.defaultProduct["tag"])
 
-        self._actions += [('True',
-                           [Action("implicit", "setupRequired", args, {"optional": True, "silent" : True})],
-                           [])]
+            self._actions += [('True',
+                               [Action("implicit", "setupRequired", args,
+                                       {"optional": True, "silent" : True})],
+                               [])]
 
     def actions(self, flavor, setupType=[], verbose=0):
         """Return a list of actions for the specified flavor"""
@@ -424,7 +426,7 @@ but no other interpretation is applied
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
     def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None,
-                     productDictionary=None):
+                     productDictionary=None, addDefaultProduct=None):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional?, recursionDepth) tuples
@@ -440,6 +442,7 @@ but no other interpretation is applied
         @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
                                value being that product's dependencies as a list of
                                (Product, optional? recursionDepth)
+        @param addDefaultProduct If not False add the defaultProduct to any table file
         """
 
         if followExact is None:
@@ -461,6 +464,9 @@ but no other interpretation is applied
         if not productDictionary.has_key(self.topProduct):
             productDictionary[self.topProduct] = []
             
+        if addDefaultProduct is None and self.topProduct.name == hooks.config.Eups.defaultProduct["name"]:
+            addDefaultProduct = False
+
         deps = []
         for a in self.actions(Eups.flavor, setupType=setupType):
             if a.cmd == Action.setupRequired:
@@ -489,10 +495,11 @@ but no other interpretation is applied
 
                     if recursive and not noRecursion and not recursiveDict.has_key(prodkey(product)):
                         recursiveDict[prodkey(product)] = 1
-                        deptable = product.getTable()
+                        deptable = product.getTable(addDefaultProduct=addDefaultProduct)
                         if deptable:
                             deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict,
-                                                          recursionDepth + 1, followExact, productDictionary)
+                                                          recursionDepth + 1, followExact, productDictionary,
+                                                          addDefaultProduct)
                         
                 except (ProductNotFound, TableFileNotFound), e:
                     product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.

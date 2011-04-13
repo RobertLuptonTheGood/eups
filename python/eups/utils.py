@@ -572,10 +572,12 @@ def topologicalSort(graph, verbose=False):
     graph = component_graph
 
     while True:
-        ordered = set(item for item,dep in graph.items() if not dep)
+        ordered = set(item for item, dep in graph.items() if not dep)
         if not ordered:
             break
-        yield sorted([x[0] for x in ordered]) # unpack the tuples
+        flattened_ordered = [p for comp in list(ordered)
+                               for p    in comp]
+        yield sorted(flattened_ordered)
         ngraph = {}
         for item, dep in graph.items():
             if item not in ordered:
