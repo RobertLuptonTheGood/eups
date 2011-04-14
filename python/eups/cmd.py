@@ -270,8 +270,17 @@ Common"""
         asAdmin = hasattr(opts, "asAdmin") and opts.asAdmin
         exact_version = hasattr(opts, "exact_version") and opts.exact_version
 
-        Eups = eups.Eups(flavor=opts.flavor, path=opts.path, dbz=opts.dbz, 
-                         readCache=readCache, force=opts.force, 
+        if hasattr(opts, "flavor"):
+            flavor = opts.flavor
+        else:
+            flavor = None
+        if hasattr(opts, "force"):
+            force = opts.force
+        else:
+            force = None
+
+        Eups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz, 
+                         readCache=readCache, force=force, 
                          ignore_versions=ignorever, setupType=setupType,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
@@ -1680,7 +1689,9 @@ class DistribDeclareCmd(EupsCmd):
     noDescriptionFormatting = False
 
     description = \
-"""Declare a tag for an available package from the package distribution repositories.  
+"""Declare a tag for an available package from the package distribution repositories.
+
+If no product or version is provided, all defined tags are defined.
 """
 
     def addOptions(self):
@@ -1711,7 +1722,7 @@ class DistribDeclareCmd(EupsCmd):
 
         myeups = eups.Eups(readCache=False)
 
-        if not versionName:
+        if productName and not versionName:
             if self.opts.tag:
                 prod = myeups.findTaggedProduct(productName, self.opts.tag)
                 
@@ -1721,13 +1732,18 @@ class DistribDeclareCmd(EupsCmd):
         if not tagName:
             tagName = self.opts.tag
 
-        if not versionName:
-            self.err("Please specify a product version")
-            return 2
-
         if not tagName:
             self.err("Please specify a tag to use (-t is acceptable, but will also specify a version)")
             return 2
+
+        if productName:
+            if not versionName:
+                self.err("Please specify a product version")
+                return 2
+            products = [(productName, versionName),]
+        else:
+            myeups = self.createEups(self.opts)
+            products = [(p.name, p.version) for p in myeups.findProducts(None, None, [tagName])]
 
         pkgroot = self.opts.serverDir
         if not pkgroot:
@@ -1740,8 +1756,9 @@ class DistribDeclareCmd(EupsCmd):
         pl = dist.getTaggedRelease(pkgroot, tagName)
         if not pl:
             pl = distrib.server.TaggedProductList(tagName)
-        pl.addProduct(productName, versionName, flavor=self.opts.useFlavor)
-        dist.writeTaggedRelease(pkgroot, tagName, pl, self.opts.useFlavor, True)
+        for productName, versionName in products:
+            pl.addProduct(productName, versionName, flavor=self.opts.useFlavor)
+            dist.writeTaggedRelease(pkgroot, tagName, pl, self.opts.useFlavor, True)
         
         return 0
 
