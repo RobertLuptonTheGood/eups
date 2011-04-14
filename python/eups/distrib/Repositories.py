@@ -497,7 +497,9 @@ class Repositories(object):
 
             # ...update the tags
             if updateTags:
-                self._updateServerTags(pkgroot, prod, productRoot, instflavor)
+		import pdb; pdb.set_trace()
+		installCurrent = "current" in [t.name for t in alsoTag]
+                self._updateServerTags(pkgroot, prod, productRoot, instflavor, installCurrent)
             if alsoTag:
                 if self.verbose > 1:
                     print >> self.log, "Assigning Tags to %s %s: %s" % \
@@ -593,14 +595,17 @@ class Repositories(object):
         else:
             self.clean(prod.product, prod.version, options=opts)
 
-    def _updateServerTags(self, pkgroot, prod, stackRoot, flavor):
+    def _updateServerTags(self, pkgroot, prod, stackRoot, flavor, installCurrent):
         tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
         self.eups.supportServerTags(tags, pkgroot, stackRoot)
 
         if not tags:
             return
 
-        if self.verbose > 1:
+	if not installCurrent:
+	    tags = [t for t in tags if t != "current"]
+
+        if tags and self.verbose > 1:
             print >> self.log, \
                 "Assigning Server Tags to %s %s: %s" % (prod.product, prod.version, ", ".join(tags))
 

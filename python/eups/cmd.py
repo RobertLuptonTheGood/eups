@@ -1879,7 +1879,7 @@ tag will be installed.
     def addOptions(self):
         self.clo.enable_interspersed_args()
 
-        self.clo.add_option("-d", "--declareAs", dest="tagAs", action="append", metavar="TAG",
+        self.clo.add_option("-d", "--declareAs", dest="alsoTag", action="append", metavar="TAG",
                             help="tag all newly installed products with this user TAG (repeat as needed)")
         self.clo.add_option("-g", "--groupAccess", dest="groupperm", action="store", metavar="GROUP",
                             help="Give specified group r/w access to all newly installed packages")
@@ -1925,7 +1925,7 @@ tag will be installed.
         self.clo.add_option("--root", dest="root", action="append",
                             help="equivalent to --repository (deprecated)")
         self.clo.add_option("-C", "--current-all", dest="current_all", action="store_true", default=False, 
-                            help="Disabled; make all products we install current")
+                            help="Include current among the server tags that are installed")
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
                             help="Make top level product current (equivalent to --tag current)")
 
@@ -1943,10 +1943,6 @@ tag will be installed.
             versionName = self.args[1]
         else:
             versionName = None
-
-        if self.opts.current_all:
-            self.err("--current-all (-C) has been removed.\nUse --tag current to set the top level product current, or create a server current.list file")
-            return 2
 
         if self.opts.installStack:
             if not utils.isDbWritable(self.opts.installStack) and \
@@ -1986,10 +1982,10 @@ tag will be installed.
                 self.err(str(e))
                 return 4
 
-        if self.opts.tagAs:
+        if self.opts.alsoTag:
             unrecognized = []
             nonuser = []
-            for tag in self.opts.tagAs:
+            for tag in self.opts.alsoTag:
                 try:
                     tag = myeups.tags.getTag(tag)
                     if not tag.isUser():
@@ -2004,6 +2000,13 @@ tag will be installed.
                 self.err("Unrecognized user tags: " + ", ".join(unrecognized))
             if nonuser or unrecognized:
                 return 4
+
+        if self.opts.current_all:
+	    if self.opts.alsoTag:
+		self.opts.alsoTag += " "
+	    else:
+		self.opts.alsoTag = ""
+	    self.opts.alsoTag += "current"
 
         dopts = {}
         # handle extra options
@@ -2040,7 +2043,7 @@ tag will be installed.
                                          self.opts.flavor, 
                                          verbosity=self.opts.verbose, log=log)
             repos.install(productName, versionName, self.opts.updateTags, 
-                          self.opts.tagAs, self.opts.nodepend, 
+                          self.opts.alsoTag, self.opts.nodepend, 
                           self.opts.noclean, self.opts.noeups, dopts, 
                           self.opts.manifest, self.opts.searchDep)
         except eups.EupsException, e:
