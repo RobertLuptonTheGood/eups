@@ -388,10 +388,12 @@ DIST_URL = %%(base)s/builds/%%(path)s
             print "Issuing commands:"
             print "\t", str.join("\n\t", cmd)
 
+        print >> file(logfile, "w"), str.join("\n\t", cmd)
+
         if False:
-            cmd = "(%s) 2>&1 | tee > %s" % (str.join("\n", cmd), logfile)
+            cmd = "(%s) 2>&1 | tee >> %s" % (str.join("\n", cmd), logfile)
         else:
-            cmd = "(%s) > %s 2>&1 " % (str.join("\n", cmd), logfile)
+            cmd = "(%s) >> %s 2>&1 " % (str.join("\n", cmd), logfile)
 
         if not self.nobuild:
             try:
