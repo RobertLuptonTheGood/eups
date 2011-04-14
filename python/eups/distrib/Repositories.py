@@ -497,9 +497,8 @@ class Repositories(object):
 
             # ...update the tags
             if updateTags:
-		import pdb; pdb.set_trace()
 		installCurrent = "current" in [t.name for t in alsoTag]
-                self._updateServerTags(pkgroot, prod, productRoot, instflavor, installCurrent)
+                self._updateServerTags(prod, productRoot, instflavor, installCurrent)
             if alsoTag:
                 if self.verbose > 1:
                     print >> self.log, "Assigning Tags to %s %s: %s" % \
@@ -595,19 +594,31 @@ class Repositories(object):
         else:
             self.clean(prod.product, prod.version, options=opts)
 
-    def _updateServerTags(self, pkgroot, prod, stackRoot, flavor, installCurrent):
-        tags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
-        self.eups.supportServerTags(tags, pkgroot, stackRoot)
+    def _updateServerTags(self, prod, stackRoot, flavor, installCurrent):
+	#
+	# We have to be careful.  If the first pkgroot doesn't choose to set a product current, we don't
+	# some later pkgroot to do it anyway
+	#
+	tags = []			# tags we want to set
+	processedTags = []		# tags we've already seen
+	if not installCurrent:
+	    processedTags.append("current") # pretend we've seen it, so we won't process it again
+
+	for pkgroot in self.repos.keys():
+	    ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
+	    ptags = [t for t in ptags if t not in processedTags]
+	    tags += ptags
+
+	    processedTags += availableTags
+
+	    if ptags and self.verbose > 1:
+		print >> self.log, \
+		    "Assigning Server Tags from %s to %s %s: %s" % (pkgroot,
+								    prod.product, prod.version, ", ".join(ptags))
+	self.eups.supportServerTags(tags, stackRoot)
 
         if not tags:
             return
-
-	if not installCurrent:
-	    tags = [t for t in tags if t != "current"]
-
-        if tags and self.verbose > 1:
-            print >> self.log, \
-                "Assigning Server Tags to %s %s: %s" % (prod.product, prod.version, ", ".join(tags))
 
         dprod = self.eups.findProduct(prod.product, prod.version, stackRoot, flavor)
         if dprod is None:

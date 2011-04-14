@@ -114,7 +114,7 @@ class DistribServer(object):
     def getTagNamesFor(self, product, version, flavor="generic", tags=None, noaction=False):
         """
         return as a list of strings all of the tag names assigned to 
-        the given product by the server.
+        the given product by the server, followed by a list of strings of all tags known to the server
         @param product     the name of the product
         @param version     the product's version
         @param flavor      the platform flavor (default: generic)
@@ -133,7 +133,7 @@ class DistribServer(object):
             info = self.getTaggedProductInfo(product, flavor, tag)
             if info[2] == version:
                 out.append(tag)
-        return out
+        return out, tags
 
     def getTaggedProductList(self, tag="current", flavor=None, noaction=False):
         """request the product list for a particular tag name (default: 

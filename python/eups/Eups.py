@@ -2857,15 +2857,12 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return useInfo.users(productName, versionName)
 
-    def supportServerTags(self, tags, pkgroot, eupsPathDir=None):
+    def supportServerTags(self, tags, eupsPathDir=None):
         """
         support the list of tags provided by a server
         @param tags     the list of tags either as a python list or a space-
                           delimited string.   
-        @param pkgroot  the base URL for the repository they come from.  This
-                          will control where the tag names are persisted.
-        @param persist  If True (default), the tag names will be cached
-                          to disk. 
+        @param persist  If non-NULL the tag names will be saved to disk. 
         """
         if isinstance(tags, str):
             tags = tags.split()
