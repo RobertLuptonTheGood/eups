@@ -456,13 +456,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         return cachedir
 
     def _loadServerTags(self, useLocks=True):
+        tags = {}
         for path in self.path:
             # start by looking for a cached list
             if self.tags.loadFromEupsPath(path, self.verbose):
                 continue
 
             # if no list cached, try asking the cached product stack
-            tags = Tags()
+            tags[path] = Tags()
             tagNames = set()
             tagUsedInProducts = None    # used for better diagnostics
 
@@ -491,7 +492,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if True or self.force:
                         print >> sys.stderr, "%s; defining" % (msg)
 
-                        tags.registerTag(t.name, t.group)
+                        tags[path].registerTag(t.name, t.group)
                     else:
                         print >> sys.stderr, "%s (consider --force)" % (msg)
                         sys.exit(1)
@@ -499,13 +500,15 @@ The what argument tells us what sort of state is expected (allowed values are de
             if self.asAdmin and utils.isDbWritable(p):
                 # cache the global tags
                 dbpath = self.getUpsDB(path)
-                for group in tags.bygrp.keys():
-                    tags.saveGroup(group, dbpath)
+                for group in tags[path].bygrp.keys():
+                    tags[path].saveGroup(group, dbpath)
 
             # now register them with self.tags; this can only happen with --force
-            for tag in tags.getTags():
+            for tag in tags[path].getTags():
                 if not (tag.isUser() or self.tags.isRecognized(tag)):
                     self.tags.registerTag(tag.name, tag.group)
+
+        return tags
 
     def _loadUserTags(self, useLocks=True):
         for path in self.path:
@@ -2869,7 +2872,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         stacktags = None
         if eupsPathDir and utils.isDbWritable(eupsPathDir):
-            stacktags = self._loadServerTags()
+            stacktags = self._loadServerTags().get(eupsPathDir)
 
         needPersist = False
         for tag in tags:
