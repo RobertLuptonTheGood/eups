@@ -1001,6 +1001,7 @@ For example, the make target in a ups directory might contain the line:
 
         tmpout = None
         if inFile == "-":
+            inFile = "stdin"
             ifd = sys.stdin
         else:
             if not os.path.isfile(inFile):
@@ -1041,19 +1042,20 @@ For example, the make target in a ups directory might contain the line:
             ofd = sys.stdout
 
         try:
-          try:
+            try:
+                try:
+                    eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp, myeups)
+                except Exception, e:
+                    raise RuntimeError("Processing %s: %s" % (inFile, e))
 
-            eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp,
-                                 myeups)
-
-          finally:
-            if inFile != "-": ifd.close() 
-            if outdir or self.opts.in_situ:  ofd.close()
-          if tmpout:
-            os.rename(tmpout, inFile)
+            finally:
+                if inFile != "-": ifd.close() 
+                if outdir or self.opts.in_situ:  ofd.close()
+            if tmpout:
+                os.rename(tmpout, inFile)
         finally:
-          if tmpout and os.path.exists(tmpout):  
-              os.unlink(tmpout)
+            if tmpout and os.path.exists(tmpout):  
+                os.unlink(tmpout)
 
         return 0
 

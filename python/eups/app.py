@@ -315,7 +315,9 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
             setupProduct = eupsenv.findSetupProduct(product.name)
             if not setupProduct:
                 if not optional:
-                    msg = "Product %s is a dependency, but is not setup" % product.name
+                    msg = "Product %s is a dependency for %s %s, but is not setup" % \
+                          (product.name, topProduct.name, topProduct.version)
+                    
                     if shouldRaise:
                         raise RuntimeError(msg)
                     else:
@@ -469,8 +471,10 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None):
     if not eupsenv:
         eupsenv = eups.Eups()
 
-    table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp)
-
+    try:
+        table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp)
+    except ProductNotFound, e:
+        raise
 
 def declare(productName, versionName, productDir=None, eupsPathDir=None, 
             tablefile=None, tag=None, eupsenv=None):

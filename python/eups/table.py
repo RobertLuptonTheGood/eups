@@ -1054,9 +1054,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
         else:
             try:
                 NVL.append((productName, eups.getSetupVersion(productName), None))
-            except ProductNotFound, e:
+            except ProductNotFound:
                 if not optional:
-                    raise RuntimeError(e)
+                    raise
                     
         try:
             NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
