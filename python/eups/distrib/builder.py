@@ -336,28 +336,25 @@ DIST_URL = %%(base)s/builds/%%(path)s
         # things up explicitly and a straight setup in the build file file
         # undo our hard work
         #
-        try:
-            fd = open(tfile)
-        except IOError, e:
-            raise RuntimeError, ("Failed to open %s: %s" % (tfile, e))
-
         lines = []                      # processed command lines from build file
-        for line in fd:
-            line = re.sub(r"\n$", "", line) # strip newline
+        if self.nobuild:
+            lines.append("setup --just --type=build -r .")
+        else:
+            try:
+                fd = open(tfile)
+            except IOError, e:
+                raise RuntimeError, ("Failed to open %s: %s" % (tfile, e))
 
-            if re.search("^#!/bin/(ba|k)?sh", line):      # a #!/bin/sh line; not needed
-                continue
+            for line in fd:
+                line = re.sub(r"\n$", "", line) # strip newline
 
-            if False:                          # there doesn't seem to be any need to do this
-                if re.search(r"(^|[^\\])#", line): # make comments executable statements that can be chained with &&
-                    line =  re.sub(r"^(\s*)#(.*)", r"\1: \2", line)
-                    line = re.sub(r"([^\\])([|<>'\"\\])", r"\1\\\2", line) # We need to quote quotes and \|<> in
-                                           #: comments as : is an executable command
-                    line += " &&"
-            line = re.sub(r"^\s*setup\s", "setup --keep --type=build ", line)
-            if not re.search(r"^\s*(\#.*)?$", line): # don't confuse the test for an empty build file ("not lines")
-                lines += [line]
-        del fd
+                if re.search("^#!/bin/(ba|k)?sh", line):      # a #!/bin/sh line; not needed
+                    continue
+
+                line = re.sub(r"^\s*setup\s", "setup --keep --type=build ", line)
+                if not re.search(r"^\s*(\#.*)?$", line): # don't confuse the test for an empty build file ("not lines")
+                    lines += [line]
+            del fd
 
         if not lines:
             lines += [":"]              # we need at least one command as cmd may end &&
@@ -384,7 +381,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 os.unlink(bfile)
                 raise RuntimeError, ("Failed to write %s" % bfile)
 
-        if self.verbose:
+        if self.verbose and not self.nobuild:
             print "Issuing commands:"
             print "\t", str.join("\n\t", cmd)
 
@@ -409,19 +406,6 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
             if self.verbose > 0:
                 print >> self.log, "Builder %s successfully completed" % builder
-
-            if False:
-                # 
-                # cleanBuildDirFor is in Distribution, not Distrib.  As I don't
-                # really want to clean up automatically, I'm not fixing this
-                #
-                try:
-                    self.cleanBuildDirFor(productRoot, product, version)
-                except Exception, e:
-                    if self.verbose >= 0:
-                        print >> self.log, "Warning: trouble cleaning build directory:",\
-                            str(e)
-
 
     def findTableFile(self, productName, version, flavor):
         """Give the distrib a chance to produce a table file"""
