@@ -1092,8 +1092,11 @@ class SshTransporter(Transporter):
         if re.search(r'[;,&\|"\']', self.remfile):
             raise OSError("remote file has dangerous location name: " + self.loc)
 
-        (remmach, file) = self.remfile.split(':', 1)
-        cmd = """ssh %s python -c "'import os; print filter(lambda x: not x.startswith("'"."'"), filter(lambda f: os.path.isfile(os.path.join("'"%s"'",f)), os.listdir("'"%s"'")))'" """ % (remmach, file, file)
+        (remmach, dirName) = self.remfile.split(':', 1)
+	if dirName[-1] == "/":
+	    dirName = dirName[0:-1]
+	    
+	cmd = r"ssh %s '(cd %s; find * -prune -type f)'" % (remmach, dirName)
 
         if self.verbose > 0:
             if noaction:
@@ -1104,20 +1107,17 @@ class SshTransporter(Transporter):
             return []
         else:
             pd = None
-            try: 
+            try:
                 pd = os.popen(cmd)
-                pylist = pd.readline().strip()
+		pylist = [l.strip() for l in pd.readlines()]
             finally:
                 stat = pd.close()
             if stat is not None:
                 stat = stat >> 8
                 if stat > 0:
-                  raise OSError("ssh command failed with exit status %d" % stat)
+                  raise OSError("ssh command \"%s\" failed with exit status %d" % (cmd, stat))
 
-            exec "out=" + pylist
-            return out
-
-
+            return pylist
 
 class LocalTransporter(Transporter):
 
