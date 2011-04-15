@@ -13,6 +13,7 @@ from eups.utils     import Flavor, Quiet
 from Distrib        import findInstallableRoot
 from DistribFactory import DistribFactory
 from server         import ServerConf, Manifest, ServerError
+import server
 
 class Repositories(object):
     """
@@ -492,8 +493,8 @@ class Repositories(object):
                         ances.append(pver)
 
             # Whether or not we just installed the product, we need to...
-            # ...add the product to the setups 
-            setups.append("setup --keep --type=build %s %s" % (prod.product, prod.version))
+            # ...add the product to the setups
+            setups.append("setup --just --type=build %s %s" % (prod.product, prod.version))
 
             # ...update the tags
             if updateTags:
@@ -578,7 +579,7 @@ class Repositories(object):
             root = os.path.join(productRoot, instflavor, prod.instDir)
 
         try:
-            self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot)
+            self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
         except RuntimeError, e:
             print >> sys.stderr, e
             return
@@ -685,7 +686,7 @@ class Repositories(object):
 
         return (distId, pkgroot)
             
-    def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot):
+    def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot, setups):
         
         flavor = self.eups.flavor
 
@@ -733,6 +734,14 @@ class Repositories(object):
                                                                  filename=tablefile)
                     if not os.path.exists(tablefile):
                         raise EupsException("Failed to find table file %s" % tablefile)
+        #
+        # Expand that tablefile (adding an exact block)
+        #
+        cmd = "\n".join(setups + ["eups expandtable -i %s" % tablefile])
+        try:
+            server.system(cmd)
+        except OSError, e:
+            print >> self.log, e
 
         self.eups.declare(mprod.product, mprod.version, rootdir, 
                           eupsPathDir=productRoot, tablefile=tablefile)
