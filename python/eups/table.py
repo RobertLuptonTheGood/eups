@@ -158,7 +158,7 @@ but no other interpretation is applied
             
         return ncontents
 
-    def expandEupsVariables(self, product):
+    def expandEupsVariables(self, product, quiet=False):
         """Expand eups-related variables such as $PRODUCT_DIR"""
 
         for logical, ifBlock, elseBlock in self._actions: 
@@ -170,13 +170,22 @@ but no other interpretation is applied
                     if root:
                         value = re.sub(r"\${PRODUCTS}", root, value)
                     elif re.search(r"\${PRODUCTS}", value):
-                        print >> sys.stderr, "Unable to expand PRODUCTS in %s" % self.file
+                        if not quiet:
+                            print >> sys.stderr, "Unable to expand PRODUCTS in %s" % self.file
 
-                    if re.search(r"\${PRODUCT_DIR}", value):
-                        if product.dir:
-                            value = re.sub(r"\${PRODUCT_DIR}", product.dir, value)
+                    mat = re.search(r"\$(\?)?{PRODUCT_DIR}", value)
+                    if mat:
+                        optional = mat.group(1)
+                        if optional and product.dir == "none":
+                            productDir = None
                         else:
-                            print >> sys.stderr, "Unable to expand PRODUCT_DIR in %s" % self.file
+                            productDir = product.dir
+                        
+                        if productDir:
+                            value = re.sub(r"\$\??{PRODUCT_DIR}", productDir, value)
+                        else:
+                            if not optional and not quiet:
+                                print >> sys.stderr, "Unable to expand PRODUCT_DIR in %s" % self.file
                     #
                     # Be nice; they should say PRODUCT_DIR but sometimes PRODUCT is spelled out, e.g. EUPS_DIR
                     #
@@ -185,20 +194,23 @@ but no other interpretation is applied
                         if product.dir:
                             value = re.sub(regexp, product.dir, value)
                         else:
-                            print >> sys.stderr, "Unable to expand %s in %s" % \
-                                  (self.file, utils.dirEnvNameFor(product.name))
+                            if not quiet:
+                                print >> sys.stderr, "Unable to expand %s in %s" % \
+                                      (self.file, utils.dirEnvNameFor(product.name))
 
                     if product.flavor:
                         value = re.sub(r"\${PRODUCT_FLAVOR}", product.flavor, value)
                     elif re.search(r"\${PRODUCT_FLAVOR}", value):
-                        print >> sys.stderr, "Unable to expand PRODUCT_FLAVOR in %s" % self.file
+                        if not quiet:
+                            print >> sys.stderr, "Unable to expand PRODUCT_FLAVOR in %s" % self.file
 
                     value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
                     if re.search(r"\${PRODUCT_VERSION}", value):
                         if product.version:
                             value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
                         else:
-                            print >> sys.stderr, "Unable to expand PRODUCT_VERSION in %s" % self.file
+                            if not quiet:
+                                print >> sys.stderr, "Unable to expand PRODUCT_VERSION in %s" % self.file
 
                     value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
                     #
@@ -211,13 +223,14 @@ but no other interpretation is applied
                         value = re.sub(r"\[(\d+)\]}$", "", value) + "}"
 
                         if not os.environ.has_key("EUPS_PATH"):
-                            print >> sys.stderr, "%s is not defined; not setting %s" % (value, a.args[0])
+                            if not quiet:
+                                print >> sys.stderr, "%s is not defined; not setting %s" % (value, a.args[0])
                             continue
 
                         try:
                             value = os.environ["EUPS_PATH"].split(":")[ind]
                         except IndexError:
-                            if product.Eups.verbose > 0:
+                            if product.Eups.verbose > 0 and not quiet:
                                 print >> sys.stderr, "Invalid index %d for \"%s\"; not setting %s" % \
                                       (ind, os.environ["EUPS_PATH"], a.args[0])
 

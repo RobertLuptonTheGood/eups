@@ -422,16 +422,25 @@ class Repositories(object):
             productRoot = productRoot0
 
             thisinstalled = None
-            if not noeups and not self.eups.force:
+            if not noeups:
                 thisinstalled = self.eups.findProduct(prod.product, prod.version, flavor=instflavor)
+
+            shouldInstall = True
             if thisinstalled:
+                msg = "Required product %s %s is already installed" % (prod.product, prod.version)
+
+                if self.eups.force:
+                    msg += "; forcing a reinstall"
+                else:
+                    shouldInstall = False
+                    msg += "; use --force to reinstall"
+
                 if self.verbose >= 0:
-                    print >> self.log, \
-                        "Required product %s %s is already installed; use --force to reinstall" % \
-                        (prod.product, prod.version)
+                    print >> self.log, msg
+
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
-            else:
+            if shouldInstall:
                 recurse = searchDep
                 if recurse is None:  
                     recurse = not prod.distId or prod.shouldRecurse
@@ -454,9 +463,11 @@ class Repositories(object):
                                                    alsoTag, opts, nodepend, 
                                                    noclean, noeups, searchDep, setups, 
                                                    installed, tag, ances)
-                        if not thisinstalled and self.verbose > 0:
+                        if thisinstalled:
+                            shouldInstall = False
+                        elif self.verbose > 0:
                             print >> self.log, \
-                                "Warning: recursive install failed for", prod.product, prod.version
+                                  "Warning: recursive install failed for", prod.product, prod.version
 
                     elif not prod.distId:
                         msg = "No source is available for package %s %s" % (prod.product, prod.version)
@@ -464,7 +475,7 @@ class Repositories(object):
                             msg += " (%s)" % prod.flavor
                         raise ServerError(msg)
 
-                if not thisinstalled:
+                if shouldInstall:
                     if self.verbose >= 0:
                         print >> self.log, \
                               "Installing %s %s for %s..." % (prod.product, prod.version, prod.flavor)
@@ -624,7 +635,7 @@ class Repositories(object):
         if dprod is None:
             if self.verbose >= 0 and not self.eups.quiet:
                 print >> self.log, \
-                  "Unable to server assign tags: Failed to find product %s %s" % (prod.product, prod.version)
+                  "Unable to assign server tags: Failed to find product %s %s" % (prod.product, prod.version)
             return
 
         for tag in tags:

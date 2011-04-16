@@ -513,7 +513,8 @@ Group:
                             continue
 
                     if field.upper() == "TABLE_FILE" and os.path.isabs(value):
-                        print >> sys.stderr, "Detected absolute table filename (tell RHL): %s" % value
+                        if False:
+                            print >> sys.stderr, "Detected absolute table filename (tell RHL): %s" % value
                         pass
 
                     print >> fd, "   %s = %s" % (field.upper(), value)

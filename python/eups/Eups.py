@@ -1802,7 +1802,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self.alreadySetupProducts[product.name] = (product, vroReason)
 
         try:
-            table = product.getTable()
+            table = product.getTable(quiet=not fwd)
         except TableFileNotFound, e:
             if fwd:
                 raise

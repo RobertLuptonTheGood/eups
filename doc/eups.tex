@@ -1664,6 +1664,10 @@ specified by three types of files:
 The following table commands are supported by \eups{}: (\code{<Name>} either specifies an
 alias or an environment variable - clear from the context.)
 
+If a value looks like \code{\$?\{NAME\}}, and there is no such environment variable, the entire line is
+ignored (As a special case, \code{PRODUCT\_DIR} is considered undefined if its value is \code{none}).
+Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to \code{XXX} otherwise.
+
 \begin{itemize}
    \item \code{addAlias(<Name>,<Value>)}
      Defines a function or an alias.  Arguments should be written in
@@ -1694,8 +1698,6 @@ alias or an environment variable - clear from the context.)
      
    \item \code{envSet(<Name>, <Value>)}
      Set \code{<Name>} to \code{<Value>}.
-     If the value looks like \code{\$?\$name\}},
-     and there is no such environment variable, the \code{envSet} command is ignored.
      
    \item \code{setupRequired(<Name> [ <Version>])}
      Setup \code{<Name>}.  If no \code{<Version>} is specified, the current
