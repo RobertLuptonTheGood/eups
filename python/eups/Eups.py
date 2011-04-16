@@ -3227,7 +3227,10 @@ class _TagSet(object):
                 self.lu[tag] = True
     def intersects(self, tags):
         for tag in tags:
-            tag = str(self.eups.tags.getTag(tag)) # make sure that we have e.g. user: prefix
+            try:
+                tag = str(self.eups.tags.getTag(tag)) # make sure that we have e.g. user: prefix
+            except TagNotRecognized:
+                return False
             if self.lu.has_key(tag):
                 return True
         return False
