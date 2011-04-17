@@ -96,9 +96,9 @@ class Product(object):
                 hash(self.flavor))
 
     def __eq__(self, rhs):
-        return (self.name == rhs.name and
-                self.version == rhs.version and
-                self.flavor == rhs.flavor)                
+        return rhs and (self.name == rhs.name and
+                        self.version == rhs.version and
+                        self.flavor == rhs.flavor)                
 
     def __ne__(self, rhs):
         return not (self == rhs)

@@ -538,7 +538,7 @@ def topologicalSort(graph, verbose=False):
 
     def nameVersion(p):
         try:
-            return "[%s version %s]" % (p.name, p.version)
+            return "[%s %s]" % (p.name, p.version)
         except AttributeError:
             return str(p)
 

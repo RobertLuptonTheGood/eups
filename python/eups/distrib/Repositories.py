@@ -13,6 +13,7 @@ from eups.utils     import Flavor, Quiet
 from Distrib        import findInstallableRoot
 from DistribFactory import DistribFactory
 from server         import ServerConf, Manifest, ServerError
+import server
 
 class Repositories(object):
     """
@@ -251,25 +252,6 @@ class Repositories(object):
 
         return self.repos[pkg[3]]
 
-    def findDistribFor(self, product, version=None, prefFlavors=None):
-        """
-        return a Repository that can provide a requested package.  None is
-        return if the package is not found
-        @param product     the name of the package providing a product
-        @param version     the desired version of the product.  This can 
-                             either be  a version string or an instance of 
-                             Tag.  If None, the most preferred tagged version 
-                             will be found.
-        @param prefFlavors the ordered list of preferred flavors to choose 
-                             from.  If None, the set is drawn from the eups 
-                             environment.
-        """
-        pkg = self.findPackage(product, version, prefFlavors)
-        if not pkg:
-            return None
-
-        return None
-
     def install(self, product, version=None, updateTags=True, alsoTag=None,
                 nodepend=False, noclean=False, noeups=False, options=None, 
                 manifest=None, searchDep=None):
@@ -396,7 +378,16 @@ class Repositories(object):
                     print >> self.log, "Package installation already in progress:%s" % "".join(ances)
 
                 return True
-
+        #
+        # See if we should process dependencies
+        #
+        if searchDep is None:
+            prod = manifest.getDependency(product, version, flavor)
+            if prod and self.repos[pkgroot].getDistribFor(prod.distId, opts, flavor, tag).PRUNE:
+                searchDep = False       # no, we shouldn't process them
+        #
+        # Process dependencies
+        #
         productRoot0 = productRoot      # initial value
         for prod in products:
             pver = prodid(prod.product, prod.version, instflavor)
@@ -496,20 +487,19 @@ class Repositories(object):
                         prod = nprod
                     else:
                         if self.eups.debugFlag: import pdb; pdb.set_trace() 
-                        
+
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 
                     if pver not in ances:
                         ances.append(pver)
 
             # Whether or not we just installed the product, we need to...
-            # ...add the product to the setups 
-            setups.append("setup --keep --type=build %s %s" % (prod.product, prod.version))
+            # ...add the product to the setups
+            setups.append("setup --just --type=build %s %s" % (prod.product, prod.version))
 
             # ...update the tags
             if updateTags:
-		installCurrent = "current" in [t.name for t in alsoTag]
-                self._updateServerTags(prod, productRoot, instflavor, installCurrent)
+                self._updateServerTags(prod, productRoot, instflavor, installCurrent=opts["installCurrent"])
             if alsoTag:
                 if self.verbose > 1:
                     print >> self.log, "Assigning Tags to %s %s: %s" % \
@@ -589,7 +579,7 @@ class Repositories(object):
             root = os.path.join(productRoot, instflavor, prod.instDir)
 
         try:
-            self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot)
+            self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
         except RuntimeError, e:
             print >> sys.stderr, e
             return
@@ -696,7 +686,7 @@ class Repositories(object):
 
         return (distId, pkgroot)
             
-    def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot):
+    def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot, setups):
         
         flavor = self.eups.flavor
 
@@ -744,6 +734,16 @@ class Repositories(object):
                                                                  filename=tablefile)
                     if not os.path.exists(tablefile):
                         raise EupsException("Failed to find table file %s" % tablefile)
+        #
+        # Expand that tablefile (adding an exact block)
+        #
+        if True:
+            if not isinstance(tablefile, file):
+                cmd = "\n".join(setups + ["eups expandtable -i --force %s" % tablefile])
+                try:
+                    server.system(cmd)
+                except OSError, e:
+                    print >> self.log, e
 
         self.eups.declare(mprod.product, mprod.version, rootdir, 
                           eupsPathDir=productRoot, tablefile=tablefile)
@@ -812,16 +812,24 @@ class Repositories(object):
         @param flavor         the product flavor.  If None, assume the current 
                                 default flavor
         """
-        dir = self.getBuildDirFor(productRoot, product, version, options, flavor)
-        if os.path.exists(dir):
-            if force or (len(productRoot) > 0 and dir.startswith(productRoot) 
-                         and len(dir) > len(productRoot)+1):
+        buildDir = self.getBuildDirFor(productRoot, product, version, options, flavor)
+        if os.path.exists(buildDir):
+            if force or (productRoot and os.path.commonprefix([productRoot, buildDir]) == productRoot):
                 if self.verbose > 1: 
-                    print >> self.log, "removing", dir
-                server.system("rm -rf " + dir,
-                                  verbosity=self.verbose-1, log=self.log)
+                    print >> self.log, "removing", buildDir
+                rmCmd = "rm -rf %s" % buildDir
+                try:
+                    server.system(rmCmd, verbosity=-1, log=self.log)
+                except OSError, e:
+                    rmCmd = r"find %s -exec chmod 775 {} \; && %s" % (buildDir, rmCmd)
+                    try:
+                        server.system(rmCmd, verbosity=self.verbose-1, log=self.log)
+                    except OSError, e:
+                        print >> self.log, "Error removing %s; Continuing" % (buildDir)
+
             elif self.verbose > 0:
-                print >> self.log, "%s: not under root (%s); won't delete unless forced (use --force)" % (dir, productRoot)
+                print >> self.log, "%s: not under root (%s); won't delete unless forced (use --force)" % \
+                      (buildDir, productRoot)
 
 
     def clean(self, product, version, flavor=None, options=None, 
@@ -849,7 +857,11 @@ class Repositories(object):
         buildDir = self.getBuildDirFor(productRoot, product, version, 
                                        options, flavor)
         if self.verbose > 0:
-            print >> self.log, "Looking for build directory:", buildDir
+            msg = "Looking for build directory: %s" % buildDir
+            if not os.path.exists(buildDir):
+                msg += "; not found"
+
+            print >> self.log, msg
 
         if os.path.exists(buildDir):
             distidfile = os.path.join(buildDir, "distID.txt")
@@ -897,10 +909,13 @@ class Repositories(object):
                         print >> self.log, "Removing installation dir:", \
                             installDir
                     if utils.isDbWritable(installDir):
-                        server.system("/bin/rm -rf %s" % installDir)
+                        try:
+                            server.system("/bin/rm -rf %s" % installDir)
+                        except OSError, e:
+                            print >> self.log, "Error removing %s; Continuing" % (installDir)
+
                     elif self.verbose >= 0:
-                        print >> self.log, "No permission on install dir:", \
-                            installDir
+                        print >> self.log, "No permission on install dir %s" % (installDir)
                         
         # now see what's been installed
         if uninstall and flavor == self.eups.flavor:

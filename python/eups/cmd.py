@@ -1043,10 +1043,11 @@ For example, the make target in a ups directory might contain the line:
 
         try:
             try:
-                try:
-                    eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp, myeups)
+                try:                    # older pythons don't support try except finally
+                    eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp, myeups, self.opts.force)
                 except Exception, e:
-                    raise RuntimeError("Processing %s: %s" % (inFile, e))
+                    e.message = "Processing %s: %s" % (inFile, e)
+                    raise
 
             finally:
                 if inFile != "-": ifd.close() 
@@ -1926,7 +1927,7 @@ tag will be installed.
                             help="don't assume manifests completely specify dependencies")
         self.clo.add_option("--root", dest="root", action="append",
                             help="equivalent to --repository (deprecated)")
-        self.clo.add_option("-C", "--current-all", dest="current_all", action="store_true", default=False, 
+        self.clo.add_option("-C", "--current-all", dest="installCurrent", action="store_true", default=False, 
                             help="Include current among the server tags that are installed")
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
                             help="Make top level product current (equivalent to --tag current)")
@@ -2003,13 +2004,6 @@ tag will be installed.
             if nonuser or unrecognized:
                 return 4
 
-        if self.opts.current_all:
-	    if self.opts.alsoTag:
-		self.opts.alsoTag += " "
-	    else:
-		self.opts.alsoTag = ""
-	    self.opts.alsoTag += "current"
-
         dopts = {}
         # handle extra options
         dopts = { 'config': {} }
@@ -2017,7 +2011,9 @@ tag will be installed.
         dopts['noaction'] = self.opts.noaction
         dopts['nobuild']  = self.opts.nobuild
         dopts['noclean']  = self.opts.noclean
+        dopts["installCurrent"] = self.opts.installCurrent
         dopts['flavor']   = myeups.flavor
+
         if self.opts.serverOpts:
             for opt in self.opts.serverOpts:
                 try:
@@ -2026,7 +2022,6 @@ tag will be installed.
                     self.err("server option not of form NAME=VALUE: "+opt)
                     return 3
                 dopts[name] = value
-
 
         if self.opts.root:
             self.opts.root = "|".join(self.opts.root)

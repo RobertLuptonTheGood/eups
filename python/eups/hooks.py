@@ -183,7 +183,7 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
 
     return customisationFiles
 
-def execute_file(file):
+def execute_file(startupFile):
     import eups
     from eups import hooks
     from VersionCompare import VersionCompare    
@@ -193,9 +193,21 @@ def execute_file(file):
         _globals[key] = globals()[key]
     del key
         
-    execfile(file, _globals, locals())
+    #
+    # Dictionaries loaded from startup files should only have known keys
+    #
+    checkDictKeys = {}
+    for dname, d in [("config.Eups.defaultProduct", config.Eups.defaultProduct),
+              ]:
+        checkDictKeys[dname] = (d, d.keys())
 
+    execfile(startupFile, _globals, locals())
 
+    for dname, v  in checkDictKeys.items():
+        d, keys0 = v
+        for k in d.keys():
+            if k not in keys0:
+                print >> sys.stderr, "Found unknown key %s in dictionary %s in %s" % (k, dname, startupFile)
 
 commre = re.compile(r'\s*#.*$')
 namevalre = re.compile(r'\s*([:=]|\+=)\s*')

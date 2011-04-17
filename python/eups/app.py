@@ -311,6 +311,9 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
                                                                   followExact=followExact,
                                                                   productDictionary=productDictionary):
 
+        if product == topProduct:
+            continue
+
         if setup:           # get the version that's actually setup
             setupProduct = eupsenv.findSetupProduct(product.name)
             if not setupProduct:
@@ -348,49 +351,62 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
         #
         defaultProduct = hooks.config.Eups.defaultProduct["name"]
         if defaultProduct:
-            kv = [kv for kv in productDictionary.items()
-                                     if kv[0].name == defaultProduct][0]
+            kv = [kv for kv in productDictionary.items() if kv[0].name == defaultProduct]
             if kv:
-                defaultProduct, ddeps = kv
+                defaultProduct, ddeps = kv[0]
 
-                defaultDeps = []                
-                for prod, opt, depth in ddeps:
-                    if prod.name != defaultProduct.name:
-                        defaultDeps.append(prod)
+                pdir[defaultProduct] = set([prod for prod, opt, depth in ddeps if
+                                            prod.name != defaultProduct.name])
 
-                pdir[defaultProduct] = list(set(defaultDeps))
+                if topProduct in \
+                       [e[0] for e in defaultProduct.getTable().dependencies(eupsenv, recursive=True)]:
+                    del productDictionary[defaultProduct]
+                    pdir[defaultProduct] = set()
+            else:
+                defaultProduct = None
 
+        if not defaultProduct:
+            pdir[defaultProduct] = set()
+        #
+        # We have to a bit careful as we populate pdir.  There will be dependent cycles induced if
+        # there's an implicit dependency on a product that also appears in defaultProduct's dependencies
+        #
         for k, values in productDictionary.items():
             if k == defaultProduct:   # don't modify pdir[defaultProduct]; especially don't add defaultProduct
                 continue
-            
+
             if not pdir.has_key(k):
-                pdir[k] = []
+                pdir[k] = set()
 
             for v in values:
                 p = v[0]             # the dependent product
 
-                if p in pdir[defaultProduct]:
+                if p == defaultProduct and k in pdir[defaultProduct]:
                     continue
-
-                pdir[k].append(p)
-
+                    
+                pdir[k].add(p)
+        #
+        # Actually do the topological sort
+        #
         sortedProducts = [t for t in
-                          utils.topologicalSort(pdir, verbose=eupsenv.verbose)] # products sorted topologically
-
-        tsorted_level = {}
-        nlevel = len(sortedProducts)
+                          utils.topologicalSort(pdir,verbose=eupsenv.verbose)] # products sorted topologically
+        #
+        # Replace the recursion level by the topological depth
+        #
+        tsorted_depth = {}
+        nlevel = len(sortedProducts) + 1 # "+ 1" to allow for topProduct
         for i, pp in enumerate(sortedProducts):
             for p in pp:
-                tsorted_level[p.name] = nlevel - i - 1
+                if p:
+                    tsorted_depth[p.name] = nlevel - i - 1
 
         if defaultProduct:
-            tsorted_level[defaultProduct] = nlevel
+            tsorted_depth[defaultProduct] = nlevel
 
         for p in dependentProducts:
             pname = p[0].name
-            if tsorted_level.has_key(pname):
-                p[2] = tsorted_level[pname]
+            if tsorted_depth.has_key(pname):
+                p[2] = tsorted_depth[pname]
 
         dependentProducts.sort(lambda a, b: cmp((a[2], a[0].name),
                                                 (b[2], b[0].name))) # sort by topological depth
@@ -452,7 +468,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                                     svnroot=svnroot, cvsroot=cvsroot)
 
 
-def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None):
+def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, force=False):
     """
     expand the version specifications in a table file.  When a version in 
     the original table file is expressed as an expression, the expression is 
@@ -467,12 +483,13 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None):
     @param versionRegexp  an unparsed regular expression string
     @param eupsenv      an Eups instance to assume.  If not provided, a 
                            default will be created.  
+    @param force        convert missing required dependencies to optional
     """
     if not eupsenv:
         eupsenv = eups.Eups()
 
     try:
-        table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp)
+        table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force)
     except ProductNotFound, e:
         raise
 

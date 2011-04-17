@@ -77,7 +77,9 @@ class Distrib(object):
        useFlavor        Create a flavor-specific installation (i.e. not "generic")
     """
 
-    NAME = None    # sub-classes should provide a string value
+    NAME = None                         # sub-classes should provide a string value
+    PRUNE = False                       # True if manifests are complete, and there's no need for recursion
+                                        # to find all the needed products
 
     def __init__(self, Eups, distServ, flavor=None, tag="current", options=None,
                  verbosity=0, log=sys.stderr):

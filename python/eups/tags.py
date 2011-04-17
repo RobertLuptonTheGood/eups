@@ -137,11 +137,13 @@ class Tags(object):
 
         @throws TagNameConflict  if the name has already been registered.
         """
+        if isinstance(name, Tag):
+            t = name
+            group = t.group
+            name = t.name
+
         if group is None:
             group = self.global_
-
-        if isinstance(name, Tag):
-            name = name.name
 
         try:
             name, owner = name
@@ -221,6 +223,8 @@ class Tags(object):
             if lock:
                 self._unlock(file)
 
+        return [self.getTag(t) for t in self.bygrp[group]]
+
     def save(self, group, file):
         """
         save the registered tag names to a cache file.
@@ -242,14 +246,13 @@ class Tags(object):
         finally:
             self._unlock(file)
 
-
     def loadFromEupsPath(self, eupsPath, verbosity=0):
         """
         load tag names of all groups cached in the given eups product 
         stacks.  Return True if tags were found to be loaded.  
         @param eupsPath   the list product root directories (product 
                             stacks) given either as a list of strings 
-                            or a single colon-delimited string.
+                            or a single colon-separated string.
         """
         if isinstance(eupsPath, str):
             eupsPath = eupsPath.split(':')
@@ -257,7 +260,7 @@ class Tags(object):
             raise TypeError("Tags.loadFromEupsPath(): eupsPath not a str/list:"
                             + str(eupsPath))
 
-        loaded = False
+        loaded = {}
         for dir in eupsPath:
             if not os.path.exists(dir):
                 if verbosity > 1:
@@ -292,12 +295,11 @@ class Tags(object):
                     print >> sys.stderr, "Reading tags from", file
                 try:
                     try:
-                        self.load(group, file)
+                        loaded = self.load(group, file)
                     except OSError, e:
                         if verbosity > 1:
                             print >> sys.stderr, ("Unable to lock %s; reading anyway" % file)
-                        self.load(group, file, lock=False)
-                    loaded = True
+                        loaded = self.load(group, file, lock=False)
                 except IOError, e:
                     if verbosity >= 0:
                         print >> sys.stderr, \

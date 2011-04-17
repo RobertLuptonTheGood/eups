@@ -902,8 +902,10 @@ class Action(object):
 #
 # Expand a table file
 #
-def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
-    """Expand a table file, reading from ifd and writing to ofd"""
+def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False):
+    """Expand a table file, reading from ifd and writing to ofd
+    If force is true, missing required dependencies are converted to optional
+    """
     #
     # Here's the function to do the substitutions
     #
@@ -1060,22 +1062,32 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
     # the versions that are currently setup
     #
     desiredProducts = []
+    notFound = {}
     for productName, optional in products:
         NVL = []
+        version = None
         if productList.has_key(productName):
             NVL.append((productName, productList[productName], None))
         else:
             try:
-                NVL.append((productName, eups.getSetupVersion(productName), None))
+                setupVersion = eups.getSetupVersion(productName)
             except ProductNotFound:
+                notFound[productName] = True
                 if not optional:
-                    raise
+                    if not force:
+                        raise
+
+            NVL.append((productName, setupVersion, None))
+
+            if not Eups.findProduct(productName, None):
+                version = setupVersion
                     
         try:
-            NVL += eups.getDependencies(productName, None, Eups, setup=True, shouldRaise=True)
+            NVL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
         except:
             if not optional:
-                raise
+                if not force:
+                    raise
 
         for name, version, level in NVL:
             if re.search("^" + Product.Product.LocalVersionPrefix, version):
@@ -1109,7 +1121,12 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None):
                 print >> ofd, "if (type == exact) {"
 
                 for n, v in desiredProducts:
-                    print >> ofd, "%ssetupRequired(%-15s -j %s)" % (indent, n, v)
+                    if notFound.get(n):
+                        cmd = "setupOptional"
+                    else:
+                        cmd = "setupRequired"
+
+                    print >> ofd, "%s%s(%-15s -j %s)" % (indent, cmd, n, v)
 
                 print >> ofd, "} else {"
             else:

@@ -1719,6 +1719,19 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
                                       (p.product, versName, productName, versionName)
 
                             p = Dependency(productName, versionName, None, None, None, None)
+                            #
+                            # Create any products with version "dummy"
+                            #
+                            if versionName == "dummy":
+                                if not self.eups.findProduct(productName, versionName):
+                                    if self.verbose > 0:
+                                        print >> self.log, "Declaring %s %s" % (productName, versionName)
+                                    try:
+                                        eups.declare(productName, versionName,
+                                                     productDir="none", tablefile="none")
+                                    except Exception, e:
+                                        print >> self.log, e
+
                             break
 
             if p.version:
@@ -2127,6 +2140,9 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
 
         if environ.has_key("EUPS_PATH"): # keep current path
             cmd = ("export EUPS_PATH=%s\n" % (environ["EUPS_PATH"])) + cmd
+
+        if verbosity < 0:
+            cmd += "> /dev/null 2>&1"
 
         errno = os.spawnle(os.P_WAIT, BASH, BASH, "-c", cmd, environ)
 

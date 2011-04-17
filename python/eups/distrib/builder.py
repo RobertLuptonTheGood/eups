@@ -34,6 +34,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
     """
 
     NAME = "builder"
+    PRUNE = True
 
     def __init__(self, Eups, distServ, flavor, tag="current", options=None,
                  verbosity=0, log=sys.stderr):
@@ -229,6 +230,9 @@ DIST_URL = %%(base)s/builds/%%(path)s
                         raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
 
                     try:
+                        builderVars = {}
+                        builderVars["CVSROOT"] = self.cvsroot
+                        builderVars["CVSROOT"] = self.cvsroot
                         expandBuildFile(ofd, ifd, productName, versionName, self.verbose, self.svnroot, self.cvsroot)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
@@ -312,14 +316,6 @@ DIST_URL = %%(base)s/builds/%%(path)s
             print >> self.log, "Executing %s in %s" % (builder, buildDir)
             print >> self.log, "Writing log to %s" % (logfile)
         #
-        # Does this build file look OK?  In particular, does it contain a valid
-        # CVS/SVN location or curl/wget command?
-        #
-        (cvsroot, svnroot, url, other) = get_root_from_buildfile(tfile, self.verbose, self.log)
-        if not (cvsroot or svnroot or url or other):
-            print >> self.log, \
-                  "Unable to find a {cvs,svn}root or wget/curl command in %s; continuing" % (tfile)
-        #
         # Prepare to actually do some work
         #
         cmd = ["cd %s && " % buildDir]
@@ -331,10 +327,8 @@ DIST_URL = %%(base)s/builds/%%(path)s
             if self.verbose > 3:
                 cmd += ["set -v &&"]
         #
-        # Rewrite build file to replace any setup commands by "setup --keep" as
-        # we're not necessarily declaring products current, so we're setting
-        # things up explicitly and a straight setup in the build file file
-        # undo our hard work
+        # Rewrite build file to replace any setup commands by "setup --just" as we're setting things up
+        # explicitly and a straight setup in the build file file undo our hard work
         #
         lines = []                      # processed command lines from build file
         if self.nobuild:
@@ -453,56 +447,6 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 return full_fileName
 
         return None
-
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
-def get_root_from_buildfile(buildFile, verbose=0, log=sys.stderr):
-    """Given the name of a buildfile, return (cvsroot, svnroot, url);
-    presumably only one will be valid"""
-
-    cvsroot = None; svnroot = None; url = None
-    other = None                  # this build file is Other, but valid
-
-    fd = open(buildFile)
-
-    for line in fd:
-        if re.search(r"^\s*[:#].*\bBuild\s*File\b", line, re.IGNORECASE):
-            other = True
-
-        mat = re.search(r"^\s*export\s+(CVS|SVN)ROOT\s*=\s*(\S*)", line)
-        if mat:
-            type = mat.group(1); val = re.sub("\"", "", mat.group(2))
-
-            if type == "CVS":
-                cvsroot = val
-            elif type == "SVN":
-                svnroot = val
-            else:
-                if verbose:
-                    print >> log, "Unknown root type:", line,
-
-            continue
-
-        mat = re.search(r"^\s*(cvs|svn)\s+(co|checkout)\s+(\S)", line)
-        if mat:
-            type = mat.group(1); val = re.sub("\"", "", mat.group(3))
-            
-            if type == "cvs":
-                cvsroot = val
-            elif type == "svn":
-                svnroot = val
-            else:
-                if verbose:
-                    print >> log, "Unknown src manager type:", line,
-
-            continue
-
-        mat = re.search(r"^\s*(wget|curl)\s+(--?\S+\s+)*\s*(\S*)", line)
-        if mat:
-            url = mat.group(3)
-
-    return (cvsroot, svnroot, url, other)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

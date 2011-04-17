@@ -458,12 +458,16 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _loadServerTags(self, useLocks=True):
         tags = {}
         for path in self.path:
+            tags[path] = Tags()
+
             # start by looking for a cached list
-            if self.tags.loadFromEupsPath(path, self.verbose):
+            cachedTags = self.tags.loadFromEupsPath(path, self.verbose)
+            if cachedTags:
+                for t in cachedTags:
+                    tags[path].registerTag(t)
                 continue
 
             # if no list cached, try asking the cached product stack
-            tags[path] = Tags()
             tagNames = set()
             tagUsedInProducts = None    # used for better diagnostics
 
@@ -2261,6 +2265,12 @@ The what argument tells us what sort of state is expected (allowed values are de
             self.flavor = declareOptions["flavor"]
         except KeyError:
             pass
+        #
+        # If no tags are being assigned and this'll be the first version of this product declared,
+        # we'll declare this product current
+        #
+        if not tag and not self.findProducts(productName):
+            tag = "current"
         #
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
