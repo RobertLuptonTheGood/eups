@@ -2385,6 +2385,8 @@ same arguments.
             versionName = None
 
         if self.opts.current:
+            if not self.opts.tag:
+                self.opts.tag = []
             self.opts.tag += ['current']
 
         if self.opts.setupType:
