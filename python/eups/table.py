@@ -477,7 +477,8 @@ but no other interpretation is applied
         if not productDictionary.has_key(self.topProduct):
             productDictionary[self.topProduct] = []
             
-        if addDefaultProduct is None and self.topProduct.name == hooks.config.Eups.defaultProduct["name"]:
+        if addDefaultProduct is None and \
+               self.topProduct and self.topProduct.name == hooks.config.Eups.defaultProduct["name"]:
             addDefaultProduct = False
 
         deps = []

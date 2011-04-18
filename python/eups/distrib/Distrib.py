@@ -428,7 +428,7 @@ class Distrib(object):
 
         # now let's go back and fill in the product directory
         for dprod in productList.getProducts():
-            if self.noeups and product == dprod.product:
+            if self.noeups and productName == dprod.product:
                 basedir, dprod.instDir = None, "/dev/null"
             else:
                 (basedir, dprod.instDir) = \
@@ -778,7 +778,7 @@ class DefaultDistrib(Distrib):
             except KeyboardInterrupt:
                 raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
                                      (prod.product, prod.version))
-            except eups.ProductNotFound:
+            except eups.ProductNotFound, e:
                 prod.tablefile = self.findTableFile(prod.product, prod.version, flavor)
             except Exception, e:
                 pass

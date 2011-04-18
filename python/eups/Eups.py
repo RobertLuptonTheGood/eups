@@ -2677,7 +2677,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         N.b. the dependencies are not calculated recursively"""
         dependencies = []
         if utils.isRealFilename(tablefile):
-            for vals in Table(tablefile).dependencies(self, eupsPathDirs, setupType=self.setupType):
+            for vals in Table(tablefile).dependencies(self, eupsPathDirs):
                 dependencies += [vals]
 
         return dependencies
