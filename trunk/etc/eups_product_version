@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+import os
+import eups
+
+versionCVS = eups.version('$Name: $')  # Will be expanded if you're using CVS
+versionSVN = eups.version('$HeadURL: $')# Will be expanded by SVN; remember to say svn propset svn:keywords HeadURL
+
+if versionCVS != "cvs":                 # Name was properly expanded
+   version = versionCVS
+if versionSVN != "svn":                 # HeadURL was properly expanded
+   version = versionSVN
+else:
+   #
+   # Oh dear. We'll have to guess
+   #
+   if os.path.isdir("CVS") or os.path.exists(".cvsignore"): # probably CVS
+      version = versionCVS
+   else:
+      version = versionSVN
+
+print version

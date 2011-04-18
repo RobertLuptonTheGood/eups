@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# Run pkg-config for a product that's set up
+#
+eups pkg-config "$@"

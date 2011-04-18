@@ -1,0 +1,10 @@
+FILE = version
+PRODUCT = tcltk
+CHAIN = current
+#***************************************
+
+#Group:
+   FLAVOR = Linux
+   VERSION = 8.5a4
+   QUALIFIERS = ""
+#End:

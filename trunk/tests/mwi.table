@@ -1,0 +1,22 @@
+setupRequired(scons)
+setupRequired(core >= 1.2)
+setupRequired(boost >= 1.34.1)
+setupRequired(jaula)
+setupRequired(coral >= 1_9_0+1)
+setupRequired(seal >= 1_9_2+1)
+setupRequired(mysqlclient >= 5.0.0)
+
+setupOptional("swig")
+setupOptional("doxygen")
+
+envAppend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
+envAppend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
+
+envAppend(PYTHONPATH, ${PRODUCT_DIR}/python)
+
+Flavor=Darwin
+Flavor=Linux+2.1.2
+   envSet("Foo", bar)
+
+FLAVOR= DarwinX86
+   setenv("X86", 1)
