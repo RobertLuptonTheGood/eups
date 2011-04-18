@@ -351,12 +351,15 @@ def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=Fals
         #
         defaultProduct = hooks.config.Eups.defaultProduct["name"]
         if defaultProduct:
-            kv = [kv for kv in productDictionary.items() if kv[0].name == defaultProduct]
-            if kv:
-                defaultProduct, ddeps = kv[0]
+            prods = [k for k in productDictionary.keys() if k.name == defaultProduct]
+            if prods:
+                defaultProduct = prods[0]
 
-                pdir[defaultProduct] = set([prod for prod, opt, depth in ddeps if
-                                            prod.name != defaultProduct.name])
+                if defaultProduct:
+                    ptable = defaultProduct.getTable()
+                    if ptable:
+                        pdir[defaultProduct] = \
+                                             set([p[0] for p in ptable.dependencies(eupsenv, recursive=True)])
 
                 if topProduct in \
                        [e[0] for e in defaultProduct.getTable().dependencies(eupsenv, recursive=True)]:
