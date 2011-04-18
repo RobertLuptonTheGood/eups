@@ -1,0 +1,10 @@
+FILE = version
+PRODUCT = mpich2
+CHAIN = current
+#***************************************
+
+#Group:
+   FLAVOR = Linux
+   VERSION = 1.0.5p4
+   QUALIFIERS = ""
+#End:

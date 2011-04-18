@@ -1,0 +1,20 @@
+setupRequired(python)       # take any version
+setupOptional(cfitsio)      # this exists
+setupOptional(eigen 2.1.0)  # version does not exist
+
+addalias(longls, ls -l)
+envSet(GOOBPATH, "/opt/goob")  # this will get overridden
+setenv(GOOBPATH, "/usr/goob")
+envAppend(GOOBPATH, "/usr/local/goob")
+envPrepend(GOOBPATH, "/home/user/goob")
+
+if (type == build) {        # a build dependency
+    envAppend(BAR, foobar)
+    setupRequired(doxygen 1.5.9 [>= 1.5.7.1])
+}
+if (flavor == DarwinX86) {  
+    setEnv(FOO, 1)
+}
+if (flavor == Linux64) {
+#
+}

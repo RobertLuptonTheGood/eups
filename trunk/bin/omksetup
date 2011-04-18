@@ -1,0 +1,132 @@
+#!/usr/bin/perl
+#
+#A simple install script for EUPS
+#
+# Nikhil Padmanabhan
+# Princeton, 1.25.2003
+#EUPS : A Unix Versioning System
+#Copyright (C) 2003 Nikhil Padmanabhan
+
+#    This program is free software; you can redistribute it and/or
+#modify it under the terms of the GNU General Public License
+#    as published by the Free Software Foundation; either version 2
+#of the License, or (at your option) any later version.
+
+#This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+
+#You should have received a copy of the GNU General Public License
+#    along with this program; if not, write to the Free Software
+#Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
+###############################
+
+use File::Spec::Functions;
+
+$syntax = "Usage: mksetup <EUPS_DIR> <EUPS_PATH>\n";
+
+$eupsdir = $ARGV[0];
+$eups_path = $ARGV[1];
+$setup_aliases = $ARGV[2];	# may not be set
+
+die "$syntax" if ($eupsdir eq "");
+die "$syntax" if ($eups_path eq "");
+
+
+my(@aliases) = ();
+if ($setup_aliases) {
+   @aliases = split(":", $setup_aliases);
+}
+
+$bindir = catfile('$EUPS_DIR',"bin");
+$binname = catfile('$EUPS_DIR',"bin","eups_setup");
+# A perl expression to keep only one copy of each directory in a path
+$unique_path=q|@ep=split(":",$ARGV[0]); \
+    foreach $p (@ep) { \
+	if(not $s{$p}) { \
+	    push(@EP,$p); \
+	    $s{$p}++; \
+	} \
+    } print join(":",@EP) . "\n"|;
+
+print "Writing a csh startup script\n";
+open FILE, ">setups.csh" or die "Unable to open setups.csh";
+print FILE <<"EOT";
+if ("\$?EUPS_DIR" == "1" ) then
+   setenv PATH `echo \$PATH | perl -pe "s|:$bindir||g"`
+   if ("\$?PYTHONPATH" == "1" ) then
+      setenv PYTHONPATH `echo \$PYTHONPATH | perl -pe "s|:$bindir||g"`
+   endif
+endif
+
+setenv EUPS_DIR $eupsdir
+if ("\$?EUPS_PATH" == "0" ) then
+    setenv EUPS_PATH ""
+endif
+
+setenv EUPS_PATH \`perl -e '$unique_path' $eups_path:\$EUPS_PATH\`
+# Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
+setenv SETUP_EUPS "eups"
+# Deprecated variables
+unsetenv PROD_DIR_PREFIX
+unsetenv PRODUCTS
+
+setenv PATH \${PATH}:$bindir
+if ("\$?PYTHONPATH" == "1" ) then
+   setenv PYTHONPATH \${PYTHONPATH}:$bindir
+else
+   setenv PYTHONPATH $bindir
+endif
+
+alias setup 'source `$binname setup \\!*`'
+alias unsetup 'source `$binname unsetup \\!*`'
+EOT
+
+if ($aliases[0]) {
+   print FILE "alias $aliases[0] setup\n";
+}
+if ($aliases[1]) {
+   print FILE "alias $aliases[1] unsetup\n";
+}
+
+close FILE;
+
+print "Writing a sh startup script\n";
+open FILE, ">setups.sh" or die "Unable to open setups.sh";
+print FILE <<"EOT";
+if [ "\$EUPS_DIR" != "" ]; then
+   PATH=`echo \$PATH | perl -pe "s|:$bindir||g"`
+   PYTHONPATH=`echo \$PYTHONPATH | perl -pe "s|:$bindir||g"`
+fi
+
+export EUPS_DIR=$eupsdir
+export EUPS_PATH=\`perl -e '$unique_path' $eups_path:\$EUPS_PATH\`
+# Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
+export SETUP_EUPS="eups"
+# Deprecated variables
+unset PROD_DIR_PREFIX
+unset PRODUCTS
+
+export PATH="\$PATH:$bindir"
+if [ X"\$PYTHONPATH" != X"" ]; then
+    export PYTHONPATH="\$PYTHONPATH:$bindir"
+else
+    export PYTHONPATH="$bindir"
+fi
+
+function setup   { source `$binname setup \$@`; };   export -f setup
+function unsetup { source `$binname unsetup \$@`; }; export -f unsetup
+EOT
+    
+if ($aliases[0]) {
+   print FILE "alias $aliases[0]=setup\n";
+}
+if ($aliases[1]) {
+   print FILE "alias $aliases[1]=unsetup\n";
+}
+
+close FILE;
+
+exit 0;

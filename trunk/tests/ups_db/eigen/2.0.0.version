@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = eigen
+VERSION = 2.0.0
+#***************************************
+
+Group:
+   FLAVOR = Linux
+   QUALIFIERS = ""
+   DECLARER = Raymond L. Plante
+   DECLARED = 2009/03/25 02:33:13 CDT
+   PROD_DIR = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/eigen/2.0.0
+   UPS_DIR = ups
+   TABLE_FILE = none
+End:

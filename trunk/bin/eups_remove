@@ -1,0 +1,113 @@
+#!/usr/bin/env python
+# -*- python -*-
+#
+# Remove an eups product from the system
+#
+#
+# This script is DEPRECATED; use "eups expandbuild" instead.
+#
+import os, re, sys
+import shutil
+import ooeups as eups
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#
+# Deal with arguments
+#
+options = {
+    "-F" : (False, "--force", "Force requested behaviour (e.g. redeclare a product)"),
+    "-f" : (True,  "--flavor", "Use this flavor. Default: $EUPS_FLAVOR or `eups_flavor`"),
+    "-h" : (False, "--help", "Print this help message"),
+    "-i" : (False, "--interactive", "Prompt user before actually removing products (default if -R)"),
+    "-\001" : (False, "--noInteractive", "Don't prompt user before actually removing products"),
+    "-n" : (False, "--noaction", "Don\'t actually do anything"),
+    "-N" : (False, "--noCheck", "Don't check whether recursively removed products are needed"),
+    "-R" : (False, "--recursive", "Recursively also remove everything that this product depends on"),
+    "-v" : (False, "--verbose", "Be chattier (repeat for even more chat)"),
+    "-Z" : (True,  "--database", "Use this products path. Default: $EUPS_PATH"),
+    "-z" : (True,  "--select-db", "Select the product paths which contain this directory.\nDefault: all"),
+    }
+aliases = {}
+
+try:
+    opts = eups.Getopt(options, sys.argv, aliases, "eups_remove [options] product version")
+except RuntimeError, param:
+    print >> sys.stderr, "Error parsing arguments: %s" % param
+    sys.exit(1)
+
+if not opts.has_option('-q'):
+    print >> sys.stderr, '\nWarning: this tool is DEPRECATED; use "eups remove" instead\n'
+
+if opts.has_option('-h'):
+    print >> sys.stderr, "Remove an eups product from the system\n"
+    opts.usage()
+    sys.exit(0)
+
+force = opts.has_option('-F')
+
+if opts.has_option('-f'):
+    flavor = opts.options['-f']
+else:
+    flavor = eups.flavor()
+
+#
+# Process interactive/check options once we know if recursive is true
+#
+recursive = opts.has_option('-R')
+
+interactive = recursive or opts.has_option('-i')
+
+if opts.has_option('-\001'):
+    interactive = False
+
+noCheck = not recursive or opts.has_option('-N')
+
+noaction = opts.has_option('-n')
+
+#recursive = opts.has_option('-R')       # we processed -R above -i/-N
+
+verbose = 0
+if opts.has_option('-v'):
+    verbose = opts.options['-v']
+
+#
+# Figure out which database to use
+#
+if opts.has_option('-Z'):
+    eups.setPath(opts.options['-Z'])
+
+dbz = ""
+if opts.has_option('-z'):
+    dbz = opts.options['-z']
+
+try:
+    eups_path = eups.path()
+    db = eups.selectPathComponent(dbz)
+except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
+
+if len(opts.argv) == 0:
+    print >> sys.stderr, "Please specify a product and version"
+    sys.exit(1)    
+if len(opts.argv) == 1:
+    print >> sys.stderr, "Please specify a version to remove"
+    sys.exit(1)    
+    
+product, version = opts.argv[0:2]
+
+if len(opts.argv) > 2:
+    print >> sys.stderr, "Junk at end of arguments:", " ".join(opts.argv[2:])
+    sys.exit(1)    
+#
+# Do the work
+#
+try:
+    eups.remove(product, version, flavor, dbz, recursive, force, not noCheck, noaction, interactive=interactive)
+except RuntimeError, e:
+    print >> sys.stderr, e
+    sys.exit(1)
+except KeyboardInterrupt:
+    print ""
+    sys.exit(1)
+    

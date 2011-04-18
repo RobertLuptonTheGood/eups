@@ -1,0 +1,14 @@
+FILE = version
+PRODUCT = python
+VERSION = 2.6
+#***************************************
+
+Group:
+   FLAVOR = Linux
+   QUALIFIERS = ""
+   DECLARER = Raymond L. Plante
+   DECLARED = 2009/03/21 20:41:59 CDT
+   PROD_DIR = /home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/python/2.6
+   UPS_DIR = ups
+   TABLE_FILE = none
+End:
