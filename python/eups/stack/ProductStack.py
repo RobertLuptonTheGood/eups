@@ -704,7 +704,7 @@ class ProductStack(object):
             if os.path.exists(file):
                 os.remove(file)
 
-    def reload(self, flavors=None, persistDir=None, useLock=True):
+    def reload(self, flavors=None, persistDir=None, useLock=True, verbose=0):
         """
         throw away all information on products and replace it with the data
         saved in the cache files.
@@ -735,7 +735,8 @@ class ProductStack(object):
                 if useLock:
                     self._lock(fileName)
             except OSError, e:
-                print >> sys.stderr, "Unable to get lock for %s; bravely proceeding" % (fileName)
+                if verbose > 1 or (not os.access(persistDir, os.W_OK) and verbose):
+                    print >> sys.stderr, "Unable to get lock for %s; bravely proceeding" % (fileName)
 
             self.modtimes[fileName] = os.stat(fileName).st_mtime
             fd = open(fileName)
@@ -868,13 +869,13 @@ class ProductStack(object):
         for flav in flavors:
             if not self.cacheIsUpToDate(flav, cacheDir):
                 cacheOkay = False
-                if verbose:
-                  print >> sys.stderr, \
-                   "Regenerating missing or out-of-date cache for %s in\n   %s" % (flav, dbpath)
+                if verbose > 1:
+                    print >> sys.stderr, \
+                          "Regenerating missing or out-of-date cache for %s in %s" % (flav, dbpath)
                 break
 
         if cacheOkay:
-            self.reload(flavors, cacheDir, useLock=useLock)
+            self.reload(flavors, cacheDir, useLock=useLock, verbose=verbose)
 
             # do a final consistency check; do we have the same products
             dbnames = Database(dbpath).findProductNames()
