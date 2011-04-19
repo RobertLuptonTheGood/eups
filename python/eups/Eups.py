@@ -242,15 +242,17 @@ class Eups(object):
             if not userDataDir and self.quiet <= 0:
                 print >> sys.stderr, "Warning: Unable to find home directory!"
 
-        if userDataDir and not os.path.exists(userDataDir):
+        if userDataDir and not self.getUpsDB(userDataDir, noRaise=True):
             if self.quiet <= 0:
                 print >> sys.stderr, \
                     "Creating user data directory: " + userDataDir
-            os.makedirs(userDataDir, True)
-        if userDataDir and not os.path.isdir(userDataDir):
-            raise EupsException("User data directory not found (as a directory): " + userDataDir)
+            self.getUpsDB(userDataDir, create=True)
+
         if userDataDir and not utils.isDbWritable(userDataDir):
             userDataDir = None
+
+        if userDataDir and not os.path.isdir(userDataDir):
+            raise EupsException("User data directory not found (as a directory): " + userDataDir)
                                 
         self.userDataDir = userDataDir
         self.asAdmin = asAdmin
@@ -1372,7 +1374,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 break
         return found
 
-    def getUpsDB(self, eupsPathDir, create=False):
+    def getUpsDB(self, eupsPathDir, create=False, noRaise=False):
         """Return the ups database directory given a directory from self.path"""
         if not utils.isRealFilename(eupsPathDir):
             return "none"
@@ -1383,6 +1385,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 os.makedirs(upsDB)                
 
         if not os.path.isdir(upsDB):
+            if noRaise:
+                return None
             raise OSError("%s does not contain a %s directory" % (eupsPathDir, self.ups_db))
 
         return upsDB
