@@ -1919,6 +1919,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         if recursionDepth == 0:            # we can cleanup
             if fwd:
                 del self._msgs["setup"]
+        #
+        # we made a copy of os.environ so the usual magic putenv doesn't happen
+        #
+        for key, val in os.environ.items():
+            os.putenv(key, val)         
 
         return True, product.version, None
 

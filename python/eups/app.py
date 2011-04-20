@@ -768,8 +768,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         #
         # Set new variables
         #
-        for key in os.environ.keys():
-            val = os.environ[key]
+        for key, val in os.environ.items():
             try:
                 if val == eupsenv.oldEnviron[key]:
                     continue
