@@ -118,6 +118,13 @@ class Distrib(object):
                                repr(self.options))
 
         self.noeups = self.getOption("noeups", False)
+        if self.noeups in (False, "False", "false"):
+            self.noeups = False
+        elif self.noeups in (True, "True", "true"):
+            self.noeups = True
+        else:
+            raise RuntimeError("Unrecognised value of noeups: %s" % self.noeups)
+
         self.buildDir = self.getOption('buildDir', 'EupsBuildDir')
 
     # @staticmethod   # requires python 2.4
@@ -382,7 +389,7 @@ class Distrib(object):
                                                          topological=True)
             except (eups.ProductNotFound, eups.TableFileNotFound), e:
                 if self.noeups:
-                    if self.verbose > 0:
+                    if self.noeups and self.verbose > 0:
                         print >> self.log, e
                     dependencies = []
                 else:
@@ -407,19 +414,19 @@ class Distrib(object):
         dependencies.sort(byDepth)
 
         for (dprod, dopt, recursionDepth) in dependencies:
-            productName = dprod.name
-            versionName = dprod.version
+            dproductName = dprod.name
+            dversionName = dprod.version
 
-            product, vroReason = self.Eups.findProductFromVRO(productName, versionName)
+            product, vroReason = self.Eups.findProductFromVRO(dproductName, dversionName)
 
             if product:
                 versionName = product.version
             else:
                 if dopt:
                     continue
-                raise eups.ProductNotFound(productName, versionName)
+                raise eups.ProductNotFound(dproductName, dversionName)
 
-            productList.addDependency(productName, versionName, flavor,
+            productList.addDependency(dproductName, dversionName, flavor,
                                       None, None, None, dopt)
         #
         # We need to install those products in the correct order
@@ -447,10 +454,10 @@ class Distrib(object):
             if not pinfo.dir: 
                 pinfo.dir = "none"   # the product directory
         except eups.ProductNotFound, e:
-            print >> self.log, \
-                "WARNING: Failed to lookup directory for",      \
-                "product", product, version, "(%s):" % flavor,  \
-                str(e)
+            if not self.noeups or self.Eups.verbose:
+                print >> self.log, \
+                      "WARNING: Failed to lookup directory for product %s %s (%s): %s" % \
+                      (product, version, flavor, e)
             return (baseDir, product)
 
         if pinfo.version != version:
@@ -784,7 +791,9 @@ class DefaultDistrib(Distrib):
                 pass
 
             if prod.tablefile == None:
-                print >> sys.stderr, "WARNING: Failed to lookup tablefile for %s %s: %s" %(prod.product, prod.version, e)
+                if not self.noeups or self.Eups.verbose:
+                    print >> sys.stderr, "WARNING: Failed to lookup tablefile for %s %s: %s" % \
+                          (prod.product, prod.version, e)
                 prod.tablefile = "none"
 
         return deps

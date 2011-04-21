@@ -714,7 +714,7 @@ class Repositories(object):
 
         if not os.path.exists(tablefile):
             if mprod.tablefile == "none":
-                tablefile = None
+                tablefile = "none"
             else:
                 # retrieve the table file and install it
                 if rootdir == "/dev/null":
@@ -737,7 +737,7 @@ class Repositories(object):
         #
         # Expand that tablefile (adding an exact block)
         #
-        if True:
+        if tablefile != "none":
             if not isinstance(tablefile, file):
                 cmd = "\n".join(setups + ["eups expandtable -i --force %s" % tablefile])
                 try:
