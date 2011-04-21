@@ -122,7 +122,10 @@ else
 fi
 
 function setup   { eval `%(setup)s           "$@"`; }; export -f setup
-function unsetup { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup""" \
+function unsetup { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup
+
+[[ -n $BASH_COMPLETION ]] && [[ -f "$EUPS_DIR/etc/bash_completion.d/eups" ]] && source "$EUPS_DIR/etc/bash_completion.d/eups"
+""" \
     % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
            "pythondir" : pythondir, "setup" : setup,  "unique_path" : unique_path}
 
