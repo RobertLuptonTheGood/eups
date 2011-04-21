@@ -485,8 +485,6 @@ class Repositories(object):
                     nprod = dman.getDependency(prod.product)
                     if nprod:
                         prod = nprod
-                    else:
-                        if self.eups.debugFlag: import pdb; pdb.set_trace() 
 
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 

@@ -214,11 +214,14 @@ class Eups(object):
         # indexed by dictionary names in the EUPS_PATH (as set by -z); each value in this dictionary should
         # be split
         #
-        if not vro:
+        if vro:
+            self.userVRO = True
+        else:
+            self.userVRO = False
             vro = hooks.config.Eups.VRO
 
         if not isinstance(vro, dict):
-            vro = {"default" : vro}
+            vro = {"commandLine" : vro}
 
         self._vroDict = {}
         for key, v in vro.items():
@@ -298,6 +301,7 @@ class Eups(object):
             hooks.config.Eups.userTags.append(user)
 
         self.tags = Tags()
+        self.commandLineTagNames = []   # names of tags specified on the command line; set in selectVRO
 
         for tags, group in [
             (hooks.config.Eups.globalTags, None), # None => global
@@ -3056,10 +3060,17 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
 
         # Note that the order of these tests is significant
+        vroTag = None
         if tag:
             for t in tag:
                 self.isInternalTag(tag, True) # will abort if tag is internal
-            vroTag = tag[0]
+                if not vroTag and self._vroDict.has_key(t):
+                    vroTag = t
+
+            self.commandLineTagNames = tag
+
+        if vroTag:
+            pass                        # already set
         elif productDir and productDir != 'none':
             vroTag = "path"
         elif versionName:
@@ -3067,8 +3078,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         else:
             vroTag = "default"
 
-        if self._vroDict.has_key(vroTag):
+        if self.userVRO:
             tag = None                  # no need to prepend it to VRO as they set this tag's VRO explicitly
+        elif self._vroDict.has_key(vroTag):            
+            pass
         elif self._vroDict.has_key("default"):
             vroTag = "default"
         else:
@@ -3134,10 +3147,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # They might have explicitly asked to add/remove type:exact entries
         #
-        if self.exact_version:          # this is a property of self
-            self.makeVroExact()
-        if inexact_version:             # this is a request to not process type:exact in the vro
-            self._vro = filter(lambda el: el != "type:exact", self._vro)
+        if not self.userVRO:
+            if self.exact_version:          # this is a property of self
+                self.makeVroExact()
+            if inexact_version:             # this is a request to not process type:exact in the vro
+                self._vro = filter(lambda el: el != "type:exact", self._vro)
         if self.verbose > 1:
             print >> sys.stderr, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)
         #
@@ -3185,6 +3199,10 @@ such sequences can be generated while rewriting the VRO"""
         """Modify the VRO to support setup --exact even if the table files don't have an
            if(type == exact) { block }"""
         # Move all user or global tags (and non-recognized strings) to the end of the VRO
+
+        if self.userVRO:
+            return
+
         vro0 = self._vro
 
         tagVroEntries = []              # user/global tags found on the VRO
@@ -3194,8 +3212,10 @@ such sequences can be generated while rewriting the VRO"""
             # v may be of form warn:nnn or type:XXX so only the pre-: string is a tagname
             v0 = v.split(":")[0]
 
-            if not self.tags.isRecognized(v0) or \
-                   (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser()):
+            if \
+                   not self.tags.isRecognized(v0) or \
+                   (not (v0 in self.commandLineTagNames) and
+                    (self.tags.getTag(v0).isGlobal() or self.tags.getTag(v0).isUser())):
                 if not tagVroEntries.count(v):
                     tagVroEntries.append(v)
             else:
@@ -3207,6 +3227,7 @@ such sequences can be generated while rewriting the VRO"""
             if movedTags:
                 if not filter(lambda x: re.search(r"^warn:[01]", x), vro):
                     vro += ["warn:1"]
+
             vro += tagVroEntries
 
         self._vro = vro
