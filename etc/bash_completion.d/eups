@@ -22,12 +22,15 @@ _eups_cmd() {
 _eups_product() {
     local products=$*
     local prod
-    local prev=${COMP_WORDS[COMP_CWORD-1]}
-    for prod in $products; do
-        if [[ $prev == $prod ]]; then
-            echo $prod
-            return 0
-        fi
+    local i
+    for (( i = COMP_CWORD-1; i > 0; i -- )); do
+        local prev=${COMP_WORDS[$i]}
+        for prod in $products; do
+            if [[ $prev == $prod ]]; then
+                echo $prod
+                return 0
+            fi
+        done
     done
     return 0
 }
@@ -159,13 +162,18 @@ _eups()
         return 0
     fi
     
-    local versions
-    if [[ $cmd == "distrib" ]]; then
-        versions=$(eups distrib list $prod | awk '{print $1}'| sort -u)
-    else
-        versions=$(_eups_versions $prod)
+    if [[ $prev == $prod ]]; then
+        local versions
+        if [[ $cmd == "distrib" ]]; then
+            versions=$(eups distrib list $prod | awk '{print $1}'| sort -u)
+        else
+            versions=$(_eups_versions $prod)
+        fi
+        COMPREPLY=($(compgen -W "$versions $general $common $options" -- "$cur"))
+        return 0
     fi
-    COMPREPLY=($(compgen -W "$versions $general $common $options" -- "$cur"))
+
+    COMPREPLY=($(compgen -W "$general $common $options" -- "$cur"))
     return 0
 }
 complete -F _eups eups
@@ -202,8 +210,13 @@ _setup()
         return 0
     fi
 
-    local versions=$(_eups_versions $prod)
-    COMPREPLY=($(compgen -W "$versions $options" -- "$cur"))
+    if [[ $prev == $prod ]]; then
+        local versions=$(_eups_versions $prod)
+        COMPREPLY=($(compgen -W "$versions $options" -- "$cur"))
+        return 0
+    fi
+
+    COMPREPLY=($(compgen -W "$options" -- "$cur"))
     return 0
 }
 complete -F _setup setup
