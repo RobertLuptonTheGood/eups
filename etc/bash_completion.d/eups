@@ -203,7 +203,7 @@ _setup()
     fi
 
     local versions=$(_eups_versions $prod)
-    COMPREPLY=($(compgen -W "$versions $general $common $list" -- "$cur"))
+    COMPREPLY=($(compgen -W "$versions $options" -- "$cur"))
     return 0
 }
 complete -F _setup setup
