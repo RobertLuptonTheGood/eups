@@ -5,6 +5,7 @@
 
 # What command was used (anywhere in command-line)?
 _eups_cmd() {
+    local commands=$*
     local i c
     for (( i = 0; i < ${#COMP_WORDS[@]}-1; i ++ )); do
         for c in $commands; do
@@ -55,67 +56,111 @@ _eups()
     local general="--debug -h --help -V --version --vro"
 
     
-    local cmd=$(_eups_cmd)
+    local cmd=$(_eups_cmd $commands)
     if [[ -z $cmd ]]; then
         COMPREPLY=($(compgen -W "$commands $general" -- "$cur"))
         return 0
     fi
 
-    local common="-n --noaction -q --quiet -T --type -v --verbose --vro -Z --database -z --select-db --with-eup"
-    local products=$(_eups_products)
-    local tags=$(_eups_tags)
-
-    case "$cmd" in
-        declare)
-            local declare="-r --root -M --import-table -m --table -t --tag -f --flavor"
-            case "$prev" in
-                -r|--root)
-                    _filedir -d
-                    ;;
-                -M|--import-table|-m|--table)
-                    _filedir
-                    ;;
-                -t|--tag)
-                    COMPREPLY=($(compgen -W "$tags" -- "$cur"))
-                    return 0
-                    ;;
-            esac
-            local prod=$(_eups_product $products)
-            if [[ -z $prod ]]; then
-                COMPREPLY=($(compgen -W "$products $general $common $declare" -- "$cur"))
-                return 0
-            fi
-
-            local versions=$(_eups_versions $prod)
-            COMPREPLY=($(compgen -W "$versions $general $common $declare" -- "$cur"))
-            return 0
+    # Some common options
+    case "$prev" in
+        -r|--root)
+            _filedir -d
             ;;
-        list)
-            local list="-D --dependencies --depth -d --directory -e --exact -r --root -s --setup -m --table -t -tag"
-            case "$prev" in
-                -r|--root)
-                    _filedir -d
-                    ;;
-                -m|--table)
-                    _filedir
-                    ;;
-                -t|--tag)
-                    COMPREPLY=($(compgen -W "$tags" -- "$cur"))
-                    return 0
-                    ;;
-            esac
-            
-            local prod=$(_eups_product $products)
-            if [[ -z $prod ]]; then
-                COMPREPLY=($(compgen -W "$products $general $common $list" -- "$cur"))
-                return 0
-            fi
-
-            local versions=$(_eups_versions $prod)
-            COMPREPLY=($(compgen -W "$versions $general $common $list" -- "$cur"))
+        -M|--import-table|-m|--table)
+            _filedir
+            ;;
+        -t|--tag)
+            local tags=$(_eups_tags)
+            COMPREPLY=($(compgen -W "$tags" -- "$cur"))
             return 0
             ;;
     esac
+
+    local common="-n --noaction -q --quiet -T --type -v --verbose -V --version --vro -Z --database -z --select-db --with-eups"
+    local options=""
+
+    case "$cmd" in
+        declare)
+            options="-r --root -M --import-table -m --table -t --tag -f --flavor"
+            ;;
+        list)
+            options="-D --dependencies --depth -d --directory -e --exact -r --root -s --setup -m --table -t -tag"
+            ;;
+        distrib)
+            local distrib="clean create declare install list"
+            local distribcmd=$(_eups_cmd $distrib)
+            if [[ -z $distribcmd ]]; then
+                COMPREPLY=($(compgen -W "$distrib" -- "$cur"))
+                return 0
+            fi
+
+            local common="$common -D --distrib-class -f --flavor --server-class -S --server-option -t --tag"
+
+            case "$distribcmd" in
+                install)
+                    case "$prev" in
+                        -d|--declareAs)
+                            local tags=$(_eups_tags)
+                            COMPREPLY=($(compgen -W "$tags" -- "$cur"))
+                            return 0
+                            ;;
+                        -g|--groupAccess)
+                            COMPRELPY=($(compgen -A g -- "$cur"))
+                            return 0
+                            ;;
+                        -I|--install-into|--tmp-dir)
+                            _filedir -d
+                            ;;
+                        --manifest)
+                            _filedir
+                            ;;
+                    esac
+                    options="-U --no-server-tags --noclean -j --nodepend -N --noeups --nobuild -C --current-all -c --current"
+                    ;;
+                create)
+                    case "$prev" in
+                        --manifest|-s|--server-dir)
+                            _filedir
+                            ;;
+                        -d|--distribType)
+                            COMPREPLY=($(compgen -W "tarball builder pacman" -- "$cur"))
+                            return 0
+                            ;;
+                    esac
+                    options="-a --as -d --distribType -I --incomplete -j --nodepend -e --exact -f --use-flavor"
+                    ;;
+                clean)
+                    case "$prev" in
+                        -P|--product-dir|--tmp-dir)
+                            _filedir -d
+                            ;;
+                    esac
+                    options="-R --remove"
+                    ;;
+            esac
+    esac
+
+    local products
+    if [[ $cmd == "distrib" ]]; then
+        products=$(eups distrib list | awk '{print $1}' | sort -u);
+    else
+        products=$(_eups_products)
+    fi
+    local prod=$(_eups_product $products)
+    if [[ -z $prod ]]; then
+        COMPREPLY=($(compgen -W "$products $general $common $options" -- "$cur"))
+        return 0
+    fi
+    
+    local versions
+    if [[ $cmd == "distrib" ]]; then
+        versions=$(eups distrib list $prod | awk '{print $1}'| sort -u)
+    else
+        versions=$(_eups_versions $prod)
+    fi
+    COMPREPLY=($(compgen -W "$versions $general $common $options" -- "$cur"))
+    return 0
 }
 complete -F _eups eups
 
