@@ -596,7 +596,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         _tags = tags
         tags = []; notokay = []
         for t in _tags:
-            if re.search(r":.+$", t):
+            if re.search(r"^file:", t):
+                t0 = t
+                t = os.path.expanduser(re.sub(r"^file:", "", t))
+                if os.path.isfile(t):
+                    tags.append(t)
+                else:
+                    notokay.append("%s [no such file]" % t0)
+            elif re.search(r":.+$", t):
                 tbase, suffix = t.split(":")
 
                 if self.tags.isRecognized(tbase):
@@ -605,13 +612,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                     notokay.append(t)
             elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
                 tags.append(t)
-            elif re.search(r"^file:", t):
-                t0 = t
-                t = os.path.expanduser(re.sub(r"^file:", "", t))
-                if os.path.isfile(t):
-                    tags.append(t)
-                else:
-                    notokay.append("%s [no such file]" % t0)
             elif os.path.isfile(t):
                 tags.append(t)
             else:
@@ -2556,7 +2556,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                 except TagNotRecognized:
                     bad.append(tags[i])
             if len(bad) > 0:
-                raise TagNotRecognized(str(bad))
+                if False:
+                    raise TagNotRecognized(str(bad))
+                else:
+                    pass
 
         prodkey = lambda p: "%s:%s:%s:%s" % (p.name,p.flavor,p.db,p.version)
         tagset = _TagSet(self, tags)
@@ -2612,6 +2615,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                 prodnames.sort()
 
                 for pname in prodnames:
+                    for t in tags:
+                        prod = self.findTaggedProduct(pname, t)
+                        if prod:
+                            out.append(prod)
 
                     # peel off newest version if specifically desired 
                     if tags and "newest" in tags:
@@ -2650,7 +2657,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # setup:
                         key = prodkey(prod)
                         if setup.has_key(key):  del setup[key]
-                            
 
                     # add newest if we have/want it
                     if newest:
