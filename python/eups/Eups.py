@@ -2615,10 +2615,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 prodnames.sort()
 
                 for pname in prodnames:
-                    for t in tags:
-                        prod = self.findTaggedProduct(pname, t)
-                        if prod:
-                            out.append(prod)
+                    if tags:
+                        for t in tags:
+                            prod = self.findTaggedProduct(pname, t)
+                            if prod:
+                                out.append(prod)
 
                     # peel off newest version if specifically desired 
                     if tags and "newest" in tags:
