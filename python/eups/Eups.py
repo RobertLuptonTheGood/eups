@@ -1165,7 +1165,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             line = re.sub("^[|\s]*", "", line)
             line = re.sub("\s*$", "", line)
 
-            if re.search(r"^#", line):
+            if not line or re.search(r"^#", line):
                 continue
             #
             # The line may either be "product version [...]" or # "setupRequired(product version)"
@@ -1184,6 +1184,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 fields = line.split()
 
             if len(fields) < 2:
+                import pdb; pdb.set_trace() 
                 raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo, fileName, line))
 
             productName, versionName = fields[0:2]

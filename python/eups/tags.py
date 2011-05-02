@@ -530,7 +530,7 @@ def checkTagsList(eupsenv, tagList):
     """Check that all tags in list are valid"""
     badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), tagList)
 
-    for tag in badtags:
+    for tag in badtags[:]:
         fileName = re.sub(r"^file:", "", tag)
         if os.path.isfile(os.path.expanduser(fileName)):
             if eupsenv.verbose > 1:
