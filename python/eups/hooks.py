@@ -43,12 +43,17 @@ config.Eups.verbose = 0
 config.Eups.asAdmin = None
 config.Eups.setupTypes = ["exact", "build",]
 config.Eups.setupCmdName = "setup"
-config.Eups.VRO = {
-    "default" : "commandLine version versionExpr current",
-}
-config.Eups.VRO["commandLine"] = {
-    "default" : "%s %s" % ("type:exact", config.Eups.VRO["default"])
-}
+if True:
+    config.Eups.VRO = {
+        "default" : "type:exact commandLine version versionExpr current",
+        }
+else:
+    config.Eups.VRO = {
+        "default" : "commandLine version versionExpr current",
+        }
+    config.Eups.VRO["commandLine"] = {
+        "default" : "%s %s" % ("type:exact", config.Eups.VRO["default"])
+        }
 # fallbackFlavors may also be a simple list (which is equivalent to a key of None);
 # if a dict, fallbackFlavors[flavor] is the fallback for flavor (None => any flavor)
 config.Eups.fallbackFlavors = {None : "generic"}

@@ -1184,7 +1184,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                 fields = line.split()
 
             if len(fields) < 2:
-                import pdb; pdb.set_trace() 
                 raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo, fileName, line))
 
             productName, versionName = fields[0:2]
@@ -1586,36 +1585,55 @@ The what argument tells us what sort of state is expected (allowed values are de
         expr0 = expr
         expr = filter(lambda x: not re.search(r"^\s*$", x), re.split(r"\s*(%s|\|\||\s)\s*" % self._relop_re.pattern, expr0))
 
-        oring = True;                       # We are ||ing primitives
+        logop = None                    # the next logical operation to process
+        value = None                    # the value of the current term (e.g. ">= 2.0.0")
         i = -1
         while i < len(expr) - 1:
             i += 1
 
             if self._relop_re.search(expr[i]):
-                op = expr[i]; i += 1
+                relop = expr[i]; i += 1
                 v = expr[i]
-            elif re.search(r"^[-+.:/\w]+$", expr[i]):
-                op = "=="
+            elif re.search(r"^[-+.:/\w]+$", expr[i]) and expr[i] not in ("and", "or"):
+                relop = "=="
                 v = expr[i]
             elif expr[i] == "||" or expr[i] == "or":
-                oring = True;                     # fine; that is what we expected to see
+                logop = "or"
+                continue
+            elif expr[i] == "&&" or expr[i] == "and":
+                if not value:
+                    return False        # short circuit
+                
+                logop = "and"
                 continue
             else:
                 print >> sys.stderr, "Unexpected operator %s in \"%s\"" % (expr[i], expr0)
                 break
 
-            if oring:                # Fine;  we have a primitive to OR in
+            if not logop and value is not None:
+                print >> sys.stderr, "Expected logical operator || or && in \"%s\" at %s" % (expr0, v)
+            else:
                 try:
-                    if self.version_match_prim(op, vname, v):
-                        return vname
+                    rhs = self.version_match_prim(relop, vname, v)
+                    if not logop:
+                        value = rhs
+                    elif logop == "and":
+                        if value and rhs:
+                            value = True
+                        else:
+                            value = False
+                    elif logop == "or":
+                        if value or rhs:
+                            return vname
+
+                        value = False
                 except ValueError, e:           # no sort order is defined
                     return None
 
-                oring = False
-            else:
-                print >> sys.stderr, "Expected logical operator || in \"%s\" at %s" % (expr0, v)
-
-        return None
+        if value:
+            return vname
+        else:
+            return None
 
     def version_match_prim(self, op, v1, v2):
         """
@@ -1769,7 +1787,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                                 break   # no-where else to search
 
                         if product and versionName and recursionDepth == 0: # Check we got the desired version
-                            if product.version != versionName:
+                            if not self.isLegalRelativeVersion(versionName) and \
+                                   product.version != versionName:
                                 #
                                 # Maybe we'll find the product again further down the VRO
                                 #
