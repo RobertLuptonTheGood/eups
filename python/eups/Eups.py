@@ -2708,8 +2708,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                     continue
                 out.append(prod)
 
-        return out
-                
+        #
+        # Make productList entries uniq; would use a set but they are too newfangled
+        #
+        productList = []
+        for p in out:
+            if not p in productList:
+                productList.append(p)
+
+        return productList                
 
     def dependencies_from_table(self, tablefile, eupsPathDirs=None):
         """Return self's dependencies as a list of (Product, optional, recursionDepth) tuples
