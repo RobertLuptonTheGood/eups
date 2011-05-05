@@ -153,7 +153,21 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 print "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
 
         return 1
+    #
+    # See if some tag appears more than once;  if so, they are from different stacks
+    #
+    tagsSeen = {}
+    for pi in productList:
+        for t in pi.tags:
+            if not tagsSeen.has_key(t):
+                tagsSeen[t] = {}
+            if not tagsSeen[t].has_key(pi.name):
+                tagsSeen[t][pi.name] = 0
 
+            tagsSeen[t][pi.name] += 1
+    #
+    # Actually list the products
+    #
     nprod = len(productList)
     for pi in productList:
         name, version, root = pi.name, pi.version, pi.stackRoot() # for convenience
@@ -201,12 +215,15 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
                 info += "%-20s %-55s" % (root, pi.dir)
 
-            if eupsenv.verbose > 1:
                 extra = pi.tags
             else:
                 extra = []
                 for t in pi.tags:
-                    extra.append(Tag(t).name) # get the bare tag name, not e.g. user:foo
+                    if not eupsenv.verbose:
+                        t = Tag(t).name # get the bare tag name, not e.g. user:foo
+                    if tagsSeen.get(t) and tagsSeen[t].get(pi.name) > 1:
+                        t = "%s[%s]" % (t, root)
+                    extra.append(t)
 
             if eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
                 extra += ["setup"]
