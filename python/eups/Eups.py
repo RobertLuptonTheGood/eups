@@ -1370,7 +1370,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         found = None
         for vers in preferred:
-            if vers == ":" or re.search(r"^\d+$", vers):
+            if vers == ":" or re.search(r"^\d+$", vers) or re.search(r"type:", vers):
                 continue
             vers = self.tags.getTag(vers)
             found = self.findProduct(name, vers, eupsPathDirs, flavor, noCache)
