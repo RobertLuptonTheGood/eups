@@ -640,7 +640,12 @@ The what argument tells us what sort of state is expected (allowed values are de
         list order indicates the order of preference with the most 
         preferred tag being first.
         """
-        return list(self.preferredTags)
+        ptags = []
+        for t in list(self.preferredTags):
+            if not re.search(r"^type:", t):
+                ptags.append(t)
+                
+        return ptags
 
     def clearLocks(self):
         """Clear all lock files"""
