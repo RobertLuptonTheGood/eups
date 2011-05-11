@@ -150,6 +150,11 @@ class Tags(object):
         except ValueError:
             owner = None
 
+        if isinstance(name, list) or isinstance(name, tuple):
+            for n in name:
+                self.registerTag(n, group, force)
+            return
+
         if re.search(r"^\d+$", name):
             raise RuntimeError("An integer is not a valid tagname")
 
