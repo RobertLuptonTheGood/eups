@@ -481,19 +481,23 @@ Group:
 
                 if os.path.isfile(value) or os.path.isdir(value):
                     if trimDir and os.path.commonprefix([trimDir, value]) == trimDir:
-                        info[k] = value[len(trimDir) + 1:]
+                        if trimDir == value:
+                            pass        # special case: we are setting something to trimDir
+                        else:
+                            info[k] = value[len(trimDir) + 1:]
 
-                        if k.lower() == "table_file":
-                            dirName = info.get("productDir")
-                            if dirName and info.has_key("ups_dir"):
-                                dirName = os.path.join(dirName, info["ups_dir"])
+                            if k.lower() == "table_file":
+                                dirName = info.get("productDir")
+                                if dirName and info.has_key("ups_dir"):
+                                    dirName = os.path.join(dirName, info["ups_dir"])
 
-                            if dirName and os.path.commonprefix([dirName, info[k]]) == dirName:
-                                info[k] = re.sub("^%s/" % dirName, "", info[k])
+                                if dirName and os.path.commonprefix([dirName, info[k]]) == dirName:
+                                    info[k] = re.sub("^%s/" % dirName, "", info[k])
 
                     if os.path.isabs(info[k]):
-                        print >> sys.stderr, \
-                              "Warning: path %s is absolute, not relative to EUPS_PATH" % info[k]
+                        if info[k] != trimDir:
+                            print >> sys.stderr, \
+                                  "Warning: path %s is absolute, not relative to EUPS_PATH" % info[k]
 
             for field in self._fields:
                 if field == "PROD_DIR":
