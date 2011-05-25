@@ -767,6 +767,8 @@ class UsesCmd(EupsCmd):
                             help="Consider the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("-o", "--optional", dest="optional", action="store_true", default=False, 
                             help="Show optional setups")
+        self.clo.add_option("--pickle", dest="pickleFile", action="store", 
+                            help="Pickle the \"User\" data to pickleFile (or read it if it starts <)")
         self.clo.add_option("-t", "--tag", dest="tag", action="store", 
                             help="Look for products that get setup because it has this tag")
 
@@ -793,7 +795,7 @@ class UsesCmd(EupsCmd):
             eups.printUses(sys.stdout, product, version, self.createEups(), 
                            depth=self.opts.depth, 
                            showOptional=self.opts.optional,
-                           tags=self.opts.tag)
+                           tags=self.opts.tag, pickleFile=self.opts.pickleFile)
         except eups.EupsException, e:
             e.status = 2
             raise

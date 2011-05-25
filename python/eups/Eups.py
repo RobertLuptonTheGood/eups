@@ -2734,6 +2734,160 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return dependencies
 
+    def getDependentProducts(self, topProduct, setup=False, shouldRaise=False,
+                             followExact=None, productDictionary=None, topological=False):
+        """
+        Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
+        @param topProduct      Desired Product
+        @param setup           Return the versions of dependent products that are actually setup
+        @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
+        @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
+        @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
+                               value being that product's dependencies.
+        @param topological     Perform a topological sort before returning the product list; in this case the
+                               "recursionDepth" is the topological order
+
+        See also getDependencies()
+        """
+
+        dependentProducts = []
+
+        try:
+            prodtbl = topProduct.getTable()
+        except TableFileNotFound, e:
+            print >> sys.stderr, e
+            prodtbl = None
+
+        if not prodtbl:
+            return dependentProducts
+
+        for product, optional, recursionDepth in prodtbl.dependencies(self, recursive=True, recursionDepth=1,
+                                                                      followExact=followExact,
+                                                                      productDictionary=productDictionary):
+
+            if product == topProduct:
+                continue
+
+            if setup:           # get the version that's actually setup
+                setupProduct = self.findSetupProduct(product.name)
+                if not setupProduct:
+                    if not optional:
+                        msg = "Product %s is a dependency for %s %s, but is not setup" % \
+                              (product.name, topProduct.name, topProduct.version)
+
+                        if shouldRaise:
+                            raise RuntimeError(msg)
+                        else:
+                            print >> sys.stderr, "%s; skipping" % msg
+
+                    continue
+
+                product = setupProduct
+
+            dependentProducts.append([product, optional, recursionDepth])
+        #
+        # If we're getting exact versions they'll all be at the same recursion depth which gives us
+        # no clue about the order they need to be setup in.  Get the depth information from a
+        # topological sort of the inexact setup
+        #
+        if topological:
+            productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
+                                            # dependencies are usually flattened)
+
+            q = utils.Quiet(self)
+            self.getDependentProducts(topProduct, setup, shouldRaise,
+                                      followExact=False, productDictionary=productDictionary)
+            del q
+            # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
+            pdir = {}
+            #
+            # Remove the defaultProduct from productDictionary
+            #
+            defaultProduct = hooks.config.Eups.defaultProduct["name"]
+            if defaultProduct:
+                prods = [k for k in productDictionary.keys() if k.name == defaultProduct]
+                if prods:
+                    defaultProduct = prods[0]
+
+                    if defaultProduct:
+                        ptable = defaultProduct.getTable()
+                        if ptable:
+                            pdir[defaultProduct] = \
+                                                 set([p[0] for p in ptable.dependencies(self, recursive=True)])
+
+                    if topProduct in \
+                           [e[0] for e in defaultProduct.getTable().dependencies(self, recursive=True)]:
+                        del productDictionary[defaultProduct]
+                        pdir[defaultProduct] = set()
+                else:
+                    defaultProduct = None
+
+            if not defaultProduct:
+                pdir[defaultProduct] = set()
+            #
+            # We have to a bit careful as we populate pdir.  There will be dependent cycles induced if
+            # there's an implicit dependency on a product that also appears in defaultProduct's dependencies
+            #
+            for k, values in productDictionary.items():
+                if k == defaultProduct:   # don't modify pdir[defaultProduct]; especially don't add defaultProduct
+                    continue
+
+                if not pdir.has_key(k):
+                    pdir[k] = set()
+
+                for v in values:
+                    p = v[0]             # the dependent product
+
+                    if p == defaultProduct and k in pdir[defaultProduct]:
+                        continue
+
+                    pdir[k].add(p)
+            #
+            # Actually do the topological sort
+            #
+            sortedProducts = [t for t in
+                              utils.topologicalSort(pdir,verbose=self.verbose)] # products sorted topologically
+            #
+            # Replace the recursion level by the topological depth
+            #
+            tsorted_depth = {}
+            nlevel = len(sortedProducts) + 1 # "+ 1" to allow for topProduct
+            for i, pp in enumerate(sortedProducts):
+                for p in pp:
+                    if p:
+                        tsorted_depth[p.name] = nlevel - i - 1
+
+            if defaultProduct:
+                tsorted_depth[defaultProduct] = nlevel
+
+            for p in dependentProducts:
+                pname = p[0].name
+                if tsorted_depth.has_key(pname):
+                    p[2] = tsorted_depth[pname]
+
+            dependentProducts.sort(lambda a, b: cmp((a[2], a[0].name),
+                                                    (b[2], b[0].name))) # sort by topological depth
+            #
+            # Make dependentProducts unique, but be careful to mark a product that is sometimes required and
+            # sometimes optional as required
+            #
+            optional = {}
+            for p, opt, depth in dependentProducts:
+                optional[p] = opt and optional.get(p, True)
+
+            tmp = []
+            entries = {}
+            for p, opt, d in reversed(dependentProducts):
+                if entries.has_key(p):
+                    continue
+                entries[p] = 1
+                
+                tmp.append([p, optional[p], d])
+
+            dependentProducts = [v for v in reversed(tmp)]
+
+        return dependentProducts
+
     def remove(self, productName, versionName, recursive=False, checkRecursive=False, interactive=False, userInfo=None):
         """Undeclare and remove a product.  If recursive is true also remove everything that
         this product depends on; if checkRecursive is True, you won't be able to remove any
@@ -2863,7 +3017,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 
         return productsToRemove
 
-    def uses(self, productName=None, versionName=None, depth=9999):
+    def uses(self, productName=None, versionName=None, depth=9999, usesInfo=None):
         """Return a list of all products which depend on the specified product in the form of a list of tuples
         (productName, productVersion, (versionNeeded, optional, tags)) 
         (where tags is a list of tag names).  
@@ -2873,6 +3027,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         versionName may be None in which case all versions are returned.  If product is also None,
         a Uses object is returned which may be used to perform further uses searches efficiently
+
+        if usesInfo is provided [as returned when productName is None], don't recalculate it
     """
         if not productName and versionName:
             raise EupsException("You may not specify a version \"%s\" but not a product" % versionName)
@@ -2886,41 +3042,45 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not productList:
             return []
 
-        useInfo = Uses()
+        if not usesInfo:
+            usesInfo = Uses()
 
-        for pi in productList:          # for every known product
-            try:
-                q = utils.Quiet(self)
-                tbl = pi.getTable()
+            for pi in productList:          # for every known product
+                if False:
+                    try:
+                        q = utils.Quiet(self)
+                        tbl = pi.getTable()
 
-                if not tbl:
-                    del q
-                    continue
+                        if not tbl:
+                            del q
+                            continue
 
-                deps = tbl.dependencies(self, followExact=True) # lookup top-level dependencies
-                del q
-            except Exception, e:
-                if not self.quiet:
-                    print >> sys.stderr, ("Warning: %s" % (e))
-                continue
+                        depsO = tbl.dependencies(self, followExact=True) # lookup top-level dependencies
 
-            for dep_product, dep_versionExpr, dep_optional in deps:
-                if pi.name == dep_product.name and pi.version == dep_product.version:
-                    continue
+                        del q
+                    except Exception, e:
+                        if not self.quiet:
+                            print >> sys.stderr, ("Warning: %s" % (e))
+                        continue
 
-                useInfo._remember(pi.name, pi.version, (dep_product.name, dep_product.version, dep_optional))
+                deps = self.getDependentProducts(pi, shouldRaise=False, followExact=None, topological=True)
 
-        useInfo._invert(depth)
+                for dep_product, dep_optional, dep_depth in deps:
+                    assert not (pi.name == dep_product.name and pi.version == dep_product.version)
+
+                    usesInfo.remember(pi.name, pi.version, (dep_product.name, dep_product.version,
+                                                            dep_optional, dep_depth))
+
+            usesInfo.invert(depth)
 
         self.exact_version = old_exact_version
-
         #
         # OK, we have the information stored away
         #
         if not productName:
-            return useInfo
+            return usesInfo
 
-        return useInfo.users(productName, versionName)
+        return usesInfo.users(productName, versionName)
 
     def supportServerTags(self, tags, eupsPathDir=None):
         """

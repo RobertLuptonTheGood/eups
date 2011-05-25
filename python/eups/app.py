@@ -3,6 +3,7 @@ common high-level EUPS functions appropriate for calling from an application.
 """
 
 import re, os, sys, time
+import cPickle
 from Eups           import Eups
 from exceptions     import ProductNotFound
 from tags           import Tags, Tag, TagNotRecognized, checkTagsList
@@ -137,8 +138,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         if includeProduct(recursionDepth):
             print "%-40s %s" % (product.name, product.version)
 
-        for product, optional, recursionDepth in getDependentProducts(product, eupsenv, setup,
-                                                                      topological=topological):
+        for product, optional, recursionDepth in eupsenv.getDependentProducts(product, setup,
+                                                                              topological=topological):
             if not includeProduct(recursionDepth):
                 continue
 
@@ -238,7 +239,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     return nprod
 
 def printUses(outstrm, productName, versionName=None, eupsenv=None, 
-              depth=9999, showOptional=False, tags=None):
+              depth=9999, showOptional=False, tags=None, pickleFile=None):
     """
     print a listing of products that make use of a given product.  
     @param outstrm       the output stream to write the listing to 
@@ -250,7 +251,8 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     @param depth         maximum number of dependency levels to examine
     @param showOptional  if True, indicate if a dependency is optional.  
     @param tags          the preferred set of tags to choose when examining
-                            dependencies.  
+                            dependencies.
+    @param pickleFile    file to save uses dependencies to (or read from if starts with <)
     """
     if not eupsenv:
         eupsenv = Eups()
@@ -260,7 +262,18 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     #
     # To work
     #
-    userList = eupsenv.uses(productName, versionName, depth)
+    if pickleFile and pickleFile[0] == "<": # read it
+        fd = open(pickleFile[1:])
+        usesInfo = cPickle.load(fd)
+        fd.close()
+    else:
+        usesInfo = eupsenv.uses()
+        if pickleFile:
+            fd = open(pickleFile, "w")
+            cPickle.dump(usesInfo, fd)
+            fd.close()
+
+    userList = eupsenv.uses(productName, versionName, depth, usesInfo=usesInfo)
 
     if len(userList) == 0:              # nobody cares.  Maybe the product doesn't exist?
         productList = eupsenv.findProducts(productName, versionName)
@@ -278,172 +291,18 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     print >> outstrm, str
 
     for (p, pv, requestedInfo) in userList:
-        requestedVersion, optional, productDepth = requestedInfo
-
-        if optional and not showOptional:
+        if requestedInfo.optional and not showOptional:
             continue
 
-        str = fmt % (("%*s%s" % (depth - productDepth, "", p)), pv)
+        str = fmt % (("%*s%s" % (0*requestedInfo.depth, "", p)), pv)
         if fmt2:
-            str += fmt2 % (requestedVersion)
+            str += fmt2 % (requestedInfo.version)
 
         if showOptional:
-            if optional:
+            if requestedInfo.optional:
                 str += "Optional"
 
         print >> outstrm, str
-
-def getDependentProducts(topProduct, eupsenv=None, setup=False, shouldRaise=False,
-                         followExact=None, productDictionary=None, topological=False):
-    """
-    Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
-    @param topProduct      Desired Product
-    @param eupsenv         the Eups instance to use; if None, a default will be created.  
-    @param setup           Return the versions of dependent products that are actually setup
-    @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
-    @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
-    @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
-                           value being that product's dependencies.
-    @param topological     Perform a topological sort before returning the product list; in this case the
-                           "recursionDepth" is the topological order
-
-    See also getDependencies()
-    """
-
-    if not eupsenv:
-        eupsenv = Eups()
-
-    dependentProducts = []
-
-    try:
-        prodtbl = topProduct.getTable()
-    except TableFileNotFound, e:
-        print >> sys.stderr, e
-        prodtbl = None
-
-    if not prodtbl:
-        return dependentProducts
-
-    for product, optional, recursionDepth in prodtbl.dependencies(eupsenv, recursive=True, recursionDepth=1,
-                                                                  followExact=followExact,
-                                                                  productDictionary=productDictionary):
-
-        if product == topProduct:
-            continue
-
-        if setup:           # get the version that's actually setup
-            setupProduct = eupsenv.findSetupProduct(product.name)
-            if not setupProduct:
-                if not optional:
-                    msg = "Product %s is a dependency for %s %s, but is not setup" % \
-                          (product.name, topProduct.name, topProduct.version)
-                    
-                    if shouldRaise:
-                        raise RuntimeError(msg)
-                    else:
-                        print >> sys.stderr, "%s; skipping" % msg
-
-                continue
-
-            product = setupProduct
-
-        dependentProducts.append([product, optional, recursionDepth])
-    #
-    # If we're getting exact versions they'll all be at the same recursion depth which gives us
-    # no clue about the order they need to be setup in.  Get the depth information from a
-    # topological sort of the inexact setup
-    #
-    if topological:
-        productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
-                                        # dependencies are usually flattened)
-
-        q = utils.Quiet(eupsenv)
-        getDependentProducts(topProduct, eupsenv, setup, shouldRaise,
-                             followExact=False, productDictionary=productDictionary)
-        del q
-        # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
-        pdir = {}
-        #
-        # Remove the defaultProduct from productDictionary
-        #
-        defaultProduct = hooks.config.Eups.defaultProduct["name"]
-        if defaultProduct:
-            prods = [k for k in productDictionary.keys() if k.name == defaultProduct]
-            if prods:
-                defaultProduct = prods[0]
-
-                if defaultProduct:
-                    ptable = defaultProduct.getTable()
-                    if ptable:
-                        pdir[defaultProduct] = \
-                                             set([p[0] for p in ptable.dependencies(eupsenv, recursive=True)])
-
-                if topProduct in \
-                       [e[0] for e in defaultProduct.getTable().dependencies(eupsenv, recursive=True)]:
-                    del productDictionary[defaultProduct]
-                    pdir[defaultProduct] = set()
-            else:
-                defaultProduct = None
-
-        if not defaultProduct:
-            pdir[defaultProduct] = set()
-        #
-        # We have to a bit careful as we populate pdir.  There will be dependent cycles induced if
-        # there's an implicit dependency on a product that also appears in defaultProduct's dependencies
-        #
-        for k, values in productDictionary.items():
-            if k == defaultProduct:   # don't modify pdir[defaultProduct]; especially don't add defaultProduct
-                continue
-
-            if not pdir.has_key(k):
-                pdir[k] = set()
-
-            for v in values:
-                p = v[0]             # the dependent product
-
-                if p == defaultProduct and k in pdir[defaultProduct]:
-                    continue
-                    
-                pdir[k].add(p)
-        #
-        # Actually do the topological sort
-        #
-        sortedProducts = [t for t in
-                          utils.topologicalSort(pdir,verbose=eupsenv.verbose)] # products sorted topologically
-        #
-        # Replace the recursion level by the topological depth
-        #
-        tsorted_depth = {}
-        nlevel = len(sortedProducts) + 1 # "+ 1" to allow for topProduct
-        for i, pp in enumerate(sortedProducts):
-            for p in pp:
-                if p:
-                    tsorted_depth[p.name] = nlevel - i - 1
-
-        if defaultProduct:
-            tsorted_depth[defaultProduct] = nlevel
-
-        for p in dependentProducts:
-            pname = p[0].name
-            if tsorted_depth.has_key(pname):
-                p[2] = tsorted_depth[pname]
-
-        dependentProducts.sort(lambda a, b: cmp((a[2], a[0].name),
-                                                (b[2], b[0].name))) # sort by topological depth
-        #
-        # Make dependentProducts unique
-        #
-        tmp = []
-        entries = {}
-        for val in reversed(dependentProducts):
-            if entries.has_key(val[0]):
-                continue
-            entries[val[0]] = 1
-            tmp.append(val)
-                
-        dependentProducts = [v for v in reversed(tmp)]
-
-    return dependentProducts
 
 def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False,
                     followExact=None):
@@ -456,7 +315,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
     @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
     @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
 
-    See also getDependentProducts()
+    See also Eups.getDependentProducts()
     """
 
     if not eupsenv:
@@ -467,7 +326,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
         return []
         
     return [(product.name, product.version, recursionDepth) for product, optional, recursionDepth in
-            getDependentProducts(topProduct, eupsenv, setup, shouldRaise, followExact)]
+            eupsenv.getDependentProducts(topProduct, setup, shouldRaise, followExact)]
 
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                     verbose=0):
