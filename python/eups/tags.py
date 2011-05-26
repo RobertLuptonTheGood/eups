@@ -1,5 +1,6 @@
-import os, pwd, re, sys
+import fnmatch, os, pwd, re, sys
 import lock
+import hooks, utils
 from exceptions import EupsException
 
 who = pwd.getpwuid(os.geteuid())[0]
@@ -152,8 +153,21 @@ class Tags(object):
 
         if isinstance(name, list) or isinstance(name, tuple):
             for n in name:
+                if owner:
+                    n = (n, owner)
                 self.registerTag(n, group, force)
             return
+        else:
+            if set(name).intersection(["*", "?", "[", "]"]):         # a glob
+                globPattern = name
+                if not owner:
+                    raise RuntimeError(\
+                        "You can only specify a glob as a tag when reading other user's user tags: %s" % name)
+
+                for n in getUserDefinedTags(owner):
+                    if fnmatch.fnmatch(n, globPattern):
+                        self.registerTag((n, owner), group, force)
+                return
 
         if re.search(r"^\d+$", name):
             raise RuntimeError("An integer is not a valid tagname")
@@ -407,7 +421,6 @@ class Tag(object):
         """
         return true if this is a user tag
         """
-        import hooks
         return self.group == Tags.user
 
     def isGlobal(self):
@@ -545,6 +558,46 @@ def checkTagsList(eupsenv, tagList):
     if badtags:
         raise TagNotRecognized(str(badtags), 
                                msg="Unsupported tag(s): %s" % ", ".join(map(lambda t: str(t), badtags)))
+
+def getUserDefinedTags(user):
+    """Return all the tags that a given user defines
+
+    N.b. we do this by executing their startup file in a new context
+    """
+    startupFile = os.path.join(utils.defaultUserDataDir(user), hooks.config.Eups.startupFileName)
+
+    myGlobals, myLocals = {}, {}
+
+    class Foo(object): pass             # a place to put attributes
+
+    myGlobals["hooks"] = Foo()
+    myGlobals["hooks"].config = Foo()
+    myEups = Foo()
+    myGlobals["hooks"].config.Eups = myEups
+
+    #
+    # Define lists that might be appended to
+    #
+    for c in [c for c in dir(globals()["hooks"].config.Eups) if not re.search("^_", c)]:
+        setattr(myEups, c, [])
+
+    try:
+        execfile(startupFile, myGlobals, myLocals)
+    except Exception, e:
+        print >> sys.stderr, "Error processing %s's startup file: %s" % (user, e)
+        return []
+
+    theirTags = []
+    for tag in myEups.userTags:
+        try:
+            name, owner = tag
+            continue
+        except ValueError:
+            pass
+
+        theirTags.append(tag)
+
+    return theirTags
 
 __all__ = "Tags Tag TagNotRecognized TagNameConflict".split()
 

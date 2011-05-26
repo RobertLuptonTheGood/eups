@@ -32,7 +32,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
@@ -68,7 +68,7 @@ config.Eups.defaultProduct = {"name" : "toolchain", "version" : None, "tag" : No
 # name.  
 config.distrib = {}
     
-startupFileName = "startup.py"
+config.Eups.startupFileName = "startup.py"
 if False:
     configFileName = "config.properties"
 else:
@@ -89,7 +89,7 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False
 
             configFiles.append(cfile)
 
-    startup = os.path.join(customDir, startupFileName) 
+    startup = os.path.join(customDir, config.Eups.startupFileName)
     if not os.path.exists(startup):
         if verbose:
             configFiles.append("[%s]" % startup)
