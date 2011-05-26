@@ -21,6 +21,13 @@ import hooks
 
 _errstrm = sys.stderr
 
+def append_current(option, opt_str, value, parser):
+    """Add "current" to values.tag;  would use append_const but that's not in python 2.4"""
+    if not parser.values.tag:
+        parser.values.tag = []
+        
+    parser.values.tag.append("current")
+
 class EupsSetup(object):
     """
     A class for executing the EUPS command-line setup tool.
@@ -76,16 +83,12 @@ product and all its dependencies into the environment so that it can be used.
             if not self.opts.quiet:
                 self.err('option -l|--list is no longer supported; use "eups list"')
             return 2
-        elif self.opts.current:
-            if not self.opts.quiet:
-                self.err('option -C|--current is no longer supported; use "--tag"')
-            return 2
 
         return self.execute()
 
     def addOptions(self):
 
-        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False,
+        self.clo.add_option("-c", "--current", dest="tag", action="callback", callback=append_current,
                             help="deprecated (use --tag=current)")
         self.clo.add_option("-Z", "--database", dest="path", action="store",
                             help="The colon-separated list of product stacks (databases) to use. " +
