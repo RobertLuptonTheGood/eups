@@ -4,6 +4,7 @@ Tests for eups.Eups
 """
 
 import os
+import pdb
 import sys
 import shutil
 import unittest
@@ -27,7 +28,7 @@ class EupsTestCase(unittest.TestCase):
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
         self.dbpath = os.path.join(testEupsStack, "ups_db")
-        eups.hooks.config.Eups.userTags = 'mine'
+        eups.hooks.config.Eups.userTags = ['mine']
         self.eups = Eups()
 
         self.betachain = os.path.join(self.dbpath,"python","beta.chain")
@@ -59,7 +60,7 @@ class EupsTestCase(unittest.TestCase):
         if os.path.exists(pdir20):
             shutil.rmtree(pdir20)
 
-        eups.hooks.config.Eups.userTags = ''
+        eups.hooks.config.Eups.userTags = []
 
         os.environ = self.environ0
 
@@ -76,16 +77,23 @@ class EupsTestCase(unittest.TestCase):
         for flav in "Linux64 Linux generic".split():
             self.assert_(flav in flavors)
 
-        # 2 default tags: newest, setup
-        # 3 from ups_db cache:  stable, current, beta
-        # 1 user tag: mine
+        # 1 built-in global tag: newest
+        # 2 configured global tags: current stable
+        # 1 built-in user tag: [user]
+        # 1 configured user tag: mine
+        # 8 built-in pseudo tags: commandLine keep path setup 
+        #                         type version versionExpr warn
+        # 1 more from ups_db cache:  beta
+        # 
         tags = self.eups.tags.getTagNames()
-        self.assertEquals(len(tags), 6, "wrong number of tags:"+str(tags))
-        for tag in "newest setup stable current beta".split():
+        self.assertEquals(len(tags), 14, "wrong number of tags:"+str(tags))
+        exptags = "newest setup stable current beta commandLine keep " + \
+                  "path type version versionExpr warn"
+        for tag in exptags.split():
             self.assert_(tag in tags)
 
-        self.assertEquals(len(self.eups.preferredTags), 3)
-        for tag in "stable current newest".split():
+        self.assertEquals(len(self.eups.preferredTags), 5)
+        for tag in "version versionExpr stable current newest".split():
             self.assert_(tag in self.eups.preferredTags)
 
         # There should have been some cache files created
@@ -247,17 +255,20 @@ class EupsTestCase(unittest.TestCase):
         table = os.path.join(pdir10, "ups", "newprod.table")
 #        self.eups.verbose += 1
 
-        # test declare
+        # test declare.  Note: "current" is now a default tag assignment
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack, table)
         prod = self.eups.findProduct("newprod")
+        # pdb.set_trace()
         self.assert_(prod is not None, "Failed to declare product")
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEquals(len(prod.tags), 1)
+        self.assertEquals(prod.tags[0], 'current')
         prod = self.eups.findProduct("newprod", noCache=True)
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEquals(len(prod.tags), 1)
+        self.assertEquals(prod.tags[0], 'current')
         self.assert_(os.path.exists(os.path.join(self.dbpath,
                                                  "newprod", "1.0.version")))
 
@@ -412,6 +423,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 0)
 
         prods = self.eups.findProducts("python", "2.5.2", tags="newest")
+        pdb.set_trace()
         self.assertEquals(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']

@@ -461,7 +461,7 @@ class _Database(object):
 
         if prod.dir:
             trimDir = prod.stackRoot()
-            if not os.path.exists(trimDir):
+            if trimDir and not os.path.exists(trimDir):
                 trimDir = None
                 
         versionFile.write(trimDir)
@@ -547,7 +547,7 @@ class _Database(object):
 
         return None
         
-    def getTaggedVersion(self, tag, productName, flavor, searchUserDB=False):
+    def getTaggedVersion(self, tag, productName, flavor, searchUserDB=True):
         """
         return the version name of the product that has the given tag assigned
         to it.  None is returned if the tag is not assigned to any version.

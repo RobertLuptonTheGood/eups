@@ -12,7 +12,8 @@ import testCommon
 from testCommon import testEupsStack
 from cStringIO import StringIO
 
-from eups import TagNotRecognized, Product, ProductNotFound, EupsException
+from eups import TagNotRecognized, EupsException
+from eups.Product import Product, ProductNotFound
 from eups.Eups import Eups
 from eups.stack import ProductStack
 from eups.utils import Quiet

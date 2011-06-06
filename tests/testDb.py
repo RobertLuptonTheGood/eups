@@ -4,6 +4,7 @@ Tests for eups.db
 """
 
 import os
+import pdb
 import sys
 import shutil
 import re
@@ -12,7 +13,7 @@ import time
 import testCommon
 from testCommon import testEupsStack
 
-from eups import ProductNotFound, Product
+from eups.Product import ProductNotFound, Product
 from eups.db import VersionFile
 
 class VersionFileTestCase(unittest.TestCase):
@@ -631,6 +632,7 @@ class DatabaseTestCase(unittest.TestCase):
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")
         self.assert_(vers is None)
 
+        # pdb.set_trace()
         self.db.assignTag("user:my", "python", "2.5.2")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")
         self.assertEquals(vers, "2.5.2")

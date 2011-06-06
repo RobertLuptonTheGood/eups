@@ -27,11 +27,6 @@ class AppTestCase(unittest.TestCase):
     def tearDown(self):
         os.environ = self.environ0
 
-    def testSetup(self):
-        t = eups.Setup()
-        self.assert_(isinstance(t, eups.Tag), "Setup() did not return a Tag")
-        self.assertEquals(str(t), "setup")
-
     def testProductDir(self):
         if os.environ.has_key("PYTHON_DIR"):
             del os["PYTHON_DIR"]

@@ -21,8 +21,11 @@ class Table(object):
     def __init__(self, tableFile, topProduct=None, addDefaultProduct=None):
         """
         Parse a tablefile
-        @param  The tablefile we're reading
-        @param  The Product that owns this tablefile
+        @param  tableFile          the tablefile we're reading
+        @param  topProduct         the Product that owns this tablefile
+        @param  addDefaultProduct  if True or None, automatically add a 
+                                     "setupOptional" action for the product
+                                     specified in hooks.config.Eups.defaultProduct
         @throws TableError       if an IOError occurs while reading the table file
         @throws BadTableContent  if the table file parser encounters unparseable 
                                    content.  Note that BadTableContent is a subclass

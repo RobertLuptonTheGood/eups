@@ -471,10 +471,14 @@ will also be printed.
                                    productDir=self.opts.productDir, topological=self.opts.topological)
             if n == 0:
                 msg = 'No products found'
-
-                if product == "distrib":
-                    msg += '; Maybe you meant "eups distrib list"?'
                 self.err(msg)
+
+        except eups.ProductNotFound, e:
+            msg = e.getMessage()
+            if product == "distrib":
+                msg += '; Maybe you meant "eups distrib list"?'
+            self.err(msg)
+            return 1
 
         except eups.EupsException, e:
             e.status = 2

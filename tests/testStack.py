@@ -9,7 +9,7 @@ import unittest
 import time
 import testCommon
 from testCommon import testEupsStack
-from eups import ProductNotFound, Product
+from eups.Product import ProductNotFound, Product
 
 from eups.stack import ProductFamily
 

@@ -124,17 +124,17 @@ class CmdTestCase(unittest.TestCase):
 
     def testList(self):
         outall = """
-cfitsio               3006.2    \tcurrent
-doxygen               1.5.7.1   \tcurrent
-eigen                 2.0.0     \tcurrent
-mpich2                1.0.5p4   \tcurrent
-python                2.5.2     \tcurrent
-python                2.6       
-tcltk                 8.5a4     \tcurrent
+cfitsio               3006.2     \tcurrent
+doxygen               1.5.7.1    \tcurrent
+eigen                 2.0.0      \tcurrent
+mpich2                1.0.5p4    \tcurrent
+python                2.5.2      \tcurrent
+python                2.6        
+tcltk                 8.5a4      \tcurrent
 """.strip()
         outpy = """
-   2.5.2     \tcurrent
-   2.6       
+   2.5.2      \tcurrent
+   2.6        
 """.strip()
         outcurr = "\n".join(filter(lambda l: l.find('current') >= 0, outpy.split("\n"))).strip()
         outnews = "\n".join(filter(lambda l: l.find('2.6') >= 0, outpy.split("\n"))).strip()
@@ -165,19 +165,19 @@ tcltk                 8.5a4     \tcurrent
         # test the printing of the helpful message
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list goober".split(), toolname=prog)
-        self.assertEqual(cmd.run(), 0)
+        self.assertEqual(cmd.run(), 1)
         self.assertEquals(self.out.getvalue(), "")
-        self.assertEquals(self.err.getvalue(), prog + ' list: No products found\n')
+        self.assertEquals(self.err.getvalue(), prog + ' list: Unable to find product goober\n')
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list distrib goober".split(), toolname=prog)
-        self.assertEqual(cmd.run(), 0)
+        self.assertEqual(cmd.run(), 1)
         self.assertEquals(self.out.getvalue(), "")
-        self.assertEquals(self.err.getvalue(), prog + ' list: No products found; Maybe you meant "eups distrib list"?\n')
+        self.assertEquals(self.err.getvalue(), prog + ' list: Unable to find product distrib goober; Maybe you meant "eups distrib list"?\n')
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list -q goober".split(), toolname=prog)
-        self.assertEqual(cmd.run(), 0)
+        self.assertEqual(cmd.run(), 1)
         self.assertEquals(self.out.getvalue(), "")
         self.assertEquals(self.err.getvalue(), "")
 
@@ -186,9 +186,9 @@ tcltk                 8.5a4     \tcurrent
         eups.setup("python", productRoot=os.path.join(testEupsStack, "Linux",
                                                       "python", "2.5.2"))
         outwlocal = """
-   2.5.2     \tcurrent
-   2.6       
-   LOCAL:%s/Linux/python/2.5.2\tsetup
+   2.5.2      \tcurrent
+   2.6        
+   LOCAL:%s/Linux/python/2.5.2 \tsetup
 """.strip() % testEupsStack
         cmd = eups.cmd.EupsCmd(args="list python".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
@@ -261,8 +261,8 @@ tcltk                 8.5a4     \tcurrent
         self.assert_(prod is not None, "Failed to declare product")
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
-        self.assertEquals(len(prod.tags), 0)
-        self.assert_("current" not in prod.tags)
+        self.assertEquals(len(prod.tags), 1)   # current is tagged by default
+        self.assert_("current" in prod.tags)
         self.assert_(os.path.isdir(newprod))
 
         # make sure user cannot set a server tag

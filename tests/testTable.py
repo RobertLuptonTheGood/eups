@@ -25,10 +25,11 @@ class TableTestCase1(unittest.TestCase):
 
     def testInit(self):
         self.assertEquals(self.table.file, self.tablefile)
-        self.assertEquals(len(self.table.actions("Darwin")), 13)
-        self.assertEquals(len(self.table.actions("Linux")), 12)
-        self.assertEquals(len(self.table.actions("Linux+2.1.2")), 13)
-        self.assertEquals(len(self.table.actions("DarwinX86")), 13)
+        # Note: we add one to account for the default product
+        self.assertEquals(len(self.table.actions("Darwin")), 14)
+        self.assertEquals(len(self.table.actions("Linux")), 13)
+        self.assertEquals(len(self.table.actions("Linux+2.1.2")), 14)
+        self.assertEquals(len(self.table.actions("DarwinX86")), 14)
 
 class TableTestCase2(unittest.TestCase):
     """test the Table class"""
