@@ -194,6 +194,10 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.name,    "python")
         self.assertEquals(prod.version, "2.6")
         self.assertEquals(prod.flavor,  "Linux")
+        prod = self.eups.findProduct("python")
+        self.assertEquals(prod.name,    "python")
+        self.assertEquals(prod.version, "2.6")
+        self.assertEquals(prod.flavor,  "Linux")
 
         prod = self.eups.findProduct("python", "== 2.5.2")
         self.assertEquals(prod.name,    "python")
@@ -423,7 +427,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 0)
 
         prods = self.eups.findProducts("python", "2.5.2", tags="newest")
-        pdb.set_trace()
+        # pdb.set_trace()
         self.assertEquals(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']
