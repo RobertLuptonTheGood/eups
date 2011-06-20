@@ -642,7 +642,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
         ptags = []
         for t in list(self.preferredTags):
-            if not re.search(r"^type:", t):
+            if True or not re.search(r"^type:", t): # we want type:exact in VRO processing
                 ptags.append(t)
                 
         return ptags
@@ -3359,6 +3359,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         q = None # utils.Quiet(self)
         self._kindlySetPreferredTags(self._vro)
         del q
+        #
+        # Look up a product to exercise the type:XXX processing in the VRO
+        #
+        self.findProductFromVRO("eups", optional=False)        
 
     # staticmethod;  would use a decorator if we knew we had a new enough python
     def __mergeWarnings(vro):
