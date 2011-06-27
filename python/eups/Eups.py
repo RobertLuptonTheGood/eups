@@ -780,8 +780,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not vro:
             vro = self.getPreferredTags()
 
-        for i in range(len(vro)):
-            vroTag = vro[i]
+        for i, vroTag in enumerate(vro):
             vroTag0 = vroTag            # we may modify vroTag
 
             preVro =  vro[0    :i]
@@ -1554,7 +1553,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return versionName is None or versionName == prod.version
 
-    def unsetupSetupProduct(self, product):
+    def unsetupSetupProduct(self, product, noRecursion=False):
         """ 
         if the given product is setup, unset it up.  
         @param product     a Product instance or a product name
@@ -1565,7 +1564,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         prod = self.findSetupProduct(product)
         if prod is not None:
             try:
-                self.setup(prod.name, fwd=False)
+                self.setup(prod.name, fwd=False, noRecursion=noRecursion)
             except EupsException, e:
                 print >> sys.stderr, \
                     "Unable to unsetup %s %s: %s" % (prod.name, prod.version, e)
@@ -1916,7 +1915,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         setup_msgs[msg] = 1
 
             q = utils.Quiet(self)
-            self.unsetupSetupProduct(product)
+            self.unsetupSetupProduct(product, noRecursion=noRecursion)
             del q
 
             setup_product_str = "%s %s -f %s -Z %s" % (
