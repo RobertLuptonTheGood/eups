@@ -1319,8 +1319,7 @@ class TaggedProductList(object):
             ofd = open(filename, "w")
 
         if self.verbose > 0:
-            print >> self.log, "Writing %s product list to %s" % \
-                (self.tag, filename)
+            print >> self.log, "Writing %s product list to %s" % (self.tag, filename)
 
         if not noaction:
             print >> ofd, """\
@@ -1404,7 +1403,8 @@ class Dependency(object):
     """
 
     def __init__(self, product, version, flavor, tablefile, instDir, distId,
-                 isOptional=False, shouldRecurse=False, extra=None):
+                 isOptional=False, shouldRecurse=False, extra=None,
+                 letterVersion=None):
         self.product = product
         if not isinstance(version, str):
             if isinstance(version, type):
@@ -1412,6 +1412,9 @@ class Dependency(object):
             else:
                 version = version.__str__()
         self.version = version
+        if not letterVersion:
+            letterVersion = version
+        self.letterVersion = letterVersion
         self.flavor = flavor
         self.tablefile = tablefile
         self.instDir = instDir
@@ -1425,12 +1428,12 @@ class Dependency(object):
 
     def copy(self):
         return Dependency(self.product, self.version, self.flavor, 
-                          self.tablefile, self.instDir, self.distId, 
-                          self.extra[:])
+                          self.tablefile, self.instDir, self.distId, self.isOpt,
+                          self.shouldRecurse, self.extra[:], self.letterVersion)
 
     def __repr__(self):
         out = [self.product, self.version, self.flavor, 
-               self.tablefile, self.instDir, self.distId]
+               self.tablefile, self.instDir, self.distId, self.letterVersion]
         out.extend(self.extra)
         return repr(out)
 
@@ -1439,7 +1442,7 @@ class Manifest(object):
     install a particular product."""
 
     def __init__(self, product=None, version=None, eupsenv=None, 
-                 verbosity=0, log=sys.stderr):
+                 verbosity=0, log=sys.stderr, letterVersion=None):
         self.products = []
         self.verbose = verbosity
         self.log = log
@@ -1450,6 +1453,9 @@ class Manifest(object):
 
         self.product = product
         self.version = version
+        if not letterVersion:
+            letterVersion = version
+        self.letterVersion = letterVersion
         self.shouldRecurse = False
 
     def __str__(self):
@@ -1480,9 +1486,10 @@ class Manifest(object):
 
     def addDependency(self, product, version, flavor, tablefile,
                       instDir, distId, isOptional=False, shouldRecurse=False, 
-                      extra=None):
+                      extra=None, letterVersion=None):
         self.addDepInst(Dependency(product, version, flavor, tablefile, instDir, 
-                                   distId, isOptional, shouldRecurse, extra))
+                                   distId, isOptional, shouldRecurse, extra,
+                                   letterVersion=letterVersion))
 
     def addDepInst(self, dep):
         """add a dependency in the form of a dependency object"""
@@ -1628,7 +1635,7 @@ EUPS distribution manifest for %s (%s). Version %s
 
                 if not noaction:
                     print >> ofd, "%-15s %-12s %-10s %-25s %-30s %s" % \
-                        (p.product, p.flavor, p.version, p.tablefile, 
+                        (p.product, p.flavor, p.letterVersion, p.tablefile, 
                          p.instDir, p.distId)
         finally:
             if not noaction:
@@ -1656,32 +1663,35 @@ EUPS distribution manifest for %s (%s). Version %s
 
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
-    def remapEntries(self):
+    def remapEntries(self, mode=None):
         """Allow the user to modify entries in the Manifest
 
 The mapping is defined by the file userDataDir/manifest.remap, which consists of up to three columns:
 productName[:version-in-manifest]    [[outProductName:]desired-version]    [flavor]
 
 Comments (starting with #) are skipped
-If version-in-manifest is "Any" the desired-version is used for all products
+If version-in-manifest is "Any" or a matching glob (e.g. "*") the desired-version is used for all products
 If oproductName is present, productName is replaced by outProductName
 If desired-version is "None" or omitted, the product is deleted from the Manifest.
 If flavor is supplied, the mapping is only applied for that flavor
+
+If you prefix the line with [XXX] the mapping will only apply when argument mode == XXX
 
 E.g.
    doxygen:1.5.9                1.6.3
    python:Any                   2.6.2
    tcltk                        None
-   tcltk:Any                    dummy:1.0               DarwinX86
+   tcltk:*                      dummy:1.0               DarwinX86
+   [create]afwdata              None
 
 Means that instead of installing doxygen 1.5.9 version 1.6.3 should be used; that any version of python should
 be replaced by version 2.6.2; that on any platform other than DarwinX86 tcltk should be ignored; and that on
-DarwinX86 machines any version of tcltk should be replace by product dummy, version 1.0
+DarwinX86 machines any version of tcltk should be replace by product dummy, version 1.0.  When creating
+distributions, all versions of afwdata should be omitted
 """
-
         mapping = {}
         for dirname in hooks.customisationDirs:
-            self._readRemapFile(dirname, mapping)
+            self._readRemapFile(dirname, mapping, mode)
         #
         # Retrieve the correct flavor
         #
@@ -1707,7 +1717,7 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
 
                     p.version = None
                 else:
-                    for versName in (p.version, "any"):
+                    for versName in (p.version, "any") or fnmatch.fnmatch(p.version, versName):
                         if mapping[p.product].has_key(versName):
                             productName, versionName = mapping[p.product][versName]
 
@@ -1739,7 +1749,7 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
 
         self.products = products
 
-    def _readRemapFile(self, dirname, mapping={}, filename="manifest.remap"):
+    def _readRemapFile(self, dirname, mapping={}, mode=None, filename="manifest.remap"):
         """Read a product mapping from dirname/filename"""
         
         if not dirname:
@@ -1757,6 +1767,14 @@ DarwinX86 machines any version of tcltk should be replace by product dummy, vers
             line = re.sub(r"\s*#.*$", "", line) # strip comments
 
             if not line:
+                continue
+
+            mat = re.search(r"^\[([^]]+)\]\s*(.*)", line)
+            if mat:
+                if mode and mode != mat.group(1):
+                    continue
+                line = mat.group(2)
+            elif mode:
                 continue
 
             vals = line.split()

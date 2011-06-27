@@ -8,6 +8,7 @@ import sys, os, re, atexit, shutil
 import eups
 import Distrib as eupsDistrib
 import server as eupsServer
+import eups.hooks
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to encapsulate product distribution based on Bourne shell 
@@ -155,7 +156,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None,
-                      overwrite=False):
+                      overwrite=False, letterVersion=None):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -167,17 +168,31 @@ DIST_URL = %%(base)s/builds/%%(path)s
                                 be ignored by the implentation
         @param overwrite      if True, this package will overwrite any 
                                 previously existing distribution files even if Eups.force is false
+        @param letterVersion The name for the desired "letter version"; a rebuild
+                                 with following an ABI change in a dependency
         """
         productName = product
         versionName = version
+        letterVersionName = letterVersion
 
         (baseDir, productDir) = self.getProductInstDir(productName, versionName, flavor)
 
-        builder = "%s-%s.build" % (productName, versionName)
+        builder = "%s-%s.build" % (productName, letterVersionName)
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
+        if not buildFile:               # try a template buildfile from some .eups directory
+            path = self.Eups.path[:]; path.reverse() # the first elements on EUPS_PATH have highest priority
+            files = eups.hooks.loadCustomization(verbose=0, path=path,
+                                                 filename="template.build", execute=False)
+            if files:
+                buildFile = files[0]
+
+                if self.verbose:
+                    print >> self.log, "Using %s to build %s %s" % (buildFile, productName, versionName)
+
         if not buildFile:
-            msg = "I can't find a build file %s.build for version %s anywhere on builder path \"%s\"" % (productName, versionName, self.buildFilePath)
+            msg = "I can't find a build file %s.build for version %s anywhere on builder path \"%s\"" % \
+                  (productName, versionName, self.buildFilePath)
             if self.allowIncomplete:
                 msg += "; proceeding anyway"
 
@@ -212,7 +227,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 print >> self.log, "Not recreating", full_builder
             return "build:" + builder
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             print >> self.log, "Writing", full_builder
 
         try:
@@ -230,10 +245,15 @@ DIST_URL = %%(base)s/builds/%%(path)s
                         raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
 
                     try:
-                        builderVars = {}
-                        builderVars["CVSROOT"] = self.cvsroot
-                        builderVars["CVSROOT"] = self.cvsroot
-                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, self.svnroot, self.cvsroot)
+                        builderVars = eups.hooks.config.distrib["builder"]["variables"]
+                        builderVars["INSTALLED_VERSION"] = letterVersion
+                        # Grandfather in {CVS,SVN}ROOT from the command line
+                        if self.cvsroot:
+                            builderVars["CVSROOT"] = self.cvsroot
+                        if self.svnroot:
+                            builderVars["SVNROOT"] = self.svnroot
+
+                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
@@ -414,7 +434,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
             return None
 
         for bd in self.buildFilePath.split(":"):
-            bd = os.path.expanduser(bd)
+            bd = os.path.expandvars(os.path.expanduser(bd))
             
             if bd == "":
                 if auxDir:
@@ -511,7 +531,7 @@ except NameError:
 #
 # Expand a build file
 #
-def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=None, cvsroot=None):
+def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVars={}):
     """Expand a build file, reading from ifd and writing to ofd"""
     #
     # A couple of functions to set/guess the values that we'll be substituting
@@ -566,30 +586,26 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
     #
     # Here's the function to do the substitutions
     #
-    subs = {}                               # dictionary of substitutions
-    subs["CVSROOT"] = guess_cvsroot(cvsroot)
-    subs["SVNROOT"] = guess_svnroot(svnroot)
-    subs["PRODUCT"] = productName
-    subs["VERSION"] = versionName
+    builderVars["CVSROOT"] = guess_cvsroot(builderVars.get("CVSROOT"))
+    builderVars["SVNROOT"] = guess_svnroot(builderVars.get("SVNROOT"))
+    builderVars["PRODUCT"] = productName
+    builderVars["VERSION"] = versionName
+    builderVars["INSTALLED_VERSION"] = builderVars.get("INSTALLED_VERSION", versionName)
 
     def subVar(name):
         var = name.group(1)
         # variable may be of form @NAME.op@ (e.g. @VERSION.replace(".", "_")@)
         # which means expand name = @NAME@ and evaluate name.op
-        
-        mat = re.search(r"^([^\.]+)(?:\.(.*))", var)
-        if mat:
-            var, op = mat.groups()
-        else:
-            op = None
+
+        dollar, var, op = re.search(r"^(\$)?([^\.]+)(?:\.(.*))?", var).groups()
 
         var = var.upper()
 
-        if subs.has_key(var):
-            if subs[var]:
-                value = subs[var]
+        if builderVars.has_key(var):
+            if builderVars[var]:
+                value = builderVars[var]
             else:
-                print >> sys.stderr, "I can't guess a %s for you -- please set $%s" % (var, var)
+                print >> sys.stderr, "I can't guess a %s for you -- please set hooks.config.distrib[\"builder\"][\"variables\"][\"%s\"] or $%s" % (var, var, var)
                 value = var
 
             while op:                      # a python operation to be applied to value.
@@ -624,6 +640,9 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
                 if op and op[0] == ".": 
                     op = op[1:] 
 
+            if dollar:                  # @$var@ expands to a sh variable with a default value
+                value = "${%s:-%s}" % (var, value)
+                
             return value
 
         return "XXX"
@@ -631,6 +650,12 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
     # Actually do the work
     #
     for line in ifd:
+        line = line.rstrip()
+        # HACK:  replace "scons .* install" with "scons .* install version=@INSTALLED_VERSION@"
+        # The right thing to do is to update the build files
+        if re.search(r"^\s*scons\s+.*install$", line):
+            line += " version=@INSTALLED_VERSION@"
+            
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
 
@@ -639,4 +664,4 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, svnroot=N
         except RuntimeError, e:
             print >> sys.stderr, ("Warning: %s" % e)
 
-        print >> ofd, line,
+        print >> ofd, line

@@ -67,29 +67,16 @@ config.Eups.defaultProduct = {"name" : "toolchain", "version" : None, "tag" : No
 # properties.  The key for looking up Distrib-specific data could the Distrib
 # name.  
 config.distrib = {}
+config.distrib["builder"] = dict(variables = {})
     
 config.Eups.startupFileName = "startup.py"
-if False:
-    configFileName = "config.properties"
-else:
-    configFileName = None
 
-def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False):
+def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False, filename=None):
+    if not filename:
+        filename = config.Eups.startupFileName
+
     configFiles = [] 
-    if configFileName:
-        cfile = os.path.join(customDir, configFileName)
-        if not os.path.exists(cfile):
-            if verbose:
-                configFiles.append("[%s]" % cfile)
-        else:
-            if execute:
-                if verbose > 1:
-                    print >> log, "loading properties from", cfile
-                loadConfigProperties(cfile, verbose, log)
-
-            configFiles.append(cfile)
-
-    startup = os.path.join(customDir, config.Eups.startupFileName)
+    startup = os.path.join(customDir, filename)
     if not os.path.exists(startup):
         if verbose:
             configFiles.append("[%s]" % startup)
@@ -106,22 +93,20 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False
 try:
     type(customisationFiles)
 except NameError:
+    customisationFilename = None
     customisationFiles = None
 
-def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[], reset=False):
+def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[], reset=False,
+                      filename=None):
     """
-    load all site and/or user customizations.  Customizations can come in two
-    forms: a configuration properties file and/or a startup script file.  
-    Any customizations that appears in a startup script file will override
-    those found in the properties file.
+    load all site and/or user customizations.  Customizations comes from a startup script file.  
 
     This function looks for customizations first in a site directory.  By 
     default this is $EUPS_DIR/site; however, it can be overridden with the 
     $EUPS_SITEDATA.  Next it looks for customizations in a user directory
     with is $HOME/.eups by default but can be overridden with $EUPS_USERDATA.
-    In each of these directories, a properties file, called "config.properties"
-    is searched for and loaded, then a startup script, called, "startup.py"
-    is searched for and loaded (possibly over-ridding properties).  
+    In each of these directories a startup script called, "startup.py"
+    is searched for and loaded
 
     Finally, additional startup scripts can be run if $EUPS_STARTUP.  This 
     environment variable contains a colon-delimited list of script file.  Each
@@ -131,10 +116,15 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
     @param log        where to write log messages
     @param execute    process files?
     @param quiet      Be extra quiet
+    @param reset      The list of files is usually cached; reset clears the cache
+    @param filename   Name of file to search (default: config.Eups.startupFileName)
     """
 
-    global customisationDirs, customisationFiles
-    if reset:
+    if not filename:
+        filename = config.Eups.startupFileName
+
+    global customisationDirs, customisationFiles, customisationFilename
+    if reset or customisationFilename != filename:
         customisationFiles = None
 
     if customisationFiles is not None:
@@ -142,6 +132,7 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
             return customisationFiles
 
     customisationDirs = []
+    customisationFilename = filename
 
     # a site-level directory can have configuration stuff in it
     if os.environ.has_key("EUPS_SITEDATA"):
@@ -162,7 +153,7 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
     customisationFiles = []             # files that we'd load
 
     for dir in customisationDirs:
-        cfiles = loadCustomizationFromDir(dir, verbose, log, execute=execute)
+        cfiles = loadCustomizationFromDir(dir, verbose, log, execute=execute, filename=filename)
         if cfiles:
             customisationFiles += cfiles
 

@@ -1,5 +1,77 @@
-2011-03-22 rhl
+2011-06-24 rhl
+	Expand @$VAR@ to ${VAR:-VALUE} (rather than @VAR@ -> VALUE) allowing them to be overridden by
+	environment variables at runtime.
 
+2011-06-22 rhl
+
+	Added --rebuild and --rebuildSuffix options to eups distrib create to permit the generation
+	of "letter versions", i.e. version with identical source code, but built against a changed ABI.
+
+	Allow a prefix [create] in manifest.remap files to ignore (or remap) products when creating a
+	distribution
+
+	Allow a file template.build in one of the startup locations (i.e. places where startup.py can lurk)
+	to be used to build any product without a build file.  It's not clear how useful this is, as you
+	may still need a table file
+
+	Allow e.g. 
+	  hooks.config.distrib["builder"]["variables"]["SVNROOT"] = "svn://svn.lsstcorp.org"
+	in a startup.py file (overriding the environment).  Any key in this dict is eligible for
+	expansion (e.g. @HGROOT@).
+
+
+2011-05-26 rhl
+	Permit config.Eups.userTags of the form (["XXX", "YYY*"], "rhl") (i.e. a glob)
+
+2011-05-05 rhl
+	Make eups list show the ups_db that a tag appears in if it's declared in more than one
+
+2011-05-03 rhl
+	Added support for && (== and) in version expressions, e.g.
+	    eigen >= 2.0.0 && < 3.0.0
+	Not a full parser, so caveat emptor
+
+2011-04-27 rhl
+	Support eups -t file ...
+
+2011-04-21 price
+	Added first-cut script at bash command-line completion for eups and setup commands.
+
+2011-04-17 rhl
+	  1/ Call expandtable on installed tables
+	  2/ Fix installation of server tags
+	  3/ Make the first installation of any product current if no other tags are specified
+	  4/ Declare dummy versions if requested by directives in manifest.remap
+
+2011-04-16 rhl
+	Support $?{PRODUCT_DIR} in table files
+
+2011-04-14 rhl
+
+	Ensure that only the first occurrence of a TAG.list file on the pkgroot path is used. N.b. as a
+	feature, an empty early current.list file will render NCSA's invisible; maybe there should be a way to
+	say, "and continue searching"
+
+2011-04-14 rhl
+	Don't set "current" from the server unless you specify -C
+
+2011-04-14 rhl
+	Support "eups distrib declare -t XXX" to declare all XXX tags
+
+2011-04-12 rhl
+	Added a product (defaultProduct in hooks.py) that is implicitly added to all
+	table files. N.b. not used if there is no tablefile; this is a bug
+
+2011-04-12 rhl
+	Support multiple tags in eups list
+
+2011-04-12 rhl
+	Make failed servers on EUPS_PKGROOT a failure unless forced
+
+2011-03-24 rhl
+	Added eups list --topological to perform a topological sort
+
+2011-03-22 rhl
         Added a -N (--nolock) option to setup, and arranged that registered callback functions are called
 	twice (once with a null Eups object);  the first time is early enough to be used to disable locking
 

@@ -343,8 +343,14 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
     @param verbose  an integer verbosity level where larger values result 
                        in more messages
     """
-    distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose,
-                                    svnroot=svnroot, cvsroot=cvsroot)
+    builderVars = hooks.config.distrib["builder"]["variables"]
+
+    if cvsroot:
+        builderVars["CVSROOT"] = cvsroot
+    if svnroot:
+        builderVars["SVNROOT"] = svnroot
+
+    distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars)
 
 
 def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, force=False):

@@ -151,7 +151,8 @@ class Distrib(object):
         if not os.path.exists(serverDir):
             os.makedirs(serverDir)
 
-    def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
+    def createPackage(self, serverDir, product, version, flavor=None, overwrite=False,
+                      letterVersion=None):
         """Write a package distribution into server directory tree and 
         return the distribution ID.  If a package is made up of several files,
         all of them (except for the manifest) should be deployed by this 
@@ -166,6 +167,10 @@ class Distrib(object):
                                 be ignored by the implentation.  None means
                                 that a non-flavor-specific package is preferred, 
                                 if supported.
+        @param overwrite      if True, this package will overwrite any 
+                                previously existing distribution files even if Eups.force is false
+        @param letterVersion The name for the desired "letter version"; a rebuild
+                                 with following an ABI change in a dependency
         """
         self.unimplemented("createPackage");
 
@@ -343,7 +348,7 @@ class Distrib(object):
         self.unimplemented("createDependencies")
 
     def _createDeps(self, productName, versionName, flavor=None, tag=None, 
-                    recursive=False, exact=False):
+                    recursive=False, exact=False, letterVersions={}):
         """return a list of product dependencies for a given project.  This 
         function returns a proto-dependency list providing only as much 
         generic information as is possible without knowing the details of 
@@ -352,11 +357,17 @@ class Distrib(object):
         """
         if flavor is None:  flavor = self.flavor
         if tag is None:  tag = self.tag
-
-        productList = Manifest(productName, versionName, self.Eups, self.verbose-1, self.log)
+        #
+        # We may need a letter version of this product;  let's check
+        #
+        product = self.Eups.findProduct(productName, versionName)
+        letterVersion=letterVersions.get(product, versionName)
+        productList = Manifest(productName, letterVersion, self.Eups, self.verbose-1,
+                               letterVersion=letterVersion, log=self.log)
 
         # add a record for the top product
-        productList.addDependency(productName, versionName, flavor, None, None, None, False)
+        productList.addDependency(productName, versionName, flavor, None, None, None, False,
+                                  letterVersion=letterVersion)
 
         dependencies = None
         ptablefile = None
@@ -425,8 +436,9 @@ class Distrib(object):
                     continue
                 raise eups.ProductNotFound(dproductName, dversionName)
 
-            productList.addDependency(dproductName, dversionName, flavor,
-                                      None, None, None, dopt)
+            productList.addDependency(dproductName, versionName, flavor, None, None, None, dopt,
+                                      letterVersion=letterVersions.get(dprod, versionName))
+
         #
         # We need to install those products in the correct order
         #
@@ -437,8 +449,10 @@ class Distrib(object):
             if self.noeups and productName == dprod.product:
                 basedir, dprod.instDir = None, "/dev/null"
             else:
-                (basedir, dprod.instDir) = \
-                          self.getProductInstDir(dprod.product, dprod.version, dprod.flavor)
+                (basedir, instDir) = self.getProductInstDir(dprod.product, dprod.version, dprod.flavor)
+
+            if dprod.version != dprod.letterVersion:
+                dprod.instDir = instDir.replace(dprod.version, dprod.letterVersion)
 
         return productList
 
@@ -750,7 +764,7 @@ class DefaultDistrib(Distrib):
         self.setGroupPerms(out)
         
     def createDependencies(self, product, version, flavor=None, tag=None, 
-                           recursive=False, exact=False):
+                           recursive=False, exact=False, letterVersions={}):
         """create a list of product dependencies based on what is known from 
         the system.
 
@@ -769,12 +783,15 @@ class DefaultDistrib(Distrib):
                                 will include the dependencies of the dependencies
                                 recursively.  Default: False
         @param exact          Generate the complete list of dependencies that eups list -D --exact would return
+        @param letterVersions  A dictionary mapping products to the "letter version" that we need (i.e. the same code, but a different build as an ABI changed)
         """
-        deps = self._createDeps(product, version, flavor, tag, recursive, exact)
+        deps = self._createDeps(product, version, flavor, tag, recursive, exact,
+                                letterVersions=letterVersions)
 
         # go through dependencies and fill in the missing info
+
         for prod in deps.getProducts():
-            prod.distId = self.getDistIdForPackage(prod.product, prod.version, flavor)
+            prod.distId = self.getDistIdForPackage(prod.product, prod.letterVersion, flavor)
             #
             # Find product's table file
             #
