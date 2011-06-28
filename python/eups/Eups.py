@@ -3361,7 +3361,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # Look up a product to exercise the type:XXX processing in the VRO
         #
-        self.findProductFromVRO("eups", optional=False)        
+        self.findProductFromVRO("", optional=False)        
 
     # staticmethod;  would use a decorator if we knew we had a new enough python
     def __mergeWarnings(vro):
