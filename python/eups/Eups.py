@@ -2403,13 +2403,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 
         if tag:
             # we just want to update the tag
+            if isinstance(tag, str):
+                tag = [self.tags.getTag(tag)]
+
             if verbose:
                 info = "Assigning tag \"%s\" to %s %s" % (tag[0].name, productName, versionName)
                 print >> sys.stderr, info
-            if not self.noaction:
-                if isinstance(tag, str):
-                    tag = [self.tags.getTag(tag)]
 
+            if not self.noaction:
                 eupsDirs = [eupsPathDirForRead, eupsPathDir]
                 #
                 # Delete all old occurrences of this tag

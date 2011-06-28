@@ -305,7 +305,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
         print >> outstrm, str
 
 def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False,
-                    followExact=None):
+                    followExact=None, topological=False):
     """
     Return a list of productName's dependent products : [(productName, productVersion, recursionDepth), ...]
     @param productName     Desired product's name
@@ -326,7 +326,8 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
         return []
         
     return [(product.name, product.version, recursionDepth) for product, optional, recursionDepth in
-            eupsenv.getDependentProducts(topProduct, setup, shouldRaise, followExact)]
+            eupsenv.getDependentProducts(topProduct, setup, shouldRaise, followExact,
+                                         topological=topological)]
 
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
                     verbose=0):
