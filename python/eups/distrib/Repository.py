@@ -529,6 +529,7 @@ class Repository(object):
             try:
                 man = distrib.createDependencies(dp.product, dp.version, self.flavor,
                                                  letterVersions=letterVersions)
+                man.remapEntries(mode="create")
             except eups.ProductNotFound, e:
                 raise RuntimeError("Creating manifest for %s %s: %s" %
                                    (manifest.product, manifest.letterVersion, e))
