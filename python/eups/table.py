@@ -1071,20 +1071,18 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         NVL = []
         version = None
         if productList.has_key(productName):
-            NVL.append((productName, productList[productName], None))
+            version = productList[productName]
         else:
             try:
-                setupVersion = eups.getSetupVersion(productName)
+                version = eups.getSetupVersion(productName)
             except ProductNotFound:
                 notFound[productName] = True
                 if not optional:
                     if not force:
                         raise
+                continue
 
-            NVL.append((productName, setupVersion, None))
-
-            if not Eups.findProduct(productName, None):
-                version = setupVersion
+        NVL.append((productName, version, None))
                     
         try:
             NVL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
@@ -1092,6 +1090,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
             if not optional:
                 if not force:
                     raise
+            continue
 
         for name, version, level in NVL:
             if re.search("^" + Product.Product.LocalVersionPrefix, version):
