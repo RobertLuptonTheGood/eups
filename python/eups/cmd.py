@@ -2395,29 +2395,32 @@ class DistribCreateCmd(EupsCmd):
                 print "Creating distribution for %s %s (not %s)" % (productName,
                                                                     letterVersions[topProduct], version)
 
-        log = None
-        if self.opts.quiet:
-            log = open("/dev/null", "w")
+        if myeups.noaction:
+            print "Skipping repository and server creation."
+        else:
+            log = None
+            if self.opts.quiet:
+                log = open("/dev/null", "w")
 
-        try:
-            repos = None
-            if not self.opts.force:
-                repos = distrib.Repositories(self.opts.repos, dopts, myeups,
-                                             self.opts.flavor, 
-                                             verbosity=self.opts.verbose, 
-                                             log=log)
+            try:
+                repos = None
+                if not self.opts.force:
+                    repos = distrib.Repositories(self.opts.repos, dopts, myeups,
+                                                 self.opts.flavor, 
+                                                 verbosity=self.opts.verbose, 
+                                                 log=log)
 
-            server = distrib.Repository(myeups, self.opts.serverDir, 
-                                        self.opts.useFlavor, options=dopts, 
-                                        verbosity=self.opts.verbose, log=log)
-            server.create(self.opts.distribTypeName, productName,
-                          version, nodepend=self.opts.nodepend, options=dopts,
-                          manifest=self.opts.manifest, 
-                          packageId=self.opts.packageId, repositories=repos)
+                server = distrib.Repository(myeups, self.opts.serverDir, 
+                                            self.opts.useFlavor, options=dopts, 
+                                            verbosity=self.opts.verbose, log=log)
+                server.create(self.opts.distribTypeName, productName,
+                              version, nodepend=self.opts.nodepend, options=dopts,
+                              manifest=self.opts.manifest, 
+                              packageId=self.opts.packageId, repositories=repos)
 
-        except eups.EupsException, e:
-            e.status = 1
-            raise
+            except eups.EupsException, e:
+                e.status = 1
+                raise
 
         return 0
         
