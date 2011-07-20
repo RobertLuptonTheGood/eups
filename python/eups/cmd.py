@@ -2377,6 +2377,9 @@ class DistribCreateCmd(EupsCmd):
 
                     break
 
+                if rebuildProduct.name not in [q[0].name for q in myeups.getDependentProducts(p)]:
+                    continue
+
                 letterVersions[p] = self.incrLetterVersion(p.version, rebuildSuffix)
 
                 if self.opts.verbose:
