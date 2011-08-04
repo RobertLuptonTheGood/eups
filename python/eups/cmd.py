@@ -2217,7 +2217,7 @@ class DistribCreateCmd(EupsCmd):
         self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False, 
                             help="deprecated (ignored)")
 
-    def incrLetterVersion(self, version, rebuildSuffix):
+    def incrLetterVersion(self, myeups, productName, version, rebuildSuffix):
         """Given a version possibly ending with a number of letters and optionally rebuildSuffix,
         return a version with the string of letters incremented and rebuildSuffix appended
 
@@ -2225,34 +2225,39 @@ class DistribCreateCmd(EupsCmd):
         """
         
         iversion = version              # initial version for diagnostics
-        if rebuildSuffix:
-            version = re.sub(rebuildSuffix + "$", "", version) # strip suffix
+        
+        while True:
+            if rebuildSuffix:
+                version = re.sub(rebuildSuffix + "$", "", version) # strip suffix
 
-        mat = re.search(r"([A-Za-z]+)$", version)
-        if not mat:
-            letters = "a"
-        else:
-            letterVersionNumber = 0
-            letters = mat.group(1).lower()
-            version = version[:-len(letters)] # strip letters
+            mat = re.search(r"([A-Za-z]+)$", version)
+            if not mat:
+                letters = "a"
+            else:
+                letterVersionNumber = 0
+                letters = mat.group(1).lower()
+                version = version[:-len(letters)] # strip letters
 
-            for l in letters:
-                if not l >= 'a' and l <= 'z':
-                    raise RuntimeError("Version %s contains an illegal character %s" % (iversion, l))
-                letterVersionNumber = 26*letterVersionNumber + (ord(l) - ord('a'))
+                for l in letters:
+                    if not l >= 'a' and l <= 'z':
+                        raise RuntimeError("Version %s contains an illegal character %s" % (iversion, l))
+                    letterVersionNumber = 26*letterVersionNumber + (ord(l) - ord('a'))
 
-            letterVersionNumber += 1
+                letterVersionNumber += 1
 
-            letters = ""
-            while letterVersionNumber:
-                letters += chr(letterVersionNumber%26 + ord('a'))
-                letterVersionNumber //= 26
+                letters = ""
+                while letterVersionNumber:
+                    letters += chr(letterVersionNumber%26 + ord('a'))
+                    letterVersionNumber //= 26
 
-            letters = ''.join(reversed(letters))
+                letters = ''.join(reversed(letters))
 
-        version += letters
-        if rebuildSuffix:
-            version += rebuildSuffix
+            version += letters
+            if rebuildSuffix:
+                version += rebuildSuffix
+
+            if myeups.findProduct(productName, version) is None: # Found an empty slot?
+                break
             
         return version
 
@@ -2366,7 +2371,7 @@ class DistribCreateCmd(EupsCmd):
             topProduct = myeups.findProduct(productName, version)
 
             letterVersions = {
-                topProduct : self.incrLetterVersion(version, rebuildSuffix),
+                topProduct : self.incrLetterVersion(myeups, productName, version, rebuildSuffix),
                 }
 
             foundRebuildProduct = False # did we find the changed product as a dependency?
@@ -2380,7 +2385,7 @@ class DistribCreateCmd(EupsCmd):
                 if rebuildProduct.name not in [q[0].name for q in myeups.getDependentProducts(p)]:
                     continue
 
-                letterVersions[p] = self.incrLetterVersion(p.version, rebuildSuffix)
+                letterVersions[p] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
 
                 if self.opts.verbose:
                     print "Creating letter version %s %s" % (p.name, letterVersions[p])
@@ -2394,6 +2399,7 @@ class DistribCreateCmd(EupsCmd):
             if not self.opts.quiet:
                 print "Creating distribution for %s %s (not %s)" % (productName,
                                                                     letterVersions[topProduct], version)
+                print "Don't forget to install this distribution to pick up the letter versions!"
 
         if myeups.noaction:
             print "Skipping repository and server creation."
