@@ -2225,19 +2225,23 @@ class DistribCreateCmd(EupsCmd):
         """
         
         iversion = version              # initial version for diagnostics
-        
-        while True:
-            if rebuildSuffix:
-                version = re.sub(rebuildSuffix + "$", "", version) # strip suffix
 
-            mat = re.search(r"([A-Za-z]+)$", version)
-            if not mat:
+        unlettered = version
+        if rebuildSuffix:
+            unlettered = re.sub(rebuildSuffix + "$", "", unlettered) # strip suffix
+
+        mat = re.search(r"([A-Za-z]+)$", unlettered)
+        if mat:
+            leters = mat.group(1).lower()
+            unlettered = unlettered[:-len(letters)] # strip letters
+        else:
+            letters = None
+
+        while True:
+            if letters is None:
                 letters = "a"
             else:
                 letterVersionNumber = 0
-                letters = mat.group(1).lower()
-                version = version[:-len(letters)] # strip letters
-
                 for l in letters:
                     if not l >= 'a' and l <= 'z':
                         raise RuntimeError("Version %s contains an illegal character %s" % (iversion, l))
@@ -2252,7 +2256,7 @@ class DistribCreateCmd(EupsCmd):
 
                 letters = ''.join(reversed(letters))
 
-            version += letters
+            version = unlettered + letters
             if rebuildSuffix:
                 version += rebuildSuffix
 
