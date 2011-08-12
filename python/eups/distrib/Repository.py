@@ -412,7 +412,7 @@ class Repository(object):
         opts = self._mergeOptions(options)
 
         letterVersions = options.get("letterVersions", {})
-        letterVersion = letterVersions.get(self.eups.findProduct(product, version), version)
+        version, letterVersion = letterVersions.get(product, (version, version))
         
         try:
             distrib = self.distFactory.createDistribByName(distribTypeName, options=opts, 

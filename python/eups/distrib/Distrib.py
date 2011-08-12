@@ -360,8 +360,7 @@ class Distrib(object):
         #
         # We may need a letter version of this product;  let's check
         #
-        product = self.Eups.findProduct(productName, versionName)
-        letterVersion=letterVersions.get(product, versionName)
+        versionName, letterVersion=letterVersions.get(productName, (versionName, versionName))
         productList = Manifest(productName, letterVersion, self.Eups, self.verbose-1,
                                letterVersion=letterVersion, log=self.log)
 
@@ -436,8 +435,10 @@ class Distrib(object):
                     continue
                 raise eups.ProductNotFound(dproductName, dversionName)
 
+            versionName, letterVersion = letterVersions.get(dproductName, (versionName, versionName))
+
             productList.addDependency(dproductName, versionName, flavor, None, None, None, dopt,
-                                      letterVersion=letterVersions.get(dprod, versionName))
+                                      letterVersion=letterVersion)
 
         #
         # We need to install those products in the correct order

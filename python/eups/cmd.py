@@ -2232,7 +2232,7 @@ class DistribCreateCmd(EupsCmd):
 
         mat = re.search(r"([A-Za-z]+)$", unlettered)
         if mat:
-            leters = mat.group(1).lower()
+            letters = mat.group(1).lower()
             unlettered = unlettered[:-len(letters)] # strip letters
         else:
             letters = None
@@ -2263,7 +2263,7 @@ class DistribCreateCmd(EupsCmd):
             if myeups.findProduct(productName, version) is None: # Found an empty slot?
                 break
             
-        return version
+        return unlettered, version
 
     def execute(self):
         # get rid of sub-command arg
@@ -2375,24 +2375,23 @@ class DistribCreateCmd(EupsCmd):
             topProduct = myeups.findProduct(productName, version)
 
             letterVersions = {
-                topProduct : self.incrLetterVersion(myeups, productName, version, rebuildSuffix),
+                productName : self.incrLetterVersion(myeups, productName, version, rebuildSuffix),
                 }
 
             foundRebuildProduct = False # did we find the changed product as a dependency?
             for p, optional, recursionDepth in myeups.getDependentProducts(topProduct, topological=True):
                 if p.name == rebuildProduct.name:
                     foundRebuildProduct = True
-                    letterVersions[p] = rebuildVersion
-
+                    letterVersions[p.name] = rebuildVersion, rebuildVersion
                     break
 
                 if rebuildProduct.name not in [q[0].name for q in myeups.getDependentProducts(p)]:
                     continue
 
-                letterVersions[p] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
+                letterVersions[p.name] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
 
                 if self.opts.verbose:
-                    print "Creating letter version %s %s" % (p.name, letterVersions[p])
+                    print "Creating letter version %s %s" % (p.name, letterVersions[p.name][1])
 
             if not foundRebuildProduct:
                 raise RuntimeError("%s is not a dependency of %s:%s" %
@@ -2402,7 +2401,7 @@ class DistribCreateCmd(EupsCmd):
 
             if not self.opts.quiet:
                 print "Creating distribution for %s %s (not %s)" % (productName,
-                                                                    letterVersions[topProduct], version)
+                                                                    letterVersions[productName][1], version)
                 print "Don't forget to install this distribution to pick up the letter versions!"
 
         if myeups.noaction:
