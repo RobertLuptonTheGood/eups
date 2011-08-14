@@ -962,6 +962,8 @@ For example, the make target in a ups directory might contain the line:
         # these are specific to this command
         self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true", 
                             help="Modify the given tablefile in situ")
+        self.clo.add_option("-P", "--productName", dest="toplevelName", action="store",
+                            help="The product which owns the table file")
         self.clo.add_option("-p", "--product", dest="prodlist", action="store",
                             help="A set of products of the form 'prod=ver[:...]'")
         self.clo.add_option("-w", "--warn", dest="warn", action="store_true", default=False, 
@@ -1046,11 +1048,23 @@ For example, the make target in a ups directory might contain the line:
 
         else:
             ofd = sys.stdout
+        #
+        # We'd like to know what product we're setting up (so as to avoid recursive setups), but this
+        # may not be possible
+        #
+        toplevelName = self.opts.toplevelName
+        if not toplevelName:
+            mat = re.search(r"^(.*).table$", os.path.split(inFile)[1])
+            if mat:
+                toplevelName = mat.group(1)
+            else:
+                toplevelName = None
 
         try:
             try:
                 try:                    # older pythons don't support try except finally
-                    eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp, myeups, self.opts.force)
+                    eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp, myeups, self.opts.force,
+                                         toplevelName=toplevelName)
                 except Exception, e:
                     e.message = "Processing %s: %s" % (inFile, e)
                     raise

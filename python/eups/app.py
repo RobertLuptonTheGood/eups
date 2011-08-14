@@ -354,7 +354,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
     distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars)
 
 
-def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, force=False):
+def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, force=False, toplevelName=None):
     """
     expand the version specifications in a table file.  When a version in 
     the original table file is expressed as an expression, the expression is 
@@ -375,7 +375,7 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
         eupsenv = eups.Eups()
 
     try:
-        table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force)
+        table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force, toplevelName)
     except ProductNotFound, e:
         raise
 

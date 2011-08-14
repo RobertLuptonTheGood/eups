@@ -906,7 +906,7 @@ class Action(object):
 #
 # Expand a table file
 #
-def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False):
+def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False, toplevelName=None):
     """Expand a table file, reading from ifd and writing to ofd
     If force is true, missing required dependencies are converted to optional
     """
@@ -1063,11 +1063,14 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     # Figure out the complete list of products that this table file will setup; only list each once
     #
     # Note that these are the complete dependencies of all the products in the table file, but with
-    # the versions that are currently setup
+    # the versions that are currently setup.
     #
     desiredProducts = []
     notFound = {}
     for productName, optional in products:
+        if productName == toplevelName:
+            continue                    # Don't include product foo in foo.table
+
         NVL = []
         version = None
         if productList.has_key(productName):
