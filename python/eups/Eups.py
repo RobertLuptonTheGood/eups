@@ -619,12 +619,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if notokay:
             if strict:
-                raise TagNotRecognized(str(notokay), 
-                                       msg="Unsupported tag(s): " + 
-                                           ", ".join(notokay))
+                raise TagNotRecognized(str(notokay), msg="Unsupported tag(s): " + ", ".join(notokay))
             elif self.quiet <= 0:
-                print >> sys.stderr, \
-                      "Ignoring unsupported tags:", ", ".join(notokay)
+                print >> sys.stderr, "Ignoring unsupported tags in VRO:", ", ".join(notokay)
                 tags = filter(self.tags.isRecognized, tags)
 
         if len(tags) == 0:
