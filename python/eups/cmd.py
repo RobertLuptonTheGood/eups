@@ -2387,6 +2387,8 @@ class DistribCreateCmd(EupsCmd):
                 raise RuntimeError("I can't find product %s %s" % (rebuildName, rebuildVersion))
 
             topProduct = myeups.findProduct(productName, version)
+            if not topProduct:
+                raise RuntimeError("I can't find product %s %s" % (productName, version))
 
             letterVersions = {
                 productName : self.incrLetterVersion(myeups, productName, version, rebuildSuffix),
