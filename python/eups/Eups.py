@@ -440,7 +440,9 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _databaseFor(self, eupsPathDir, dbpath=None):
         if not dbpath:
             dbpath = self.getUpsDB(eupsPathDir)
-        return Database(dbpath, userTagRoot=self._userStackCache(eupsPathDir))
+        db = Database(dbpath, userTagRoot=self._userStackCache(eupsPathDir))
+
+        return db
 
     def _userStackCache(self, eupsPathDir):
         if not self.userDataDir:
@@ -2039,11 +2041,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 prod = self.findProduct(productName, versionName)
                 if prod is None:
                     raise ProductNotFound(productName, versionName, self.flavor)
-                msg = "Tag %s not assigned to product %s" % \
-                    (tag.name, productName)
+                msg = "Tag %s is not assigned to product %s" % (tag.name, productName)
                 if eupsPathDir:
                     msg += " within %s" % str(eupsPathDir)
 
+            versionName = prod.version
             dbpath = prod.db
             eupsPathDir = prod.stackRoot()
         else:
@@ -2054,16 +2056,23 @@ The what argument tells us what sort of state is expected (allowed values are de
                 print >> sys.stderr, msg
             return
 
-        if tag.isGlobal() and not utils.isDbWritable(dbpath):
-            raise EupsException(
-                "You don't have permission to unassign a global tag %s in %s" %
-                (str(tag), product.db))
+        if tag.isGlobal():
+            if not utils.isDbWritable(dbpath):
+                raise EupsException(
+                    "You don't have permission to unassign a global tag %s in %s" % (str(tag), eupsPathDir))
+        else:
+            userId = self.tags.owners.get(tag.name, None)
+            db = self._databaseFor(eupsPathDir, dbpath)
+            dbpath = db._getUserTagDb(userId=userId, upsdb=db.defStackRoot)
+
+            if not utils.isDbWritable(dbpath):
+                raise EupsException("You don't have permission to unassign %s's tag %s" % (userId, tag.name))
 
         # update the database
         if not self._databaseFor(eupsPathDir,dbpath).unassignTag(str(tag), productName, self.flavor):
             if self.verbose:
-                print >> sys.stderr, "Tag %s not assigned to %s %s" % \
-                    (productName, versionName)
+                print >> sys.stderr, "Tag %s is not assigned to %s %s" % \
+                    (tag, productName, versionName)
 
         # update the cache
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
