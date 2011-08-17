@@ -440,6 +440,8 @@ will also be printed.
                             help="the setup type to assume (ignored unless -d is specified)")
         self.clo.add_option("--topological", dest="topological", action="store_true", default=False,
                             help="Return dependencies after a topological sort")
+        self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
+                            help="Print product version")
 
     def execute(self):
         product = version = None
