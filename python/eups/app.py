@@ -307,7 +307,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
 def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False,
                     followExact=None, topological=False):
     """
-    Return a list of productName's dependent products : [(productName, productVersion, recursionDepth), ...]
+    Return a list of productName's dependent products : [(productName, VersionName, optional, recursionDepth), ...]
     @param productName     Desired product's name
     @param versionName     Desired version of product
     @param eupsenv         the Eups instance to use; if None, a default will be created.  
@@ -325,7 +325,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
     if not topProduct:                  # it's never been declared (at least not with this version)
         return []
         
-    return [(product.name, product.version, recursionDepth) for product, optional, recursionDepth in
+    return [(product.name, product.version, optional, recursionDepth) for product, optional, recursionDepth in
             eupsenv.getDependentProducts(topProduct, setup, shouldRaise, followExact,
                                          topological=topological)]
 

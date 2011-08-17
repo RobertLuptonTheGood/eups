@@ -1066,12 +1066,13 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     # the versions that are currently setup.
     #
     desiredProducts = []
+    optionalProducts = {}
     notFound = {}
     for productName, optional in products:
         if productName == toplevelName:
             continue                    # Don't include product foo in foo.table
 
-        NVL = []
+        NVOL = []
         version = None
         if productList.has_key(productName):
             version = productList[productName]
@@ -1085,17 +1086,17 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                         raise
                 continue
 
-        NVL.append((productName, version, None))
+        NVOL.append((productName, version, optional, None))
                     
         try:
-            NVL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
+            NVOL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
         except:
             if not optional:
                 if not force:
                     raise
             continue
 
-        for name, version, level in NVL:
+        for name, version, opt, level in NVOL:
             if re.search("^" + Product.Product.LocalVersionPrefix, version):
                 print >> sys.stderr, "Warning: exact product specification \"%s %s\" is local" % \
                       (name, version)
@@ -1103,6 +1104,8 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
             key = (name, version)
             if desiredProducts.count(key) == 0:
                 desiredProducts.append(key)
+                if opt:
+                    optionalProducts[key] = True
     #
     # Generate the outputs.  We want to replace the _last_ setups block by an if (type == exact) { } else { }
     # block;  actually we could do this line by line but that'd make an unreadable table file
@@ -1127,7 +1130,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 print >> ofd, "if (type == exact) {"
 
                 for n, v in desiredProducts:
-                    if notFound.get(n):
+                    if optionalProducts.get((n, v)) or notFound.get(n):
                         cmd = "setupOptional"
                     else:
                         cmd = "setupRequired"
