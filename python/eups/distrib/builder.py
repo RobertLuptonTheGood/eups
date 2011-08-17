@@ -156,7 +156,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None,
-                      overwrite=False, letterVersion=None):
+                      overwrite=False, letterVersion=None, repoVersion=None):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -168,12 +168,16 @@ DIST_URL = %%(base)s/builds/%%(path)s
                                 be ignored by the implentation
         @param overwrite      if True, this package will overwrite any 
                                 previously existing distribution files even if Eups.force is false
-        @param letterVersion The name for the desired "letter version"; a rebuild
-                                 with following an ABI change in a dependency
+        @param letterVersion  the name for the desired "letter version"; a version
+                                 following a rebuild caused by an ABI change in a dependency
+        @param repoVersion    the name identifying the repository (cvs, svn, hg, ...) version
         """
         productName = product
         versionName = version
         letterVersionName = letterVersion
+        if not repoVersion:
+            repoVersion = version
+        repoVersionName = repoVersion
 
         (baseDir, productDir) = self.getProductInstDir(productName, versionName, flavor)
 
@@ -246,14 +250,15 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
                     try:
                         builderVars = eups.hooks.config.distrib["builder"]["variables"]
-                        builderVars["INSTALLED_VERSION"] = letterVersion
+                        builderVars["INSTALLED_VERSION"] = letterVersionName
                         # Grandfather in {CVS,SVN}ROOT from the command line
                         if self.cvsroot:
                             builderVars["CVSROOT"] = self.cvsroot
                         if self.svnroot:
                             builderVars["SVNROOT"] = self.svnroot
 
-                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars)
+                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars,
+                                        repoVersionName=repoVersionName)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
@@ -531,7 +536,7 @@ except NameError:
 #
 # Expand a build file
 #
-def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVars={}):
+def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVars={}, repoVersionName=None):
     """Expand a build file, reading from ifd and writing to ofd"""
     #
     # A couple of functions to set/guess the values that we'll be substituting
@@ -649,8 +654,15 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     #
     # Actually do the work
     #
+    versionNameRe = re.escape(versionName)
+
     for line in ifd:
         line = line.rstrip()
+        # HACK: if the current version name appears in the old build file, replace it by the version
+        # name from the repository.  Needed if re-expanding letter-version build files
+        if repoVersionName:
+            line = re.sub(versionNameRe, repoVersionName, line)
+
         # HACK:  replace "scons .* install" with "scons .* install version=@INSTALLED_VERSION@"
         # The right thing to do is to update the build files
         if re.search(r"^\s*scons\s+.*install", line):

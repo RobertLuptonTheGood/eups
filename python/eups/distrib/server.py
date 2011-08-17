@@ -1404,7 +1404,7 @@ class Dependency(object):
 
     def __init__(self, product, version, flavor, tablefile, instDir, distId,
                  isOptional=False, shouldRecurse=False, extra=None,
-                 letterVersion=None):
+                 letterVersion=None, repoVersion=None):
         self.product = product
         if not isinstance(version, str):
             if isinstance(version, type):
@@ -1415,6 +1415,9 @@ class Dependency(object):
         if not letterVersion:
             letterVersion = version
         self.letterVersion = letterVersion
+        if not repoVersion:
+            repoVersion = version
+        self.repoVersion = repoVersion  # the version name as known to cvs/svn/hg/git/...
         self.flavor = flavor
         self.tablefile = tablefile
         self.instDir = instDir
@@ -1486,10 +1489,10 @@ class Manifest(object):
 
     def addDependency(self, product, version, flavor, tablefile,
                       instDir, distId, isOptional=False, shouldRecurse=False, 
-                      extra=None, letterVersion=None):
+                      extra=None, letterVersion=None, repoVersion=None):
         self.addDepInst(Dependency(product, version, flavor, tablefile, instDir, 
                                    distId, isOptional, shouldRecurse, extra,
-                                   letterVersion=letterVersion))
+                                   letterVersion=letterVersion, repoVersion=repoVersion))
 
     def addDepInst(self, dep):
         """add a dependency in the form of a dependency object"""

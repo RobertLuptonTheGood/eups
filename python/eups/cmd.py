@@ -2277,7 +2277,7 @@ class DistribCreateCmd(EupsCmd):
             if myeups.findProduct(productName, version) is None: # Found an empty slot?
                 break
             
-        return unlettered, version
+        return iversion, version, unlettered
 
     def execute(self):
         # get rid of sub-command arg
@@ -2398,7 +2398,7 @@ class DistribCreateCmd(EupsCmd):
             for p, optional, recursionDepth in myeups.getDependentProducts(topProduct, topological=True):
                 if p.name == rebuildProduct.name:
                     foundRebuildProduct = True
-                    letterVersions[p.name] = rebuildVersion, rebuildVersion
+                    letterVersions[p.name] = rebuildVersion, rebuildVersion, rebuildVersion
                     break
 
                 if rebuildProduct.name not in [q[0].name for q in myeups.getDependentProducts(p)]:

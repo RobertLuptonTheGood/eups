@@ -412,7 +412,7 @@ class Repository(object):
         opts = self._mergeOptions(options)
 
         letterVersions = options.get("letterVersions", {})
-        version, letterVersion = letterVersions.get(product, (version, version))
+        version, letterVersion, repoVersion = letterVersions.get(product, (version, version, version))
         
         try:
             distrib = self.distFactory.createDistribByName(distribTypeName, options=opts, 
@@ -535,7 +535,7 @@ class Repository(object):
                                    (manifest.product, manifest.letterVersion, e))
 
             id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor,
-                                       letterVersion=dp.letterVersion)
+                                       letterVersion=dp.letterVersion, repoVersion=dp.repoVersion)
             created[pver] = dp
             dp.distId = id
                 
