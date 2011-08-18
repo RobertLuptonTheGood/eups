@@ -1322,6 +1322,7 @@ where it is installed.
                             help="Recursively also remove everything that this product depends on")
         self.clo.add_option("--noInteractive", dest="interactive", action="store_false",
                             help="Don't prompt user before actually removing products")
+        self.clo.add_option("-t", "--tag", dest="tag", action="store", help="Delete this tag")
         
         # these options are used to configure the Eups instance
         self.addEupsOptions()
@@ -1330,14 +1331,19 @@ where it is installed.
         EupsCmd.addOptions(self)
 
     def execute(self):
-        if len(self.args) == 0:
-            self.err("Please specify a product name and version")
-            return 2
-        if len(self.args) < 2:
-            self.err("Please also specify a product version")
-            return 2
-        product = self.args[0]
-        version = self.args[1]
+        if self.opts.tag:
+            if self.args:
+                self.err("Please use eups undeclare to delete a tag from a product")
+                return 2
+        else:
+            if len(self.args) == 0:
+                self.err("Please specify a product name and version")
+                return 2
+            if len(self.args) < 2:
+                self.err("Please also specify a product version")
+                return 2
+            product = self.args[0]
+            version = self.args[1]
 
         try:
             myeups = self.createEups()
@@ -1345,6 +1351,27 @@ where it is installed.
             e.status = 9
             raise
 
+        if self.opts.tag:
+            try:
+                tag = myeups.tags.getTag(self.opts.tag)
+
+                if myeups.isReservedTag(tag):
+                    if self.opts.force:
+                        self.err("%s is a reserved tag, but proceeding anyway)" % self.opts.tag)
+                    else:
+                        self.err("%s is a reserved tag (use --force to unset)" % self.opts.tag)
+                        return 1
+            except eups.TagNotRecognized:
+                self.err("%s: Unsupported tag name" % self.opts.tag)
+                return 1
+
+            for prod in myeups.findProducts(None, None, [tag]):
+                if self.opts.verbose:
+                    print >> sys.stderr, "Untagging %s %s" % (prod.name, prod.version)
+
+                myeups.unassignTag(tag, prod.name, prod.version)
+
+            return 0
         try:
             myeups.remove(product, version, self.opts.recursive,
                           checkRecursive=not self.opts.noCheck, 

@@ -2068,6 +2068,10 @@ The what argument tells us what sort of state is expected (allowed values are de
             if not utils.isDbWritable(dbpath):
                 raise EupsException("You don't have permission to unassign %s's tag %s" % (userId, tag.name))
 
+        if self.noaction:
+            print >> sys.stderr, "eups undeclare --tag %s %s" % (tag.name, productName)
+            return
+
         # update the database
         if not self._databaseFor(eupsPathDir,dbpath).unassignTag(str(tag), productName, self.flavor):
             if self.verbose:
