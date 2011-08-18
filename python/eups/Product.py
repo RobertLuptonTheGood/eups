@@ -1,6 +1,7 @@
 # from Table import *
 import os, re, sys
 import cPickle
+import ConfigParser
 import table as mod_table
 import utils
 from exceptions import ProductNotFound, TableFileNotFound
@@ -381,6 +382,36 @@ class Product(object):
                     pass
                                         
         return self._table
+
+    def getConfig(self, section="DEFAULT", option=None, getType=None):
+        """Return the product's ConfigParser, which will be empty if the file doesn't exist"""
+        
+        cfgFile = os.path.join(self.dir, "ups", "%s.cfg" % self.name)
+        config = ConfigParser.ConfigParser({"filename" : cfgFile})
+        config.read(cfgFile)            # cfgFile need not exist
+        #
+        # Add default values
+        #
+        for s, o, val in [("distrib", "binary", True),]:
+            if not config.has_option(s, o):
+                if not config.has_section(s):
+                    config.add_section(s)
+                config.set(s, o, str(val))
+
+        if option:
+            try:
+                if getType == bool:
+                    return config.getboolean(section, option)
+                elif getType == float:
+                    return config.getfloat(section, option)
+                elif getType == int:
+                    return config.getint(section, option)
+                else:
+                    return config.get(section, option)
+            except Exception, e:
+                raise RuntimeError("Processing %s: %s" % (cfgFile, e))
+
+        return config
 
     def persist(self, fd):
         out = (self.name, self.version, self.flavor, self.dir, self.tablefile,

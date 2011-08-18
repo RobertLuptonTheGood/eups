@@ -2389,6 +2389,10 @@ class DistribCreateCmd(EupsCmd):
                 raise RuntimeError("I can't find product %s %s" % (rebuildName, rebuildVersion))
 
             topProduct = myeups.findProduct(productName, version)
+            #
+            # We need a new letter version for the top-level product even if it needn't be rebuilt,
+            # as it records the versions of sub-products that we _do_ need
+            #
             if not topProduct:
                 raise RuntimeError("I can't find product %s %s" % (productName, version))
 
@@ -2406,7 +2410,12 @@ class DistribCreateCmd(EupsCmd):
                 if rebuildProduct.name not in [q[0].name for q in myeups.getDependentProducts(p)]:
                     continue
 
-                letterVersions[p.name] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
+                # If the product has a config file that claims that it has no binary components (and thus
+                # needn't worry about ABI changes) we needn't bump its letter version
+                if not p.getConfig("distrib", "binary", getType=float):
+                    letterVersions[p] = p.version
+                else:
+                    letterVersions[p.name] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
 
                 if self.opts.verbose:
                     print "Creating letter version %s %s" % (p.name, letterVersions[p.name][1])
