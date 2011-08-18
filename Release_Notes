@@ -1,3 +1,25 @@
+2011-08-18 rhl
+      Added support for [optional] ConfigParser files in ups dirs; if distrib.binary is present and True,
+      don't bump letter version with distrib create --rebuild
+
+2011-08-17 rhl
+      Handle the case that we only have access to a "letter version" rather than the original
+      svn/hg/... version
+
+2011-08-17 rhl
+      Optional products should be labelled optional in the exact block, even if we did find them when
+      expanding the table
+
+2011-08-15 rhl
+      Generate warning upon attempting to undeclare other people's tags (the attempt still fails)
+
+2011-08-14 rhl
+      Don't include product foo when expanding foo.table
+
+2011-07-06 price
+      Only allow versions that are actually setup to be expanded. eups.getDependencies() was not necessarily
+      using the correct (setup) version.
+
 2011-06-24 rhl
 	Expand @$VAR@ to ${VAR:-VALUE} (rather than @VAR@ -> VALUE) allowing them to be overridden by
 	environment variables at runtime.
