@@ -2439,7 +2439,7 @@ class DistribCreateCmd(EupsCmd):
 
                 # If the product has a config file that claims that it has no binary components (and thus
                 # needn't worry about ABI changes) we needn't bump its letter version
-                if not p.getConfig("distrib", "binary", getType=float):
+                if not p.getConfig("distrib", "binary", getType=bool):
                     letterVersions[p] = p.version
                 else:
                     letterVersions[p.name] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
