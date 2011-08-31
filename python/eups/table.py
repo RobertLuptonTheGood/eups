@@ -646,7 +646,7 @@ class Action(object):
         i = -1
 
         requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTag = None
-        requestedVRO = None
+        keep = False; requestedVRO = None
         ignoredOpts = []
         while i < len(_args) - 1:
             i += 1
@@ -656,6 +656,8 @@ class Action(object):
                     i += 1              # skip the argument
                 elif _args[i] in ("-j", "--just"):  # setup just this product
                     noRecursion = True
+                elif _args[i] in ("-k", "--keep"):  # keep already-setup versions of this product
+                    keep = True
                 elif _args[i] == "-T":  # e.g. -T build
                     requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
@@ -708,6 +710,11 @@ class Action(object):
                   (vers, requestedTag)
             requestedTag = None
 
+        if keep and requestedVRO:
+            print >> sys.stderr, "You specified vro \"%s\" and --keep ; ignoring the latter" % \
+                  (requestedVRO)
+            keep = False
+
         if requestedTag and requestedVRO:
             print >> sys.stderr, "You specified vro \"%s\" and tag \"%s\"; ignoring the latter" % \
                   (requestedVRO, requestedTag)
@@ -723,6 +730,8 @@ class Action(object):
         vro = Eups.getPreferredTags()
         if requestedVRO:
             pass
+        elif keep:
+            requestedVRO = ["keep"] + vro
         elif requestedTag:
             requestedVRO = [requestedTag] + vro
         else:
