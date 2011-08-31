@@ -387,11 +387,13 @@ The what argument tells us what sort of state is expected (allowed values are de
             raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
 
         if what == "env":
-            value = os.environ.copy()
+            current = os.environ.copy()
         elif what == "vro":
-            self.setPreferredTags(value)
+            current = self.getPreferredTags()
+            if value:
+                self.setPreferredTags(value)
 
-        self._stacks[what].append(value)
+        self._stacks[what].append(current)
 
         self.__showStack("push", what)
 
@@ -432,10 +434,14 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def __showStack(self, op, what):
         """Debugging routine for stack"""
-        if False:
-            values = [e.has_key("BASE_DIR") for e in self._stacks["env"] + [os.environ]]
+        if Eups.debugFlag:
+            values = self._stacks[what][:]
+
+            if what == "env":
+                values = [e.has_key("BASE_DIR") for e in values + [os.environ]]
+
             values.insert(-1, ":")
-            utils.debug("%-5s" % op, len(self._stacks[what]), values)
+            utils.debug("%s %-5s" % (what, op), len(self._stacks[what]), values)
 
     def _databaseFor(self, eupsPathDir, dbpath=None):
         if not dbpath:
