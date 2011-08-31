@@ -915,7 +915,8 @@ class Action(object):
 #
 # Expand a table file
 #
-def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False, toplevelName=None):
+def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False,
+                    expandVersions=True, addExactBlock=True, toplevelName=None):
     """Expand a table file, reading from ifd and writing to ofd
     If force is true, missing required dependencies are converted to optional
     """
@@ -1023,7 +1024,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         #
         # Here's where we record the logical expression, if provided
         #
-        if logical:
+        if expandVersions and logical:
             args += ["[%s]" % logical]
 
         rewrite = "%s(%s)" % (cmd, " ".join(args))
@@ -1066,8 +1067,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 block = [False, []]
                 setupBlocks.append(block)
 
-        if not re.search(r"^\s*}", line):
-            block[1].append(line)
+        block[1].append(line)
     #
     # Figure out the complete list of products that this table file will setup; only list each once
     #
@@ -1119,11 +1119,15 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     # Generate the outputs.  We want to replace the _last_ setups block by an if (type == exact) { } else { }
     # block;  actually we could do this line by line but that'd make an unreadable table file
     #
+    def output(ofd, indentLevel, line):
+        print >> ofd, "%s%s" % (indentLevel*indent, line.strip())
+
+    indentLevel = 0
     indent = "   "
     i = 0
     while i < len(setupBlocks):
         isSetupBlock, block = setupBlocks[i]
-        
+
         if not isSetupBlock:
             if len(block) == 1 and re.search(r"if\s*\(type\s*==\s*exact\)\s*{", block[0]):
                 # We've found a pre-existing exact block
@@ -1131,39 +1135,50 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 i += 3
                 setupBlocks[i - 1] = (False, []) # the closing "}"
                 continue
-            
+
+            if len(block) >= 1 and re.search(r"{\s*$", block[0]):
+                output(ofd, indentLevel, block[0])
+                indentLevel += 1
+                block.pop(0)
+            elif len(block) >= 1 and re.search(r"^\s*}\s*$", block[0]):
+                indentLevel -= 1
+                output(ofd, indentLevel, block[0])
+                block.pop(0)
+
             for line in block:
-                print >> ofd, line,
+                output(ofd, indentLevel, line)
         else:
-            if i == lastSetupBlock:
-                print >> ofd, "if (type == exact) {"
+            if addExactBlock:
+                indentedBlock = True
+                if i == lastSetupBlock:
+                    output(ofd, indentLevel, "if (type == exact) {")
+                    indentLevel += 1
 
-                for n, v in desiredProducts:
-                    if optionalProducts.get((n, v)) or notFound.get(n):
-                        cmd = "setupOptional"
-                    else:
-                        cmd = "setupRequired"
+                    for n, v in desiredProducts:
+                        if optionalProducts.get((n, v)) or notFound.get(n):
+                            cmd = "setupOptional"
+                        else:
+                            cmd = "setupRequired"
 
-                    print >> ofd, "%s%s(%-15s -j %s)" % (indent, cmd, n, v)
+                        output(ofd, indentLevel, "%s(%-15s -j %s)" % (cmd, n, v))
 
-                print >> ofd, "} else {"
+                    output(ofd, indentLevel - 1, "} else {")
+                else:
+                    output(ofd, indentLevel, "if (type != exact) {")
+                    indentLevel += 1
             else:
-                print >> ofd, "if (type != exact) {"
+                indentedBlock = False
 
-            needCloseBrace = True
             for j in range(len(block)):
                 line = block[j].strip()
                 if j == len(block) - 1: # this is just cosmetics in the generated file
-                    if not line:
-                        print >> ofd, "}\n"
-                        needCloseBrace = False
+                    if not line and indentLevel > 0:
                         break
-                print >> ofd, indent + line
+                    
+                output(ofd, indentLevel, line)
 
-            if needCloseBrace:
-                print >> ofd, "}"
+            if indentedBlock:
+                indentLevel -= 1
+                output(ofd, indentLevel, "}")
 
         i += 1
-    #
-    # Now write a block that fully specifies all the required products
-    #

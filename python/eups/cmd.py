@@ -964,6 +964,12 @@ For example, the make target in a ups directory might contain the line:
         # these are specific to this command
         self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true", 
                             help="Modify the given tablefile in situ")
+        self.clo.add_option("-N", "--noVersionExpressions", dest="expandVersions",
+                            action="store_false", default=True,
+                            help="Don't add any relative versions to the expanded table")
+        self.clo.add_option("--noExact", dest="addExactBlock",
+                            action="store_false", default=True,
+                            help="Don't add an exact block to the expanded table")
         self.clo.add_option("-P", "--productName", dest="toplevelName", action="store",
                             help="The product which owns the table file")
         self.clo.add_option("-p", "--product", dest="prodlist", action="store",
@@ -1066,9 +1072,11 @@ For example, the make target in a ups directory might contain the line:
             try:
                 try:                    # older pythons don't support try except finally
                     eups.expandTableFile(ofd, ifd, productList, self.opts.warnRegexp, myeups, self.opts.force,
+                                         expandVersions=self.opts.expandVersions,
+                                         addExactBlock=self.opts.addExactBlock,
                                          toplevelName=toplevelName)
                 except Exception, e:
-                    e.message = "Processing %s: %s" % (inFile, e)
+                    e.args = ["Processing %s: %s" % (inFile, e)]
                     raise
 
             finally:
