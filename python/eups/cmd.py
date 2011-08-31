@@ -92,7 +92,7 @@ Common"""
 
     def addOptions(self):
         self.clo.add_option("--debug", dest="debug", action="store", default="",
-                            help="turn on specified debugging behaviors (allowed: raise)")
+                            help="turn on specified debugging behaviors (allowed: debug, raise)")
         self.clo.add_option("-h", "--help", dest="help", action="store_true",
                             help="show command-line help and exit")
         self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
