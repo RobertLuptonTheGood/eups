@@ -6,8 +6,16 @@ try:
 except NameError:
     disableLocking = False              # if true, all locking will be disabled.  Be careful.
 
-def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0, noaction=False):
+try:
+    lockVerbose
+except NameError:
+    lockVerbose = 0
+
+def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=None, noaction=False):
     """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
+
+    if verbose is None:
+        verbose = lockVerbose
 
     if noaction or disableLocking:
         if verbose > 2:
@@ -95,9 +103,12 @@ def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=0
     if verbose > 3:
         print >> sys.stderr, "lock(%s)" % lockfile
         
-def unlock(lockfile, myIdentity, force=False, verbose=0, noaction=False):
+def unlock(lockfile, myIdentity, force=False, verbose=None, noaction=False):
     if not lockfile or not os.path.exists(lockfile):
         return
+
+    if verbose is None:
+        verbose = lockVerbose
 
     if noaction or disableLocking:
         return
@@ -120,8 +131,12 @@ def unlock(lockfile, myIdentity, force=False, verbose=0, noaction=False):
 class Lock(object):
     """An OO interface to locking;  the lock will be held until the object's deleted"""
     
-    def __init__(self, lockfile, myIdentity, max_wait=10, force=False, verbose=0, noaction=False):
+    def __init__(self, lockfile, myIdentity, max_wait=10, force=False, verbose=None, noaction=False):
         """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
+
+        if verbose is None:
+            verbose = lockVerbose
+
         self.lockfile = lockfile
         self.myIdentity = myIdentity
         self.verbose = verbose

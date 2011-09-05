@@ -102,6 +102,7 @@ class Eups(object):
         """
 
         self.verbose = verbose
+        import lock; lock.lockVerbose = verbose
 
         if not shell:
             try:
