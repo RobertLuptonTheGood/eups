@@ -40,7 +40,6 @@ import hooks
 from distrib.server import ServerConf
 
 _errstrm = sys.stderr
-_EupsCmdType = "cmd.EupsCmd'>"
 
 class EupsCmd(object):
     """
@@ -219,7 +218,7 @@ Common"""
         return 0
 
     def _issubclass(self):
-        return not str(type(self)).endswith(_EupsCmdType)
+        return isinstance(self, EupsCmd) and type(self) != EupsCmd
 
     def err(self, msg, volume=0):
         """
