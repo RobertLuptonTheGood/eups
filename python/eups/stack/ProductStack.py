@@ -519,38 +519,7 @@ class ProductStack(object):
 
         self._flavorsUpdated(flavors)
         if self.autosave: 
-#           if tag.startswith(userPrefix):
-#                self._saveTag(tag, flavors)
-#            else:
             self.save(flavors)
-
-#     def _setUserTag(self, flavor, tag, product, version):
-#         if not self.usertags.has_key(flavor):
-#             self.usertags[flavor] = {}
-#         if not self.usertags[flavor].has_key(tag):
-#             self.usertags[flavor][tag] = {}
-#         self.usertags[flavor][tag][product] = version
-
-#     def _unsetUserTag(self, flavor, tag, product):
-#         try:
-#             del self.usertags[flavor][tag][product]
-#         except KeyError:
-#             pass
-
-#     def _saveTag(self, tag, flavors):
-#         if self.userTagDir:
-#             for flavor in flavors:
-#                 if self.usertags.has_key(flavor) and \
-#                    self.usertags[flavor].has_key(tag):
-#                     self._lock(file)
-#                     file = "%s_%s.pickleTag%s" % (flavor, tag, userTagFileExt)
-#                     file = os.path.join(self.userTagDir, file)
-#                     fd = open(file, "w")
-#                     cPickle.dump(self.usertags[flavor][tag], fd)
-#                     fd.close()
-#                     self._unlock(file)
-
-
 
     def unassignTag(self, tag, product, flavors=None):
         """
@@ -575,15 +544,10 @@ class ProductStack(object):
                 if (self.lookup[flavor][product].unassignTag(tag)):
                     updated = True
                     self._flavorsUpdated(flavor)
-#                    if tag.startswith(userPrefix):
-#                        self._unsetUserTag(flavor, tag, product)
             except KeyError:
                 pass
 
         if updated and self.autosave: 
-#            if tag.startswith(userPrefix):
-#                self._saveTag(tag, flavors)
-#            else:
             self.save(flavors)
         return updated
 
