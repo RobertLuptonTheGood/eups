@@ -31,9 +31,9 @@ The output of run() is a status code appropriate for passing to sys.exit().
 #
 ########################################################################
 
-import glob, re, os, pwd, shutil, sys, time
+import glob, re, os, shutil, sys, time
 import optparse
-import eups
+import eups, lock
 import utils
 import distrib
 import hooks
@@ -96,6 +96,8 @@ Common"""
                             help="show command-line help and exit")
         self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
                             help="Don\'t actually do anything (for debugging purposes)")
+        self.clo.add_option("--nolocks", dest="nolocks", action="store_true", default=False,
+                            help="Disable locking of eups's internal files")
         self.clo.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False,
                             help="Suppress messages to user (overrides -v)")
         self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
@@ -149,10 +151,12 @@ Common"""
             self.err("Unrecognized command: %s" % self.cmd)
             return 10
 
+        lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
+                       ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
+
         return ecmd.run()
 
-
-    def __init__(self, args=None, toolname=None, cmd=None):
+    def __init__(self, args=None, toolname=None, cmd=None, lockType=lock.LOCK_EX):
         """
         @param args       the list of command-line arguments, in order, and 
                            including the option switches.  Defaults to 
@@ -206,6 +210,8 @@ Common"""
         if cmd:
             self.cmd = cmd
 
+        self.lockType = lockType
+
     def run(self):
         if self._issubclass() and self.opts.help and self.cmd is not None:
             self.clo.print_help()
@@ -244,7 +250,7 @@ Common"""
                 preamble += " %s" % self.cmd
             utils.deprecated("%s: %s" % (preamble, msg), strm=self._errstrm)
 
-    def createEups(self, opts=None, versionName=None):
+    def createEups(self, opts=None, versionName=None, readCache=None):
         if opts is None:
             opts = self.opts
 
@@ -257,10 +263,11 @@ Common"""
             e.status = 9
             raise
 
-        if self.cmd in "admin flavor flags path".split():
-            readCache = False
-        else:
-            readCache = True
+        if readCache is None:
+            if self.cmd in "admin flavor flags path".split():
+                readCache = False
+            else:
+                readCache = True
 
         setupType = self.opts.setupType.split()
 
@@ -562,8 +569,8 @@ integer argument, n, will cause just the n-th directory to be listed (where
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
-    def __init__(self, args=None, toolname=None, cmd=None):
-        EnvListCmd.__init__(self, args, toolname, cmd)
+    def __init__(self, **kwargs):
+        EnvListCmd.__init__(self, **kwargs)
 
     def execute(self):
         self._init()
@@ -583,8 +590,8 @@ class StartupCmd(EnvListCmd):
 that would be loaded [in brackets].
 """
 
-    def __init__(self, args=None, toolname=None, cmd=None):
-        EnvListCmd.__init__(self, args, toolname, cmd)
+    def __init__(self, **kwargs):
+        EnvListCmd.__init__(self, **kwargs)
         self._init("EUPS_STARTUP")
 
     def execute(self):
@@ -613,8 +620,8 @@ integer argument, n, will cause just the n-th URL to be listed (where
 0 is the first element).
 """
 
-    def __init__(self, args=None, toolname=None, cmd=None):
-        EnvListCmd.__init__(self, args, toolname, cmd)
+    def __init__(self, **kwargs):
+        EnvListCmd.__init__(self, **kwargs)
         self._init("EUPS_PKGROOT", "|")
 
 class PkgconfigCmd(EupsCmd):
@@ -1155,6 +1162,10 @@ only wish to assign a tag, you should use the -t option but not include
                 self.err("Unable to guess product name as product contains no table file")
                 return 2
 
+            if not self.opts.productDir or self.opts.productDir == "none":
+                self.err("Unable to guess product name as product has no directory")
+                return 2
+
             try:
                 ups_dir = os.path.join(self.opts.productDir,"ups")
                 if not os.path.isdir(ups_dir):
@@ -1392,7 +1403,7 @@ where it is installed.
 
 class AdminCmd(EupsCmd):
 
-    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|clearServerCache|info] [-h|--help] [-r root]"
+    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|listLocks|clearServerCache|info] [-h|--help] [-r root]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1516,7 +1527,35 @@ class AdminClearLocksCmd(EupsCmd):
             self.err("Unexpected arguments: %s" % " ".join(self.args))
             return 2
 
-        eups.Eups(readCache=False, verbose=self.opts.verbose, useLocks=False).clearLocks()
+        lock.clearLocks(self.createEups(self.opts, readCache=False).path,
+                        self.opts.verbose, self.opts.noaction)
+
+        return 0
+
+class AdminListLocksCmd(EupsCmd):
+
+    usage = "%prog admin listLocks [-h|--help] [options]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""List all locks held by eups
+"""
+    def addOptions(self):
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+    def execute(self):
+        self.args.pop(0)                # remove the "admin"
+
+        if len(self.args) > 0:
+            self.err("Unexpected arguments: %s" % " ".join(self.args))
+            return 2
+
+        lock.listLocks(self.createEups(self.opts, readCache=False).path,
+                        self.opts.verbose, self.opts.noaction)
 
         return 0
 
@@ -2621,15 +2660,18 @@ class HelpCmd(EupsCmd):
 
 _cmdLookup = {}
 _noCmdOverride = True
-def register(cmd, clname):
+def register(cmd, clname, lockType=lock.LOCK_EX):
     if _noCmdOverride and _cmdLookup.has_key(cmd):
         raise RuntimeError("Attempt to over-ride command: %s" % cmd)
-    _cmdLookup[cmd] = clname
+    _cmdLookup[cmd] = (clname, lockType)
 
 def makeEupsCmd(cmd, args=None, toolname=None):
-    if not _cmdLookup.has_key(cmd):
+    cmdFunc, lockType = _cmdLookup.get(cmd, (None, None))
+
+    if not cmdFunc:
         return None
-    return _cmdLookup[cmd](args=args, toolname=toolname, cmd=cmd)
+
+    return cmdFunc(args=args, toolname=toolname, cmd=cmd, lockType=lockType)
     
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -2670,34 +2712,34 @@ class EupsOptionParser(optparse.OptionParser):
 #
 #  REGISTER
 #
-
-register("flavor",       FlavorCmd)
-register("path",         PathCmd)
-register("startup",      StartupCmd)
-register("pkgroot",      PkgrootCmd)
-register("flags",        FlagsCmd)
-register("list",         ListCmd)
-register("pkg-config",   PkgconfigCmd)
+register("flavor",       FlavorCmd, lockType=None)
+register("path",         PathCmd, lockType=None)
+register("startup",      StartupCmd, lockType=None)
+register("pkgroot",      PkgrootCmd, lockType=None)
+register("flags",        FlagsCmd, lockType=None)
+register("list",         ListCmd, lockType=lock.LOCK_SH)
+register("pkg-config",   PkgconfigCmd, lockType=lock.LOCK_SH)
 register("uses",         UsesCmd)
-register("expandbuild",  ExpandbuildCmd)
-register("expandtable",  ExpandtableCmd)
+register("expandbuild",  ExpandbuildCmd, lockType=lock.LOCK_SH)
+register("expandtable",  ExpandtableCmd, lockType=lock.LOCK_SH)
 register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
 register("remove",       RemoveCmd)
-register("admin",        AdminCmd)
+register("admin",        AdminCmd, lockType=None)
 register("admin buildCache",       AdminBuildCacheCmd)
 register("admin clearCache",       AdminClearCacheCmd)
 register("admin clearServerCache", AdminClearServerCacheCmd)
-register("admin clearLocks",       AdminClearLocksCmd)
-register("admin listCache",        AdminListCacheCmd)
-register("admin info",             AdminInfoCmd)
+register("admin clearLocks",       AdminClearLocksCmd, lockType=None)
+register("admin listLocks",        AdminListLocksCmd, lockType=None)
+register("admin listCache",        AdminListCacheCmd, lockType=lock.LOCK_SH)
+register("admin info",             AdminInfoCmd, lockType=lock.LOCK_SH)
 register("distrib",      DistribCmd)
 register("distrib clean",   DistribCleanCmd)
 register("distrib create",  DistribCreateCmd)
 register("distrib declare", DistribDeclareCmd)
 register("distrib install", DistribInstallCmd)
-register("distrib list",    DistribListCmd)
-register("tags",         TagsCmd)
-register("vro",          VroCmd)
-register("help",         HelpCmd)
+register("distrib list",    DistribListCmd, lockType=lock.LOCK_SH)
+register("tags",         TagsCmd, lockType=lock.LOCK_SH)
+register("vro",          VroCmd, lockType=None)
+register("help",         HelpCmd, lockType=None)
     

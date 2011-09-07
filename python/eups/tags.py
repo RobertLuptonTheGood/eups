@@ -1,5 +1,4 @@
 import fnmatch, os, pwd, re, sys
-import lock
 import hooks, utils
 from exceptions import EupsException
 
@@ -198,15 +197,6 @@ class Tags(object):
         """
         return self.registerTag(name, self.user, force)
 
-    def _lockfilepath(self, file):
-        return file + ".lock"
-
-    def _lock(self, file):
-        lock.lock(self._lockfilepath(file), who)
-
-    def _unlock(self, file):
-        lock.unlock(self._lockfilepath(file), who)
-
     # @staticmethod   # requires python 2.4
     def persistFilename(group):
         if group in (Tags.global_, Tags.pseudo):  group = "global"
@@ -214,18 +204,14 @@ class Tags(object):
         return tagListFileTmpl % group
     persistFilename = staticmethod(persistFilename) #should work as'f python 2.2
 
-    def load(self, group, file, lock=True):
+    def load(self, group, file):
         """
         load registered tag names in from a file.
 
         @param group : the group to load the tags into
         @param file :  the file to load the tags from.  If null, load them 
                           from configured location.
-        @param lock :  file must be locked before being read
         """
-
-        if lock:
-            self._lock(file)
 
         try:
             fd = open(file)
@@ -237,10 +223,8 @@ class Tags(object):
                 line = filter(lambda t: t not in self.bygrp[group], 
                               line.split())
                 self.bygrp[group].extend(line)
-            fd.close()
         finally:
-            if lock:
-                self._unlock(file)
+            fd.close()
 
         return [self.getTag(t) for t in self.bygrp[group]]
 
@@ -257,13 +241,11 @@ class Tags(object):
 
         if not file:
             file = self._persistPath(group)
-        self._lock(file)
         try:
             fd = open(file, "w")
             print >> fd, " ".join(self.bygrp[group])
-            fd.close()
         finally:
-            self._unlock(file)
+            fd.close()
 
     def loadFromEupsPath(self, eupsPath, verbosity=0):
         """
@@ -313,12 +295,7 @@ class Tags(object):
                 if verbosity > 1:
                     print >> sys.stderr, "Reading tags from", file
                 try:
-                    try:
-                        loaded = self.load(group, file)
-                    except OSError, e:
-                        if verbosity > 1:
-                            print >> sys.stderr, ("Unable to lock %s; reading anyway" % file)
-                        loaded = self.load(group, file, lock=False)
+                    loaded = self.load(group, file)
                 except IOError, e:
                     if verbosity >= 0:
                         print >> sys.stderr, \
@@ -327,7 +304,7 @@ class Tags(object):
 
         return loaded
 
-    def loadUserTags(self, userPersistDir, useLocks=True):
+    def loadUserTags(self, userPersistDir):
         """
         load the user tags whose names are persisted in a given directory.  
         That is, find the user tag file in the given directory and load its 
@@ -344,7 +321,7 @@ class Tags(object):
             # that's okay: no user tags cached
             return False
 
-        self.load(self.user, fileName, lock=useLocks)
+        self.load(self.user, fileName)
         return True
 
     def saveGroup(self, group, dir):

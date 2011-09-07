@@ -4,7 +4,6 @@ from eups import Product
 from ProductFamily import ProductFamily
 from eups.exceptions import EupsException,ProductNotFound, UnderSpecifiedProduct
 from eups.db import Database
-import eups.lock
 
 # Issues:
 #  o  restoring from cache (when and how) 
@@ -295,12 +294,10 @@ class ProductStack(object):
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
-        self._lock(file)
         fd = open(file, "w")
         cPickle.dump(flavorData, fd)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
-        self._unlock(file)
 
     def export(self):
         """
@@ -645,16 +642,6 @@ class ProductStack(object):
                 except KeyError:
                     pass
 
-    def _lockfilepath(self, file):
-        return file + ".lock"
-
-    def _lock(self, file):
-        eups.lock.lock(self._lockfilepath(file), who)
-
-    def _unlock(self, file):
-        eups.lock.unlock(self._lockfilepath(file), who)
-
-
     def cacheIsUpToDate(self, flavor, cacheDir=None):
         """
         return True if there is a cache file on disk with product information
@@ -704,7 +691,7 @@ class ProductStack(object):
             if os.path.exists(file):
                 os.remove(file)
 
-    def reload(self, flavors=None, persistDir=None, useLock=True, verbose=0):
+    def reload(self, flavors=None, persistDir=None, verbose=0):
         """
         throw away all information on products and replace it with the data
         saved in the cache files.
@@ -731,18 +718,10 @@ class ProductStack(object):
 
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
-            try:
-                if useLock:
-                    self._lock(fileName)
-            except OSError, e:
-                if verbose > 1 or (not os.access(persistDir, os.W_OK) and verbose):
-                    print >> sys.stderr, "Unable to get lock for %s; bravely proceeding" % (fileName)
-
             self.modtimes[fileName] = os.stat(fileName).st_mtime
             fd = open(fileName)
             lookup = cPickle.load(fd)
             fd.close()
-            self._unlock(fileName)
 
             self.lookup[flavor] = lookup
 
@@ -808,7 +787,7 @@ class ProductStack(object):
 
     # @staticmethod   # requires python 2.4
     def fromCache(dbpath, flavors, persistDir=None, userTagDir=None, 
-                  updateCache=True, autosave=True, useLock=True, verbose=False):
+                  updateCache=True, autosave=True, verbose=False):
         """
         return a ProductStack that has all products loaded in from the 
         available caches.  If they are out of date (or non-existent), this 
@@ -835,7 +814,6 @@ class ProductStack(object):
                                appear out of date
         @param autosave     if true (default), all updates will be 
                                saved to disk.
-        @param useLock      try to take a lock before reading things
         """
         if not flavors:
             raise RuntimeError("ProductStack.fromCache(): at least one flavor needed as input" +
@@ -845,9 +823,9 @@ class ProductStack(object):
 
         out = ProductStack(dbpath, persistDir, False)
 
-        cacheOkay = out._tryCache(dbpath, persistDir, flavors, useLock=useLock, verbose=verbose)
+        cacheOkay = out._tryCache(dbpath, persistDir, flavors, verbose=verbose)
         if not cacheOkay:
-            cacheOkay = out._tryCache(dbpath, dbpath, flavors, useLock=useLock)
+            cacheOkay = out._tryCache(dbpath, dbpath, flavors)
             if cacheOkay:
                 out._loadUserTags(userTagDir)
 
@@ -861,7 +839,7 @@ class ProductStack(object):
 
     fromCache = staticmethod(fromCache)    # works since python2.2
 
-    def _tryCache(self, dbpath, cacheDir, flavors, verbose=0, useLock=True):
+    def _tryCache(self, dbpath, cacheDir, flavors, verbose=0):
         if not cacheDir or not os.path.exists(cacheDir):
             return False
 
@@ -875,7 +853,7 @@ class ProductStack(object):
                 break
 
         if cacheOkay:
-            self.reload(flavors, cacheDir, useLock=useLock, verbose=verbose)
+            self.reload(flavors, cacheDir, verbose=verbose)
 
             # do a final consistency check; do we have the same products
             dbnames = Database(dbpath).findProductNames()

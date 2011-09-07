@@ -1,161 +1,140 @@
-import errno, os, stat, sys, time
+import errno, glob, os, shutil, sys
 import re
 
-try:
-    disableLocking
-except NameError:
-    disableLocking = False              # if true, all locking will be disabled.  Be careful.
+#
+# Types of locks
+#
+LOCK_SH = 1                             # acquire a shared lock
+LOCK_EX = 2                             # acquire an exclusive lock
 
-try:
-    lockVerbose
-except NameError:
-    lockVerbose = 0
+_lockDir = ".lockDir"                   # name of lock directory
 
-def lock(lockfile, myIdentity, max_wait=10, unlock=False, force=False, verbose=None, noaction=False):
-    """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
+def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
+    locks = []
 
-    if verbose is None:
-        verbose = lockVerbose
+    if lockType is not None and not nolocks:
+        if lockType == LOCK_EX:
+            lockTypeName = "exclusive"
+        else:
+            lockTypeName = "shared"
 
-    if noaction or disableLocking:
-        if verbose > 2:
-            print >> sys.stderr, "Not locking %s" % lockfile
-        return
+        if verbose > 1:
+            print >> sys.stderr, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
 
-    myPid = os.getpid()
-    while True:
-        count = 0                           # count of number of times the lock is held
-        try:
-            fd = os.open(lockfile, os.O_EXCL | os.O_RDWR | os.O_CREAT)
-            f = os.fdopen(fd, "w")
-            del fd
-            
-            # we created the lockfile, so we're the owner
-            break
-        except KeyboardInterrupt:
+        for d in path:
+            lockDir = os.path.join(d, _lockDir)
+
             try:
-                f.close()
-            except Exception:
-                pass
-            
-            raise
-        except OSError, e:
-            if e.errno != errno.EEXIST:
-                # should not occur
-                raise
+                os.mkdir(lockDir)
+            except OSError:
+                if lockType == LOCK_EX:
+                    raise RuntimeError("Unable to take exclusive lock on %s: locks are held by  %s" %
+                                       (d, " ".join(listLockers(lockDir))))
+            #
+            # OK, the lock directory exists.
+            #
+            # If we're a shared lock, we need to check that no-one holds an exclusive lock.
+            # N.b. the check isn't atomic, but that's conservative (we don't care if the exclusive lock's
+            # dropped while we're pondering its existence)
+            #
+            lockers = listLockers(lockDir, "exclusive*")
+            if len(lockers) > 0:
+                raise RuntimeError("Unable to take shared lock on %s: an exclusive lock is held by %s" %
+                                   (d, " ".join(lockers)))
+                         
+            #
+            #
+            # Create a file in it
+            #
+            import pwd
+            who = pwd.getpwuid(os.geteuid())[0]
+            pid = os.getpid()
 
-        try:
-            # the lock file exists, try to stat it to get its age
-            # and read its contents to report the owner and PID
-            f = os.fdopen(os.open(lockfile, os.O_EXCL | os.O_RDWR), "rw")
-            s = os.stat(lockfile)
-        except OSError, e:
-            if e.errno not in (errno.EEXIST, errno.ENOENT):
-                raise RuntimeError ("%s exists but stat() failed: %s %d" % (lockfile, e.strerror, e.errno))
-            # we didn't create the lockfile, so it did exist, but it's gone now. Just try again
+            lockFile = "%s-%s.%d" % (lockTypeName, who, pid)
+
+            try:
+                fd = os.open(os.path.join(lockDir, lockFile), os.O_EXCL | os.O_RDWR | os.O_CREAT)
+                del fd
+            except OSError, e:
+                if e.errno != errno.EEXIST:
+                    # should not occur
+                    raise
+
+            locks.append((lockDir, lockFile))
+
+    #
+    # Cleanup, even in the event of the user being rude enough to use kill
+    #
+    def cleanup(*args):
+        giveLocks(locks, verbose)
+        sys.exit(1)
+
+    import atexit
+    atexit.register(cleanup)            # regular exit
+
+    import signal
+    signal.signal(signal.SIGINT, cleanup) # user killed us
+    signal.signal(signal.SIGTERM, cleanup)
+
+    return locks
+
+def giveLocks(locks, verbose=0):
+    """Give up all locks in the provided list of (directory, file)
+
+    If the directory ends up empty, it is removed
+    """
+    for d, f in locks:
+        if not os.path.isdir(d):
             continue
 
-        # we didn't create the lockfile and it's still there, check its age
-        pid = -1
-        fileOwner = "(unknown)"
-        try:
-            pid = int(f.readline())
-            fileOwner = re.sub(r"\n$", "", f.readline())
-            count = int(f.readline())
-            del f
-        except:
-            pass
+        f = os.path.join(d, f)
 
-        if pid == myPid:                # OK, we own it
-            f = open(lockfile, "w")
-            break
+        if os.path.exists(f):
+            if verbose > 2:
+                print >> sys.stderr, "Removing lockfile %s" % (f)
 
-        now = int(time.time())
-        if now - s[stat.ST_MTIME] > max_wait:            
-            raise RuntimeError, ("%s has been locked for more than %d seconds (User %s, PID %s)" %
-                                 (lockfile, max_wait, fileOwner, pid))
+            os.remove(f)
 
-        # it's not been locked too long, wait a while and retry
-        print >> sys.stderr, "Waiting for %s (User %s, PID %s)" % (lockfile, fileOwner, pid)
-        time.sleep(2)
+        nlockFiles = len(os.walk(d).next()[2])
+        if nlockFiles == 0:
+            os.rmdir(d)
 
-    # if we get here. we have the lockfile. Convert the os.open file
-    # descriptor into a Python file object and record our PID, identity, and the usage count in it
-    if unlock:
-        count -= 1
-
-        if count <= 0:
-            try:
-                os.unlink(lockfile)
-            except OSError, e:
-                if e.errno != errno.ENOENT:
-                    print >> sys.stderr, "Clearing lockfile %s: %s" % (lockfile, e)
-
-            return
-    else:
-        count += 1
-
-    f.write("%d\n" % myPid)
-    f.write("%s\n" % myIdentity)
-    f.write("%d\n" % count)
-    f.close()
-
-    if verbose > 3:
-        print >> sys.stderr, "lock(%s)" % lockfile
-        
-def unlock(lockfile, myIdentity, force=False, verbose=None, noaction=False):
-    if not lockfile or not os.path.exists(lockfile):
-        return
-
-    if verbose is None:
-        verbose = lockVerbose
-
-    if noaction or disableLocking:
-        return
-
-    if verbose > 3:
-        print >> sys.stderr, "unlock(%s)" % lockfile
-
-    if force:
-        try:
-            os.unlink(lockfile)
-        except OSError, e:
-            if e.errno != errno.ENOENT:
-                print >> sys.stderr, "Clearing lockfile %s: %s" % (lockfile, e)
-    else:
-        lock(lockfile, myIdentity, unlock=True, verbose=verbose, noaction=noaction)
-
-#
-# Now an OO interface to locking
-#
-class Lock(object):
-    """An OO interface to locking;  the lock will be held until the object's deleted"""
+def clearLocks(path, verbose=0, noaction=False):
+    """Remove all locks found in the directories listed in path"""
     
-    def __init__(self, lockfile, myIdentity, max_wait=10, force=False, verbose=None, noaction=False):
-        """Get a lockfile, identifying yourself as myIdentity;  wait a maximum of max_wait seconds"""
+    for d in path:
+        lockDir = os.path.join(d, _lockDir)
 
-        if verbose is None:
-            verbose = lockVerbose
+        if not os.path.isdir(lockDir):
+            continue
 
-        self.lockfile = lockfile
-        self.myIdentity = myIdentity
-        self.verbose = verbose
-        self.noaction = noaction
+        if noaction:
+            print >> sys.stderr, "rm -rf %s" % lockDir
+        else:
+            if verbose:
+                print >> sys.stderr, "Removing %s" % lockDir
 
-        try:
-            lock(lockfile, myIdentity, max_wait, False, force, self.verbose, self.noaction)
-        except:
-            self.lockfile = None
-            raise
+            try:
+                shutil.rmtree(lockDir)
+            except OSError, e:
+                print >> sys.stderr, "Unable to remove %s: %s" % (lockDir, e)                    
 
-    def unlock(self, force=False):
-        try:
-            unlock(self.lockfile, self.myIdentity, force, self.verbose, self.noaction)
-        except Exception, e:
-            print >> sys.stderr, "Clearing lock:", e
-            pass
+def listLocks(path, verbose=0, noaction=False):
+    """List all locks found in the directories listed in path"""
 
-        self.lockfile = None        
+    for d in path:
+        lockDir = os.path.join(d, _lockDir)
 
-    def __del__(self):
-        self.unlock()
+        if not os.path.isdir(lockDir):
+            continue
+
+        print "%-30s %s" % (d + ":", " ".join(listLockers(lockDir)))
+
+def listLockers(lockDir, globPattern="*"):
+    """List all the owners of locks in a lockDir"""
+    lockers = []
+    for f in [os.path.split(f)[1] for f in glob.glob(os.path.join(lockDir, globPattern))]:
+        who, pid = re.split(r"[-.]", f)[1:]
+        lockers.append("[user=%s, pid=%s]" % (who, pid))
+
+    return lockers

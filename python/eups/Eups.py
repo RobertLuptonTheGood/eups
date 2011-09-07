@@ -71,7 +71,7 @@ class Eups(object):
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
                  userDataDir=None, asAdmin=False, setupType=[], validSetupTypes=None, vro={},
-                 exact_version=None, useLocks=True
+                 exact_version=None
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -102,7 +102,6 @@ class Eups(object):
         """
 
         self.verbose = verbose
-        import lock; lock.lockVerbose = verbose
 
         if not shell:
             try:
@@ -319,8 +318,8 @@ class Eups(object):
                 except RuntimeError, e:
                     raise RuntimeError("Unable to process tag %s: %s" % (tag, e))
 
-        self._loadServerTags(useLocks=useLocks)
-        self._loadUserTags(useLocks=useLocks)
+        self._loadServerTags()
+        self._loadUserTags()
         #
         # Handle preferred tags; this is a list where None means hooks.config.Eups.preferredTags
         #
@@ -470,7 +469,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 pass
         return cachedir
 
-    def _loadServerTags(self, useLocks=True):
+    def _loadServerTags(self):
         tags = {}
         for path in self.path:
             tags[path] = Tags()
@@ -529,11 +528,11 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return tags
 
-    def _loadUserTags(self, useLocks=True):
+    def _loadUserTags(self):
         for path in self.path:
             # start by looking for a cached list
             dirName = self._userStackCache(path)
-            if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName, useLocks=useLocks):
+            if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName):
                 continue
 
             # if no list cached, try asking the cached product stack
@@ -652,23 +651,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                 ptags.append(t)
                 
         return ptags
-
-    def clearLocks(self):
-        """Clear all lock files"""
-        locations = self.path
-        if self.userDataDir:
-            locations.append(self.userDataDir)
-        
-        for p in locations:
-            for root, dirs, files in os.walk(p):
-                for lockfile in filter(lambda f: f.endswith(".lock"), files):
-                    lockfile = os.path.join(root, lockfile)
-                    if self.verbose:
-                        print "Removing", lockfile
-                    try:
-                        os.remove(lockfile)
-                    except Exception, e:
-                        print >> sys.stderr, ("Error deleting %s: %s" % (lockfile, e))
 
     def findSetupVersion(self, productName, environ=None):
         """Find setup version of a product, returning the version, eupsPathDir, productDir, None (for tablefile), and flavor
@@ -1406,7 +1388,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return upsDB
     
 
-    def includeUserDataDirInPath(self, dataDir=None, useLock=True):
+    def includeUserDataDirInPath(self, dataDir=None):
         """Include the ~/.eups versions of directories on self.path in the search path"""
         if not dataDir:
             dataDir = self.userDataDir
@@ -1416,7 +1398,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
                                                             updateCache=True, autosave=False,
-                                                            useLock=useLock, verbose=self.verbose)
+                                                            verbose=self.verbose)
 
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""

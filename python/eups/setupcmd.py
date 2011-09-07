@@ -17,6 +17,7 @@ import os, sys, glob, re
 from cmd import EupsOptionParser
 from exceptions import EupsException
 import eups
+import lock
 import hooks
 
 _errstrm = sys.stderr
@@ -214,9 +215,8 @@ product and all its dependencies into the environment so that it can be used.
                 return 3
             self.opts.max_depth = 0
 
-        if self.opts.nolocks:
-            import lock
-            lock.disableLocking = True
+        path = eups.Eups.setEupsPath(self.opts.path, self.opts.dbz)
+        lock.takeLocks("setup", path, lock.LOCK_SH, self.opts.nolocks, self.opts.verbose)
         #
         # Do the work
         #
