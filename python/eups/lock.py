@@ -54,14 +54,13 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
 
             try:
                 fd = os.open(os.path.join(lockDir, lockFile), os.O_EXCL | os.O_RDWR | os.O_CREAT)
-                del fd
+                os.close(fd)
             except OSError, e:
                 if e.errno != errno.EEXIST:
                     # should not occur
                     raise
 
             locks.append((lockDir, lockFile))
-
     #
     # Cleanup, even in the event of the user being rude enough to use kill
     #
