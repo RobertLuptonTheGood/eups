@@ -252,7 +252,7 @@ product and all its dependencies into the environment so that it can be used.
 
             Eups.includeUserDataDirInPath()
             for user in Eups.tags.owners.values():
-                Eups.includeUserDataDirInPath(eups.utils.defaultUserDataDir(user), useLock=False)
+                Eups.includeUserDataDirInPath(eups.utils.defaultUserDataDir(user))
 
             if False:
                 # If we are asking for an exact setup but don't specify a version or tag we won't find
