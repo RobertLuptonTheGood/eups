@@ -204,7 +204,7 @@ class Repositories(object):
                                            version.name)
         if not version:
             versions = [self.eups.tags.getTag(t) for t in self.eups.getPreferredTags()
-                        if not re.search(r"^warn:(\d+)$", t)]
+                        if not re.search(r"^(type|warn):", t)]
 
         newest = None
 

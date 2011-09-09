@@ -131,6 +131,7 @@ Common"""
         execute this command, returning an exit code.  A successful operation
         should return 0.  
         """
+
         if self.cmd is None:
             if self.opts.help:
                 self.clo.print_help()
@@ -146,7 +147,7 @@ Common"""
                 self.clo.print_help()
             return 9
 
-        ecmd = makeEupsCmd(self.cmd, self.clargs, self.prog)
+        ecmd = makeEupsCmd(self.cmd, self)
         if ecmd is None:
             self.err("Unrecognized command: %s" % self.cmd)
             return 10
@@ -1436,12 +1437,15 @@ that are writable by the user.
             return 2
         subcmd = self.args[0]
 
-        ecmd = makeEupsCmd("%s %s" % (self.cmd, subcmd), self.clargs, self.prog)
-        if ecmd:
-            return ecmd.run()
-        else:
+        ecmd = makeEupsCmd("%s %s" % (self.cmd, subcmd), self)
+        if not ecmd:
             self.err("Unrecognized admin subcommand: %s" % subcmd)
             return 10
+
+        lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
+                       ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
+
+        return ecmd.run()
 
         return 0
 
@@ -1771,10 +1775,13 @@ Common """
 
         cmd = "%s %s" % (self.cmd, subcmd)
         
-        ecmd = makeEupsCmd(cmd, self.clargs, self.prog)
+        ecmd = makeEupsCmd(cmd, self)
         if ecmd is None:
             self.err("Unrecognized distrib subcommand: %s" % subcmd)
             return 10
+
+        lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
+                       ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
 
         return ecmd.run()
 
@@ -2665,13 +2672,38 @@ def register(cmd, clname, lockType=lock.LOCK_EX):
         raise RuntimeError("Attempt to over-ride command: %s" % cmd)
     _cmdLookup[cmd] = (clname, lockType)
 
-def makeEupsCmd(cmd, args=None, toolname=None):
-    cmdFunc, lockType = _cmdLookup.get(cmd, (None, None))
+def makeEupsCmd(cmdName, cmd):
+    args, toolname = cmd.clargs, cmd.prog
+    cmdFunc, lockType = _cmdLookup.get(cmdName, (None, None))
 
     if not cmdFunc:
         return None
 
-    return cmdFunc(args=args, toolname=toolname, cmd=cmd, lockType=lockType)
+    ecmd = cmdFunc(args=args, toolname=toolname, cmd=cmdName, lockType=lockType)
+    #
+    # Merge options set in cmd into ecmd
+    #
+    baseCmd = EupsCmd(); baseCmd.addOptions()
+    baseOptDefaults = baseCmd.clo.values # default options
+
+    for k, v in vars(cmd).items():
+        try:
+            dv = getattr(baseOptDefaults, k) # get the default value
+        except AttributeError:
+            continue
+
+        if getattr(cmd, k) == dv:       # not set in cmd
+            continue
+            
+        if hasattr(ecmd, k):            # ecmd has the attribute
+            ev = getattr(ecmd, k)
+
+            if ev is None:
+                setattr(ecmd, k, v)
+            elif isinstance(ev, int):
+                setattr(ecmd, k, ev + v)
+
+    return ecmd
     
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -2725,7 +2757,7 @@ register("expandtable",  ExpandtableCmd, lockType=lock.LOCK_SH)
 register("declare",      DeclareCmd)
 register("undeclare",    UndeclareCmd)
 register("remove",       RemoveCmd)
-register("admin",        AdminCmd, lockType=None)
+register("admin",                  AdminCmd, lockType=None) # must be None, as subcommands take locks
 register("admin buildCache",       AdminBuildCacheCmd)
 register("admin clearCache",       AdminClearCacheCmd)
 register("admin clearServerCache", AdminClearServerCacheCmd)
@@ -2733,7 +2765,7 @@ register("admin clearLocks",       AdminClearLocksCmd, lockType=None)
 register("admin listLocks",        AdminListLocksCmd, lockType=None)
 register("admin listCache",        AdminListCacheCmd, lockType=lock.LOCK_SH)
 register("admin info",             AdminInfoCmd, lockType=lock.LOCK_SH)
-register("distrib",      DistribCmd)
+register("distrib",         DistribCmd, lockType=None) # must be None, as subcommands take locks
 register("distrib clean",   DistribCleanCmd)
 register("distrib create",  DistribCreateCmd)
 register("distrib declare", DistribDeclareCmd)
