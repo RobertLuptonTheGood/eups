@@ -33,15 +33,23 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
             #
             # OK, the lock directory exists.
             #
-            # If we're a shared lock, we need to check that no-one holds an exclusive lock.
+            # If we're a shared lock, we need to check that no-one holds an exclusive lock (or, if someone
+            # does hold the lock, that we're the holder's child)
+            #
             # N.b. the check isn't atomic, but that's conservative (we don't care if the exclusive lock's
             # dropped while we're pondering its existence)
             #
             lockers = listLockers(lockDir, "exclusive*")
             if len(lockers) > 0:
-                raise RuntimeError("Unable to take shared lock on %s: an exclusive lock is held by %s" %
-                                   (d, " ".join(lockers)))
-                         
+                if len(lockers) == 1 and \
+                   os.environ.get("LOCK_PID", "-1") == listLockers(lockDir, "exclusive*", getPids=True)[0]:
+                    pass
+                else:
+                    raise RuntimeError("Unable to take shared lock on %s: an exclusive lock is held by %s" %
+                                       (d, " ".join(lockers)))
+
+            if not os.environ.has_key("LOCK_PID"): # remember the PID of the process taking the lock
+                os.environ["LOCK_PID"] = "%d" % os.getpid()                         
             #
             #
             # Create a file in it
@@ -66,7 +74,6 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
     #
     def cleanup(*args):
         giveLocks(locks, verbose)
-        sys.exit(1)
 
     import atexit
     atexit.register(cleanup)            # regular exit
@@ -129,11 +136,14 @@ def listLocks(path, verbose=0, noaction=False):
 
         print "%-30s %s" % (d + ":", " ".join(listLockers(lockDir)))
 
-def listLockers(lockDir, globPattern="*"):
+def listLockers(lockDir, globPattern="*", getPids=False):
     """List all the owners of locks in a lockDir"""
     lockers = []
     for f in [os.path.split(f)[1] for f in glob.glob(os.path.join(lockDir, globPattern))]:
         who, pid = re.split(r"[-.]", f)[1:]
-        lockers.append("[user=%s, pid=%s]" % (who, pid))
+        if getPids:
+            lockers.append(pid)
+        else:
+            lockers.append("[user=%s, pid=%s]" % (who, pid))
 
     return lockers
