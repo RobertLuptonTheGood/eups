@@ -58,7 +58,9 @@ class Eups(object):
                       "%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p
                 continue
 
-            eups_path += [os.path.normpath(p)]
+            p = os.path.normpath(p)
+            if eups_path.count(p) == 0:
+                eups_path.append(p)
 
         os.environ["EUPS_PATH"] = ":".join(eups_path)
         return eups_path
@@ -1394,11 +1396,12 @@ The what argument tells us what sort of state is expected (allowed values are de
             dataDir = self.userDataDir
             
         if os.path.isdir(self.getUpsDB(dataDir)):
-            self.path.append(dataDir)
-
-            self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
-                                                            updateCache=True, autosave=False,
-                                                            verbose=self.verbose)
+            if self.path.count(dataDir) == 0:
+                self.path.append(dataDir)
+                
+                self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
+                                                                updateCache=True, autosave=False,
+                                                                verbose=self.verbose)
 
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""
