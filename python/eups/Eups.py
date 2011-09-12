@@ -1413,10 +1413,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
             try:
                 productInfo = os.environ[key].split()
+                productName = productInfo[0]
             except IndexError:          # Oh dear;  "$setupEnvPrefix()_productName" must be malformed
                 continue
 
-            productName = productInfo[0]
             try:
                 versionName = productInfo[1]
             except IndexError:
