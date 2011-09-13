@@ -152,10 +152,13 @@ Common"""
             self.err("Unrecognized command: %s" % self.cmd)
             return 10
 
-        lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
-                       ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
+        locks = lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
+                               ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
 
-        return ecmd.run()
+        try:
+            return ecmd.run()
+        finally:
+            lock.giveLocks(locks, ecmd.opts.verbose)
 
     def __init__(self, args=None, toolname=None, cmd=None, lockType=lock.LOCK_EX):
         """

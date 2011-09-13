@@ -216,64 +216,67 @@ product and all its dependencies into the environment so that it can be used.
             self.opts.max_depth = 0
 
         path = eups.Eups.setEupsPath(self.opts.path, self.opts.dbz)
-        lock.takeLocks("setup", path, lock.LOCK_SH, self.opts.nolocks, self.opts.verbose)
+        locks = lock.takeLocks("setup", path, lock.LOCK_SH, self.opts.nolocks, self.opts.verbose)
         #
         # Do the work
         #
         status = 0
         try:
-            Eups = eups.Eups(flavor=self.opts.flavor, path=self.opts.path, 
-                             dbz=self.opts.dbz, # root=self.opts.productDir, 
-                             readCache=False, force=self.opts.force,
-                             quiet=self.opts.quiet, verbose=self.opts.verbose, 
-                             noaction=self.opts.noaction, keep=self.opts.keep, 
-                             ignore_versions=self.opts.ignoreVer, setupType=self.opts.setupType,
-                             max_depth=self.opts.max_depth, vro=self.opts.vro,
-                             exact_version=self.opts.exact_version)
-
             try:
-                eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
-            except eups.OperationForbidden, e:
-                e.status = 255
+                Eups = eups.Eups(flavor=self.opts.flavor, path=self.opts.path, 
+                                 dbz=self.opts.dbz, # root=self.opts.productDir, 
+                                 readCache=False, force=self.opts.force,
+                                 quiet=self.opts.quiet, verbose=self.opts.verbose, 
+                                 noaction=self.opts.noaction, keep=self.opts.keep, 
+                                 ignore_versions=self.opts.ignoreVer, setupType=self.opts.setupType,
+                                 max_depth=self.opts.max_depth, vro=self.opts.vro,
+                                 exact_version=self.opts.exact_version)
+
+                try:
+                    eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
+                except eups.OperationForbidden, e:
+                    e.status = 255
+                    raise
+                except Exception, e:
+                    e.status = 9
+                    raise
+
+                Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
+                               inexact_version=self.opts.inexact_version)
+
+                isUserTag = False
+                if self.opts.tag:
+                    for t in self.opts.tag:
+                        if Eups.isUserTag(t):
+                            isUserTag = True
+                            break
+
+                Eups.includeUserDataDirInPath()
+                for user in Eups.tags.owners.values():
+                    Eups.includeUserDataDirInPath(eups.utils.defaultUserDataDir(user))
+
+                if False:
+                    # If we are asking for an exact setup but don't specify a version or tag we won't find
+                    # one as current is removed from the VRO.  Do an explicit lookup including current
+                    if not versionName and not self.opts.tag:
+                        product, vroReason = Eups.findProductFromVRO(productName,
+                                                                     vro=["current"] + Eups.getPreferredTags())
+                        if product:
+                            versionName = product.version
+                            if self.opts.verbose > 2: # we told them how we found our version
+                                print >> sys.stderr, "Resolved %s version -> %s" % (productName, versionName)
+
+                cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
+                                  Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
+
+            except EupsException, e:
+                e.status = 1
                 raise
             except Exception, e:
-                e.status = 9
+                e.status = -1
                 raise
-
-            Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
-                           inexact_version=self.opts.inexact_version)
-
-            isUserTag = False
-            if self.opts.tag:
-                for t in self.opts.tag:
-                    if Eups.isUserTag(t):
-                        isUserTag = True
-                        break
-
-            Eups.includeUserDataDirInPath()
-            for user in Eups.tags.owners.values():
-                Eups.includeUserDataDirInPath(eups.utils.defaultUserDataDir(user))
-
-            if False:
-                # If we are asking for an exact setup but don't specify a version or tag we won't find
-                # one as current is removed from the VRO.  Do an explicit lookup including current
-                if not versionName and not self.opts.tag:
-                    product, vroReason = Eups.findProductFromVRO(productName,
-                                                                 vro=["current"] + Eups.getPreferredTags())
-                    if product:
-                        versionName = product.version
-                        if self.opts.verbose > 2: # we told them how we found our version
-                            print >> sys.stderr, "Resolved %s version -> %s" % (productName, versionName)
-
-            cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
-                              Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
-
-        except EupsException, e:
-            e.status = 1
-            raise
-        except Exception, e:
-            e.status = -1
-            raise
+        finally:
+            lock.giveLocks(locks, self.opts.verbose)
 
         if Eups.verbose > 3:
             self.err("\n\t".join(["Issuing commands:"] + cmds))

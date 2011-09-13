@@ -4,7 +4,6 @@ Tests for eups.Eups
 """
 
 import os
-import pdb
 import sys
 import shutil
 import unittest
@@ -77,18 +76,8 @@ class EupsTestCase(unittest.TestCase):
         for flav in "Linux64 Linux generic".split():
             self.assert_(flav in flavors)
 
-        # 1 built-in global tag: newest
-        # 2 configured global tags: current stable
-        # 1 built-in user tag: [user]
-        # 1 configured user tag: mine
-        # 8 built-in pseudo tags: commandLine keep path setup 
-        #                         type version versionExpr warn
-        # 1 more from ups_db cache:  beta
-        # 
         tags = self.eups.tags.getTagNames()
-        self.assertEquals(len(tags), 14, "wrong number of tags:"+str(tags))
-        exptags = "newest setup stable current beta commandLine keep " + \
-                  "path type version versionExpr warn"
+        exptags = "newest setup stable current commandLine keep path type version versionExpr warn"
         for tag in exptags.split():
             self.assert_(tag in tags)
 
@@ -262,7 +251,6 @@ class EupsTestCase(unittest.TestCase):
         # test declare.  Note: "current" is now a default tag assignment
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack, table)
         prod = self.eups.findProduct("newprod")
-        # pdb.set_trace()
         self.assert_(prod is not None, "Failed to declare product")
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
@@ -427,7 +415,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 0)
 
         prods = self.eups.findProducts("python", "2.5.2", tags="newest")
-        # pdb.set_trace()
+        import pdb; pdb.set_trace() 
         self.assertEquals(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']

@@ -3,7 +3,6 @@
 Tests for eups.cmd
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
 import unittest
@@ -14,6 +13,7 @@ import testCommon
 from testCommon import testEupsStack
 
 import eups.cmd
+import eups.lock as lock
 from eups import Tag, TagNotRecognized
 
 prog = "eups"

@@ -7,7 +7,7 @@ if os.path.isdir("python") and os.path.isdir("tests") and \
 
     # we're in the main build directory
     os.environ["EUPS_DIR"] = os.environ["PWD"]
-    testEupsStack = os.path.join(os.environ["PWD"], "tests")
+    testEupsStack = os.path.join(testEupsStack, "tests")
 
 elif os.path.isdir("ups_dir") and os.path.isdir("testserver") and \
      os.path.isfile("testAll.py"):

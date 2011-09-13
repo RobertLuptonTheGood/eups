@@ -22,6 +22,8 @@ class AppTestCase(unittest.TestCase):
         self.environ0 = os.environ.copy()
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_FLAVOR"] = "Linux"
+        if eups.Eups().isSetup("python"):
+            eups.unsetup("python")
         self.dbpath = os.path.join(testEupsStack, "ups_db")
 
     def tearDown(self):
@@ -29,9 +31,9 @@ class AppTestCase(unittest.TestCase):
 
     def testProductDir(self):
         if os.environ.has_key("PYTHON_DIR"):
-            del os["PYTHON_DIR"]
+            del os.environ["PYTHON_DIR"]
         if os.environ.has_key("SETUP_PYTHON"):
-            del os["SETUP_PYTHON"]
+            del os.environ["SETUP_PYTHON"]
 
         self.assert_(eups.productDir("python") is None, 
                      "found unsetup product")
