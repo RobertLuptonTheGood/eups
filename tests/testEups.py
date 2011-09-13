@@ -415,7 +415,6 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 0)
 
         prods = self.eups.findProducts("python", "2.5.2", tags="newest")
-        import pdb; pdb.set_trace() 
         self.assertEquals(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']
