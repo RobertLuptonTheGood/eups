@@ -254,6 +254,18 @@ product and all its dependencies into the environment so that it can be used.
                 Eups.includeUserDataDirInPath()
                 for user in Eups.tags.owners.values():
                     Eups.includeUserDataDirInPath(eups.utils.defaultUserDataDir(user))
+                #
+                # If they specify a productDir in addition to a complete product + version specification
+                # Use that product + version's expanded table file, but this directory
+                #
+                if self.opts.productDir and not self.opts.tablefile and productName and versionName:
+                    prod = Eups.findProduct(productName)
+                    tablefile = prod.tablefile
+                else:
+                    tablefile=self.opts.tablefile
+
+                cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
+                                  Eups, fwd=not self.opts.unsetup, tablefile=tablefile)
 
                 if False:
                     # If we are asking for an exact setup but don't specify a version or tag we won't find

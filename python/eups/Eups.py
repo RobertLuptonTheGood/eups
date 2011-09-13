@@ -11,7 +11,7 @@ from stack      import ProductStack, CacheOutOfSync
 from db         import Database
 from tags       import Tags, Tag, TagNotRecognized
 from exceptions import ProductNotFound, EupsException, TableError, TableFileNotFound
-from table      import Table
+from table      import Table, Action
 from Product    import Product
 from Uses       import Uses
 import hooks
@@ -1709,8 +1709,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         # Look for product directory
         #
         setupFlavor = self.flavor         # we may end up using e.g. "generic"
-
-        product = None
+        product, localProduct = None, None
         if isinstance(productName, Product): # it's already a full Product
             raise RuntimeError("Product type passed to setup")
             # product = productName
@@ -1754,6 +1753,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                     raise EupsException("Product %s's productDir %s is not a directory" % \
                                         (productName, productRoot))
 
+                localProduct = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
+
+            if productRoot and not versionName:
+                if not os.path.isdir(productRoot):
+                    raise EupsException("Product %s's productDir %s is not a directory" % \
+                                        (productName, productRoot))
                 vro = self.getPreferredTags()
                 if len(vro) > 0 and vro.count("commandLine") == 0:
                     if self.verbose:
@@ -1763,7 +1768,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 vroReason = ["commandLine", productRoot]
                 if self.verbose > 2:
                     print >> sys.stderr, ("VRO used %-12s " % vroReason[0]),
-                product = Product.createLocal(productName, productRoot, self.flavor, tablefile=tablefile)
+
+                product = localProduct
             else:
                 product = None
                 for fallbackFlavor in utils.Flavor().getFallbackFlavors(self.flavor, includeMe=True):
@@ -1914,7 +1920,9 @@ The what argument tells us what sort of state is expected (allowed values are de
             if tablefile:
                 setup_product_str += " -m %s" % (tablefile)
 
-            self.setEnv(self._envarDirName(product.name), product.dir)
+            if not productRoot:
+                productRoot = product.dir
+            self.setEnv(self._envarDirName(product.name), productRoot)
             self.setEnv(self._envarSetupName(product.name), setup_product_str)
             #
             # Remember that we've set this up in case we want to keep it later
@@ -1933,7 +1941,23 @@ The what argument tells us what sort of state is expected (allowed values are de
         # Process table file
         #
         for a in actions:
+            if localProduct:    # we'll set e.g. PATH from localProduct
+                if a.cmd not in (Action.setupOptional, Action.setupRequired):
+                    continue
+
             a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion)
+        #
+        # Did we want to use the dependencies from an installed table, but use a different directory?
+        #
+        if localProduct:
+            localTable = localProduct.getTable(quiet=True)
+            localActions = localTable.actions(setupFlavor, setupType=self.setupType, verbose=verbose)
+
+            for a in localActions:
+                if a.cmd in (Action.setupOptional, Action.setupRequired):
+                    continue
+
+                a.execute(self, 0, fwd=True, noRecursion=noRecursion)
 
         if recursionDepth == 0:            # we can cleanup
             if fwd:
@@ -3262,6 +3286,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")
         @param inexact_version    Process the VRO to remove type:exact?
         """
+
+        if self.userVRO:
+            return self._vroDict["commandLine"]
 
         # Note that the order of these tests is significant
         vroTag = None
