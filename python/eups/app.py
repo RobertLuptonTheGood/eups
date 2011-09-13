@@ -87,8 +87,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             msg = productName
             if versionName:
                 msg += " %s" % versionName
-            elif tags:
+            if tags:
                 msg += " tagged \"%s\"" % ", ".join([Tag(t).name for t in tags])
+
             raise ProductNotFound(productName, versionName, msg="Unable to find product %s" % msg)
 
     productList.sort(lambda a,b: cmp(a, b), 

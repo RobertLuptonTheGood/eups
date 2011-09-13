@@ -1789,7 +1789,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                 #
                                 vro = vro[vro.index(vroReason[0]) + 1:]
 
-                                if self.verbose > 1:
+                                if self.verbose >= 0:
                                     msg = ("Requested %s version %s; " + 
                                            "version %s found on VRO as \"%s\" is not acceptable") % \
                                           (productName, versionName, product.version, vroReason[0])
@@ -2699,6 +2699,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                         out.append(setup[key])
                         del setup[key]
 
+        if version:
+            out = [p for p in out if fnmatch.fnmatch(p.version, version)]
+            
         if not version or \
            (isinstance(version,str) and version.startswith(Product.LocalVersionPrefix)) or \
            (tags and "setup" in tags):
