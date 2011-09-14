@@ -34,7 +34,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                     if not os.path.exists(lockDir):
                         if verbose:
                             print >> sys.stderr, "Unable to lock %s; proceeding with trepidation" % d
-                            return []
+                        return []
             #
             # OK, the lock directory exists.
             #
