@@ -30,6 +30,11 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                 if lockType == LOCK_EX:
                     raise RuntimeError("Unable to take exclusive lock on %s: locks are held by  %s" %
                                        (d, " ".join(listLockers(lockDir))))
+                else:
+                    if not os.path.exists(lockDir):
+                        if verbose:
+                            print >> sys.stderr, "Unable to lock %s; proceeding with trepidation" % d
+                            return []
             #
             # OK, the lock directory exists.
             #

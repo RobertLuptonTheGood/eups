@@ -1,3 +1,6 @@
+2011-09-14 rhl
+      Complain (if verbose) and continue if unable to create a lock directory in the stack.
+
 2011-09-12 rhl
       Make "setup -r . foo 1.2.4" use foo 1.2.4's table file for dependencies, but set PRODUCT_DIR to .
 
