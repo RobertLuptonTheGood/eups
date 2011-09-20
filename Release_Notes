@@ -1,3 +1,10 @@
+2011-09-20 rhl
+      Add option hooks.config.site.lockDirectoryBase to control the existence or location of lock files;
+      you are expected to set this in a site, not personal, startup.py directory
+
+      If None, no locking is performed.  If a path, create lock directories relative to that location
+      (e.g. "/tmp" means that you'll have lock directories such as "/tmp/u/lsst/products/.lockDir")
+
 2011-09-14 rhl
       Complain (if verbose) and continue if unable to create a lock directory in the stack.
 

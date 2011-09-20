@@ -1,5 +1,6 @@
 import errno, glob, os, shutil, sys
 import re
+import hooks
 
 #
 # Types of locks
@@ -9,8 +10,35 @@ LOCK_EX = 2                             # acquire an exclusive lock
 
 _lockDir = ".lockDir"                   # name of lock directory
 
+def getLockPath(dirName):
+    """Get the directory path that should prefix the """
+    if hooks.config.site.lockDirectoryBase == hooks._defaultLockDirectoryBase:
+        # Put the locks into the ups_db directory directly
+        return dirName
+    else:
+        base = hooks.config.site.lockDirectoryBase
+
+        if not os.path.isabs(base):
+            raise RuntimeError("hooks.config.site.lockDirectoryBase must be an absolute path, not \"%s\"" %
+                               hooks.config.site.lockDirectoryBase)
+
+        if os.path.isabs(dirName):
+            dirName = dirName[1:]
+            
+        dirName = os.path.join(base, dirName)
+
+        if not os.path.exists(dirName):
+            os.makedirs(dirName)
+
+        return dirName
+    
 def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
     locks = []
+
+    if hooks.config.site.lockDirectoryBase is None:
+        if verbose > 2:
+            print >> sys.stderr, "Locking is disabled"
+        nolocks = True
 
     if lockType is not None and not nolocks:
         if lockType == LOCK_EX:
@@ -22,7 +50,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
             print >> sys.stderr, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
 
         for d in path:
-            lockDir = os.path.join(d, _lockDir)
+            lockDir = os.path.join(getLockPath(d), _lockDir)
 
             try:
                 os.mkdir(lockDir)
@@ -35,6 +63,9 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                         if verbose:
                             print >> sys.stderr, "Unable to lock %s; proceeding with trepidation" % d
                         return []
+
+            if verbose > 2:
+                print >> sys.stderr, "Creating lock directory %s" % (lockDir)
             #
             # OK, the lock directory exists.
             #
@@ -74,6 +105,9 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                     raise
 
             locks.append((lockDir, lockFile))
+
+            if verbose > 3:
+                print >> sys.stderr, "Creating lockfile %s" % (os.path.join(lockDir, lockFile))
     #
     # Cleanup, even in the event of the user being rude enough to use kill
     #
@@ -114,7 +148,7 @@ def clearLocks(path, verbose=0, noaction=False):
     """Remove all locks found in the directories listed in path"""
     
     for d in path:
-        lockDir = os.path.join(d, _lockDir)
+        lockDir = os.path.join(getLockPath(d), _lockDir)
 
         if not os.path.isdir(lockDir):
             continue
@@ -134,7 +168,7 @@ def listLocks(path, verbose=0, noaction=False):
     """List all locks found in the directories listed in path"""
 
     for d in path:
-        lockDir = os.path.join(d, _lockDir)
+        lockDir = os.path.join(getLockPath(d), _lockDir)
 
         if not os.path.isdir(lockDir):
             continue

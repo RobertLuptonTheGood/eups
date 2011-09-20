@@ -63,6 +63,14 @@ config.Eups.fallbackFlavors = {None : "generic"}
 #
 config.Eups.defaultProduct = {"name" : "toolchain", "version" : None, "tag" : None}
 
+#
+# Configure things that apply to the entire site
+#
+config.site = defineProperties("lockDirectoryBase", "site")
+
+_defaultLockDirectoryBase = "__UPS_DB__";
+config.site.lockDirectoryBase = _defaultLockDirectoryBase
+
 # it is expected that different Distrib classes will have different set-able
 # properties.  The key for looking up Distrib-specific data could the Distrib
 # name.  
