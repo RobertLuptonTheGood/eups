@@ -264,9 +264,6 @@ product and all its dependencies into the environment so that it can be used.
                 else:
                     tablefile=self.opts.tablefile
 
-                cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
-                                  Eups, fwd=not self.opts.unsetup, tablefile=tablefile)
-
                 if False:
                     # If we are asking for an exact setup but don't specify a version or tag we won't find
                     # one as current is removed from the VRO.  Do an explicit lookup including current
@@ -279,7 +276,7 @@ product and all its dependencies into the environment so that it can be used.
                                 print >> sys.stderr, "Resolved %s version -> %s" % (productName, versionName)
 
                 cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
-                                  Eups, fwd=not self.opts.unsetup, tablefile=self.opts.tablefile)
+                                  Eups, fwd=not self.opts.unsetup, tablefile=tablefile)
 
             except EupsException, e:
                 e.status = 1

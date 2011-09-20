@@ -1806,6 +1806,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                                 continue
 
                         if product:         # got it
+                            if product.flavor:
+                                fallbackFlavor = product.flavor
+                                
                             if setupFlavor != fallbackFlavor:
                                 setupFlavor = fallbackFlavor
                                 if self.verbose > 2:
