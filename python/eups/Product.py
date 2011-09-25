@@ -59,12 +59,11 @@ class Product(object):
 
         self.name = name
         self.version = version
-        self.dir = dir
         self.ups_dir = ups_dir
 
-        if not self.dir and self.version is not None and \
-           self.version.startswith(self.LocalVersionPrefix):
-            self.dir = self.version[len(self.LocalVersionPrefix):]
+        if not dir and self.version is not None and self.version.startswith(self.LocalVersionPrefix):
+            dir = self.version[len(self.LocalVersionPrefix):]
+        self.dir = dir
 
         if not table and dir and name:
             tablefile = os.path.join(dir,"ups",name+".table");
@@ -77,7 +76,6 @@ class Product(object):
         else:
             self.tablefile = table
         
-
         if not tags:  
             self.tags = []
         else:
