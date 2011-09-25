@@ -477,7 +477,7 @@ def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
         eupsenv = Eups()
     return eupsenv.undeclare(productName, versionName, eupsPathDir, tag)
                              
-def clearCache(path=None, flavors=None, inUserDir=False):
+def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
     """
     remove the product cache for given stacks/databases and flavors
     @param path     the stacks to clear caches for.  This can be given either
@@ -489,6 +489,7 @@ def clearCache(path=None, flavors=None, inUserDir=False):
     @param inUserDir  if True (default), it will be assumed that it is the
                         cache in the user's data directory that should be
                         cleared.
+    @params verbose   chattiness
     """
     if path is None:
         path = os.environ["EUPS_PATH"]
@@ -516,7 +517,7 @@ def clearCache(path=None, flavors=None, inUserDir=False):
             continue
 
         ProductStack.fromCache(dbpath, flavs, persistDir=persistDir,
-                               autosave=False).clearCache()
+                               autosave=False).clearCache(verbose=verbose)
 
 def listCache(path=None, verbose=0, flavor=None):
     if path is None:

@@ -1477,7 +1477,7 @@ class AdminBuildCacheCmd(EupsCmd):
             self.err("Unexpected arguments: %s" % " ".join(self.args))
             return 1
 
-        eups.clearCache(inUserDir=not self.opts.asAdmin)
+        eups.clearCache(inUserDir=not self.opts.asAdmin, verbose=self.opts.verbose)
         eups.Eups(readCache=True, asAdmin=self.opts.asAdmin)
 
         return 0
@@ -1508,7 +1508,7 @@ class AdminClearCacheCmd(EupsCmd):
             self.err("Unexpected arguments: %s" % " ".join(self.args))
             return 1
 
-        eups.clearCache(inUserDir=not self.opts.asAdmin)
+        eups.clearCache(inUserDir=not self.opts.asAdmin, verbose=self.opts.verbose)
 
         return 0
 

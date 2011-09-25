@@ -633,7 +633,7 @@ class ProductStack(object):
         # is newer than this time, this isNewerThan() returns True
         return not Database(self.dbpath).isNewerThan(cache_mtime)
 
-    def clearCache(self, flavors=None, cachedir=None):
+    def clearCache(self, flavors=None, cachedir=None, verbose=0):
         """
         remove the cache file containing the persisted product information for 
         the given flavors.  
@@ -651,9 +651,11 @@ class ProductStack(object):
             flavors = [flavors]
 
         for flavor in flavors:
-            file = self._persistPath(flavor, cachedir)
-            if os.path.exists(file):
-                os.remove(file)
+            fileName = self._persistPath(flavor, cachedir)
+            if os.path.exists(fileName):
+                if verbose > -10:
+                    print >> sys.stderr, "Deleting %s" % (fileName)
+                os.remove(fileName)
 
     def reload(self, flavors=None, persistDir=None, verbose=0):
         """
@@ -751,7 +753,7 @@ class ProductStack(object):
 
     # @staticmethod   # requires python 2.4
     def fromCache(dbpath, flavors, persistDir=None, userTagDir=None, 
-                  updateCache=True, autosave=True, verbose=False):
+                  updateCache=True, autosave=True, verbose=0):
         """
         return a ProductStack that has all products loaded in from the 
         available caches.  If they are out of date (or non-existent), this 
