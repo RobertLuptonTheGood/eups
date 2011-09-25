@@ -850,6 +850,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                         except ProductNotFound:
                             pass
 
+                if not product and \
+                       version is not None and version.startswith(Product.LocalVersionPrefix):
+                    dirName = version[len(Product.LocalVersionPrefix):]
+
+                    if os.path.exists(dirName):
+                        product = Product(name, version)
+                        vroTag = "path from version"
+                        vroReason = [vroTag, version]
+                        
                 if product:
                     if recursionDepth == 0:
                         vroReason[0] = "commandLine"
@@ -946,6 +955,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if self.verbose > 3 or (self.cmdName == "setup" and self.verbose > 2):
                 print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
+                if self.cmdName != "setup":
+                    print >> sys.stderr, "%-15s %s" % (product.name, product.version)
             
         return [product, vroReason]
 
