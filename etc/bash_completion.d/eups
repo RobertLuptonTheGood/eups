@@ -86,21 +86,6 @@ _eups()
     local options=""
 
     case "$cmd" in
-        admin)
-            options="-t --tag -f"
-
-            local admin="buildCache clearCache listCache clearLocks listLocks clearServerCache info"
-            local admincmd=$(_eups_cmd $admin)
-            if [[ -z $admincmd ]]; then
-                COMPREPLY=($(compgen -W "$admin" -- "$cur"))
-                return 0
-            fi
-            case "$admincmd" in
-                info)
-                    products=$(_eups_products)
-                    ;;
-            esac
-            ;;
         declare)
             options="-r --root -M --import-table -m --table -t --tag -f --flavor"
             ;;
@@ -166,17 +151,7 @@ _eups()
     esac
 
     local products
-    if [ $cmd == "admin" ]; then
-            case "$admincmd" in
-                info)
-                    products=$(_eups_products)
-                    ;;
-                *)
-                    products=""
-                    ;;
-            esac
-
-    elif [[ $cmd == "distrib" ]]; then
+    if [[ $cmd == "distrib" ]]; then
         products=$(eups distrib list | awk '{print $1}' | sort -u);
     else
         products=$(_eups_products)
