@@ -57,9 +57,9 @@ _eups()
 
     local commands="admin declare distrib expandbuild expandtable flags flavor help list path pkgroot pkg-config remove tags undeclare uses vro"
     local general="--debug -h --help -V --version --vro"
-
     
-    local cmd=$(_eups_cmd $commands)
+    local cmd=$(_eups_cmd "$commands $general")
+    
     if [[ -z $cmd ]]; then
         COMPREPLY=($(compgen -W "$commands $general" -- "$cur"))
         return 0
@@ -67,6 +67,10 @@ _eups()
 
     # Some common options
     case "$prev" in
+        --debug|--debug=)
+            COMPREPLY=($(compgen -W "debug raise" -- "$cur"))
+            return 0
+            ;;
         -r|--root)
             _filedir -d
             return 0
@@ -162,7 +166,10 @@ _eups()
                     esac
                     options="-R --remove"
                     ;;
-            esac
+            esac;;
+        -*)                             # an option with a value
+            COMPREPLY=($(compgen -W "$commands $general" -- "$cur"))
+            return 0;;
     esac
 
     local products
