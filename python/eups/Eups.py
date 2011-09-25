@@ -73,7 +73,7 @@ class Eups(object):
                  keep=False, max_depth=-1, preferredTags=None,
                  # above is the backward compatible signature
                  userDataDir=None, asAdmin=False, setupType=[], validSetupTypes=None, vro={},
-                 exact_version=None
+                 exact_version=None, cmdName=None
                  ):
         """
         @param path             the colon-delimited list of product stack 
@@ -101,6 +101,7 @@ class Eups(object):
                                   user's configuration.
         @param preferredTags      List of tags to process in order; None will be intepreted as the default
         @param exact_version      Where possible, use the exact versions that were previously declared
+        @param cmdName            The command being run, if known (used for diagnostics)
         """
 
         self.verbose = verbose
@@ -160,6 +161,7 @@ class Eups(object):
         self.version_cmp = hooks.version_cmp
         self.quiet = quiet
         self.keep = keep
+        self.cmdName = cmdName
 
         # set the valid setup types
         if isinstance(validSetupTypes, str):
@@ -942,7 +944,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                                              product.name, product.version,
                                                                              oproduct.name, oproduct.version)
 
-            if self.verbose > 2:
+            if self.verbose > 3 or (self.cmdName == "setup" and self.verbose > 2):
                 print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
             
         return [product, vroReason]

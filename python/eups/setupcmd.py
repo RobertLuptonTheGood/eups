@@ -230,7 +230,7 @@ product and all its dependencies into the environment so that it can be used.
                                  noaction=self.opts.noaction, keep=self.opts.keep, 
                                  ignore_versions=self.opts.ignoreVer, setupType=self.opts.setupType,
                                  max_depth=self.opts.max_depth, vro=self.opts.vro,
-                                 exact_version=self.opts.exact_version)
+                                 exact_version=self.opts.exact_version, cmdName="setup")
 
                 try:
                     eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
