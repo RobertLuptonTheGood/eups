@@ -157,7 +157,7 @@ class Product(object):
 
         if utils.isRealFilename(self.dir) and not os.path.isabs(self.dir):
             if not self.dir.startswith("$PROD_") and \
-               not self.dir.startswith("$UPS_") and root is not None:
+               not self.dir.startswith("$UPS_") and not root in (None, "none"):
                 self.dir = os.path.join(root, self.dir)
             self.dir = self._resolve(self.dir, macrodata)
             if strict and not os.path.isabs(self.dir):
@@ -166,7 +166,7 @@ class Product(object):
 
         if utils.isRealFilename(self.ups_dir) and not os.path.isabs(self.ups_dir):
             if not self.ups_dir.startswith("$PROD_") and \
-               not self.ups_dir.startswith("$UPS_") and self.dir is not None:
+               not self.ups_dir.startswith("$UPS_") and not self.dir in (None, "none"):
                 self.ups_dir = os.path.join(self.dir, self.ups_dir)
             self.ups_dir = self._resolve(self.ups_dir, macrodata)
 #            if strict and not os.path.isabs(self.dir):
@@ -187,15 +187,16 @@ class Product(object):
                 if utils.isRealFilename(self.ups_dir):
                     ntable = os.path.join(self.ups_dir, self.tablefile)
                     
-                    if not os.path.exists(ntable) and root:
+                    if os.path.exists(ntable):
+                        self.tablefile = ntable
+                    elif root:
                         #
                         # OK, be nice.  Look relative to eupsPathDir too.  This is needed due to
                         # malformed .version files (fixed in r10329)
                         #
                         n2table = os.path.join(root, self.tablefile)
                         if (os.path.exists(n2table)):
-                            ntable = n2table
-                    self.tablefile = ntable
+                            self.tablefile = n2table
 
                 elif utils.isRealFilename(self.dir):
                     if self.ups_dir is None:
