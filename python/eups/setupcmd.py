@@ -173,7 +173,7 @@ product and all its dependencies into the environment so that it can be used.
                 self.err("Ignoring --table as I'm unsetting up a product")
                 self.opts.tablefile = None
             else:
-                if not os.path.exists(self.opts.tablefile):
+                if not os.path.exists(self.opts.tablefile) and self.opts.tablefile != "none":
                     self.err("%s does not exist" % self.opts.tablefile)
                     print >> self._errstrm, self.clo.get_usage()
                     return 3
