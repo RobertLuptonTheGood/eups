@@ -4,7 +4,6 @@ Tests for eups.db
 """
 
 import os
-import pdb
 import sys
 import shutil
 import re
@@ -632,7 +631,6 @@ class DatabaseTestCase(unittest.TestCase):
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")
         self.assert_(vers is None)
 
-        # pdb.set_trace()
         self.db.assignTag("user:my", "python", "2.5.2")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")
         self.assertEquals(vers, "2.5.2")
