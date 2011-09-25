@@ -10,7 +10,7 @@ LOCK_EX = 2                             # acquire an exclusive lock
 
 _lockDir = ".lockDir"                   # name of lock directory
 
-def getLockPath(dirName):
+def getLockPath(dirName, create=False):
     """Get the directory path that should prefix the """
     if hooks.config.site.lockDirectoryBase == hooks._defaultLockDirectoryBase:
         # Put the locks into the ups_db directory directly
@@ -27,8 +27,9 @@ def getLockPath(dirName):
             
         dirName = os.path.join(base, dirName)
 
-        if not os.path.exists(dirName):
-            os.makedirs(dirName)
+        if create:
+            if not os.path.exists(dirName):
+                os.makedirs(dirName)
 
         return dirName
     
@@ -50,14 +51,18 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
             print >> sys.stderr, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
 
         for d in path:
-            lockDir = os.path.join(getLockPath(d), _lockDir)
-
             try:
+                lockDir = os.path.join(getLockPath(d), _lockDir)
+                getLockPath(d, create=True)
+
                 os.mkdir(lockDir)
-            except OSError:
+            except OSError, e:
                 if lockType == LOCK_EX:
-                    raise RuntimeError("Unable to take exclusive lock on %s: locks are held by  %s" %
-                                       (d, " ".join(listLockers(lockDir))))
+                    if e.errno == errno.EEXIST:
+                        reason = "locks are held by %s" % " ".join(listLockers(lockDir))
+                    else:
+                        reason = str(e)
+                    raise RuntimeError("Unable to take exclusive lock on %s: %s" % (d, reason))
                 else:
                     if not os.path.exists(lockDir):
                         if verbose:
