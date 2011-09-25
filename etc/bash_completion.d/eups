@@ -37,15 +37,15 @@ _eups_product() {
 
 # Get list of products
 _eups_products() {
-    eups list | awk '{print $1}' | sort -u
+    eups --nolocks list | awk '{print $1}' | sort -u
 }
 # Get list of tags
 _eups_tags() {
-    eups tags | sed 's|user:||g'
+    eups --nolocks tags | sed 's|user:||g'
 }
 # Get list of versions for a product
 _eups_versions() {
-    eups list $1 | awk '{print $1}'| sort -u
+    eups --nolocks list $1 | awk '{print $1}'| sort -u
 }
 
 # eups completion
@@ -56,7 +56,7 @@ _eups()
     local prev=${COMP_WORDS[COMP_CWORD-1]}
 
     local commands="admin declare distrib expandbuild expandtable flags flavor help list path pkgroot pkg-config remove tags undeclare uses vro"
-    local general="--debug -h --help -V --version --vro"
+    local general="--debug -h --help --nolocks -V --version --vro"
     
     local cmd=$(_eups_cmd "$commands $general")
     
@@ -167,7 +167,7 @@ _eups()
                     options="-R --remove"
                     ;;
             esac;;
-        -*)                             # an option with a value
+        --database|--debug|--select-db|-T|--type|--with-eups|-Z|-z) # an option with a value
             COMPREPLY=($(compgen -W "$commands $general" -- "$cur"))
             return 0;;
     esac
