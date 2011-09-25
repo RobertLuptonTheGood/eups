@@ -1967,7 +1967,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         if localProduct:
             localTable = localProduct.getTable(quiet=True)
-            localActions = localTable.actions(setupFlavor, setupType=self.setupType, verbose=verbose)
+            if localTable:
+                localActions = localTable.actions(setupFlavor, setupType=self.setupType, verbose=verbose)
+            else:
+                localActions = []
 
             for a in localActions:
                 if a.cmd in (Action.setupOptional, Action.setupRequired):
