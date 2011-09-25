@@ -653,7 +653,7 @@ class ProductStack(object):
         for flavor in flavors:
             fileName = self._persistPath(flavor, cachedir)
             if os.path.exists(fileName):
-                if verbose > -10:
+                if verbose > 0:
                     print >> sys.stderr, "Deleting %s" % (fileName)
                 os.remove(fileName)
 
