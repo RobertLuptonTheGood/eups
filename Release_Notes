@@ -1,3 +1,8 @@
+2011-09-25 rhl
+      Don't fail if you can't create the lock directory when you only need a shared lock
+
+      Updated the bash_completion code
+
 2011-09-20 rhl
       Add option hooks.config.site.lockDirectoryBase to control the existence or location of lock files;
       you are expected to set this in a site, not personal, startup.py directory
