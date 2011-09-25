@@ -496,9 +496,11 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
     if isinstance(path, str):
         path = path.split(":")
 
-    userDataDir = None
-    if inUserDir:
-        userDataDir = utils.defaultUserDataDir()
+    userDataDir = utils.defaultUserDataDir()
+    path.append(userDataDir)
+    
+    if not inUserDir:
+        userDataDir = None              # Clear the system cache, not the one in userDataDir
 
     if isinstance(flavors, str):
         flavors = flavors.split()
@@ -507,7 +509,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
         dbpath = os.path.join(p, Eups.ups_db)
 
         persistDir = dbpath
-        if userDataDir:
+        if p != userDataDir:            # no need to use a surrogate directory as we can write userDataDir
             persistDir = utils.userStackCacheFor(p, userDataDir)
 
         flavs = flavors
@@ -528,12 +530,14 @@ def listCache(path=None, verbose=0, flavor=None):
     if not flavor:
         flavor = utils.determineFlavor()
 
+    userDataDir = utils.defaultUserDataDir()
+    if not userDataDir in path:
+        path.append(userDataDir)
+        
     for p in path:
         dbpath = os.path.join(p, Eups.ups_db)
         cache = ProductStack.fromCache(dbpath, flavor, updateCache=False, 
                                        autosave=False)
-                                       
-                                       
 
         productNames = cache.getProductNames()
         productNames.sort()
@@ -542,7 +546,7 @@ def listCache(path=None, verbose=0, flavor=None):
         if verbose:
             colon = ":"
 
-        print "%-30s (%d products) [cache verison %s]%s" % \
+        print "%-30s (%-3d products) [cache verison %s]%s" % \
             (p, len(productNames), cacheVersion, colon)
 
         if not verbose:
