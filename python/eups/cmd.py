@@ -2099,7 +2099,7 @@ tag will be installed.
                     if not tag.isUser():
                         nonuser.append(tag.name)
                 except eups.TagNotRecognized, e:
-                    unrecognized.append(tag.name)
+                    unrecognized.append(tag)
 
             if nonuser:
                 self.err("Can only assign user tags; Non-user tags: " +
