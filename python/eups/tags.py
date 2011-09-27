@@ -145,10 +145,10 @@ class Tags(object):
         if group is None:
             group = self.global_
 
-        try:
-            name, owner = name
-        except ValueError:
+        if isinstance(name, basestring):
             owner = None
+        else:
+            name, owner = name
 
         if isinstance(name, list) or isinstance(name, tuple):
             for n in name:
