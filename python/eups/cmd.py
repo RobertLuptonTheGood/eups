@@ -152,6 +152,9 @@ Common"""
             self.err("Unrecognized command: %s" % self.cmd)
             return 10
 
+        if ecmd.opts.help:
+            ecmd.lockType = None
+
         locks = lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
                                ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
 
