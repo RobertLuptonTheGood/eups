@@ -292,9 +292,9 @@ class DistribServer(object):
         @param noaction    if True, simulate the retrieval
         """
         if ftype == "list" and path=="":
-            src = "%s/%s.list" % (self.base, self.tag)
+            src = "%s/%s.list" % (self.base, tag)
         else:
-            src = "%s/%s" % (self.base, self.path)
+            src = "%s/%s" % (self.base, path)
 
         if filename is None:  filename = self.makeTempFile("path_")
         return self.cacheFile(filename, src, noaction);
@@ -319,8 +319,8 @@ class DistribServer(object):
                              be generated.
         @param noaction    if True, simulate the retrieval
         """
-        return getFile(path, flavor, ftype=ftype, filename=filename, 
-                       noaction=noaction)
+        return self.getFile(path, flavor, ftype=ftype, filename=filename, 
+                            noaction=noaction)
 #        src = "%s/%s/%s" % (self.base, product, version)
 #        if flavor is not None and flavor != "generic":
 #            src = "%s/%s" % (src, flavor)
@@ -468,17 +468,19 @@ class ConfigurableDistribServer(DistribServer):
     a distribution server that forms locations based on templated strings.
     """
 
+    validConfigKeys = ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS", 
+                       "AVAILABLE_PRODUCTS_URL", "MANIFEST_DIR",
+                       "BUILD_URL", "MANIFEST_URL", "TABLE_URL", "LIST_URL", 
+                       "PRODUCT_FILE_URL", "FILE_URL", "DIST_URL",
+                       "MANIFEST_DIR_URL", "MANIFEST_FILE_RE", 
+                       "PREFER_GENERIC", ]
+
     def _initConfig_(self):
         DistribServer._initConfig_(self)
 
-        # allowed keys in config files
-        validKeys = ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS", "AVAILABLE_PRODUCTS_URL", "MANIFEST_DIR",
-                     "BUILD_URL",
-                     "MANIFEST_URL", "TABLE_URL", "LIST_URL", "PRODUCT_FILE_URL", "FILE_URL", "DIST_URL",
-                     "MANIFEST_DIR_URL", "MANIFEST_FILE_RE", "PREFER_GENERIC", ]
-
+        # check for unrecognized keys in config files
         for k in self.config.keys():
-            if not (k in validKeys):
+            if not (k in self.validConfigKeys):
                 print >> self.log, "Invalid config parameter %s ignored" % k
 
         if not self.config.has_key('MANIFEST_URL'):
@@ -535,13 +537,16 @@ class ConfigurableDistribServer(DistribServer):
             ftype = os.path.splitext(path)[1]
             if ftype.startswith("."):  ftype = ftype[1:]
 
-        if self._fileViaTmpl8s(ftype, values, filename, noaction):
-            return filename
+        try:
+            if self._fileViaTmpl8s(ftype, values, filename, noaction):
+                return filename
+        except KeyError:
+            pass
 
         if ftype != "FILE":
             return self.getFile(path, flavor, tag, "FILE", filename, noaction)
 
-        # this shouldn't happen
+        # get the path exactly as asked for (in path)
         return DistribServer.getFile(self, path, flavor, tag, None, 
                                      filename, noaction)
         
@@ -572,6 +577,7 @@ class ConfigurableDistribServer(DistribServer):
 
         # determine the extension to determine the type of file we are 
         # retrieving; this may affect the ultimate URL
+        oftype = ftype
         if ftype is None:
             ftype = os.path.splitext(path)[1]
             if ftype.startswith("."):  ftype = ftype[1:]
@@ -579,7 +585,7 @@ class ConfigurableDistribServer(DistribServer):
         if self._fileViaTmpl8s(ftype, values, filename, noaction):
             return filename
 
-        if ftype != 'PRODUCT_FILE':
+        if not oftype and ftype != 'PRODUCT_FILE':
             return self.getFileForProduct(path, product, version, flavor, 
                                           'PRODUCT_FILE', filename, noaction)
 
@@ -588,7 +594,8 @@ class ConfigurableDistribServer(DistribServer):
                                                flavor, None, filename, 
                                                noaction)
 
-    def _fileViaTmpl8s(self, ftype, data, filename, noaction=False):
+    def _fileViaTmpl8s(self, ftype, data, filename, noaction=False, 
+                       ignoreMissingData=True):
         ftype = ftype.upper()
         if len(ftype) == 0 or not self.getConfigProperty("%s_URL" % ftype):
             return False
@@ -628,30 +635,42 @@ class ConfigurableDistribServer(DistribServer):
             try:
                 src = tmpl % data
             except KeyError, e:
-                msg = 'Server configuration error: bad template, %s: Key, %s, not available for %s' % (param, str(e), tmpl)
-                raise RuntimeError(msg)
+                if not ignoreMissingData:
+                    msg = 'Server configuration error: bad template, %s: Key, %s, not available for %s' % (param, str(e), tmpl)
+                    raise RuntimeError(msg)
+                if self.verbose > 1:
+                    print >> self.log, \
+                        "template %s not applicable (missing key, %s); skipping"\
+                         % (param, str(e))
+                continue
 
             if self.verbose > 0:
                 print >> self.log, "Looking on server for", src
-            if i == len(locations)-1:
+            try:
                 return self.cacheFile(filename, src, noaction)
-            else: 
-                try:
-                    return self.cacheFile(filename, src, noaction)
-                except RemoteFileNotFound, e:
-                    if self.verbose > 1:
-                        print >> self.log, "Not found; checking next alternative"
-                except Exception, e:
-                    if self.verbose >= 0:
-                        print >> self.log, "Warning: trouble retrieving", \
-                            "%s: %s" % (os.path.basename(src), str(e))
-                        print >> self.log, "   (Trying alternate location)"
+            except RemoteFileNotFound, e:
+                if self.verbose > 1:
+                    print >> self.log, "Not found; checking next alternative"
+            except Exception, e:
+                if self.verbose >= 0:
+                    print >> self.log, "Warning: trouble retrieving", \
+                        "%s: %s" % (os.path.basename(src), str(e))
+                    print >> self.log, "   (Trying alternate location)"
 
-        # shouldn't happen
-        src = self.getConfigProperty("%s_URL" % ftype) % data
-        if self.verbose > 0:
-            print >> self.log, "Failed to find %s in %s; looking on server" % (src, locations)
-        return self.cacheFile(filename, src, noaction)
+        # final try
+        try:
+            src = self.getConfigProperty("%s_URL" % ftype) % data
+            if self.verbose > 0:
+                print >> self.log, "Failed to find %s in %s; looking on server" % (src, locations)
+            return self.cacheFile(filename, src, noaction)
+        except RemoteFileNotFound, e:
+            if self.verbose > 0:
+                print >> self.log, "no appropriate template found for %s, checking path directly" % ftype
+            return False
+        except KeyError, e:
+            if self.verbose > 0:
+                print >> self.log, "no appropriate template found for %s, checking path directly" % ftype
+            return False
 
     def getTagNames(self, flavor=None, noaction=False):
         """
