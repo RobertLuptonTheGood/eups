@@ -224,7 +224,7 @@ def determineFlavor():
        else:
            flav = "Linux"
     elif uname == "Darwin":
-       if re.search(r"i386$", mach):
+       if re.search(r"(^x86_64|i386)$", mach):
            flav = "DarwinX86"
        else:
            flav = "Darwin"
