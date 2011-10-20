@@ -856,6 +856,9 @@ otherwise it'll be written to stdout unless you specify --inplace.
         self.clo.add_option("-V", "--version", dest="version", action="store", 
                             help="The version of the product that the build file is for")
 
+        self.clo.add_option("--repoversion", dest="repoversion", action="store", 
+                            help="The version name within the repository")
+
         self.clo.add_option("--cvsroot", dest="cvsroot", action="store", 
                             help="same as --cvs")
         self.clo.add_option("--svnroot", dest="svnroot", action="store", 
@@ -932,7 +935,8 @@ otherwise it'll be written to stdout unless you specify --inplace.
           try:
             eups.expandBuildFile(ofd, ifd, self.opts.prodname, 
                                  self.opts.version, self.opts.svnroot, 
-                                 self.opts.cvsroot, self.createEups())
+                                 self.opts.cvsroot, self.opts.repoversion,
+                                 self.createEups())
           finally:
             if inFile != "-": ifd.close() 
             if outdir or self.opts.in_situ:  ofd.close()

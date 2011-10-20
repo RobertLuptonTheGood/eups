@@ -156,7 +156,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None,
-                      overwrite=False, letterVersion=None, repoVersion=None):
+                      overwrite=False, letterVersion=None):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -170,14 +170,10 @@ DIST_URL = %%(base)s/builds/%%(path)s
                                 previously existing distribution files even if Eups.force is false
         @param letterVersion  the name for the desired "letter version"; a version
                                  following a rebuild caused by an ABI change in a dependency
-        @param repoVersion    the name identifying the repository (cvs, svn, hg, ...) version
         """
         productName = product
         versionName = version
         letterVersionName = letterVersion
-        if not repoVersion:
-            repoVersion = version
-        repoVersionName = repoVersion
 
         (baseDir, productDir) = self.getProductInstDir(productName, versionName, flavor)
 
@@ -250,15 +246,14 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
                     try:
                         builderVars = eups.hooks.config.distrib["builder"]["variables"]
-                        builderVars["INSTALLED_VERSION"] = letterVersionName
                         # Grandfather in {CVS,SVN}ROOT from the command line
                         if self.cvsroot:
                             builderVars["CVSROOT"] = self.cvsroot
                         if self.svnroot:
                             builderVars["SVNROOT"] = self.svnroot
 
-                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars,
-                                        repoVersionName=repoVersionName)
+                        expandBuildFile(ofd, ifd, productName, letterVersionName, self.verbose, builderVars,
+                                        repoVersionName=versionName)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
@@ -595,7 +590,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     builderVars["SVNROOT"] = guess_svnroot(builderVars.get("SVNROOT"))
     builderVars["PRODUCT"] = productName
     builderVars["VERSION"] = versionName
-    builderVars["INSTALLED_VERSION"] = builderVars.get("INSTALLED_VERSION", versionName)
+    builderVars["REPOVERSION"] = repoVersionName if repoVersionName is not None else versionName
 
     def subVar(name):
         var = name.group(1)
@@ -658,17 +653,23 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
 
     for line in ifd:
         line = line.rstrip()
-        # HACK: if the current version name appears in the old build file, replace it by the version
-        # name from the repository.  Needed if re-expanding letter-version build files
-        if repoVersionName:
-            line = re.sub(versionNameRe, repoVersionName, line)
 
-        # HACK:  replace "scons .* install" with "scons .* install version=@INSTALLED_VERSION@"
+        # HACK: if checking out from SVN with the current version name (@VERSION@), replace it by
+        # the version name from the repository (@REPOVERSION@).
+        # The right thing to do is to update the build files
+        if re.search(r"^\s*(svn|cvs)\s+(co|checkout)", line):
+            line = re.sub(r"(svn\S*:|http\S*:|@SVNROOT@|@CVSROOT@)(\S+/)@VERSION@(\S*)",
+                          r"\1\2@REPOVERSION@\3", line)
+
+        # HACK:  replace "scons .* install" with "scons .* install version=@VERSION@ baseversion=@REPOVERSION@"
         # The right thing to do is to update the build files
         if re.search(r"^\s*scons\s+.*install", line):
-            line = re.sub("version=\S+", "", line)
-            line += " version=@INSTALLED_VERSION@"
-            
+            line = re.sub("\sversion=\S+", "", line)
+            line += " version=@VERSION@"
+            if not re.search(r"\sbaseversion=\S+", line):
+                # Do not ever substitute!  This should remain untouched until the end of time.
+                line += " baseversion=@REPOVERSION@"
+
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
 

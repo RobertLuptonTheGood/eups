@@ -330,7 +330,7 @@ def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldR
             eupsenv.getDependentProducts(topProduct, setup, shouldRaise, followExact,
                                          topological=topological)]
 
-def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
+def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None, repoVersion=None,
                     verbose=0):
     """
     expand the template variables in a .build script to produce an 
@@ -342,6 +342,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
     @param version  the version to assume
     @param svnroot  An SVN root URL to find source code under.
     @param cvsroot  A CVS root URL to find source code under.
+    @param repoVersion  the version name within the repository
     @param verbose  an integer verbosity level where larger values result 
                        in more messages
     """
@@ -352,7 +353,8 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None,
     if svnroot:
         builderVars["SVNROOT"] = svnroot
 
-    distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars)
+    distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars,
+                                    repoVersionName=repoVersion)
 
 
 def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, force=False,
