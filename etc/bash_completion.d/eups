@@ -86,7 +86,7 @@ _eups()
             ;;
     esac
 
-    local common="-n --noaction -q --quiet -T --type -v --verbose -V --version --vro -Z --database -z --select-db --with-eups"
+    local common="-n --noaction --nlocks -q --quiet -T --type -v --verbose -V --version --vro -Z --database -z --select-db --with-eups"
     local options=""
 
     case "$cmd" in
@@ -184,7 +184,7 @@ _eups()
             esac
 
     elif [[ $cmd == "distrib" ]]; then
-        products=$(eups distrib list | awk '{print $1}' | sort -u);
+        products=$(eups --nolocks distrib list | awk '{print $1}' | sort -u);
     else
         products=$(_eups_products)
     fi
@@ -197,7 +197,7 @@ _eups()
     if [[ $prev == $prod ]]; then
         local versions
         if [[ $cmd == "distrib" ]]; then
-            versions=$(eups distrib list $prod | awk '{print $1}'| sort -u)
+            versions=$(eups --nolocks distrib list $prod | awk '{print $1}'| sort -u)
         else
             versions=$(_eups_versions $prod)
         fi
