@@ -549,6 +549,7 @@ def getUserDefinedTags(user):
 
     myGlobals["hooks"] = Foo()
     myGlobals["hooks"].config = Foo()
+    myGlobals["hooks"].config.distrib = dict(builder = dict(variables = {}))
     myEups = Foo()
     myGlobals["hooks"].config.Eups = myEups
 
