@@ -1,4 +1,4 @@
-import errno, glob, os, shutil, sys
+import errno, glob, os, shutil, sys, time
 import re
 import hooks
 
@@ -50,47 +50,69 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
         if verbose > 1:
             print >> sys.stderr, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
 
+        ntry = 10                       # number of times to try to take the locks
+        dt = 1.0                        # number of seconds to wait
         for d in path:
-            try:
-                lockDir = os.path.join(getLockPath(d), _lockDir)
-                getLockPath(d, create=True)
+            for i in range(1, ntry + 1):
+                try:
+                    lockDir = os.path.join(getLockPath(d), _lockDir)
+                    getLockPath(d, create=True)
 
-                os.mkdir(lockDir)
-            except OSError, e:
-                if lockType == LOCK_EX:
-                    if e.errno == errno.EEXIST:
-                        reason = "locks are held by %s" % " ".join(listLockers(lockDir))
+                    os.mkdir(lockDir)
+                except OSError, e:
+                    if lockType == LOCK_EX:
+                        lockPids = listLockers(lockDir, getPids=True)
+                        if len(lockPids) == 1 and lockPids[0] == os.environ.get("EUPS_LOCK_PID", "-1"):
+                            pass        # OK, there's a lock but we know about it
+                            if verbose:
+                                print >> sys.stderr, "Lock is held by a parent, PID %d" % lockPids[0]
+                        else:
+                            if e.errno == errno.EEXIST:
+                                reason = "locks are held by %s" % " ".join(listLockers(lockDir))
+                            else:
+                                reason = str(e)
+
+                            msg = "Unable to take exclusive lock on %s: %s" % (d, reason)
+                            if i == ntry:
+                                raise RuntimeError(msg)
+                            else:
+                                print >> sys.stderr, "%s; retrying" % msg
+                                sys.stderr.flush()
+
+                                time.sleep(dt)
+                                continue
                     else:
-                        reason = str(e)
-                    raise RuntimeError("Unable to take exclusive lock on %s: %s" % (d, reason))
-                else:
-                    if not os.path.exists(lockDir):
-                        if verbose:
-                            print >> sys.stderr, "Unable to lock %s; proceeding with trepidation" % d
-                        return []
+                        if not os.path.exists(lockDir):
+                            if verbose:
+                                print >> sys.stderr, "Unable to lock %s; proceeding with trepidation" % d
+                            return []
 
-            if verbose > 2:
-                print >> sys.stderr, "Creating lock directory %s" % (lockDir)
-            #
-            # OK, the lock directory exists.
-            #
-            # If we're a shared lock, we need to check that no-one holds an exclusive lock (or, if someone
-            # does hold the lock, that we're the holder's child)
-            #
-            # N.b. the check isn't atomic, but that's conservative (we don't care if the exclusive lock's
-            # dropped while we're pondering its existence)
-            #
-            lockers = listLockers(lockDir, "exclusive*")
-            if len(lockers) > 0:
-                if len(lockers) == 1 and \
-                   os.environ.get("LOCK_PID", "-1") == listLockers(lockDir, "exclusive*", getPids=True)[0]:
-                    pass
-                else:
-                    raise RuntimeError("Unable to take shared lock on %s: an exclusive lock is held by %s" %
-                                       (d, " ".join(lockers)))
+                if verbose > 2:
+                    print >> sys.stderr, "Creating lock directory %s" % (lockDir)
+                #
+                # OK, the lock directory exists.
+                #
+                # If we're a shared lock, we need to check that no-one holds an exclusive lock (or, if someone
+                # does hold the lock, that we're the holder's child)
+                #
+                # N.b. the check isn't atomic, but that's conservative (we don't care if the exclusive lock's
+                # dropped while we're pondering its existence)
+                #
+                lockers = listLockers(lockDir, "exclusive*")
+                if len(lockers) > 0:
+                    if len(lockers) == 1 and \
+                       os.environ.get("EUPS_LOCK_PID", "-1") == \
+                       listLockers(lockDir, "exclusive*", getPids=True)[0]:
+                        pass
+                    else:
+                        raise RuntimeError(("Unable to take shared lock on %s: " +
+                                            "an exclusive lock is held by %s") % (d, " ".join(lockers)))
 
-            if not os.environ.has_key("LOCK_PID"): # remember the PID of the process taking the lock
-                os.environ["LOCK_PID"] = "%d" % os.getpid()                         
+                break                   # got the lock
+
+            if not os.environ.has_key("EUPS_LOCK_PID"): # remember the PID of the process taking the lock
+                os.environ["EUPS_LOCK_PID"] = "%d" % os.getpid()
+                os.putenv("EUPS_LOCK_PID", os.environ["EUPS_LOCK_PID"])
             #
             #
             # Create a file in it
