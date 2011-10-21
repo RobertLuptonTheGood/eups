@@ -670,6 +670,15 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                 # Do not ever substitute!  This should remain untouched until the end of time.
                 line += " baseversion=@REPOVERSION@"
 
+        # NOTE: if you want to use build files created before the above HACKs were effective, you'll need to
+        # hack the build files manually.  Try something like the following:
+        #
+        # sed -ri -e 's|(svn[^[:space:]]*:[^[:space:]]*)[abcdefg]_hsc|\1|' -e '/baseversion/! s|version=([HSCDC0-9.-]+)([abcdefg]_hsc)?|version=\1\2 baseversion=\1|' /path/to/builds/*.build
+        #
+        # The trick is to get the version regex correct; the above covers dotted number versions and
+        # 'HSC-DC2'.  If you've got lower-case letters as the last characters in your version names, you may
+        # have to edit by hand....
+
         # Attempt substitutions
         line = re.sub(r"@([^@]+)@", subVar, line)
 
