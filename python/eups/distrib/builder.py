@@ -590,7 +590,9 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     builderVars["SVNROOT"] = guess_svnroot(builderVars.get("SVNROOT"))
     builderVars["PRODUCT"] = productName
     builderVars["VERSION"] = versionName
-    builderVars["REPOVERSION"] = repoVersionName if repoVersionName is not None else versionName
+    if repoVersionName is None:
+        repoVersionName = versionName
+    builderVars["REPOVERSION"] = repoVersionName
 
     def subVar(name):
         var = name.group(1)
