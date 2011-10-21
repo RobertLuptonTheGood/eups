@@ -662,6 +662,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
         if re.search(r"^\s*(svn|cvs)\s+(co|checkout)", line):
             line = re.sub(r"(svn\S*:|http\S*:|@SVNROOT@|@CVSROOT@)(\S+/)@VERSION@(\S*)",
                           r"\1\2@REPOVERSION@\3", line)
+        line = re.sub(r"(hg\s+up\s+)@VERSION@", r"\1@REPOVERSION@", line)
 
         # HACK:  replace "scons .* install" with "scons .* install version=@VERSION@ baseversion=@REPOVERSION@"
         # The right thing to do is to update the build files
