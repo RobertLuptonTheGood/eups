@@ -433,6 +433,7 @@ class Repository(object):
             man = Manifest.fromFile(manifest, self.eups, self.eups.verbose-1)
 
         man.remapEntries(mode="create")
+        distrib.updateDependencies(man.getProducts(), flavor=self.flavor)
 
         # we will always overwrite the top package
         id = distrib.createPackage(self.pkgroot, product, version, self.flavor, overwrite=True,
@@ -530,6 +531,7 @@ class Repository(object):
                 man = distrib.createDependencies(dp.product, dp.version, self.flavor,
                                                  letterVersions=letterVersions)
                 man.remapEntries(mode="create")
+                distrib.updateDependencies(man.getProducts(), flavor=self.flavor)
             except eups.ProductNotFound, e:
                 raise RuntimeError("Creating manifest for %s %s: %s" %
                                    (manifest.product, manifest.letterVersion, e))

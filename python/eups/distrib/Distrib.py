@@ -52,6 +52,7 @@ class Distrib(object):
        getTaggedRelease()
        writeTaggedRelease()
        createDependencies()
+       updateDependencies()
        writeManifest()
 
     The DefaultDistrib subclass provides default implementations for the 
@@ -346,6 +347,20 @@ class Distrib(object):
                                 recursively.  Default: False
         """
         self.unimplemented("createDependencies")
+
+    def updateDependencies(self, productList, flavor=None):
+        """fill in information in the list of product dependencies based
+        on what is known from the system
+
+        A typical full implementation of this function in a sub-class would
+        iterate through the products, adding the name of the table file and
+        the distId.
+
+        @param productList     list of products (output from createDependencies)
+        @param flavor          the flavor of the target platform; this may 
+                                 be ignored by the implentation
+        """
+        self.unimplemented("updateDependencies")        
 
     def _createDeps(self, productName, versionName, flavor=None, tag=None, 
                     recursive=False, exact=False, letterVersions={}):
@@ -790,24 +805,42 @@ class DefaultDistrib(Distrib):
         """
         deps = self._createDeps(product, version, flavor, tag, recursive, exact,
                                 letterVersions=letterVersions)
-
-        # go through dependencies and fill in the missing info
-
         for prod in deps.getProducts():
-            prod.distId = self.getDistIdForPackage(prod.product, prod.letterVersion, flavor)
+            prod.tablefile = None
+
+        self.updateDependencies(deps.getProducts(), flavor=flavor)
+
+        return deps
+
+    def updateDependencies(self, productList, flavor=None):
+        """fill in information in the list of product dependencies based
+        on what is known from the system
+
+        This implementation will iterate through the products, adding the
+        name of the table file and the distId.
+
+        @param productList     list of products (output from createDependencies)
+        @param flavor          the flavor of the target platform; this may 
+                                 be ignored by the implentation
+        """
+        for prod in productList:
+            if prod.flavor is None:
+                prod.flavor = flavor
+            if prod.distId is None:
+                prod.distId = self.getDistIdForPackage(prod.product, prod.letterVersion, prod.flavor)
             #
             # Find product's table file
             #
-            prod.tablefile = None
-            try:
-                prod.tablefile = self.Eups.getProduct(prod.product, prod.version).tablefile
-            except KeyboardInterrupt:
-                raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
-                                     (prod.product, prod.version))
-            except eups.ProductNotFound, e:
-                prod.tablefile = self.findTableFile(prod.product, prod.version, flavor)
-            except Exception, e:
-                pass
+            if prod.tablefile is None:
+                try:
+                    prod.tablefile = self.Eups.getProduct(prod.product, prod.version).tablefile
+                except KeyboardInterrupt:
+                    raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
+                                         (prod.product, prod.version))
+                except eups.ProductNotFound, e:
+                    prod.tablefile = self.findTableFile(prod.product, prod.version, prod.flavor)
+                except Exception, e:
+                    pass
 
             if prod.tablefile == None:
                 if not self.noeups or self.Eups.verbose:
@@ -815,7 +848,6 @@ class DefaultDistrib(Distrib):
                           (prod.product, prod.version, e)
                 prod.tablefile = "none"
 
-        return deps
 
     def findTableFile(self, product, version, flavor):
         """Give the distrib a chance to produce a table file"""
