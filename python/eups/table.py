@@ -645,7 +645,7 @@ class Action(object):
         _args = self.args; args = []
         i = -1
 
-        requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTag = None
+        requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTags = []
         productDir = False; keep = False; requestedVRO = None
         ignoredOpts = []
         while i < len(_args) - 1:
@@ -665,7 +665,7 @@ class Action(object):
                     requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
                 elif _args[i] in ("-t", "--tag"): # e.g. -t current
-                    requestedTag = _args[i + 1]
+                    requestedTags.append(_args[i + 1])
                     i += 1              # skip the argument
                 elif _args[i] in ("--vro"): # e.g. --vro version
                     requestedVRO = _args[i + 1]
@@ -712,37 +712,36 @@ class Action(object):
                 vers, versExpr = mat.groups()
 
         if not fwd:
-            requestedTag = None         # ignore if not setting up
-
-        if requestedTag and vers:
-            print >> sys.stderr, "You specified version \"%s\" and tag \"%s\"; ignoring the latter" % \
-                  (vers, requestedTag)
-            requestedTag = None
+            requestedTag = []           # ignore if not setting up
 
         if keep and requestedVRO:
             print >> sys.stderr, "You specified vro \"%s\" and --keep ; ignoring the latter" % \
                   (requestedVRO)
             keep = False
 
-        if requestedTag and requestedVRO:
-            print >> sys.stderr, "You specified vro \"%s\" and tag \"%s\"; ignoring the latter" % \
-                  (requestedVRO, requestedTag)
-            requestedTag = None
+        if requestedTags and requestedVRO:
+            print >> sys.stderr, "You specified vro \"%s\" and tag[s] \"%s\"; ignoring the latter" % \
+                  (requestedVRO, "\", \"".join(requestedTags))
+            requestedTags = []
 
-        if requestedTag:
-            try:
-                Eups.tags.getTag(requestedTag)
-            except TagNotRecognized, e:
-                print >> sys.stderr, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
-                requestedTag = None
+        if requestedTags:
+            tags = []
+            for tag in requestedTags:
+                try:
+                    Eups.tags.getTag(tag)
+                    tags.append(tag)
+                except TagNotRecognized, e:
+                    print >> sys.stderr, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
+
+            requestedTags = tags
 
         vro = Eups.getPreferredTags()
         if requestedVRO:
             pass
         elif keep:
             requestedVRO = ["keep"] + vro
-        elif requestedTag:
-            requestedVRO = [requestedTag] + vro
+        elif requestedTags:
+            requestedVRO = requestedTags + vro
         else:
             requestedVRO = vro
 
