@@ -646,7 +646,7 @@ class Action(object):
         i = -1
 
         requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTag = None
-        keep = False; requestedVRO = None
+        productDir = False; keep = False; requestedVRO = None
         ignoredOpts = []
         while i < len(_args) - 1:
             i += 1
@@ -658,6 +658,9 @@ class Action(object):
                     noRecursion = True
                 elif _args[i] in ("-k", "--keep"):  # keep already-setup versions of this product
                     keep = True
+                elif _args[i] == "-r":  # e.g. -r productDir
+                    productDir = _args[i + 1]
+                    i += 1              # skip the argument
                 elif _args[i] == "-T":  # e.g. -T build
                     requestedBuildType = _args[i + 1]
                     i += 1              # skip the argument
@@ -678,6 +681,9 @@ class Action(object):
             productName = args.pop(0)
         else:
             productName = None
+
+        if productDir:
+            productName = utils.guessProduct(os.path.join(productDir, "ups"), productName)
 
         vers = None
         if not fwd:                     # unsetup
