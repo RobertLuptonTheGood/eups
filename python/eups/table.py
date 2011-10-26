@@ -674,7 +674,10 @@ class Action(object):
 
             args += [_args[i]]
 
-        productName = args[0]
+        if args:
+            productName = args.pop(0)
+        else:
+            productName = None
 
         vers = None
         if not fwd:                     # unsetup
@@ -683,8 +686,8 @@ class Action(object):
                 vers = product.version
         elif Eups.ignore_versions:
             vers = None                 # Setting and then ignoring vers generates confusing error messages
-        elif len(args) > 1:
-            vers = " ".join(args[1:])
+        elif args:
+            vers = " ".join(args)
 
         if ignoredOpts:
             if Eups.verbose > 0: 
@@ -736,6 +739,9 @@ class Action(object):
             requestedVRO = [requestedTag] + vro
         else:
             requestedVRO = vro
+
+        if not productName:
+            raise RuntimeError("I was unable to find a product specification in \"%s\"" % " ".join(_args))
 
         return requestedVRO, productName, vers, versExpr, noRecursion
 
