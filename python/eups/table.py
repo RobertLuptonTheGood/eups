@@ -489,7 +489,7 @@ but no other interpretation is applied
             if a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
 
-                requestedVRO, productName, vers, versExpr, noRecursion = a.processArgs(Eups)
+                requestedVRO, productName, productDir, vers, versExpr, noRecursion = a.processArgs(Eups)
 
                 Eups.pushStack("vro", requestedVRO)
 
@@ -749,7 +749,7 @@ class Action(object):
         if not productName:
             raise RuntimeError("I was unable to find a product specification in \"%s\"" % " ".join(_args))
 
-        return requestedVRO, productName, vers, versExpr, noRecursion
+        return requestedVRO, productName, productDir, vers, versExpr, noRecursion
 
     #
     # Here are the real execute routines
@@ -760,7 +760,7 @@ class Action(object):
         optional = self.extra["optional"]
         silent = self.extra.get("silent", False)
 
-        requestedVRO, productName, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
+        requestedVRO, productName, productDir, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
 
         Eups.pushStack("env")
         Eups.pushStack("vro", requestedVRO)
@@ -772,7 +772,7 @@ class Action(object):
         try:
             productOK, vers, reason = \
                        Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
-                                  versionExpr=versExpr, optional=optional)
+                                  versionExpr=versExpr, productRoot=productDir, optional=optional)
         except Exception, e:
             productOK, reason = False, e
 
