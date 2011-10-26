@@ -3307,10 +3307,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
 
         if self.userVRO:
-            return self._vroDict["commandLine"]
+            vroTag = "commandLine"
+            if tag:
+                raise RuntimeError("Cannot use both a commandline VRO and a commandline tag")
+            tag = None
+        else:
+            # Note that the order of these tests is significant
+            vroTag = None
 
-        # Note that the order of these tests is significant
-        vroTag = None
         if tag:
             for t in tag:
                 self.isInternalTag(tag, True) # will abort if tag is internal
