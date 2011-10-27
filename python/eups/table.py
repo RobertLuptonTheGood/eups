@@ -683,6 +683,7 @@ class Action(object):
             productName = None
 
         if productDir:
+            productDir = os.path.expanduser(productDir)
             productName = utils.guessProduct(os.path.join(productDir, "ups"), productName)
 
         vers = None
