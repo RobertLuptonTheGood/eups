@@ -1139,7 +1139,7 @@ The what argument tells us what sort of state is expected (allowed values are de
            setupRequired(productName [-X ...] version ...)
            
         @param name          the name of the product
-        @param tag           the file listing productNames and versions
+        @param fileName      the file listing productNames and versions
         @param eupsPathDirs  the Eups path directories to search
         @param flavor        the desired flavor
         @param noCache       if true, do not use the product inventory cache;
