@@ -721,6 +721,9 @@ The what argument tells us what sort of state is expected (allowed values are de
             except KeyError:
                 pass
             
+        if eupsPathDir == 'None':
+            eupsPathDir = None
+
         return versionName, eupsPathDir, productDir, tablefile, flavor
 
     def _envarSetupName(self, productName):
