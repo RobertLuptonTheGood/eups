@@ -1964,7 +1964,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if a.cmd not in (Action.setupOptional, Action.setupRequired):
                     continue
 
-            a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion)
+            a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion, tableProduct=product)
         #
         # Did we want to use the dependencies from an installed table, but use a different directory?
         #
@@ -2701,7 +2701,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                     # select out matched versions
                     vers = stack.getVersions(pname, flavor)
                     if version:
-                        vers = fnmatch.filter(vers, version)
+                        if self.isLegalRelativeVersion(version): # version is actually an expression
+                            vers = [v for v in vers if self.version_match(v, version)]
+                        else:
+                            vers = fnmatch.filter(vers, version)
                     vers.sort(self.version_cmp)
 
                     # only include newest if it passes the version constraint
@@ -2745,9 +2748,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                         out.append(setup[key])
                         del setup[key]
 
-        if version:
-            out = [p for p in out if fnmatch.fnmatch(p.version, version)]
-            
         if not version or \
            (isinstance(version,str) and version.startswith(Product.LocalVersionPrefix)) or \
            (tags and "setup" in tags):
