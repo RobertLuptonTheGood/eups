@@ -611,14 +611,14 @@ class Action(object):
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
 
-    def execute(self, Eups, recursionDepth, fwd=True, noRecursion=False):
+    def execute(self, Eups, recursionDepth, fwd=True, noRecursion=False, tableProduct=None):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
             if noRecursion or recursionDepth == Eups.max_depth + 1:
                 return
 
-            self.execute_setupRequired(Eups, recursionDepth, fwd)
+            self.execute_setupRequired(Eups, recursionDepth, fwd, tableProduct)
         elif self.cmd == Action.declareOptions: 
             pass                        # used at declare time 
         elif self.cmd == Action.envPrepend:
@@ -754,7 +754,7 @@ class Action(object):
     #
     # Here are the real execute routines
     #
-    def execute_setupRequired(self, Eups, recursionDepth, fwd=True):
+    def execute_setupRequired(self, Eups, recursionDepth, fwd=True, tableProduct=None):
         """Execute setupRequired"""
 
         optional = self.extra["optional"]
@@ -787,7 +787,12 @@ class Action(object):
             if fwd:
                 if optional:
                     if Eups.verbose and not silent:
-                        msg = "... optional setup %s failed" % (productName)
+                        msg = "... optional setup %s" % (productName)
+                        if tableProduct:
+                            msg += " requested by %s" % tableProduct.name
+                            if tableProduct.version is not None:
+                                msg += " %s" % tableProduct.version
+                        msg += " failed"
                         if Eups.verbose > 1:
                             msg += ": %s" % reason
                         print >> sys.stderr, "            %s%s" % (recursionDepth*" ", msg)
@@ -1058,6 +1063,8 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         if re.search(r"^\s*(#.*)?$", line):
             block[1].append(line)
             continue
+        line0 = line
+        line = re.sub(r"\s*#.*$", "", line) # strip comments running to the end of the line
 
         # Attempt substitutions
         rex = r'(setupRequired|setupOptional)\("?([^"]*)"?\)'
@@ -1079,7 +1086,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 block = [False, []]
                 setupBlocks.append(block)
 
-        block[1].append(line)
+        block[1].append(line0)
     #
     # Figure out the complete list of products that this table file will setup; only list each once
     #
