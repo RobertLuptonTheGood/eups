@@ -33,7 +33,7 @@ for do in debugOptions:
     if not do in allowedDebugOptions:
         print >> sys.stderr, "Unknown debug option: %s; exiting" % do
         sys.exit(1)
-allowRaise = "raise" in debugOptions
+eups.Eups.allowRaise = "raise" in debugOptions # n.b. may be set in a cmdHook
 eups.Eups.debugFlag = "debug" in debugOptions
 
 # load any local customizations
@@ -43,18 +43,19 @@ if setup.opts.quiet:
 eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(dbz=setup.opts.dbz))
 
 # run the command
-if allowRaise:
-    sys.exit(setup.run())
-else:
-    try:
-        status = setup.run()            # calling sys.exit here raises SystemExit which is caught...
-    except Exception, e:
-        setup.err(str(e))
-        if hasattr(e, "status"):
-            status = e.status
-        else:
-            status = 9
-        print("false")
+try:
+    # N.b. calling sys.exit here raises SystemExit which is caught...
+    status = setup.run()
+except Exception, e:
+    if eups.Eups.allowRaise:
+        raise
+
+    setup.err(str(e))
+    if hasattr(e, "status"):
+        status = e.status
+    else:
+        status = 9
+    print("false")
 
 sys.exit(status)
 
