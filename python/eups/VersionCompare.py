@@ -101,6 +101,12 @@ If mustReturnInt is False and you don't want to allow the versions to be sorted,
                 if mustReturnInt or c12AreIntegral:
                     return different
                 else:
+                    if i == n - 1:
+                        if c2[i].startswith(c1[i]):
+                            return -1
+                        elif c1[i].startswith(c2[i]):
+                            return 1
+                        
                     raise ValueError("Versions %s and %s cannot be sorted" % (v1, v2))
 
         # So far, the two versions are identical.  The longer version should sort later
