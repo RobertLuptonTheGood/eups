@@ -72,7 +72,7 @@ _defaultLockDirectoryBase = "__UPS_DB__";
 config.site.lockDirectoryBase = _defaultLockDirectoryBase
 
 # it is expected that different Distrib classes will have different set-able
-# properties.  The key for looking up Distrib-specific data could the Distrib
+# properties.  The key for looking up Distrib-specific data should be the Distrib
 # name.  
 config.distrib = {}
 config.distrib["builder"] = dict(variables = {})

@@ -244,14 +244,15 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     except IOError, e:
                         raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
 
-                    try:
-                        builderVars = eups.hooks.config.distrib["builder"]["variables"]
-                        # Grandfather in {CVS,SVN}ROOT from the command line
-                        if self.cvsroot:
-                            builderVars["CVSROOT"] = self.cvsroot
-                        if self.svnroot:
-                            builderVars["SVNROOT"] = self.svnroot
+                    builderVars = eups.hooks.config.distrib["builder"]["variables"]
 
+                    # Grandfather in {CVS,SVN}ROOT from the command line
+                    if self.cvsroot:
+                        builderVars["CVSROOT"] = self.cvsroot
+                    if self.svnroot:
+                        builderVars["SVNROOT"] = self.svnroot
+
+                    try:
                         expandBuildFile(ofd, ifd, productName, letterVersionName, self.verbose, builderVars,
                                         repoVersionName=versionName)
                     except RuntimeError, e:
@@ -533,6 +534,11 @@ except NameError:
 #
 def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVars={}, repoVersionName=None):
     """Expand a build file, reading from ifd and writing to ofd"""
+
+    lcVars = [v for v in builderVars.keys() if v != v.upper()]
+    if lcVars:
+        raise RuntimeError('Only upper case keys are permitted in builder variable dictionaries; found "%s"' %
+                           '", "'.join(lcVars))    
     #
     # A couple of functions to set/guess the values that we'll be substituting
     # into the build file
