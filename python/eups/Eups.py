@@ -3028,14 +3028,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         """The workhorse for remove"""
 
         product = self.getProduct(productName, versionName)  # can raise ProductNotFound
-        deps = [(product, False)]
+        deps = [[product, False, 0]]
         if recursive:
             tbl = product.getTable()
             if tbl:
                 deps += tbl.dependencies(self)
 
         productsToRemove = []
-        for product, o in deps:
+        for product, o, recursionDepth in deps:
             if checkRecursive:
                 usedBy = filter(lambda el: el[0] != topProduct or el[1] != topVersion,
                                 userInfo.users(product.name, product.version))
