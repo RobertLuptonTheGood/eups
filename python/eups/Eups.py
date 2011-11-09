@@ -1115,8 +1115,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                             return prod
                         else:
                             if self.verbose > 0:
-                                print >> sys.stderr, "Tag %s is declared in %s for %s, but is missing" % \
-                                      (tag, name, root)
+                                print >> sys.stderr, "Tag %s points to %s %s -Z %s, but is missing" % \
+                                      (tag, name, version, root)
                 except ProductNotFound:
                     # product by this name not found in this database
                     continue
