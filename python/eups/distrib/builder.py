@@ -155,8 +155,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         return os.path.join(serverDir, "manifests", 
                             "%s-%s.manifest" % (product, version))
 
-    def createPackage(self, serverDir, product, version, flavor=None,
-                      overwrite=False, letterVersion=None):
+    def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -168,16 +167,13 @@ DIST_URL = %%(base)s/builds/%%(path)s
                                 be ignored by the implentation
         @param overwrite      if True, this package will overwrite any 
                                 previously existing distribution files even if Eups.force is false
-        @param letterVersion  the name for the desired "letter version"; a version
-                                 following a rebuild caused by an ABI change in a dependency
         """
         productName = product
         versionName = version
-        letterVersionName = letterVersion
 
         (baseDir, productDir) = self.getProductInstDir(productName, versionName, flavor)
 
-        builder = "%s-%s.build" % (productName, letterVersionName)
+        builder = "%s-%s.build" % (productName, versionName)
         buildFile = self.find_file_on_path("%s.build" % productName, os.path.join(baseDir, productDir, "ups"))
 
         if not buildFile:               # try a template buildfile from some .eups directory
@@ -253,8 +249,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                         builderVars["SVNROOT"] = self.svnroot
 
                     try:
-                        expandBuildFile(ofd, ifd, productName, letterVersionName, self.verbose, builderVars,
-                                        repoVersionName=versionName)
+                        expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars)
                     except RuntimeError, e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
@@ -424,7 +419,6 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
     def findTableFile(self, productName, version, flavor):
         """Give the distrib a chance to produce a table file"""
-
         return self.find_file_on_path("%s.table" % productName)
 
     def find_file_on_path(self, fileName, auxDir = None):
@@ -589,6 +583,25 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                 print >> sys.stderr, "Tried to read \".svn\" but failed: %s" % e
 
         return svnroot
+
+    #
+    # Guess the value of REPOVERSION
+    #
+    def guess_repoversion(productName, versionName):
+        try:
+            repoVersion = eups.hooks.config.Eups.repoVersioner(productName, versionName)
+        except Exception, e:
+            raise RuntimeError("Unable to call hooks.Eups.config.repoVersioner for %s %s (%s)" % 
+                               (productName, inVersion, e))
+
+        if repoVersion is None:
+            repoVersion = inVersion
+
+        #print "Repository version name for %s: %s --> %s" % (productName, versionName, repoVersion)
+
+        return repoVersion
+
+
     #
     # Here's the function to do the substitutions
     #
@@ -596,9 +609,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     builderVars["SVNROOT"] = guess_svnroot(builderVars.get("SVNROOT"))
     builderVars["PRODUCT"] = productName
     builderVars["VERSION"] = versionName
-    if repoVersionName is None:
-        repoVersionName = versionName
-    builderVars["REPOVERSION"] = repoVersionName
+    builderVars["REPOVERSION"] = guess_repoversion(productName, versionName)
 
     def subVar(name):
         var = name.group(1)

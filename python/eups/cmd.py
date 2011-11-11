@@ -37,7 +37,7 @@ import eups, lock
 import utils
 import distrib
 import hooks
-from distrib.server import ServerConf
+from distrib.server import ServerConf, Mapping
 
 _errstrm = sys.stderr
 
@@ -2323,53 +2323,26 @@ class DistribCreateCmd(EupsCmd):
         self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False, 
                             help="deprecated (ignored)")
 
-    def incrLetterVersion(self, myeups, productName, version, rebuildSuffix):
-        """Given a version possibly ending with a number of letters and optionally rebuildSuffix,
-        return a version with the string of letters incremented and rebuildSuffix appended
+    def incrBuildVersion(self, myeups, productName, inVersion):
+        """Given a version of a product, use the registered function to increment the build version"""
+        outVersion = inVersion
+        oldVersions = list()
+        while myeups.findProduct(productName, outVersion) is not None:
+            oldVersions.append(outVersion)
+            try:
+                outVersion = hooks.config.Eups.versionIncrementer(productName, outVersion)
+            except Exception, e:
+                raise RuntimeError("Unable to call hooks.Eups.config.versionIncrementer for %s %s (%s)" % 
+                                   (productName, outVersion, e))
+            if outVersion in oldVersions:
+                raise RuntimeError("hooks.Eups.config.versionIncrementer for %s %s didn't increment: %s" %
+                                   (productName, inVersion, oldVersions))
 
-        N.b. we interpret 0 -> a, 1 -> b, etc., so the sequence is a ... z ba ... bz ... ca ... (no aa ... az)
-        """
-        
-        iversion = version              # initial version for diagnostics
+        if self.opts.verbose:
+            print "Incremented build version name for %s: %s --> %s" % (productName, inVersion, outVersion)
 
-        unlettered = version
-        if rebuildSuffix:
-            unlettered = re.sub(rebuildSuffix + "$", "", unlettered) # strip suffix
+        return outVersion
 
-        mat = re.search(r"([A-Za-z]+)$", unlettered)
-        if mat:
-            letters = mat.group(1).lower()
-            unlettered = unlettered[:-len(letters)] # strip letters
-        else:
-            letters = None
-
-        while True:
-            if letters is None:
-                letters = "a"
-            else:
-                letterVersionNumber = 0
-                for l in letters:
-                    if not l >= 'a' and l <= 'z':
-                        raise RuntimeError("Version %s contains an illegal character %s" % (iversion, l))
-                    letterVersionNumber = 26*letterVersionNumber + (ord(l) - ord('a'))
-
-                letterVersionNumber += 1
-
-                letters = ""
-                while letterVersionNumber:
-                    letters += chr(letterVersionNumber%26 + ord('a'))
-                    letterVersionNumber //= 26
-
-                letters = ''.join(reversed(letters))
-
-            version = unlettered + letters
-            if rebuildSuffix:
-                version += rebuildSuffix
-
-            if myeups.findProduct(productName, version) is None: # Found an empty slot?
-                break
-            
-        return iversion, version, unlettered
 
     def execute(self):
         # get rid of sub-command arg
@@ -2486,15 +2459,15 @@ class DistribCreateCmd(EupsCmd):
             if not topProduct:
                 raise RuntimeError("I can't find product %s %s" % (productName, version))
 
-            letterVersions = {
-                productName : self.incrLetterVersion(myeups, productName, version, rebuildSuffix),
-                }
-
+            mapping = Mapping()
+            mapping.add(inProduct=productName, inVersion=version,
+                        outVersion=self.incrBuildVersion(myeups, productName, version))
+            
             foundRebuildProduct = False # did we find the changed product as a dependency?
             for p, optional, recursionDepth in myeups.getDependentProducts(topProduct, topological=True):
                 if p.name == rebuildProduct.name:
                     foundRebuildProduct = True
-                    letterVersions[p.name] = rebuildVersion, rebuildVersion, rebuildVersion
+                    mapping.add(inProduct=p.name, inVersion=p.version, outVersion=rebuildVersion)
                     break
 
                 if rebuildProduct.name not in [q[0].name for q in myeups.getDependentProducts(p)]:
@@ -2502,24 +2475,24 @@ class DistribCreateCmd(EupsCmd):
 
                 # If the product has a config file that claims that it has no binary components (and thus
                 # needn't worry about ABI changes) we needn't bump its letter version
-                if not p.getConfig("distrib", "binary", getType=bool):
-                    letterVersions[p] = p.version
-                else:
-                    letterVersions[p.name] = self.incrLetterVersion(myeups, p.name, p.version, rebuildSuffix)
+                if p.getConfig("distrib", "binary", getType=bool):
+                    mapping.add(inProduct=p.name, inVersion=p.version,
+                                outVersion=self.incrBuildVersion(myeups, p.name, p.version))
 
                 if self.opts.verbose:
-                    print "Creating letter version %s %s" % (p.name, letterVersions[p.name][1])
+                    print "Creating rebuild version %s %s" % (p.name, mapping.apply(p.name, p.version)[1])
 
             if not foundRebuildProduct:
                 raise RuntimeError("%s is not a dependency of %s:%s" %
                                    (rebuildProduct.name, productName, version))
 
-            dopts["letterVersions"] = letterVersions
+            dopts["rebuildMapping"] = mapping
 
             if not self.opts.quiet:
                 print "Creating distribution for %s %s (not %s)" % (productName,
-                                                                    letterVersions[productName][1], version)
-                print "Don't forget to install this distribution to pick up the letter versions!"
+                                                                    mapping.apply(productName, version)[1],
+                                                                    version)
+                print "Don't forget to install this distribution to pick up the rebuild versions!"
 
         if myeups.noaction:
             print "Skipping repository and server creation."
@@ -2535,7 +2508,6 @@ class DistribCreateCmd(EupsCmd):
                                                  self.opts.flavor, 
                                                  verbosity=self.opts.verbose, 
                                                  log=log)
-
                 server = distrib.Repository(myeups, self.opts.serverDir, 
                                             self.opts.useFlavor, options=dopts, 
                                             verbosity=self.opts.verbose, log=log)

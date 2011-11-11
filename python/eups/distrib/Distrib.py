@@ -6,6 +6,8 @@
 #
 import sys, os, re, atexit, shutil
 import eups
+import eups.hooks as hooks
+import eups.table
 import server
 from server import RemoteFileNotFound, Manifest, TaggedProductList
 from eups.VersionParser import VersionParser
@@ -152,8 +154,7 @@ class Distrib(object):
         if not os.path.exists(serverDir):
             os.makedirs(serverDir)
 
-    def createPackage(self, serverDir, product, version, flavor=None, overwrite=False,
-                      letterVersion=None):
+    def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID.  If a package is made up of several files,
         all of them (except for the manifest) should be deployed by this 
@@ -170,8 +171,6 @@ class Distrib(object):
                                 if supported.
         @param overwrite      if True, this package will overwrite any 
                                 previously existing distribution files even if Eups.force is false
-        @param letterVersion The name for the desired "letter version"; a rebuild
-                                 with following an ABI change in a dependency
         """
         self.unimplemented("createPackage");
 
@@ -363,7 +362,7 @@ class Distrib(object):
         self.unimplemented("updateDependencies")        
 
     def _createDeps(self, productName, versionName, flavor=None, tag=None, 
-                    recursive=False, exact=False, letterVersions={}):
+                    recursive=False, exact=False, mapping=server.Mapping()):
         """return a list of product dependencies for a given project.  This 
         function returns a proto-dependency list providing only as much 
         generic information as is possible without knowing the details of 
@@ -372,53 +371,66 @@ class Distrib(object):
         """
         if flavor is None:  flavor = self.flavor
         if tag is None:  tag = self.tag
-        #
-        # We may need a letter version of this product;  let's check
-        #
-        versionName, letterVersion, repoVersionName = \
-                     letterVersions.get(productName, (versionName, versionName, versionName))
-        productList = Manifest(productName, letterVersion, self.Eups, self.verbose-1,
-                               letterVersion=letterVersion, log=self.log)
+        productList = Manifest(productName, versionName, self.Eups, self.verbose-1,
+                               log=self.log)
 
         # add a record for the top product
-        productList.addDependency(productName, versionName, flavor, None, None, None, False,
-                                  letterVersion=letterVersion)
+        productList.addDependency(productName, versionName, flavor, None, None, None, False)
 
         dependencies = None
-        ptablefile = None
+        tablefile = None
         if self.noeups:
             if recursive and self.verbose > 0:
                 print >> self.log, "Warning dependencies are not guaranteed", \
                     "to be recursive when using noeups option"
 
-            # use the server as source of package information
-            ptablefile = self.findTableFile(productName, versionName, self.flavor)
-            if not ptablefile and self.distServer:
-                try:
-                    ptablefile = self.distServer.getTableFile(productName, versionName, self.flavor)
-                except RemoteFileNotFound, e:
-                    pass
+            def getTableFile(product, version, flavor):
+                tablefile = self.findTableFile(product, version, flavor)
+                # use the server as source of package information
+                if not tablefile and self.distServer:
+                    try:
+                        tablefile = self.distServer.getTableFile(product, version, self.flavor)
+                    except RemoteFileNotFound, e:
+                        pass
+                return tablefile
 
-            if ptablefile:
-                dependencies = self.Eups.dependencies_from_table(ptablefile)
-            else:
-                if self.verbose > 0:
-                    print >> self.log, "Failed to find %s's table file; trying eups" % productName
+            tablefile = getTableFile(productName, versionName, self.flavor)
+            if not tablefile:
+                buildProduct, buildVersion = mapping.apply(productName, versionName, self.flavor)
+                if buildProduct == productName and buildVersion != versionName:
+                    tablefile = getTableFile(productName, buildVersion, self.flavor)
 
-        if ptablefile is None:
+            if not tablefile and self.verbose > 0:
+                print >> self.log, "Failed to find %s's table file; trying eups" % productName
+
+        if tablefile:
+            dependencies = self.Eups.dependencies_from_table(tablefile)
+        else:
             # consult the EUPS database
-            try:
-                productDictionary = {}
-                product = self.Eups.getProduct(productName, versionName)
-                dependencies = self.Eups.getDependentProducts(product, productDictionary=productDictionary,
-                                                              topological=True)
-            except (eups.ProductNotFound, eups.TableFileNotFound), e:
+            def getDependencies(productName, version):
+                try:
+                    product = self.Eups.getProduct(productName, version)
+                    dependencies = self.Eups.getDependentProducts(product, productDictionary={},
+                                                                  topological=True)
+                except:
+                    return None
+                return dependencies
+
+            dependencies = getDependencies(productName, versionName)
+            if dependencies is None:
+                buildProduct, buildVersion = mapping.apply(productName, versionName, self.flavor)
+                if buildProduct == productName and buildVersion != versionName:
+                    dependencies = getDependencies(productName, buildVersion)
+            if dependencies is None:
                 if self.noeups:
-                    if self.noeups and self.verbose > 0:
-                        print >> self.log, e
+                    if self.verbose > 0:
+                        print >> self.log, ("Unable to find dependencies for %s %s, assuming empty" %
+                                            (productName, versionName))
                     dependencies = []
                 else:
-                    raise
+                    raise RuntimeError("Unable to determine dependencies for %s %s" %
+                                       (productName, versionName))
+                                       
         #
         # Still no luck? If noeups we'll proceed without a tablefile
         #
@@ -451,11 +463,7 @@ class Distrib(object):
                     continue
                 raise eups.ProductNotFound(dproductName, dversionName)
 
-            versionName, letterVersion, repoVersionName = \
-                         letterVersions.get(dproductName, (versionName, versionName, versionName))
-
-            productList.addDependency(dproductName, versionName, flavor, None, None, None, dopt,
-                                      letterVersion=letterVersion, repoVersion=repoVersionName)
+            productList.addDependency(dproductName, versionName, flavor, None, None, None, dopt)
 
         #
         # We need to install those products in the correct order
@@ -469,9 +477,6 @@ class Distrib(object):
             else:
                 (basedir, instDir) = self.getProductInstDir(dprod.product, dprod.version, dprod.flavor)
 
-            if dprod.version != dprod.letterVersion:
-                dprod.instDir = instDir.replace(dprod.version, dprod.letterVersion)
-
         return productList
 
     def getProductInstDir(self, product, version, flavor):
@@ -480,18 +485,32 @@ class Distrib(object):
         """
         productDir = "/dev/null"
         baseDir = ""
-        try:
-            pinfo = self.Eups.getProduct(product, version)
-            if not pinfo.dir: 
-                pinfo.dir = "none"   # the product directory
-        except eups.ProductNotFound, e:
+
+        def lookupProduct(product, version):
+            try:
+                return self.Eups.getProduct(product, version)
+            except eups.ProductNotFound:
+                return None
+
+        pinfo = lookupProduct(product, version)
+        if pinfo is None:
+            buildVersion = hooks.config.Eups.repoVersioner(product, version)
+            while pinfo is None and buildVersion != version:
+                pinfo = lookupProduct(product, buildVersion)
+                if pinfo is None:
+                    buildVersion = hooks.config.Eups.versionIncrementer(product, buildVersion)
+        if pinfo is None:
             if not self.noeups or self.Eups.verbose:
                 print >> self.log, \
                       "WARNING: Failed to lookup directory for product %s %s (%s): %s" % \
                       (product, version, flavor, e)
             return (baseDir, product)
 
-        if pinfo.version != version:
+        if not pinfo.dir: 
+            pinfo.dir = "none"   # the product directory
+
+        if pinfo.version != version and (hooks.config.Eups.repoVersioner(product, version) != 
+                                         hooks.config.Eups.repoVersioner(product, pinfo.version)):
             print >> self.log, \
                 "Warning: Something's wrong with %s; %s != %s" % \
                 (product, version, pinfo.version)
@@ -738,6 +757,7 @@ class DefaultDistrib(Distrib):
         @param flavor         the flavor of the target platform; this may 
                                 be ignored by the implentation
         """
+
         self.initServerTree(serverDir)
         out = None
         mandir = os.path.join(serverDir, "manifests")
@@ -747,11 +767,40 @@ class DefaultDistrib(Distrib):
             os.makedirs(mandir)
 
         out = os.path.join(mandir, "%s-%s.manifest" % (product, version))
-        
+
         man = Manifest(product, version, self.Eups, 
                        verbosity=self.verbose-1, log=self.log)
         for dep in productDeps:
             man.addDepInst(dep)
+
+        def getTableFile(product, version): 
+            fulltablename = dep.tablefile
+            tabledir = os.path.join(serverDir, "tables")
+            dep.tablefile = "%s-%s.table" % (dep.product, dep.version)
+            tablefile_for_distrib = os.path.join(tabledir, dep.tablefile)
+            return fulltablename, tablefile_for_distrib
+        
+        def copyTableFile(fulltablename, tablefile_for_distrib):
+            if os.access(tablefile_for_distrib, os.R_OK) and not force:
+                if self.Eups.verbose > 1:
+                    print >> sys.stderr, "Not recreating", tablefile_for_distrib
+                return True
+            if not os.path.exists(fulltablename):
+                return False
+                print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
+            if self.Eups.verbose > 1:
+                print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
+
+            # We need to update the versions in the table file after mapping.
+            # We'll use this process to copy the file instead of "server.copyfile()"
+            inTable = open(fulltablename)
+            outTable = open(tablefile_for_distrib, "w")
+            productList = dict([(p.product, p.version) for p in productDeps])
+
+            eups.table.expandTableFile(self.Eups, outTable, inTable, productList,
+                                       toplevelName=product, recurse=False)
+            return True
+
         #
         # Go through that manifest copying table files into the distribution tree
         #
@@ -761,28 +810,26 @@ class DefaultDistrib(Distrib):
             if dep.tablefile == "none":
                 continue
 
-            fulltablename = dep.tablefile
-            tabledir = os.path.join(serverDir, "tables")
-            dep.tablefile = "%s-%s.table" % (dep.product, dep.version)
-            tablefile_for_distrib = os.path.join(tabledir, dep.tablefile)
+            fulltablename, tablefile_for_distrib = getTableFile(product, version)
+            if not copyTableFile(fulltablename, tablefile_for_distrib):
+                # Try the repository version
+                haveTable = False
+                repoVersion = hooks.config.Eups.repoVersioner(product, version)
+                if repoVersion != version:
+                    fulltablename, tablefile_for_distrib = getTableFile(product, repoVersion)
+                    if copyTableFile(fulltablename, tablefile_for_distrib):
+                        haveTable = True
+                if not haveTable:
+                    print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
 
-            if os.access(tablefile_for_distrib, os.R_OK) and not force:
-                if self.Eups.verbose > 1:
-                    print >> sys.stderr, "Not recreating", tablefile_for_distrib
-            elif not os.path.exists(fulltablename):
-                print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
-            else:
-                if self.Eups.verbose > 1:
-                    print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
-                server.copyfile(fulltablename, tablefile_for_distrib)
         #
         # Finally write the manifest file itself
         #
         man.write(out, flavor=flavor, noOptional=False)
         self.setGroupPerms(out)
         
-    def createDependencies(self, product, version, flavor=None, tag=None, 
-                           recursive=False, exact=False, letterVersions={}):
+    def createDependencies(self, product, version, flavor=None, tag=None, recursive=False, exact=False,
+                           mapping=server.Mapping()):
         """create a list of product dependencies based on what is known from 
         the system.
 
@@ -801,18 +848,17 @@ class DefaultDistrib(Distrib):
                                 will include the dependencies of the dependencies
                                 recursively.  Default: False
         @param exact          Generate the complete list of dependencies that eups list -D --exact would return
-        @param letterVersions  A dictionary mapping products to the "letter version" that we need (i.e. the same code, but a different build as an ABI changed)
+        @param mapping        Mapping from desired product,version to existent product,version
         """
-        deps = self._createDeps(product, version, flavor, tag, recursive, exact,
-                                letterVersions=letterVersions)
+        deps = self._createDeps(product, version, flavor, tag, recursive, exact, mapping=mapping)
         for prod in deps.getProducts():
             prod.tablefile = None
 
-        self.updateDependencies(deps.getProducts(), flavor=flavor)
+        self.updateDependencies(deps.getProducts(), flavor=flavor, mapping=mapping)
 
         return deps
 
-    def updateDependencies(self, productList, flavor=None):
+    def updateDependencies(self, productList, flavor=None, mapping=server.Mapping()):
         """fill in information in the list of product dependencies based
         on what is known from the system
 
@@ -822,36 +868,82 @@ class DefaultDistrib(Distrib):
         @param productList     list of products (output from createDependencies)
         @param flavor          the flavor of the target platform; this may 
                                  be ignored by the implentation
+        @param mapping         mapping from desired product,version to existent product,version
         """
         for prod in productList:
             if prod.flavor is None:
                 prod.flavor = flavor
             if prod.distId is None:
-                prod.distId = self.getDistIdForPackage(prod.product, prod.letterVersion, prod.flavor)
+                prod.distId = self.getDistIdForPackage(prod.product, prod.version, prod.flavor)
             #
             # Find product's table file
             #
-            if prod.tablefile is None:
+
+
+            def searchForTableFile(product, version, flavor):
                 try:
-                    prod.tablefile = self.Eups.getProduct(prod.product, prod.version).tablefile
+                    return self.Eups.getProduct(product, version).tablefile
                 except KeyboardInterrupt:
                     raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
-                                         (prod.product, prod.version))
+                                         (product, version))
                 except eups.ProductNotFound, e:
-                    prod.tablefile = self.findTableFile(prod.product, prod.version, prod.flavor)
-                except Exception, e:
-                    pass
+                    return self.findTableFile(prod.product, prod.version, prod.flavor)
+                except Exception:
+                    return None
 
-            if prod.tablefile == None:
+            if prod.tablefile is None:
+                prod.tablefile = searchForTableFile(prod.product, prod.version, prod.flavor)
+            if prod.tablefile is None:
+                buildProduct, buildVersion = mapping.apply(prod.product, prod.version, prod.flavor)
+                if buildProduct == prod.product and buildVersion != prod.version:
+                    prod.tablefile = searchForTableFile(prod.product, buildVersion, prod.flavor)
+            if prod.tablefile is None:
                 if not self.noeups or self.Eups.verbose:
-                    print >> sys.stderr, "WARNING: Failed to lookup tablefile for %s %s: %s" % \
-                          (prod.product, prod.version, e)
+                    print >> sys.stderr, "WARNING: Failed to lookup tablefile for %s %s" % \
+                        (prod.product, prod.version)
                 prod.tablefile = "none"
-
 
     def findTableFile(self, product, version, flavor):
         """Give the distrib a chance to produce a table file"""
         return None
+
+    # def findRebuildTableFile(self, product, version, flavor):
+    #     """Find a table file for a rebuild
+
+    #     It's a rebuild, so the list of products should be the same, though the particular
+    #     versions of those products may differ.
+    #     """
+
+    #     def tryFindTableFile(product, version, flavor=None):
+    #         tablefile = None
+    #         try:
+    #             tablefile = self.Eups.getProduct(product, version).tablefile
+    #         except KeyboardInterrupt:
+    #             raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
+    #                                  (product, version))
+    #         except:
+    #             pass
+    #         return tablefile
+
+    #     # First try the requested version
+    #     tablefile = tryFindTableFile(product, version)
+    #     if tablefile is not None:
+    #         return tablefile
+    #     tablefile = tryFindTableFile(product, version, flavor)
+    #     if tablefile is not None:
+    #         return tablefile
+
+    #     # Next try versions from the "repository version" up to the requested version
+    #     buildVersion = hooks.config.Eups.repoVersioner(product, version)
+    #     while buildVersion != version:
+    #         tablefile = tryFindTableFile(product, buildVersion)
+    #         if tablefile is not None:
+    #             return tablefile
+    #         tablefile = tryFindTableFile(product, buildVersion, flavor)
+    #         if tablefile is not None:
+    #             return tablefile
+    #         buildVersion = hooks.config.Eups.versionIncrementer(product, buildVersion)
+    #     return None
 
 def findInstallableRoot(Eups):
     """return the first directory in the eups path that the user can install 
@@ -862,3 +954,4 @@ def findInstallableRoot(Eups):
             return ep
 
     return None
+

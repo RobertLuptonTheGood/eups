@@ -933,7 +933,8 @@ class Action(object):
 # Expand a table file
 #
 def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False,
-                    expandVersions=True, addExactBlock=True, toplevelName=None):
+                    expandVersions=True, addExactBlock=True, toplevelName=None,
+                    recurse=True):
     """Expand a table file, reading from ifd and writing to ofd
     If force is true, missing required dependencies are converted to optional
     """
@@ -1115,14 +1116,15 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 continue
 
         NVOL.append((productName, version, optional, None))
-                    
-        try:
-            NVOL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
-        except:
-            if not optional:
-                if not force:
-                    raise
-            continue
+
+        if recurse:
+            try:
+                NVOL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
+            except:
+                if not optional:
+                    if not force:
+                        raise
+                continue
 
         for name, version, opt, level in NVOL:
             if re.search("^" + Product.Product.LocalVersionPrefix, version):

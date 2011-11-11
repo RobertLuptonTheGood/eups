@@ -74,7 +74,7 @@ DIST_URL = %(base)s/%(path)s
                 cf.close()
 
     def createPackage(self, serverDir, product, version, flavor=None, 
-                      overwrite=False, letterVersion=None):
+                      overwrite=False):
         """Write a package distribution into server directory tree and 
         return the distribution ID 
         @param serverDir      a local directory representing the root of the 
@@ -86,12 +86,7 @@ DIST_URL = %(base)s/%(path)s
                                 be ignored by the implentation
         @param overwrite      if True, this package will overwrite any 
                                 previously existing distribution files even if Eups.force is false
-        @param letterVersion The name for the desired "letter version"; a rebuild
-                                 with following an ABI change in a dependency
         """
-        if letterVersion:
-            raise RuntimeError("Letter versions are not supported: %s" % letterVersion)
-
         if flavor is None:  flavor = self.Eups.flavor
         tarball = self.getDistIdForPackage(product, version, flavor)
         (baseDir, productDir) = self.getProductInstDir(product, version, flavor)

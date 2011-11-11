@@ -1422,8 +1422,7 @@ class Dependency(object):
     """
 
     def __init__(self, product, version, flavor, tablefile, instDir, distId,
-                 isOptional=False, shouldRecurse=False, extra=None,
-                 letterVersion=None, repoVersion=None):
+                 isOptional=False, shouldRecurse=False, extra=None):
         self.product = product
         if not isinstance(version, str):
             if isinstance(version, type):
@@ -1431,12 +1430,6 @@ class Dependency(object):
             else:
                 version = version.__str__()
         self.version = version
-        if not letterVersion:
-            letterVersion = version
-        self.letterVersion = letterVersion
-        if not repoVersion:
-            repoVersion = version
-        self.repoVersion = repoVersion  # the version name as known to cvs/svn/hg/git/...
         self.flavor = flavor
         self.tablefile = tablefile
         self.instDir = instDir
@@ -1451,20 +1444,120 @@ class Dependency(object):
     def copy(self):
         return Dependency(self.product, self.version, self.flavor, 
                           self.tablefile, self.instDir, self.distId, self.isOpt,
-                          self.shouldRecurse, self.extra[:], self.letterVersion)
+                          self.shouldRecurse, self.extra[:])
 
     def __repr__(self):
         out = [self.product, self.version, self.flavor, 
-               self.tablefile, self.instDir, self.distId, self.letterVersion]
+               self.tablefile, self.instDir, self.distId]
         out.extend(self.extra)
         return repr(out)
+
+
+class Mapping(object):
+    """a mapping between product,version pairs for different flavors"""
+    def __init__(self):
+        self._mapping = {}
+
+    def add(self, inProduct, inVersion="any", outProduct=None, outVersion=None,
+            flavor="generic", overwrite=True):
+        """add a mapping: inProduct:inVersion --> outProduct:outVersion for the given flavor"""
+        if not outProduct:
+            outProduct = inProduct
+
+        if not self._mapping.has_key(flavor):
+            self._mapping[flavor] = {}
+
+        if not self._mapping[flavor].has_key(inProduct):
+            self._mapping[flavor][inProduct] = {}
+
+        if not overwrite and self._mapping[flavor][inProduct].has_key(inVersion):
+            return
+
+        if outVersion:
+            self._mapping[flavor][inProduct][inVersion] = (outProduct, outVersion)
+        else:
+            # Indicate product should be removed completely
+            if self._mapping[flavor][inProduct].has_key(inVersion):
+                del self._mapping[flavor][inProduct][inVersion]
+
+    def exists(self, product, version, flavor="generic"):
+        """does a mapping exist?"""
+        return (self._exists(product, version, flavor=flavor) or
+                (flavor != "generic" and self.exists(product, version, flavor="generic")))
+
+    def _exists(self, product, version, flavor="generic"):
+        return (self._mapping.has_key(flavor) and self._mapping[flavor].has_key(product) and
+                self._mapping[flavor][product].has_key(version))
+    
+    def apply(self, inProduct, inVersion, flavor="generic"):
+        """apply the mapping"""
+        outProduct, outVersion = self._apply(inProduct, inVersion, flavor)
+        if flavor != "generic" and (outProduct, outVersion) == (inProduct, inVersion):
+            outProduct, outVersion = self._apply(inProduct, inVersion, "generic")
+        return outProduct, outVersion
+
+    def _apply(self, inProduct, inVersion, flavor):
+        """apply the mapping for a particular flavor"""
+        if (not self._mapping.has_key(flavor) or not self._mapping[flavor].has_key(inProduct)):
+            # No mapping specified
+            return inProduct, inVersion
+        if not len(self._mapping[flavor][inProduct]):
+            # Indicate product should be removed completely
+            return inProduct, None
+        for versName in (inVersion, "any") or fnmatch.fnmatch(inVersion, versName):
+            if self._mapping[flavor][inProduct].has_key(versName):
+                return self._mapping[flavor][inProduct][versName]
+        # No mapping for this version
+        return inProduct, inVersion
+
+    def merge(self, other, overwrite=True):
+        """merge two mappings, overwriting existing entries is optional"""
+        for p in other._mapping.iterkeys():
+            for v in other._mapping[p].iterkeys():
+                if not self._mapping.has_key(p):
+                    self._mapping[p] = {}
+                if not overwrite and self._mapping[p].has_key(v):
+                    continue
+                self._mapping[p][v] = other._mapping[p][v]
+
+    def inverse(self):
+        """Calculate the inverse Mapping.
+        Beware that this is ill-defined if the original Mapping isn't one-to-one and onto!
+        """
+        inv = Mapping()
+        for f in self._mapping.iterkeys():
+            for inProduct in self._mapping[f].iterkeys():
+                for inVersion, (outProduct, outVersion) in self._mapping[f][inProduct].iteritems():
+                    if inv._exists(outProduct, outVersion, flavor=f):
+                        raise RuntimeError("Mapping isn't one-to-one and onto, hence inverse is ill-defined")
+                    inv.add(outProduct, inVersion=outVersion, outProduct=inProduct, outVersion=inVersion,
+                            flavor=f)
+        return inv
+
+    def __str__(self):
+        s = ""
+        for f in self._mapping.iterkeys():
+            for pIn in self._mapping[f].iterkeys():
+                for vIn in self._mapping[f][pIn].iterkeys():
+                    pOut, vOut = self._mapping[f][pIn][vIn]
+                    s += pIn + ':' + vIn + '    '
+                    if vOut is None:
+                        s += "None"
+                    else:
+                        s += pOut + ':' + vOut
+                    s += '    ' + f + "\n"
+        return s
+
+    def __repr__(self):
+        return "Mapping(" + self.__str__() + ")"
+
 
 class Manifest(object):
     """a list of product dependencies that must be installed in order to 
     install a particular product."""
 
     def __init__(self, product=None, version=None, eupsenv=None, 
-                 verbosity=0, log=sys.stderr, letterVersion=None):
+                 verbosity=0, log=sys.stderr):
         self.products = []
         self.verbose = verbosity
         self.log = log
@@ -1475,9 +1568,6 @@ class Manifest(object):
 
         self.product = product
         self.version = version
-        if not letterVersion:
-            letterVersion = version
-        self.letterVersion = letterVersion
         self.shouldRecurse = False
 
     def __str__(self):
@@ -1508,10 +1598,9 @@ class Manifest(object):
 
     def addDependency(self, product, version, flavor, tablefile,
                       instDir, distId, isOptional=False, shouldRecurse=False, 
-                      extra=None, letterVersion=None, repoVersion=None):
+                      extra=None):
         self.addDepInst(Dependency(product, version, flavor, tablefile, instDir, 
-                                   distId, isOptional, shouldRecurse, extra,
-                                   letterVersion=letterVersion, repoVersion=repoVersion))
+                                   distId, isOptional, shouldRecurse, extra))
 
     def addDepInst(self, dep):
         """add a dependency in the form of a dependency object"""
@@ -1657,7 +1746,7 @@ EUPS distribution manifest for %s (%s). Version %s
 
                 if not noaction:
                     print >> ofd, "%-15s %-12s %-10s %-25s %-30s %s" % \
-                        (p.product, p.flavor, p.letterVersion, p.tablefile, 
+                        (p.product, p.flavor, p.version, p.tablefile, 
                          p.instDir, p.distId)
         finally:
             if not noaction:
@@ -1685,7 +1774,7 @@ EUPS distribution manifest for %s (%s). Version %s
 
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
-    def remapEntries(self, mode=None):
+    def remapEntries(self, mapping=Mapping(), mode=None):
         """Allow the user to modify entries in the Manifest
 
 The mapping is defined by the file userDataDir/manifest.remap, which consists of up to three columns:
@@ -1709,69 +1798,55 @@ E.g.
 Means that instead of installing doxygen 1.5.9 version 1.6.3 should be used; that any version of python should
 be replaced by version 2.6.2; that on any platform other than DarwinX86 tcltk should be ignored; and that on
 DarwinX86 machines any version of tcltk should be replace by product dummy, version 1.0.  When creating
-distributions, all versions of afwdata should be omitted
+distributions, all versions of afwdata should be omitted.
+
+Additional mappings can be provided.
 """
-        mapping = {}
+        # Want input mapping to persist
+        mappingFromFiles = Mapping()
         for dirname in hooks.customisationDirs:
-            self._readRemapFile(dirname, mapping, mode)
-        #
-        # Retrieve the correct flavor
-        #
-        mapping2 = {}
-        if mapping.has_key("generic"):
-            mapping2 = mapping["generic"]
+            self._readRemapFile(dirname, mappingFromFiles, mode)
+        mapping.merge(mappingFromFiles, overwrite=False)
 
-        if mapping.has_key(eups.flavor()):
-            for p, iMap in mapping[eups.flavor()].items():
-                for iv, val in iMap.items():
-                    mapping2[p][iv] = val
+        flavor = eups.flavor()
 
-        mapping = mapping2
         #
         # Remap the incoming manifest
         #
         products = []
         for p in self.products:
-            if mapping.has_key(p.product):
-                if not len(mapping[p.product]):
-                    if self.verbose > 0:
-                        print >> self.log, "Deleting [%s, %s] from manifest" % (p.product, p.version)
+            if self.verbose > 1:
+                print >> self.log, "Looking for mapping for %s %s %s" % (p.product, p.version, flavor)
+            productName, versionName = mapping.apply(p.product, p.version, flavor)
+            if versionName is None:
+                if self.verbose > 0:
+                    print >> self.log, "Deleting [%s, %s] from manifest" % (p.product, p.version)
+                continue
+            if (productName, versionName) != (p.product, p.version):
+                if self.verbose > 0:
+                    print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
+                          (p.product, p.version, productName, versionName)
 
-                    p.version = None
-                else:
-                    for versName in (p.version, "any") or fnmatch.fnmatch(p.version, versName):
-                        if mapping[p.product].has_key(versName):
-                            productName, versionName = mapping[p.product][versName]
+                p = Dependency(productName, versionName, None, None, None, None)
 
-                            if (productName, versionName) == (p.product, p.version): # identity map
-                                break
+                #
+                # Create any products with version "dummy"
+                #
+                if versionName == "dummy":
+                    if not self.eups.findProduct(productName, versionName):
+                        if self.verbose > 0:
+                            print >> self.log, "Declaring %s %s" % (productName, versionName)
+                        try:
+                            eups.declare(productName, versionName,
+                                         productDir="none", tablefile="none")
+                        except Exception, e:
+                            print >> self.log, e
 
-                            if self.verbose > 0:
-                                print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
-                                      (p.product, versName, productName, versionName)
-
-                            p = Dependency(productName, versionName, None, None, None, None)
-                            #
-                            # Create any products with version "dummy"
-                            #
-                            if versionName == "dummy":
-                                if not self.eups.findProduct(productName, versionName):
-                                    if self.verbose > 0:
-                                        print >> self.log, "Declaring %s %s" % (productName, versionName)
-                                    try:
-                                        eups.declare(productName, versionName,
-                                                     productDir="none", tablefile="none")
-                                    except Exception, e:
-                                        print >> self.log, e
-
-                            break
-
-            if p.version:
-                products.append(p)
+            products.append(p)
 
         self.products = products
 
-    def _readRemapFile(self, dirname, mapping={}, mode=None, filename="manifest.remap"):
+    def _readRemapFile(self, dirname, mapping=Mapping(), overwrite=True, mode=None, filename="manifest.remap"):
         """Read a product mapping from dirname/filename"""
         
         if not dirname:
@@ -1828,17 +1903,8 @@ distributions, all versions of afwdata should be omitted
             if not flavor:
                 flavor = "generic"
 
-            if not mapping.has_key(flavor):
-                mapping[flavor] = {}
-
-            if not mapping[flavor].has_key(product):
-                mapping[flavor][product] = {}
-
-            if outversion:
-                mapping[flavor][product][inversion] = (outproduct, outversion)
-            else:
-                if mapping[flavor][product].has_key(inversion):
-                    del mapping[flavor][product][inversion]
+            mapping.add(product, inVersion=inversion, outProduct=outproduct, outVersion=outversion,
+                        flavor=flavor, overwrite=overwrite)
 
         return mapping
 

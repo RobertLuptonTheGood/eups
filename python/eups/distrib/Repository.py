@@ -7,7 +7,7 @@ import eups
 import server 
 from eups.tags      import Tag, TagNotRecognized
 from eups.utils     import Flavor, Quiet, isDbWritable
-from server         import ServerConf, Manifest, TaggedProductList
+from server         import ServerConf, Manifest, Mapping, TaggedProductList
 from server         import RemoteFileNotFound, LocalTransporter
 from DistribFactory import DistribFactory
 from Distrib        import Distrib, DefaultDistrib, findInstallableRoot
@@ -411,9 +411,10 @@ class Repository(object):
         
         opts = self._mergeOptions(options)
 
-        letterVersions = options.get("letterVersions", {})
-        version, letterVersion, repoVersion = letterVersions.get(product, (version, version, None))
-        
+        rebuildMapping = options.get("rebuildMapping", Mapping())
+        rebuildInverse = rebuildMapping.inverse()
+        rebuildProduct, rebuildVersion = rebuildMapping.apply(product, version)
+
         try:
             distrib = self.distFactory.createDistribByName(distribTypeName, options=opts, 
                                                            flavor=self.flavor, verbosity=self.verbose)
@@ -426,33 +427,33 @@ class Repository(object):
         # load manifest data
         if manifest is None:
             # create it from what we (eups) know about it
-            man = distrib.createDependencies(product, version, self.flavor, exact=opts["exact"],
-                                             letterVersions=letterVersions)
+            man = distrib.createDependencies(rebuildProduct, rebuildVersion, self.flavor, exact=opts["exact"], 
+                                             mapping=rebuildInverse)
         else:
             # load it from the given file
             man = Manifest.fromFile(manifest, self.eups, self.eups.verbose-1)
 
-        man.remapEntries(mode="create")
-        distrib.updateDependencies(man.getProducts(), flavor=self.flavor)
+        man.remapEntries(mode="create", mapping=rebuildMapping)
+        distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=rebuildInverse)
 
         # we will always overwrite the top package
-        id = distrib.createPackage(self.pkgroot, product, version, self.flavor, overwrite=True,
-                                   letterVersion=letterVersion)
+        id = distrib.createPackage(self.pkgroot, rebuildProduct, rebuildVersion, self.flavor, overwrite=True)
 
         if not nodepend:
             created = {}
-            created["%s-%s" % (product, version)] = None
-            self._recursiveCreate(distrib, man, created, True, repositories, letterVersions=letterVersions)
+            created["%s-%s" % (rebuildProduct, rebuildVersion)] = None
+            self._recursiveCreate(distrib, man, created, True, repositories, mapping=rebuildMapping)
 
         # update the manifest record for the requested product
-        dp = man.getDependency(product, version)
+        dp = man.getDependency(rebuildProduct, rebuildVersion)
         if dp is None:
             # this product is not found in the manifest; this might happen if 
             # this function was passed a manifest file to use.  Just in case,
             # check the auto-generated manifest for a record and add it to
             # the given one
-            tdp = distrib.createDependencies(product, version, self.flavor)
-            tdp = tdp.getDependency(product, version)
+            tdp = distrib.createDependencies(rebuildProduct, rebuildVersion, self.flavor,
+                                             mapping=rebuildInverse)
+            tdp = tdp.getDependency(rebuildProduct, rebuildVersion)
             if tdp is not None:
                man.getProducts().append(tdp) 
         else:
@@ -473,15 +474,20 @@ class Repository(object):
             packageName = product
             packageVersion = version
 
-        distrib.writeManifest(self.pkgroot, man.getProducts(), packageName, 
-                              man.letterVersion, self.flavor, self.eups.force)
+        # A final mapping to ensure everything's what's intended
+        man.remapEntries(mode="create", mapping=rebuildMapping)
+        distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=rebuildInverse)
+        packageName, packageVersion = rebuildMapping.apply(packageName, packageVersion, self.flavor)
+
+        distrib.writeManifest(self.pkgroot, man.getProducts(), packageName, packageVersion,
+                              self.flavor, self.eups.force)
         
-    def _recursiveCreate(self, distrib, manifest, created=None, recurse=True, repos=None, letterVersions={}):
+    def _recursiveCreate(self, distrib, manifest, created=None, recurse=True, repos=None, mapping=Mapping()):
         if created is None: 
             created = {}
 
         for pos, dp in enumerate(manifest.getProducts()):
-            pver = "%s-%s" % (dp.product, dp.letterVersion)
+            pver = "%s-%s" % (dp.product, dp.version)
             if created.has_key(pver):
                 if created[pver]:
                     manifest.getProducts()[pos] = created[pver]
@@ -496,25 +502,25 @@ class Repository(object):
             else:
                 flavor = dp.flavor
                 if dp.flavor == "generic":   flavor = None
-                if distrib.packageCreated(self.pkgroot, dp.product, dp.letterVersion, flavor):
+                if distrib.packageCreated(self.pkgroot, dp.product, dp.version, flavor):
                     if not self.eups.force:
                         if self.verbose > 0:
                             print >> self.log, "Dependency %s %s is already deployed; skipping" % \
-                                  (dp.product, dp.letterVersion)
+                                  (dp.product, dp.version)
                         created[pver] = dp
                         continue
 
                     elif self.verbose > 0:
-                        print >> self.log, "Overwriting existing dependency,", dp.product, dp.letterVersion
+                        print >> self.log, "Overwriting existing dependency,", dp.product, dp.version
                         
             #
             # Check if this product is available elsewhere
             #
             if repos and not self.eups.force:
                 # look for the requested flavor
-                already_available = bool(repos.findPackage(dp.product, dp.letterVersion, dp.flavor))
+                already_available = bool(repos.findPackage(dp.product, dp.version, dp.flavor))
                 if not already_available and dp.flavor != "generic":
-                    already_available = bool(repos.findPackage(dp.product, dp.letterVersion, "generic"))
+                    already_available = bool(repos.findPackage(dp.product, dp.version, "generic"))
 
                 if already_available:
                     dp.distId = "search"
@@ -529,23 +535,22 @@ class Repository(object):
             # not to be available
             try:
                 man = distrib.createDependencies(dp.product, dp.version, self.flavor,
-                                                 letterVersions=letterVersions)
-                man.remapEntries(mode="create")
-                distrib.updateDependencies(man.getProducts(), flavor=self.flavor)
+                                                 mapping=mapping.inverse())
+                man.remapEntries(mode="create", mapping=mapping)
+                distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=mapping.inverse())
             except eups.ProductNotFound, e:
                 raise RuntimeError("Creating manifest for %s %s: %s" %
-                                   (manifest.product, manifest.letterVersion, e))
+                                   (manifest.product, manifest.version, e))
 
-            id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor,
-                                       letterVersion=dp.letterVersion)
+            id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor)
             created[pver] = dp
             dp.distId = id
                 
             if recurse:
-                self._recursiveCreate(distrib, man, created, recurse, repos, letterVersions=letterVersions)
+                self._recursiveCreate(distrib, man, created, recurse, repos, mapping=mapping)
 
-            distrib.writeManifest(self.pkgroot, man.getProducts(), dp.product,
-                                  dp.letterVersion, self.flavor, self.eups.force)
+            distrib.writeManifest(self.pkgroot, man.getProducts(), dp.product, dp.version,
+                                  self.flavor, self.eups.force)
 
     def _availableAtLocation(self, dp):
         distrib = self.distFactory.createDistrib(dp.distId, dp.flavor, None,

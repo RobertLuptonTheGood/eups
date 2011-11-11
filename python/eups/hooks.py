@@ -32,7 +32,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
@@ -78,6 +78,25 @@ config.distrib = {}
 config.distrib["builder"] = dict(variables = {})
     
 config.Eups.startupFileName = "startup.py"
+
+#
+# Callback for determining the "repository version name" (version name the repository knows, whether the
+# repository is svn, git or http) from the "version name" (version name eups knows); the two may differ due to
+# rebuilds.  The callback receives the product name and version name and should return the repository version
+# name.
+#
+config.Eups.repoVersioner = lambda p, v: re.sub(r"\+\d+$", "", v)
+
+#
+# Callback to increment the version name when generating rebuilds (with 'eups distrib create --rebuild').  The
+# callback receives the product name and version name and should return the incremented version name.
+#
+def defaultVersionIncrementer(product, version):
+    if not re.search("\+\d+$", version):
+        return version + "+1"
+    return re.sub("\+(\d+)$", lambda m: "+%d" % (int(m.group(1)) + 1), version)
+config.Eups.versionIncrementer = defaultVersionIncrementer
+
 
 def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False, filename=None):
     if not filename:
