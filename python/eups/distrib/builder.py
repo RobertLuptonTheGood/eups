@@ -681,19 +681,16 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                           r"\1\2@REPOVERSION@\3", line)
         line = re.sub(r"(hg\s+up\s+)@VERSION@", r"\1@REPOVERSION@", line)
 
-        # HACK:  replace "scons .* install" with "scons .* install version=@VERSION@ baseversion=@REPOVERSION@"
+        # HACK:  replace "scons .* install" with "scons .* install version=@VERSION@
         # The right thing to do is to update the build files
         if re.search(r"^\s*scons\s+.*install", line):
             line = re.sub("\sversion=\S+", "", line)
             line += " version=@VERSION@"
-            if not re.search(r"\sbaseversion=\S+", line):
-                # Do not ever substitute!  This should remain untouched until the end of time.
-                line += " baseversion=@REPOVERSION@"
 
         # NOTE: if you want to use build files created before the above HACKs were effective, you'll need to
         # hack the build files manually.  Try something like the following:
         #
-        # sed -ri -e 's|(svn[^[:space:]]*:[^[:space:]]*)[abcdefg]_hsc|\1|' -e '/baseversion/! s|version=([HSCDC0-9.-]+)([abcdefg]_hsc)?|version=\1\2 baseversion=\1|' -e 's|(hg[[:space:]]+up[[:space:]]+[HSCDC0-9.-]+)([abcdefg]_hsc)?|\1|' /path/to/builds/*.build
+        # sed -ri -e 's|(svn[^[:space:]]*:[^[:space:]]*)[abcdefg]_hsc|\1|' -e 's|(hg[[:space:]]+up[[:space:]]+[HSCDC0-9.-]+)([abcdefg]_hsc)?|\1|' /path/to/builds/*.build
         #
         # The trick is to get the version regex correct; the above covers dotted number versions and
         # 'HSC-DC2'.  If you've got lower-case letters as the last characters in your version names, you may
