@@ -228,6 +228,11 @@ def determineFlavor():
            flav = "DarwinX86"
        else:
            flav = "Darwin"
+    elif uname == "SunOS":
+        if re.search(r"^sun4", mach):
+            flav = "SunOS"
+        else:
+            flav = "SunOSX86"
     else:
         raise RuntimeError, ("Unknown flavor: (%s, %s)" % (uname, mach))
 
