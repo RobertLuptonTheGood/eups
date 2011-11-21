@@ -626,7 +626,7 @@ class DefaultDistrib(Distrib):
             to "generic"), the manifest will be put in a subdirectory below 
             "manifests" named after the flavor; otherwise, it will be put 
             directly under "manifests".  The form of the filename is 
-            "<product>-<version>.list".  This convention is captured in the 
+            "<product>-<version>.manifest".  This convention is captured in the 
             function getManifestPath() (which subclasses may override).
        o  Tagged releases are written in the format supported by 
             eups.server.TaggedProductList.  

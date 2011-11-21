@@ -242,6 +242,10 @@ class Repository(object):
                              all available versions are returned.
         @param flavor      the desired platform flavor.  If None, all 
                              available versions are returned.
+        @param tag         list only products matching this tag.  If version 
+                             is also specified, an empty list will be returned
+                             if the version (or matching versions) is (are) not 
+                             assigned this tag.  
         @param queryServer if True, this will force a query to the repository
                              server.  If False, an internal cache will be used
                              if possible.  If None (default), the behavior is 
@@ -261,17 +265,20 @@ class Repository(object):
                 raise RuntimeError("No distribution server set")
 
             if tag:
+                if not isinstance(tag, Tag):
+                    tag = self.eups.tags.getTag(tag)
+
                 if not tag.isGlobal():
                     raise TagNotRecognized(tag.name, "global", 
                                            msg="Non-global tag \"%s\" requested." % tag.name)
                 if tag.name == "newest":
                     return self._listNewestProducts(product, flavor)
 
-                if tag not in self.getSupportedTags():
+                if tag.name not in self.getSupportedTags():
                     raise TagNotRecognized(tag, "global", 
                                            msg="tag %s not supported by server" % tag)
 
-            return self.distServer.listAvailableProducts(product, version, flavor, tag)
+            return self.distServer.listAvailableProducts(product, version, flavor, tag.name)
 
         else:
             if self._pkgList is None:
