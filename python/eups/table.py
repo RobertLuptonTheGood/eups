@@ -1064,7 +1064,6 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         if re.search(r"^\s*(#.*)?$", line):
             block[1].append(line)
             continue
-        line0 = line
         line = re.sub(r"\s*#.*$", "", line) # strip comments running to the end of the line
 
         # Attempt substitutions
@@ -1087,7 +1086,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 block = [False, []]
                 setupBlocks.append(block)
 
-        block[1].append(line0)
+        block[1].append(line)
     #
     # Figure out the complete list of products that this table file will setup; only list each once
     #
