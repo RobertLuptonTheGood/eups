@@ -414,7 +414,17 @@ class EupsTestCase(unittest.TestCase):
         prods = self.eups.findProducts("python", "3.*",)
         self.assertEquals(len(prods), 0)
 
+        # version and tags conflict; mutually exclusive
         prods = self.eups.findProducts("python", "2.5.2", tags="newest")
+        self.assertEquals(len(prods), 0)
+
+        prods = self.eups.findProducts("python", ">= 2.5.2")
+        self.assertEquals(len(prods), 2)
+
+        prods = self.eups.findProducts("python", ">= 2.5.2", tags="newest")
+        self.assertEquals(len(prods), 1)
+
+        prods = self.eups.findProducts("python", "<= 2.5.2", tags="newest")
         self.assertEquals(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']

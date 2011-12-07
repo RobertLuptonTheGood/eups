@@ -2748,6 +2748,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                         out.append(setup[key])
                         del setup[key]
 
+        if version:
+            if self.isLegalRelativeVersion(version): 
+                out = [p for p in out if self.version_match(p.version, version)]
+            else:
+                out = [p for p in out if fnmatch.fnmatch(p.version, version)] 
+
         if not version or \
            (isinstance(version,str) and version.startswith(Product.LocalVersionPrefix)) or \
            (tags and "setup" in tags):
