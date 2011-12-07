@@ -98,7 +98,8 @@ def defaultVersionIncrementer(product, version):
 config.Eups.versionIncrementer = defaultVersionIncrementer
 
 
-def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False, filename=None):
+def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False,
+                             filename=None, includeAllFiles=False):
     if not filename:
         filename = config.Eups.startupFileName
 
@@ -115,6 +116,19 @@ def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False
 
         configFiles.append(startup)
 
+    if includeAllFiles:
+        for f in os.listdir(customDir):
+            if re.search(r"(^\.|\.pyc$|~$|pickle)", f):
+                continue
+            if f in ("Makefile", "_caches_", "ups_db",):
+                continue
+
+            f = os.path.join(customDir, f)
+            if f in configFiles:
+                continue
+
+            configFiles.append(f)
+
     return configFiles
 
 try:
@@ -124,7 +138,7 @@ except NameError:
     customisationFiles = None
 
 def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[], reset=False,
-                      filename=None):
+                      filename=None, includeAllFiles=False):
     """
     load all site and/or user customizations.  Customizations comes from a startup script file.  
 
@@ -144,9 +158,10 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
     @param execute    process files?
     @param quiet      Be extra quiet
     @param reset      The list of files is usually cached; reset clears the cache
-    @param filename   Name of file to search (default: config.Eups.startupFileName)
+    @param filename   Name of file to search (default: config.Eups.startupFileName).
+    @params includeAllFiles If execute is False, include all the files in the directory in the return list
     """
-
+        
     if not filename:
         filename = config.Eups.startupFileName
 
@@ -180,7 +195,8 @@ def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=
     customisationFiles = []             # files that we'd load
 
     for dir in customisationDirs:
-        cfiles = loadCustomizationFromDir(dir, verbose, log, execute=execute, filename=filename)
+        cfiles = loadCustomizationFromDir(dir, verbose, log, execute=execute, filename=filename,
+                                          includeAllFiles=includeAllFiles)
         if cfiles:
             customisationFiles += cfiles
 

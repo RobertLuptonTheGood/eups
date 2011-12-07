@@ -606,7 +606,7 @@ that would be loaded [in brackets].
         path = Eups.path
 
         for f in hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
-                                         quiet=self.opts.quiet, path=path, reset=True):
+                                         quiet=self.opts.quiet, path=path, reset=True, includeAllFiles=True):
             
             if not self.opts.verbose and os.stat(f).st_size == 0:
                 continue
