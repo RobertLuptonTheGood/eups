@@ -1,13 +1,13 @@
 \documentclass{article}
 \ExecuteOptions{dvips,color}
 \usepackage{fullpage}
-\usepackage{color}
+\usepackage{color, xspace}
 \IfFileExists{hyperref.sty}{\usepackage{hyperref}}{}
 %
 \newcommand{\XXX}[1]{\textbf{XXX} #1}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\file}[1]{\texttt{#1}}
-\newcommand{\eups}{\code{ExtUPS}}
+\newcommand{\eups}{\code{ExtUPS}\xspace}
 \newcommand{\pacman}{\code{pacman}}
 \newcommand{\rarrow}{$\Rightarrow$}
 \newcommand{\darrow}{$\Downarrow$}
@@ -24,7 +24,7 @@
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 \begin{document}
-\title{\eups{} --- a Tool to Manage Software Dependencies}
+\title{\eups --- a Tool to Manage Software Dependencies}
 \author{Nikhil Padmanabhan, Robert Lupton, and Craig Loomis}
 
 \maketitle
@@ -70,7 +70,7 @@ See Appendix \ref{AppInstalling} if you want to know how to install your own cop
 \eups
 \footnote{%
   The name comes from \code{UPS} (\code{Unix Product Support}), a
-  tool written at Fermi National Accelerator Laboratory, FNAL. \eups{} (pronounced ``E-ups'',
+  tool written at Fermi National Accelerator Laboratory, FNAL. \eups (pronounced ``E-ups'',
   or just ``ups'', or sometimes even ``eeups'' as a single word) 
   was basically a reimplementation first in perl and now python of those parts of \code{UPS}
   that we have found especially valuable;  we have now made extensive extensions.}
@@ -125,7 +125,7 @@ Whence came \code{PHOTO\_DIR} in the example? From a command of the form
 eups declare photo v5_4_25 -f Darwin -r /u/products/Darwin/photo/v5_4_25
 \end{verbatim}
 
-This command updates the \eups{} `database' (in reality a set of files);
+This command updates the \eups `database' (in reality a set of files);
 this `database' is then `queried' by the \code{setup} command. In
 the \code{declare} command,
 \begin{itemize}
@@ -155,7 +155,7 @@ the \code{declare} command,
 \end{verbatim}
 \end{itemize}
 
-If I now say \code{setup photo v5\_4\_25}, \eups{} will look for
+If I now say \code{setup photo v5\_4\_25}, \eups will look for
 a table file in the directory\hfil\break \code{/u/products/Darwin/photo/v5\_4\_25/ups},
 and obey whatever instructions it finds there.  For example,
 I will find that
@@ -182,14 +182,14 @@ this version depends on a specific version (\code{v4\_10\_1}) of
 \code{astrotools}, and so on. By convention, each of these version
 numbers corresponds to a cvs tag in some repository, so I am
 able to recover the complete set of releases used to build and
-run this version of \code{photo} by examining the \eups{} database.
+run this version of \code{photo} by examining the \eups database.
 
 \section{The \code{setup} command continued}
 
-\subsection{How \eups{} decides which version of a package to setup}
+\subsection{How \eups decides which version of a package to setup}
 \label{SetupVersionChoice}
 
-We rather blithely described how \eups{} chooses a version with the phrase,
+We rather blithely described how \eups chooses a version with the phrase,
 ``When setting up a product, a user may specify a version, or accept the current default''.  Unfortunately,
 it isn't always quite so simple.
 
@@ -219,7 +219,7 @@ When we say \code{setup A 1.2} setup's task is simple;  it looks up A's table fi
 \code{setupRequired(B 2.2)}; so it sets up B 2.2 finding \code{setupRequired(C 1.3)}, so it
   sets up C 1.3 and that's it (as C has no dependencies).
 
-\eups{} can also handle \code{setup A} (i.e. no explicit version).  In this case it looks for the version of
+\eups can also handle \code{setup A} (i.e. no explicit version).  In this case it looks for the version of
 A that has been tagged `current'; if A 1.2 is current, then \code{setup A} has the same result as
 \code{setup A 1.2}.
 \footnote{You can actually
@@ -271,7 +271,7 @@ i.e. if we add a dependency on D version 2.0 to B version 2.2, we have:
 \DiamondDependencyFigure
 Note that there are two separate requests for C;
 this is referred to as a ``diamond dependency'' by analogy to multiple inheritance in OO languages.
-\eups{} is unable to handle this without help.  One solution is that \code{eups expandtable} writes the
+\eups is unable to handle this without help.  One solution is that \code{eups expandtable} writes the
 complete set of setup products into the table file (see Sec. \ref{expandtable} for details) and when
 you specify an exact version or use the \code{--exact} flag this set of
 versions is used. For example, if C 1.3 was setup when you installed and declared A 1.2, then the command
@@ -297,10 +297,10 @@ result in A 1.2, B 2.2, D 2.0, and C 1.0 being setup.
 
 When looking for a version of a product, \code{setup} searches a list known as the VRO (the \code{V}ersion
 \code{R}esolution \code{O}rder) looking for a valid recipe to find a version; you can see the current vro with
-\code{eups vro}.  Some entries on the VRO are directives (e.g.  \code{keep}), while others tell \eups{} how to
+\code{eups vro}.  Some entries on the VRO are directives (e.g.  \code{keep}), while others tell \eups how to
 look for a product (e.g. \code{version}).
 
-For example, a VRO of \code{version current} means that when looking for a product, \eups{} should
+For example, a VRO of \code{version current} means that when looking for a product, \eups should
 first try to an explicit version specification, and only then a version with tag \code{current} (it
 is a VRO like this that makes \code{current} be the default version).  That is,
 if foo 6.6.6 is current and we see a table file such as
@@ -357,7 +357,7 @@ Tags may be set with a command such as \code{eups declare -t rhl afw 1.2.3} or
 \code{eups declare -t rhl -r .}\footnote{yes; no version name is required as the tagname suffices to
   identify the product's version.}
 There are two sorts of tags; user tags are only available to
-you, while global tags are visible to all users of your \eups{} database.\footnote{You are permitted to use
+you, while global tags are visible to all users of your \eups database.\footnote{You are permitted to use
   other people's user tags if you can read their \file{\~{}/.eups} directory; e.g. to use my beta tag put
   \code{hooks.config.Eups.userTags += [("beta", "rhl")]} into \textit{your} \file{\~{}/.eups/startup.py} file}
 Additionally, tags may be labelled as `reserved' which means that you're not supposed to meddle with them;
@@ -427,12 +427,12 @@ not want to learn them.  One option is to add some more magic
 to the Makefile (see the next section);  another is to give up
 entirely on make and use some more sophisticated build tool.  The
 one that we have experience with is \code{scons}, and a complete
-integration of \eups{} with scons is described in section \code{scons}.
+integration of \eups with scons is described in section \code{scons}.
 
-\subsection{\eups{} and make}
+\subsection{\eups and make}
 
 This is all very well, and perfectly practical, but it doesn't
-integrate very closely with \eups{}; in particular it doesn't
+integrate very closely with \eups; in particular it doesn't
 help you much with installing in Proper Places. If you are
 using GNU's version of make (and you probably are), you can handle
 this by a set of rules looking something like:
@@ -463,8 +463,8 @@ the \code{-1} in \code{eups path -1}),
 and the \code{ifeq} bit allows me to say \code{make install declare version=/usr/local}.
 
 The script \code{eups\_product\_version} (and this Makefile) are to be found
-in the \eups{} \code{etc} directory, although they are not installed along
-with \eups{}.
+in the \eups \code{etc} directory, although they are not installed along
+with \eups.
 
 The script \code{eups\_product\_version} is rather like:
 \begin{verbatim}
@@ -485,18 +485,18 @@ or \code{TAGS} within the svn repository.\footnote{
 The real \code{eups\_product\_version} attempts to correctly handle both cvs
 and svn users.
 
-\subsection{\eups{} and scons}
+\subsection{\eups and scons}
 \label{scons}
 
 Write me.
 
 \appendix
 
-\section{Using \eups{} with python}
+\section{Using \eups with python}
 
-\eups{} is written in python, so you can use it in scripts by simply importing it.
+\eups is written in python, so you can use it in scripts by simply importing it.
 
-To use \eups{} from python, you need to \code{import eups};
+To use \eups from python, you need to \code{import eups};
 The functions in \code{eups.app} define the supported API:
 \begin{description}
   \item[clearCache]
@@ -548,9 +548,9 @@ The functions in \code{eups.app} define the supported API:
         Return a set of shell commands which, when sourced, will unsetup a product.
 \end{description}
 
-\section{\eups{} Reference Manual}
+\section{\eups Reference Manual}
 
-\subsection{\eups{} concepts and jargon}
+\subsection{\eups concepts and jargon}
 
 \begin{description}
 \item[current]
@@ -561,7 +561,7 @@ The functions in \code{eups.app} define the supported API:
   The computer architecture for which your \textit{product}s are valid.  This is often more-or-less
   a summary of your \code{uname}; examples are \code{DarwinX86}, \code{Linux}, \code{Linux64}.
 \item[product]
-  A logical unit that you would like to version using \eups{}
+  A logical unit that you would like to version using \eups
 \item[root]
   The directory associated with a \textit{product} (if any).  For the common case of
   a \textit{product} containing source code the root would usually contain include and library subdirectories,
@@ -571,7 +571,7 @@ The functions in \code{eups.app} define the supported API:
   that would otherwise be selected.  Note that this use of the word \textit{tag} is unrelated to its use
   in source code managers such as \code{svn} or \code{hg}.
 \item[table]
-  A \textit{product}'s \textit{table file} lists the actions that \eups{}
+  A \textit{product}'s \textit{table file} lists the actions that \eups
   needs to carry out when setting up the \textit{product}.
 \item[version]
   A string specifying which version of a \textit{product} is being used.  Conventionally these correspond to names
@@ -581,12 +581,12 @@ The functions in \code{eups.app} define the supported API:
   a \textit{product} are considered.
 \end{description}
 
-\subsection{How to customize \eups{}}
+\subsection{How to customize \eups}
 \label{customization}
 You can customize \eups's behaviour in two ways:
 \begin{itemize}
 \item By setting an environment variable \code{\$EUPS\_STARTUP} which points to a python script
-\item By putting a \file{startup.py} in a well known place, usually \file{\$HOME/.eups} but in fact \eups{}
+\item By putting a \file{startup.py} in a well known place, usually \file{\$HOME/.eups} but in fact \eups
   searches a number of place in order.
 \end{itemize}
 
@@ -637,7 +637,7 @@ hooks.config.Eups.VRO["default"]["dss"] = "type:exact path version current"
 \label{commandCallbacks}
 
 You can also register callback functions which are called twice; one just before the main initialisation (the
-one that creates the \code{Eups} object) and once just before \eups{} settles down to work.
+one that creates the \code{Eups} object) and once just before \eups settles down to work.
 
 The arguments to the callbacks are:
 \begin{description}
@@ -676,7 +676,7 @@ eups.commandCallbacks.add(cmdHook)
 
 %------------------------------------------------------------------------------
 
-\subsection{\eups{} commands}
+\subsection{\eups commands}
 
 \subsubsection{\code{eups}}
 \begin{verbatim}
@@ -709,7 +709,7 @@ for help with command "cmd"
 \end{verbatim}
 				% $ for emacs
   
-A consistent front-end to all the other \eups{} commands.
+A consistent front-end to all the other \eups commands.
 
 There's no \code{eups setup} or \code{eups unsetup} as these actions
 modify your environment and are in fact aliases for commands
@@ -780,7 +780,7 @@ database as a table file. This lets you avoid putting EUPS data
 into products. You can pipe the table file to \code{eups declare} by
 specifying \code{-} as the filename.
 
-If you omit the \code{-r dir}, \eups{} will attempt to guess it for you based
+If you omit the \code{-r dir}, \eups will attempt to guess it for you based
 on your \code{\$EUPS\_PATH}, flavor, product and version; alternatively,
 if you omit both \code{product} and \code{version}, but provide \code{-r dir},
 the product and version will be guessed from the last two parts of the directory
@@ -1066,13 +1066,13 @@ eups distrib list --root http://www.astro/~rhl/LSST/packages --current mwi 2.4
 
 Once you've created a package with \code{eups distrib create} you can log on to
 another machine and use \code{eups distrib install} to
-recreate a working \eups{} installation.  For example:
+recreate a working \eups installation.  For example:
 \begin{verbatim}
 eups distrib --verbose --select-db act create moby v1_2
 eups distrib --database /u/rhl/ppp --verbose install \
              --root http://www.astro.princeton.edu/~act/packages moby v1_2
 \end{verbatim}
-to install \code{moby} into a \file{/u/rhl/ppp} \eups{} database. If you omit
+to install \code{moby} into a \file{/u/rhl/ppp} \eups database. If you omit
 \code{--root} it'll be taken from the environment variable \code{EUPS\_PKGROOT},
 if set.  As an alternative to an http URL, you may specify a directory as
 if you were using \code{scp}, prefixed by \code{scp:}; e.g.
@@ -1087,7 +1087,7 @@ product won't lead to duplication of tarballs.  If you want to use buildfiles
 see App. \ref{buildFiles}; if you'd like to try \pacman{}, see App. \ref{pacman}.
 
 When unpacking a distribution with \code{eups distrib install}, products that are
-already declared to \eups{} won't be unpacked and re-declared (unless you specify \code{--force}).
+already declared to \eups won't be unpacked and re-declared (unless you specify \code{--force}).
 
 If you don't specify a version when installing a distribution with
 \code{--install} the current version will be used.  This isn't quite the same
@@ -1114,7 +1114,7 @@ needs to be written!  This would include the \code{-S noeups=True} option, and i
 of product.table files in the BuildFilePath
 
 For example, to create a distribution of product \code{moby} (already declared
-to \eups{} on my machine), install it in a central place (on \code{apache2})),
+to \eups on my machine), install it in a central place (on \code{apache2})),
 and then install in on some other machine I first created a build file
 \code{moby.build} in \code{moby}'s ups directory:
 \begin{verbatim}
@@ -1134,7 +1134,7 @@ rsync -rv /u/act/products/packages apache2:/u/act/WWW/public
 
 eups distrib -v install --current moby --root http://www.astro.princeton.edu/~act/packages
 \end{verbatim}
-The \code{~/ACT/BuildFiles:} tells \eups{} to first look for build files
+The \code{~/ACT/BuildFiles:} tells \eups to first look for build files
 in \code{~/ACT/BuildFiles} and then the product's \code{ups} directory (that's what
 the trailing \code{:} means); that's why \code{--build :} means to only search \code{ups}
 directories\footnote{
@@ -1160,7 +1160,7 @@ eups distrib install swig 1.3.35
 \end{verbatim}
 
 You can also use \code{-S noeups=True} to create a distribution from a checked out version without
-first installing it.  You'll need to tell \eups{} where to look for the table/build files
+first installing it.  You'll need to tell \eups where to look for the table/build files
 in \code{./ups}:
 \begin{verbatim}
 eups distrib create -s /u/act/products/packages --build ups -S noeups=True mwi 2.4
@@ -1408,7 +1408,7 @@ Options:
 
 Undeclare the specified product, and remove it from the system. If you specify
 \code{--recursive} then all dependent products will also be removed; this is dangerous
-as they may be needed by someone else. \eups{} accordingly checks for products
+as they may be needed by someone else. \eups accordingly checks for products
 that are in use and refuses to remove them unless you specify \code{--force}.  As
 an added safeguard, \code{eups remove --recursive} will prompt you before doing anything
 (you can bypass this check with \code{--noInteractive}.
@@ -1425,7 +1425,7 @@ List the startup files that customize EUPS (including $EUPS_STARTUP).  With
 -v, show non-existent files that would be loaded [in brackets].
 \end{verbatim}
 
-\eups{} can be customised using files in a surprisingly large number of places; \texttt{eups startup}
+\eups can be customised using files in a surprisingly large number of places; \texttt{eups startup}
 lists the startup files that are actually used (with \texttt{-v} non-existent files that would be
 used are also listed, enclosed in square brackets).
 
@@ -1474,10 +1474,10 @@ Options:
    -o, --optional          Show optional setups
 \end{verbatim}
 
-Go through the \eups{} databases and return every product that depends upon the specified product and version;
+Go through the \eups databases and return every product that depends upon the specified product and version;
 if the version's omitted then everything that depends on product is returned, along with the version
 required. \textit{N.b.  this will be quite slow if you've disabled the cache --- it'll need to read every table
-  file that \eups{} knows about.}
+  file that \eups knows about.}
 
 Unless you specify \code{--quiet} you'll be warned if a product depends on
 more than one version;  this may sound unlikely but can happen if you setup
@@ -1569,7 +1569,7 @@ If you set verbose to three or more, the file that \code{setup} writes (and
 which is sourced to modify your current shell's variables) is not deleted
 after use, allowing you to peruse it at your leisure.
 
-The \code{-k} (`keep') makes \eups{} preserve your pre-existing setups.
+The \code{-k} (`keep') makes \eups preserve your pre-existing setups.
 You can achieve the same effect
 by carefully chosing your setup order, but this is easier.
 
@@ -1577,15 +1577,15 @@ The \code{-D} option specifies that the product itself \textit{not} be
 setup, but that it's dependencies should be processed as normal.
 
 With \code{-M} you specify a table file for something that may not
-even be declared to \eups{}; this is useful for setting up dependent
+even be declared to \eups; this is useful for setting up dependent
 products during installation.  Implies \code{-D}, and you may not
 specify a product name. \emph{N.b.} this is not the way to set up
 a local product --- use \code{setup --root dir [product]} (e.g. setup -r .).
 
-If \eups{} detects an error, the file-to-source will be empty (i.e.
+If \eups detects an error, the file-to-source will be empty (i.e.
 the setup will be aborted) unless you specify \code{--force}.
 
-Usually \eups{} will lock files before using them, but this may not be desireable or required when setting up
+Usually \eups will lock files before using them, but this may not be desireable or required when setting up
 products on a quiescent system (i.e. one where no-one is actively declaring products).  You can turn locking
 off with the \code{-N} option.  Another way to achieve this is to use the \code{commandCallbacks} mechanism;
 there's an example in Sec. \ref{commandCallbacks}.
@@ -1616,7 +1616,7 @@ Required variables -
     change your shell.
 
   \item \code{EUPS\_DIR}
-    Where \eups{} is installed.
+    Where \eups is installed.
 
   \item \code{EUPS\_PATH}
     The colon-separated path of root directories under which all products are installed.
@@ -1636,7 +1636,7 @@ Optional Variables -
     If you are confused by some error, or simply nosy, try adding a \code{-v}.
 
   \item \code{EUPS\_FLAVOR}
-    Set to the default flavor (if not set \eups{} will use the value returned
+    Set to the default flavor (if not set \eups will use the value returned
     by \code{eups flavor}).
 
   \item \code{EUPS\_FLAGS}
@@ -1645,9 +1645,51 @@ Optional Variables -
     with \code{eups declare}).
 \end{itemize}
 
+%------------------------------------------------------------------------------
+
+\subsection{locking}
+
+Each command currently has three options:
+\begin{itemize}
+  \item no lock
+  \item shared lock
+  \item exclusive lock
+\end{itemize}
+and the entire \eups system is locked\footnote{This may be a problem...}
+Locking is per-process, or more precisely per a process and its children.
+
+The following commands take a shared lock:
+\begin{itemize}
+\item \code{eups admin info}
+\item \code{eups admin listCache}
+\item \code{eups distrib list}
+\item \code{eups expandbuild}
+\item \code{eups expandtable}
+\item \code{eups list}
+\item \code{eups pkg-config}
+\item \code{eups tags}
+\item \code{eups uses}
+\end{itemize}
+and these take an exclusive lock:
+\begin{itemize}
+\item \code{eups admin buildCache}
+\item \code{eups admin clearCache}
+\item \code{eups admin clearServerCache}
+\item \code{eups declare}
+\item \code{eups distrib clean}
+\item \code{eups distrib create}
+\item \code{eups distrib declare}
+\item \code{eups distrib install}
+\item \code{eups remove}
+\item \code{eups undeclare}
+\end{itemize}
+
+%------------------------------------------------------------------------------
+
+
 \subsection{The Database}
 
-\subsubsection{\eups{} Files}
+\subsubsection{\eups Files}
 
 This section briefly describes the structure of the UPS database. Each
 EUPS root directory in \code{EUPS\_PATH} contains a database directory
@@ -1678,19 +1720,19 @@ specified by three types of files:
     Table files use a series of commands to specify the dependencies. These are
     discussed in the next subsection.
 
-    NOTE: See Section 5 for a note on the search algorithm that \eups{} uses for 
+    NOTE: See Section 5 for a note on the search algorithm that \eups uses for 
     locating table files.
 
   \item Cache files
 
-    \eups{} uses a set of cache files that record the contents of the declared
+    \eups uses a set of cache files that record the contents of the declared
     table files.  This provides a \emph{very} significant speedup when using
     commands such as \code{eups remove} or \code{eups uses}, but the speedup
     is also significant with a lowly \code{eups list}.
 
     The cache can get confused; in this case you can use the \code{eups admin clearCache}
     command to clean up.  If you can figure out exactly what you did to confuse
-    \eups{} please let us know so we can fix it!  There is also a problem where
+    \eups please let us know so we can fix it!  There is also a problem where
     the cache grows large;  once more \code{eups admin clearCache} should
     solve (or rather, mask) the problem.
 
@@ -1699,9 +1741,9 @@ specified by three types of files:
     more important to you than speed considerations.
 \end{itemize}
 
-\subsubsection{\eups{} commands}
+\subsubsection{\eups commands}
 
-The following table commands are supported by \eups{}: (\code{<Name>} either specifies an
+The following table commands are supported by \eups: (\code{<Name>} either specifies an
 alias or an environment variable - clear from the context.)
 
 If a value looks like \code{\$?\{NAME\}}, and there is no such environment variable, the entire line is
@@ -1897,7 +1939,7 @@ variables are defined;
     in \code{\$PRODUCTS} - this is often where the table file will be stored).
 \end{itemize}
 
-\subsection{\eups{} autoconf commands}
+\subsection{\eups autoconf commands}
 \label{autoconfReference}
 
 \XXX{Finish me}
@@ -1954,7 +1996,7 @@ GSL_LIBS = -L$(GSL_DIR)/lib -lgsl -lgslcblas -lm
 \section{Installing \eups}
 \label{AppInstalling}
 
-If you want to play with \eups{} you may want to install a copy.
+If you want to play with \eups you may want to install a copy.
 
 You can check out a copy from \code{svn} from NCSA:
 \begin{verbatim}
@@ -1989,7 +2031,7 @@ with a name such as
 \begin{verbatim}
 /u/act/products/eups/bin/setups.sh
 \end{verbatim}
-which will make \eups{} commands available to you; csh users should
+which will make \eups commands available to you; csh users should
 use \code{setups.csh}.  You'll probably want to add this line to your
 shell startup file (.bashrc or .tcshrc).
   
@@ -2053,15 +2095,15 @@ configure --with-setup-aliases=activate:deactivate
 
 \subsubsection{Working with multiple copies of \eups}
 
-This may only be of interest to the authors.  You can declare \eups{} as a full-up
-\eups{} product in its own right, and use \code{setup eups version} to switch
+This may only be of interest to the authors.  You can declare \eups as a full-up
+\eups product in its own right, and use \code{setup eups version} to switch
 between them.  To make this easier, the main Makefile allows you to say,
 \code{make declare} to declare your new version.
 
 \section{Changes}
 \subsection{New features}
 
-\eups{} has undergone significant enhancements recently.  Some
+\eups has undergone significant enhancements recently.  Some
 highlights are:
 
 \begin{itemize}
@@ -2086,7 +2128,7 @@ highlights are:
   \item
     \code{eups distrib} can now use ``build files'' to
     build products locally; \code{sh} scripts that
-    play nicely with \eups{}.
+    play nicely with \eups.
 
   \item
     \code{eups distrib} can now use scp as well as http to
@@ -2156,17 +2198,17 @@ highlights are:
   \item The environment variable \code{\$EUPS\_PATH} used to be known
   as \code{\$PROD\_DIR\_PREFIX}. This is no longer supported.
 
-  \item The \eups{} database used to be given by the environment variable \code{\$PRODUCTS}
+  \item The \eups database used to be given by the environment variable \code{\$PRODUCTS}
     with a default value of \code{\$PROD\_DIR\_PREFIX/ups\_db}. This is no longer supported.
 \end{itemize}
 
-\section{\eups{} and autoconf/configure}
+\section{\eups and autoconf/configure}
 \label{autoconf}
 
 If you're a user, you don't need to understand this section. If
 you're creating new products, you may need to.
 
-The \eups{} distribution includes a set of autoconf macros
+The \eups distribution includes a set of autoconf macros
 in the file \file{etc/ac\_eups.m4}. Once you've arranged for
 autoconf to know about this file,\footnote{e.g. by copying the
   file into your top level directory} you can write a
@@ -2217,7 +2259,7 @@ Setting up:      fftw3               Flavor: Linux      Version: v3_0_1
 Setting up:      gsl                 Flavor: Linux      Version: v1_8
 \end{verbatim}
 
-The \code{make declare} command told \eups{} about your newly built
+The \code{make declare} command told \eups about your newly built
 product; the \code{setup myProduct v2\_4} command told the system
 that you wanted to use it.
 
@@ -2260,7 +2302,7 @@ How did your \file{configure.ac} file achieve this magic?
 
     This macro is similar to \code{EUPS\_WITH\_CONFIGURE}, and sets
     \code{FFTW\_CFLAGS} and \code{FFTW\_LIBS}, armed with knowledge of
-    \eups{} and  \code{--with-fftw3=DIR}.
+    \eups and  \code{--with-fftw3=DIR}.
 
     The difference is that this time configure has to probe the system
     to find the include files and libraries.  More specifically, it
@@ -2276,7 +2318,7 @@ How did your \file{configure.ac} file achieve this magic?
 \end{itemize}
 
 
-\subsubsection{A Strategy for using autoconf and \eups{} to Manage Layered Products}
+\subsubsection{A Strategy for using autoconf and \eups to Manage Layered Products}
 
 
 A more complete example is:
@@ -2319,7 +2361,7 @@ AC\_OUTPUT
 \label{pacman}
 
 \pacman{} is a package used by the HEP community (e.g. Atlas) to distribute
-software.  It doesn't solve the same problem as \eups{} (supporting 
+software.  It doesn't solve the same problem as \eups (supporting 
 multiple simultaneous versions of the same package), but it does nicely
 support building packages from source.  The home page is \code{http://physics.bu.edu/pacman/}.
 
@@ -2353,7 +2395,7 @@ shell("make install")
 \end{verbatim}
 				% $ for emacs
 
-\subsection{Using \pacman{} with \eups{}}
+\subsection{Using \pacman{} with \eups}
 
 To use \pacman{}, simply specify a \pacman{} cache when running \code{eups distrib create}:
 \begin{verbatim}
@@ -2365,7 +2407,7 @@ The \code{eups distrib install} command is unchanged:
 eups distrib install -r /u/lsst/products/packages/Darwin -z act hello v1_0_0
 \end{verbatim}
 
-\subsection{Using `Build Files' with \eups{}}
+\subsection{Using `Build Files' with \eups}
 \label{buildFiles}
 
 This isn't an integral part of eups, but it can be very useful in conjunction with \code{eups distrib}.
@@ -2386,7 +2428,7 @@ install on a bunch of machines that don't share an
 One approach would be to bite the bullet and learn \pacman{} (see Appendix \ref{pacman});
 another is to write simple `build files'.  The former is far more sophisticated
 and bullet-proof; the latter is simpler.
-\textit{Note: we may remove \pacman{} support in a future \eups{} release}
+\textit{Note: we may remove \pacman{} support in a future \eups release}
 
 If you put a file \code{prod.build} in \code{prod/ups} and install it along
 with the table file, \code{eups distrib create --build :} will set things up
@@ -2400,7 +2442,7 @@ to look at them or fix buglets (simply say \code{sh prod-1.2.3.build}).  If your
 verbosity is 3 or higher, the commands will be executed with \code{-v -x} set.
 
 At their simplest, build files could simply
-be the commands that you'd type (such as those listed above); \eups{} will take
+be the commands that you'd type (such as those listed above); \eups will take
 care of the declarations.  This isn't very satisfactory, as it requires the
 build file to include the version string, and that the correct value of \code{\$CVSROOT}
 be already set\footnote{This is problematic if you're getting code from a number
