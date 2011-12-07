@@ -514,6 +514,10 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
         if p != userDataDir:            # no need to use a surrogate directory as we can write userDataDir
             persistDir = utils.userStackCacheFor(p, userDataDir)
 
+        if not os.path.exists(persistDir):
+            print >> sys.stderr, "No cache yet for %s; skipping..." % p
+            continue
+
         flavs = flavors
         if flavs is None:
             flavs = ProductStack.findCachedFlavors(persistDir)

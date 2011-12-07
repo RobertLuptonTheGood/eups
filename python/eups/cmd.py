@@ -2162,7 +2162,13 @@ tag will be installed.
             raise
 
         if self.opts.tag:               # just the top-level product
-            myeups.assignTag(self.opts.tag, productName, versionName)
+            try: 
+                myeups.assignTag(self.opts.tag, productName, versionName)
+            except eups.ProductNotFound, ex:
+                # this may have been a "pseudo"-package, one that just
+                # ensures the installation of other packages.
+                self.err("Note: package %s %s itself not installed; ignoring --tag request" %
+                         (ex.name, ex.version))
 
         if log:  log.close()
         return 0
