@@ -22,6 +22,8 @@ except ImportError:
         raise
     import eups.setupcmd
 
+from eups.utils import Color
+    
 allowedDebugOptions = ["", "raise", "debug"]
 
 # parse the command line
@@ -50,7 +52,7 @@ except Exception, e:
     if eups.Eups.allowRaise:
         raise
 
-    setup.err(str(e))
+    setup.err(Color(e, Color.ERROR))
     if hasattr(e, "status"):
         status = e.status
     else:

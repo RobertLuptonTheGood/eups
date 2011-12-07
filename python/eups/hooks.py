@@ -32,7 +32,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer colorize", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
@@ -63,6 +63,10 @@ config.Eups.fallbackFlavors = {None : "generic"}
 #
 config.Eups.defaultProduct = {"name" : "toolchain", "version" : None, "tag" : None}
 
+#
+# Colour error messages (if your terminal supports it)
+
+config.Eups.colorize = False
 #
 # Configure things that apply to the entire site
 #

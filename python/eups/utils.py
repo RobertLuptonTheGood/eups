@@ -439,6 +439,67 @@ def createTempDir(path):
     return path
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class Color(object):
+    OK    = "green"
+    WARN  = "yellow"
+    ERROR = "red"
+
+    colors = {
+        "red"    : "31",
+        "green"  : "32",
+        "yellow" : "33",
+        "blue"   : "34",
+        "magenta": "35",
+        "cyan"   : "36"
+        }
+
+    _colorize = False
+
+    def __init__(self, text, color, bold=False):
+        """Return a string that should display as coloured on a conformant terminal"""
+        self.rawText = str(text)
+        self.color = color.lower()
+
+        try:
+            self._code = Color.colors[self.color]
+        except KeyError:
+            raise RuntimeError("Unknown colour: %s" % self.color)
+
+        if bold:
+            self._code += ";1"
+
+    def colorize(val=None):
+        """Should I colour strings?  With an argument, set the value"""
+        if val is not None:
+            Color._colorize = val
+            
+        return Color._colorize
+
+    colorize = staticmethod(colorize)
+
+    def __str__(self):
+        if not self.colorize():
+            return self.rawText
+
+        base = "\033["
+
+        prefix = base + self._code + "m"
+        suffix = base + "0m"
+
+        return prefix + self.rawText + suffix
+    
+class stderr(object):
+    """Like sys.stderr, but colourize text first"""
+
+    # staticmethod;  would use a decorator if we knew we had a new enough python
+    def write(text):
+        """Write text to sys.stderr"""
+        sys.stderr.write(str(Color(text, Color.ERROR)))
+
+    write = staticmethod(write)
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 """
    Tarjan's algorithm and topological sorting implementation in Python

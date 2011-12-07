@@ -751,7 +751,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
             cmds += [cmd]
     elif fwd and version is None:
-        print >> sys.stderr, \
+        print >> utils.stderr, \
             "Unable to find an acceptable version of", productName
         if eupsenv.verbose and os.path.exists(productName):
             print >> sys.stderr, "(Did you mean setup -r %s?)" % productName

@@ -140,7 +140,9 @@ class Eups(object):
         #
         path = self.path[:]; path.reverse()  # the first elements on EUPS_PATH have the highest priority
         hooks.loadCustomization(verbose, path=path)
-                 
+
+        utils.Color.colorize(hooks.config.Eups.colorize)
+
         self.oldEnviron = os.environ.copy() # the initial version of the environment
 
         self.aliases = {}               # aliases that we should set

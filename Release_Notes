@@ -1,3 +1,8 @@
+2011-12-07 rhl
+      Add hooks.config.Eups.colorize to colour error messages (if your terminal supports it)
+
+XXX Missing entries should be filled out from svn change logs.
+
 2011-09-25 rhl
       Don't fail if you can't create the lock directory when you only need a shared lock
 
