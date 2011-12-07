@@ -2167,7 +2167,7 @@ tag will be installed.
             except eups.ProductNotFound, ex:
                 # this may have been a "pseudo"-package, one that just
                 # ensures the installation of other packages.
-                self.err("Note: package %s %s itself not installed; ignoring --tag request" %
+                self.err("Note: product %s %s itself was not installed; ignoring --tag request" %
                          (ex.name, ex.version))
 
         if log:  log.close()
