@@ -265,7 +265,7 @@ class Tags(object):
         for dir in eupsPath:
             if not os.path.exists(dir):
                 if verbosity > 1:
-                    print >> sys.stderr, \
+                    print >> utils.stdinfo, \
                         "%s: EUPS root directory does not exist; skipping..." \
                         % dir
                 continue
@@ -285,7 +285,7 @@ class Tags(object):
                 file = os.path.join(dbdir, file)
                 if group == "user":
                     if verbosity > 0:
-                        print >> sys.stderr, \
+                        print >> utils.stdwarn, \
                             "Skipping apparent user tags in EUPS_PATH:", \
                             file
                     continue
@@ -293,12 +293,12 @@ class Tags(object):
                     group = self.global_
 
                 if verbosity > 1:
-                    print >> sys.stderr, "Reading tags from", file
+                    print >> utils.stdinfo, "Reading tags from", file
                 try:
                     loaded = self.load(group, file)
                 except IOError, e:
                     if verbosity >= 0:
-                        print >> sys.stderr, \
+                        print >> utils.stdwarn, \
                             "Skipping troublesome tag file (%s): %s" % \
                             (str(e), file)
 
@@ -529,7 +529,7 @@ def checkTagsList(eupsenv, tagList):
         fileName = re.sub(r"^file:", "", tag)
         if os.path.isfile(os.path.expanduser(fileName)):
             if eupsenv.verbose > 1:
-                print >> sys.stderr, "File %s defines a tag" % fileName
+                print >> utils.stdinfo, "File %s defines a tag" % fileName
             badtags.remove(tag)
             
     if badtags:
@@ -562,7 +562,7 @@ def getUserDefinedTags(user):
     try:
         execfile(startupFile, myGlobals, myLocals)
     except Exception, e:
-        print >> sys.stderr, "Error processing %s's startup file: %s" % (user, e)
+        print >> utils.stderr, "Error processing %s's startup file: %s" % (user, e)
         return []
 
     theirTags = []

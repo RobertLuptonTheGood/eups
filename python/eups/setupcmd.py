@@ -19,8 +19,7 @@ from exceptions import EupsException
 import eups
 import lock
 import hooks
-
-_errstrm = sys.stderr
+import utils
 
 def append_current(option, opt_str, value, parser):
     """Add "current" to values.tag;  would use append_const but that's not in python 2.4"""
@@ -47,8 +46,6 @@ product and all its dependencies into the environment so that it can be used.
 """
 
     def __init__(self, args=None, toolname=None):
-        self._errstrm = _errstrm
-
         if not toolname and len(sys.argv) > 0:
             toolname = hooks.config.Eups.setupCmdName
         if not toolname:
@@ -59,7 +56,7 @@ product and all its dependencies into the environment so that it can be used.
             args = sys.argv[1:]
         self.clargs = args[:]
 
-        self.clo = EupsOptionParser(self._errstrm, self.usage, 
+        self.clo = EupsOptionParser(utils.stderr, self.usage, 
                                     self.description, 
                                     not self.noDescriptionFormatting,
                                     self.prog)
@@ -175,7 +172,7 @@ product and all its dependencies into the environment so that it can be used.
             else:
                 if not os.path.exists(self.opts.tablefile) and self.opts.tablefile != "none":
                     self.err("%s does not exist" % self.opts.tablefile)
-                    print >> self._errstrm, self.clo.get_usage()
+                    print >> utils.stderr, self.clo.get_usage()
                     return 3
                     
                 self.opts.tablefile = os.path.abspath(self.opts.tablefile)
@@ -186,7 +183,7 @@ product and all its dependencies into the environment so that it can be used.
 
         if not self.opts.productDir and not productName:
             self.err("please specify at least a product name or use -r")
-            print >> self._errstrm, self.clo.get_usage()
+            print >> utils.stderr, self.clo.get_usage()
             return 3
 
         if self.opts.productDir:
@@ -206,7 +203,7 @@ product and all its dependencies into the environment so that it can be used.
 
         if not productName:
             self.err("Please specify a product")
-            print >> self._errstrm, self.clo.get_usage()
+            print >> utils.stderr, self.clo.get_usage()
             return 3
 
         if self.opts.nodepend:
@@ -273,7 +270,7 @@ product and all its dependencies into the environment so that it can be used.
                         if product:
                             versionName = product.version
                             if self.opts.verbose > 2: # we told them how we found our version
-                                print >> sys.stderr, "Resolved %s version -> %s" % (productName, versionName)
+                                print >> utils.stdinfo, "Resolved %s version -> %s" % (productName, versionName)
 
                 cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
                                   Eups, fwd=not self.opts.unsetup, tablefile=tablefile)
@@ -288,7 +285,7 @@ product and all its dependencies into the environment so that it can be used.
             lock.giveLocks(locks, self.opts.verbose)
 
         if Eups.verbose > 3:
-            self.err("\n\t".join(["Issuing commands:"] + cmds))
+            print >> sys.stderr, "\n\t".join(["Issuing commands:"] + cmds)
 
         print ";\n".join(cmds)
 
@@ -301,5 +298,5 @@ product and all its dependencies into the environment so that it can be used.
         arguments provided. 
         """
         if not self.opts.quiet and self.opts.verbose >= volume:
-            print >> self._errstrm, "%s: %s" % (self.prog, msg)
+            print >> utils.stdwarn, "%s: %s" % (self.prog, msg)
 

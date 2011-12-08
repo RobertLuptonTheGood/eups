@@ -23,6 +23,7 @@ except ImportError:
 
 import eups.cmd
 import eups.hooks
+import eups.utils as utils
 
 allowedDebugOptions = ["", "raise", "debug"]
 
@@ -33,7 +34,7 @@ cmd = eups.cmd.EupsCmd()
 debugOptions = re.split("[:,]", cmd.opts.debug)
 for do in debugOptions:
     if not do in allowedDebugOptions:
-        print >> sys.stderr, "Unknown debug option: %s; exiting" % do
+        print >> utils.stderr, "Unknown debug option: %s; exiting" % do
         sys.exit(1)
 eups.Eups.allowRaise = "raise" in debugOptions # n.b. may be set in a cmdHook
 eups.Eups.debugFlag = "debug" in debugOptions

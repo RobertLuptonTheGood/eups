@@ -1,5 +1,5 @@
 import os, re, sys, pwd
-from eups.utils import ctimeTZ, isRealFilename
+from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr
 
 who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
 
@@ -226,7 +226,7 @@ CHAIN = %s
                     self.name = value
                 elif self.name != value:
                   if verbosity >= 0:
-                    print >> sys.stderr, \
+                    print >> stdwarn, \
                         "Warning: Unexpected product name, %s, in chain file; expected %s,\n  file=%s" % \
                         (value, self.name, file)
 
@@ -235,7 +235,7 @@ CHAIN = %s
                     self.tag = value
                 elif self.tag != value:
                   if verbosity >= 0:
-                    print >> sys.stderr, \
+                    print >> stdwarn, \
                         "Warning: Unexpected tag/chain name, %s, in chain file; expected %s,\n  file=%s" % \
                         (value, self.tag, file)
 

@@ -1,6 +1,7 @@
 import errno, glob, os, shutil, sys, time
 import re
 import hooks
+import utils
 
 #
 # Types of locks
@@ -38,7 +39,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
 
     if hooks.config.site.lockDirectoryBase is None:
         if verbose > 2:
-            print >> sys.stderr, "Locking is disabled"
+            print >> utils.stdinfo, "Locking is disabled"
         nolocks = True
 
     if lockType is not None and not nolocks:
@@ -48,7 +49,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
             lockTypeName = "shared"
 
         if verbose > 1:
-            print >> sys.stderr, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
+            print >> utils.stdinfo, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
 
         ntry = 10                       # number of times to try to take the locks
         dt = 1.0                        # number of seconds to wait
@@ -65,7 +66,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                         if len(lockPids) == 1 and lockPids[0] == os.environ.get("EUPS_LOCK_PID", "-1"):
                             pass        # OK, there's a lock but we know about it
                             if verbose:
-                                print >> sys.stderr, "Lock is held by a parent, PID %d" % lockPids[0]
+                                print >> utils.stdinfo, "Lock is held by a parent, PID %d" % lockPids[0]
                         else:
                             if e.errno == errno.EEXIST:
                                 reason = "locks are held by %s" % " ".join(listLockers(lockDir))
@@ -76,19 +77,19 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                             if i == ntry:
                                 raise RuntimeError(msg)
                             else:
-                                print >> sys.stderr, "%s; retrying" % msg
-                                sys.stderr.flush()
+                                print >> utils.stdinfo, "%s; retrying" % msg
+                                utils.stdinfo.flush()
 
                                 time.sleep(dt)
                                 continue
                     else:
                         if not os.path.exists(lockDir):
                             if verbose:
-                                print >> sys.stderr, "Unable to lock %s; proceeding with trepidation" % d
+                                print >> utils.stdwarn, "Unable to lock %s; proceeding with trepidation" % d
                             return []
 
                 if verbose > 2:
-                    print >> sys.stderr, "Creating lock directory %s" % (lockDir)
+                    print >> utils.stdinfo, "Creating lock directory %s" % (lockDir)
                 #
                 # OK, the lock directory exists.
                 #
@@ -134,7 +135,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
             locks.append((lockDir, lockFile))
 
             if verbose > 3:
-                print >> sys.stderr, "Creating lockfile %s" % (os.path.join(lockDir, lockFile))
+                print >> utils.stdinfo, "Creating lockfile %s" % (os.path.join(lockDir, lockFile))
     #
     # Cleanup, even in the event of the user being rude enough to use kill
     #
@@ -163,7 +164,7 @@ def giveLocks(locks, verbose=0):
 
         if os.path.exists(f):
             if verbose > 2:
-                print >> sys.stderr, "Removing lockfile %s" % (f)
+                print >> utils.stdinfo, "Removing lockfile %s" % (f)
 
             os.remove(f)
 
@@ -184,12 +185,12 @@ def clearLocks(path, verbose=0, noaction=False):
             print >> sys.stderr, "rm -rf %s" % lockDir
         else:
             if verbose:
-                print >> sys.stderr, "Removing %s" % lockDir
+                print >> utils.stdinfo, "Removing %s" % lockDir
 
             try:
                 shutil.rmtree(lockDir)
             except OSError, e:
-                print >> sys.stderr, "Unable to remove %s: %s" % (lockDir, e)                    
+                print >> utils.stderr, "Unable to remove %s: %s" % (lockDir, e)                    
 
 def listLocks(path, verbose=0, noaction=False):
     """List all locks found in the directories listed in path"""

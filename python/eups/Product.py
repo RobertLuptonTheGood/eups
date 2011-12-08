@@ -51,7 +51,7 @@ class Product(object):
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
                  tags=None, db=None, noInit=None, ups_dir=None):
         if (name and not isinstance(name, str)) or isinstance(dir,bool) or noInit is not None:
-            print >> sys.stderr, "Note: detected use of deprecated API; use Eups.getProduct() instead."
+            print >> utils.stdwarn, "Note: detected use of deprecated API; use Eups.getProduct() instead."
             name = version
             version = flavor
             if not version:

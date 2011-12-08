@@ -39,7 +39,7 @@ import distrib
 import hooks
 from distrib.server import ServerConf, Mapping
 
-_errstrm = sys.stderr
+_errstrm = utils.stderr
 
 class EupsCmd(object):
     """
@@ -471,7 +471,7 @@ will also be printed.
 
         if not self.opts.quiet and \
            self.opts.depth and not self.opts.depends:
-            print >> sys.stderr, "Ignoring --depth as it only makes sense with --dependencies"
+            print >> utils.stdwarn, "Ignoring --depth as it only makes sense with --dependencies"
 
         try:
             n = eups.printProducts(sys.stdout, product, version, 

@@ -515,7 +515,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
             persistDir = utils.userStackCacheFor(p, userDataDir)
 
         if not os.path.exists(persistDir):
-            print >> sys.stderr, "No cache yet for %s; skipping..." % p
+            print >> utils.stdwarn, "No cache yet for %s; skipping..." % p
             continue
 
         flavs = flavors
@@ -650,7 +650,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                 elif productRoot:       # they asked for a particular directory
                     pass
                 else:
-                    print >> sys.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
+                    print >> utils.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
                           (",".join(prefTags), taggedVersion.version, version)
             else:
                 if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
@@ -659,7 +659,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                         if os.path.isfile(prefTags[0]):
                             extra = " in"
 
-                        print >> sys.stderr, "No versions of %s are tagged%s %s; setup version is %s" % \
+                        print >> utils.stdwarn, "No versions of %s are tagged%s %s; setup version is %s" % \
                               (productName, extra, ",".join(prefTags), version)
 
         #
@@ -754,7 +754,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         print >> utils.stderr, \
             "Unable to find an acceptable version of", productName
         if eupsenv.verbose and os.path.exists(productName):
-            print >> sys.stderr, "(Did you mean setup -r %s?)" % productName
+            print >> utils.stderr, "(Did you mean setup -r %s?)" % productName
         cmds += ["false"]               # as in /bin/false
     else:
         if fwd:
@@ -766,9 +766,9 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             if versionName:
                 versionName = " " + versionName
         
-            print >> sys.stderr, "Failed to setup %s%s: %s" % (productName, versionName, reason)
+            print >> utils.stderr, "Failed to setup %s%s: %s" % (productName, versionName, reason)
         else:
-            print >> sys.stderr, "Failed to unsetup %s: %s" % (productName, reason)
+            print >> utils.stderr, "Failed to unsetup %s: %s" % (productName, reason)
 
         cmds += ["false"]               # as in /bin/false
 

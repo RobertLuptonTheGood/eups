@@ -351,14 +351,16 @@ class VersionFile(object):
                 if flavor:
                     if not self.info[flavor].has_key("productDir"):
                       if verbosity >= 0:
-                        print >> sys.stderr, "Warning: Version file has no PROD_DIR for product %s %s %s\n  file=%s" % \
+                        print >> eups.utils.stdwarn, \
+                            "Warning: Version file has no PROD_DIR for product %s %s %s\n  file=%s" % \
                             (self.name, self.version, flavor, file)
 
                       self.info[flavor]["productDir"] = None
 
                     if not self.info[flavor].has_key("table_file"):
                       if verbosity >= 0:
-                        print >> sys.stderr, "Warning: Version file has no TABLE_FILE for product %s %s %s\n  file=%s" % \
+                        print >> eups.utils.stdwarn, \
+                            "Warning: Version file has no TABLE_FILE for product %s %s %s\n  file=%s" % \
                             (self.name, self.version, flavor, file)
 
                       self.info[flavor]["table_file"] = "none"
@@ -369,7 +371,8 @@ class VersionFile(object):
                         if verbosity >= 0 and \
                            tablefile != ("%s.table" % self.name) and \
                            not os.path.isabs(tablefile):
-                            print >> sys.stderr, "Warning: Version file has no UPS_DIR for product %s %s %s with TABLE_FILE=%s\n  file=%s" % \
+                            print >> eups.utils.stdwarn, \
+                                "Warning: Version file has no UPS_DIR for product %s %s %s with TABLE_FILE=%s\n  file=%s" % \
                             (self.name, self.version, flavor, tablefile, file)
 
                         self.info[flavor]["ups_dir"] = "none"
@@ -401,7 +404,7 @@ class VersionFile(object):
                     self.name = value
                 elif self.name != value:
                   if verbosity >= 0:
-                    print >> sys.stderr, \
+                    print >> eups.utils.stdwarn, \
                         "Warning: Unexpected product name, %s, in version file; expected %s,\n  file=%s" % \
                         (value, self.name, file)
 
@@ -410,7 +413,7 @@ class VersionFile(object):
                     self.version = value
                 elif self.version != value:
                   if verbosity >= 0:
-                    print >> sys.stderr, \
+                    print >> eups.utils.stdwarn, \
                         "Warning: Unexpected version name, %s, for %s in version file; expected %s,\n  file=%s" % \
                         (value, self.name, self.version, file)
 
@@ -496,7 +499,7 @@ Group:
 
                     if os.path.isabs(info[k]):
                         if info[k] != trimDir:
-                            print >> sys.stderr, \
+                            print >> eups.utils.stdwarn, \
                                   "Warning: path %s is absolute, not relative to EUPS_PATH" % info[k]
 
             for field in self._fields:
@@ -518,7 +521,8 @@ Group:
 
                     if field.upper() == "TABLE_FILE" and os.path.isabs(value):
                         if False:
-                            print >> sys.stderr, "Detected absolute table filename (tell RHL): %s" % value
+                            print >> eups.utils.stdwarn, \
+                                "Detected absolute table filename (tell RHL): %s" % value
                         pass
 
                     print >> fd, "   %s = %s" % (field.upper(), value)

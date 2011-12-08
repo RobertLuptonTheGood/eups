@@ -102,7 +102,7 @@ def defaultVersionIncrementer(product, version):
 config.Eups.versionIncrementer = defaultVersionIncrementer
 
 
-def loadCustomizationFromDir(customDir, verbose=0, log=sys.stderr, execute=False,
+def loadCustomizationFromDir(customDir, verbose=0, log=utils.stdinfo, execute=False,
                              filename=None, includeAllFiles=False):
     if not filename:
         filename = config.Eups.startupFileName
@@ -141,7 +141,7 @@ except NameError:
     customisationFilename = None
     customisationFiles = None
 
-def loadCustomization(verbose=0, log=sys.stderr, execute=True, quiet=True, path=[], reset=False,
+def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, path=[], reset=False,
                       filename=None, includeAllFiles=False):
     """
     load all site and/or user customizations.  Customizations comes from a startup script file.  
@@ -250,11 +250,11 @@ def execute_file(startupFile):
         d, keys0 = v
         for k in d.keys():
             if k not in keys0:
-                print >> sys.stderr, "Found unknown key %s in dictionary %s in %s" % (k, dname, startupFile)
+                print >> utils.stdwarn, "Found unknown key %s in dictionary %s in %s" % (k, dname, startupFile)
 
 commre = re.compile(r'\s*#.*$')
 namevalre = re.compile(r'\s*([:=]|\+=)\s*')
-def loadConfigProperties(configFile, verbose=0, log=sys.stderr):
+def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
     maxerr = 5
     if not os.path.exists(configFile):
         return

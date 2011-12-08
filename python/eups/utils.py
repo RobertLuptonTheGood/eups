@@ -78,26 +78,26 @@ def debug(*args, **kwargs):
     Print args to stderr; useful while debugging as we source the stdout 
     when setting up.  Specify eol=False to suppress newline"""
 
-    print >> sys.stderr, "Debug:", # make sure that this routine is only used for debugging
+    print >> stdinfo, "Debug:", # make sure that this routine is only used for debugging
     
     for a in args:
-        print >> sys.stderr, a,
+        print >> stdinfo, a,
 
     if kwargs.get("eol", True):
-        print >> sys.stderr
+        print >> stdinfo
 
-def deprecated(msg, quiet=False, strm=sys.stderr):
+def deprecated(msg, quiet=False, strm=None):
     """
     Inform the user that an deprecated API was employed.  Currently, this is 
     done by printing a message, but in the future, it might raise an exception.
     @param msg     the message to print
     @param quiet   if true, this message will not be printed.  
-    @param strm    the stream to write to (default: sys.stderr)
+    @param strm    the stream to write to (default: utils.stdinfo)
     """
     # Note quiet as bool converts transparently to int (0 or 1)
     if quiet < 0:  quiet = 0
     if not quiet:
-        print >> strm, "Warning:", msg
+        print >> stdinfo, "Warning:", msg
 
 def dirEnvNameFor(productName):
     """
@@ -441,9 +441,12 @@ def createTempDir(path):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class Color(object):
-    OK    = "green"
-    WARN  = "yellow"
-    ERROR = "red"
+    classes = dict(
+        OK    = "green",
+        WARN  = "yellow",
+        INFO  = "cyan",
+        ERROR = "red",
+        )
 
     colors = {
         "red"    : "31",
@@ -473,7 +476,22 @@ class Color(object):
         """Should I colour strings?  With an argument, set the value"""
         if val is not None:
             Color._colorize = val
-            
+
+            if isinstance(val, dict):
+                unknown = []
+                for k in val.keys():
+                    if Color.classes.has_key(k):
+                        try:
+                            Color("foo", val[k]) # check if colour's valid
+                            Color.classes[k] = val[k]
+                        except RuntimeError, e:
+                            print >> stderr, "Setting colour for %s: %s" % (k, e)
+                    else:
+                        unknown.append(k)
+
+                if unknown:
+                    print >> stderr, "Unknown colourizing class found in hooks: %s" % " ".join(unknown)
+
         return Color._colorize
 
     colorize = staticmethod(colorize)
@@ -489,17 +507,31 @@ class Color(object):
 
         return prefix + self.rawText + suffix
     
-class stderr(object):
+class coloredFile(object):
     """Like sys.stderr, but colourize text first"""
 
-    # staticmethod;  would use a decorator if we knew we had a new enough python
-    def write(text):
-        """Write text to sys.stderr"""
-        sys.stderr.write(str(Color(text, Color.ERROR)))
+    def __init__(self, fileObj, cclass):
+        """Write to file object fileObj, but colour according to cclass (e.g. "ERROR") if isatty"""
+        self._fileObj = fileObj
+        self._class = cclass
+        self._isatty = os.isatty(fileObj.fileno())
 
-    write = staticmethod(write)
-    
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    def write(self, text):
+        """Write text to fileObj"""
+
+        if self._isatty:
+            text = Color(text, Color.classes[self._class])
+
+        self._fileObj.write(str(text))
+
+    def flush(self):
+        self._fileObj.flush()
+
+stderr =  coloredFile(sys.stderr, "ERROR")
+stdinfo = coloredFile(sys.stderr, "INFO")
+stdwarn = coloredFile(sys.stderr, "WARN")
+stdok =   coloredFile(sys.stderr, "OK")
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 """
    Tarjan's algorithm and topological sorting implementation in Python
@@ -614,8 +646,7 @@ def topologicalSort(graph, verbose=False):
     for ccomp in components:
         if len(ccomp) > 1:
             if verbose:
-                print >> sys.stderr, \
-                      "Detected cycle: %s" % ", ".join([nameVersion(c) for c in ccomp])
+                print >> stdwarn, "Detected cycle: %s" % ", ".join([nameVersion(c) for c in ccomp])
     #
     # Rebuild the graph using tuples, so as to handle connected components
     #

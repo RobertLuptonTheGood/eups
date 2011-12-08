@@ -52,7 +52,7 @@ except Exception, e:
     if eups.Eups.allowRaise:
         raise
 
-    setup.err(Color(e, Color.ERROR))
+    setup.err(Color(e, Color.classes["ERROR"]))
     if hasattr(e, "status"):
         status = e.status
     else:
