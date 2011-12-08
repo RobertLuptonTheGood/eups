@@ -2129,7 +2129,7 @@ tag will be installed.
         if self.opts.serverOpts:
             for opt in self.opts.serverOpts:
                 try:
-                    name, val = opt.split("=",1)
+                    name, value = opt.split("=",1)
                 except ValueError:
                     self.err("server option not of form NAME=VALUE: "+opt)
                     return 3
