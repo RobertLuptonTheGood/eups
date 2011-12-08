@@ -383,6 +383,17 @@ class Eups(object):
                     self.localVersions[product.name] = os.environ[self._envarDirName(product.name)]
             except TypeError:
                 pass
+        #
+        # We just changed the default defaultProduct from "toolchain" to "implicitProducts";
+        # include a back-door for toolchain.  This hack should be deleted at some point.
+        #
+        defaultProduct = hooks.config.Eups.defaultProduct["name"]
+        if not self.findProduct(defaultProduct, hooks.config.Eups.defaultProduct["version"]):
+            if defaultProduct == "implicitProducts" and self.findProduct("toolchain"):
+                if self.verbose:
+                    print >> utils.stdwarn, "Using old default product, \"toolchain\" not product \"%s\"" % \
+                        defaultProduct
+                hooks.config.Eups.defaultProduct["name"] = "toolchain"
 
     def pushStack(self, what, value=None):
         """Push some state onto a stack; see also popStack() and dropStack()

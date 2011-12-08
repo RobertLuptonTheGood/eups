@@ -61,7 +61,7 @@ config.Eups.fallbackFlavors = {None : "generic"}
 # The name (and optionally version (and optionally tag)) of the product that's implicitly added to all table
 # files.  Actually, you mayn't specify both version and tag.
 #
-config.Eups.defaultProduct = {"name" : "toolchain", "version" : None, "tag" : None}
+config.Eups.defaultProduct = {"name" : "implicitProducts", "version" : None, "tag" : None}
 
 #
 # Colour error messages (if your terminal supports it)
