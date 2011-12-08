@@ -265,20 +265,23 @@ class Repository(object):
                 raise RuntimeError("No distribution server set")
 
             if tag:
-                if not isinstance(tag, Tag):
+                if isinstance(tag, Tag):
+                    tagName = tag.name
+                else:
+                    tagName = tag
                     tag = self.eups.tags.getTag(tag)
 
                 if not tag.isGlobal():
-                    raise TagNotRecognized(tag.name, "global", 
-                                           msg="Non-global tag \"%s\" requested." % tag.name)
-                if tag.name == "newest":
+                    raise TagNotRecognized(tagName, "global", 
+                                           msg="Non-global tag \"%s\" requested." % tagName)
+                if tagName == "newest":
                     return self._listNewestProducts(product, flavor)
 
-                if tag.name not in self.getSupportedTags():
+                if tagName not in self.getSupportedTags():
                     raise TagNotRecognized(tag, "global", 
                                            msg="tag %s not supported by server" % tag)
 
-            return self.distServer.listAvailableProducts(product, version, flavor, tag.name)
+            return self.distServer.listAvailableProducts(product, version, flavor, tag)
 
         else:
             if self._pkgList is None:
