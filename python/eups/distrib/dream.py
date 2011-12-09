@@ -29,7 +29,7 @@ class DreamServer(DistribServer):
         
     def getFileForProduct(self, path, product, version, flavor, 
                           ftype=None, filename=None, noaction=False):
-        if ftype.lower() == "manifest":
+        if ftype is not None and ftype.lower() == "manifest":
             return self.getManifest(product, version, flavor, noaction=noaction)
 
         if path is None or len(path) == 0:
@@ -38,7 +38,7 @@ class DreamServer(DistribServer):
             pv = "%s-%s" % (product, version)
             path = re.sub(pv, product, path)
         
-        if ftype == "build":
+        if ftype is not None and ftype == "build":
             if version is None:
                 raise RuntimeError("Unspecified version for %s" % product)
             inBuild = open(os.path.join(self.base, path))
@@ -70,7 +70,9 @@ class DreamServer(DistribServer):
                 manifest.addDependency(p.name, p.version, p.flavor, None, None, None, optional)
 
         distId = "build:%s-%s.build" % (product, version)
-        manifest.addDependency(product, version, flavor, tablefile, None, distId, False)
+        tableName = "%s.table" % product
+        manifest.addDependency(product, version, flavor, tableName, os.path.join(product, version),
+                               distId, False)
 
         return manifest
 
