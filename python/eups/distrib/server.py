@@ -37,6 +37,7 @@ class DistribServer(object):
     This base implementation assumes a simple set of URLs for retrieving files
     from a server with no special support for flavors or tags.  
     """
+    NOCACHE = False
 
     def __init__(self, packageBase, config=None, verbosity=0, log=sys.stderr):
         """create a server communicator
@@ -1198,6 +1199,35 @@ class LocalTransporter(Transporter):
                     print >> self.log, "%s does not exist" % self.loc
                 return []
 
+class DreamTransporter(Transporter):
+    """This transporter serves to set up a DreamServer at the
+    nominated path on the local system.
+
+    dream:/path/to/buildFiles
+    """
+
+    def canHandle(source):
+        # We only want to handle the configuration file, as that involves the set up
+        # Everything else can be shoved off to another transport
+        return bool(source.startswith("dream:") and source.endswith("config.txt"))
+    canHandle = staticmethod(canHandle)  # should work as of python 2.2
+
+    def cacheToFile(self, filename, noaction=False):
+        # We know we're getting the configuration file, because that's all we handle.
+        # Give it a fake configuration file to set up the DreamServer.
+        f = open(filename, "w")
+        f.write("""# Configuration for a dream server
+        DISTRIB_SERVER_CLASS = eups.distrib.dream.DreamServer
+        DISTRIB_CLASS = eups.distrib.builder.Distrib
+        BUILD_URL = %(base)s/%(product)s
+        TABLE_URL = %(base)s/%(product)s
+        DIST_URL = %(base)s/%(product)s
+        """)
+        f.close()
+
+    def listDir(self, noaction=False):
+        pass
+
 
 class TransporterFactory(object):
 
@@ -1233,6 +1263,7 @@ defaultTransporterFactory = TransporterFactory();
 defaultTransporterFactory.register(LocalTransporter)
 defaultTransporterFactory.register(SshTransporter)
 defaultTransporterFactory.register(WebTransporter)
+defaultTransporterFactory.register(DreamTransporter)
 
 def defaultMakeTransporter(source, verbosity, log):
     """create a Transporter instance for a given source.  

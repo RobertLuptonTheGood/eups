@@ -106,6 +106,8 @@ class Repository(object):
                     self.options["alwaysQueryServer"] = False
             if self.options["alwaysQueryServer"]:
                 self._alwaysQueryServer = True
+        if self.distServer is not None and self.distServer.NOCACHE:
+            self._alwaysQueryServer = True
 
     def _mergeOptions(self, override):
         if self.options:
