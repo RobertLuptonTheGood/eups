@@ -3,6 +3,7 @@
 import re
 import os.path
 import eups
+import eups.hooks
 from eups.table import Table
 from server import DistribServer, Manifest
 from builder import expandBuildFile
@@ -43,7 +44,8 @@ class DreamServer(DistribServer):
             inBuild = open(os.path.join(self.base, path))
             if filename is None: filename = self.makeTempFile("dream_")
             outBuild = open(filename, "w")
-            expandBuildFile(outBuild, inBuild, product, version, self.verbose)
+            builderVars = eups.hooks.config.distrib["builder"]["variables"]
+            expandBuildFile(outBuild, inBuild, product, version, self.verbose, builderVars)
             inBuild.close()
             outBuild.close()
             return filename
