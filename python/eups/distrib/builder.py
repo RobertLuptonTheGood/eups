@@ -532,7 +532,8 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     lcVars = [v for v in builderVars.keys() if v != v.upper()]
     if lcVars:
         raise RuntimeError('Only upper case keys are permitted in builder variable dictionaries; found "%s"' %
-                           '", "'.join(lcVars))    
+                           '", "'.join(lcVars))
+    builderVars = dict([(k, re.sub(r"\n+$", "", v)) for k,v in builderVars.items()]) # Remove trailing newlines
     #
     # A couple of functions to set/guess the values that we'll be substituting
     # into the build file
