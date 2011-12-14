@@ -781,6 +781,29 @@ def unsetup(productName, version=None, eupsenv=None):
     """
     return setup(productName, version, fwd=False)
 
+def findProduct(productName, versionName=None, eupsenv=None):
+    """
+    return the specified product.  None is returned if no matching product can be found
+    @param productName   the name of the product of interest
+    @param version       the desired version (default: current).  This can in one of the 
+    following forms:
+    *  an explicit version 
+    *  a version expression (e.g. ">=3.3")
+    *  a Tag instance 
+    *  None, in which case, the (most) preferred 
+    version will be returned.
+    The default is the global tag "setup".  
+    @param eupsenv       The Eups instance to use to find the product.  If 
+    not provided, a default will created.  
+    """
+    if not eupsenv:
+        eupsenv = Eups()
+
+    if versionName is None:
+        versionName = Tag("current")
+
+    return eupsenv.findProduct(productName, versionName)
+
 def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
     """
     return the installation directory (PRODUCT_DIR) for the specified 
