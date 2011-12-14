@@ -1956,6 +1956,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 productRoot = product.dir
             self.setEnv(self._envarDirName(product.name), productRoot)
             self.setEnv(self._envarSetupName(product.name), setup_product_str)
+
+            extraDir = os.path.join(product.stackRoot(), Eups.ups_db, setupFlavor,
+                                    product.name, product.version)
+            if os.path.exists(extraDir):
+                self.setEnv(utils.dirExtraEnvNameFor(product.name), extraDir)
             #
             # Remember that we've set this up in case we want to keep it later
             #
@@ -1968,7 +1973,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             self.unsetEnv(self._envarDirName(product.name))
             self.unsetEnv(self._envarSetupName(product.name))
-
+            self.unsetEnv(utils.dirExtraEnvNameFor(product.name))
         #
         # Process table file
         #
@@ -2165,8 +2170,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         raise an exception.  
 
         If the tablefile is an open file descriptor, it is assumed that a copy should be made and placed
-        somewhere in the ups_db hierarchy in a directory known as "$PRODUCT_DIR_EXTRA" (e.g. FOO_DIR_EXTRA)
-        This directory will be created if it doesn't exist
+        somewhere in the ups_db hierarchy in a hidden directory; this directory will be created if it doesn't
+        exist.  The environment variable utils.dirExtraEnvNameFor(productName) points there if it isn't empty
 
         For backward compatibility, the declareCurrent parameter is
         provided but its use is deprecated.  It is ignored unless the
@@ -2190,7 +2195,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                "none", the product has no table file.  If None,
                                it is looked for under productDir/ups.  If set
                                to a file stream, its contents will get written
-                               into the product database (into $PRODUCT_DIR_EXTRA/ups)
+                               into the product database (into $utils.dirExtraEnvNameFor(productName)/ups)
         @param tag           the tag to assign to this product.  If the 
                                specified product is already registered with
                                the same product directory and table file,
@@ -2310,12 +2315,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                 tfd = tablefile
                 #
                 # Squirrel the table file away in
-                #    EUPS_PATH/ups_db/flavor/prod/version/ups/prod.table
+                #    EUPS_PATH/ups_db/extraDirPath/ups/prod.table
                 #
                 tablefile = "%s.table" % productName
-                ups_dir = os.path.join(self.flavor, productName, versionName, "ups")
-                tdir = os.path.join(self.getUpsDB(eupsPathDir), ups_dir)
-                ups_dir = os.path.join("$UPS_DB", ups_dir)
+                extra_dir = utils.extraDirPath(self.flavor, productName, versionName)
+                tdir = os.path.join(self.getUpsDB(eupsPathDir), extra_dir, "ups")
+                ups_dir = os.path.join("$UPS_DB", extra_dir, "ups")
 
                 if not os.path.isdir(tdir):
                     os.makedirs(tdir)

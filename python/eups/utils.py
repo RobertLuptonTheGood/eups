@@ -106,6 +106,18 @@ def dirEnvNameFor(productName):
     """
     return productName.upper() + "_DIR"
 
+def dirExtraEnvNameFor(productName):
+    """
+    return the name of the environment variable containing a product's
+    extra root/installation directory.  This is of the form "product_DIR_EXTRA"
+    """
+
+    return dirEnvNameFor(productName) + "_EXTRA"
+
+def extraDirPath(flavor, productName, versionName):
+    """Return the path to the "extra dir", relative to EUPS_PATH/ups_db"""
+    return os.path.join(flavor, productName, versionName)
+
 def setupEnvPrefix():
     """Return the prefix used for the implementation-detail environment variable
     describing how the setup was carried out
