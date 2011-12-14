@@ -685,7 +685,8 @@ class Repositories(object):
         return (distId, pkgroot)
             
     def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot, setups):
-        
+
+        import pdb;pdb.set_trace()
         flavor = self.eups.flavor
 
         prod = self.eups.findProduct(mprod.product, mprod.version, flavor=flavor)
@@ -710,6 +711,16 @@ class Repositories(object):
             upsdir = os.path.join(rootdir, "ups")
             tablefile = os.path.join(upsdir, "%s.table" % mprod.product)
 
+
+        # Expand that tablefile (adding an exact block)
+        def expandTableFile(tablefile):
+            cmd = "\n".join(setups + ["eups expandtable -i --force %s" % tablefile])
+            try:
+                server.system(cmd)
+            except OSError, e:
+                print >> self.log, e
+
+
         if not os.path.exists(tablefile):
             if mprod.tablefile == "none":
                 tablefile = "none"
@@ -721,6 +732,7 @@ class Repositories(object):
                                                            mprod.product, 
                                                            mprod.version, 
                                                            flavor)
+                    expandTableFile(tablefile)
                     tablefile = open(tablefile, "r")
                 else:
                     if upsdir and not os.path.exists(upsdir):
@@ -732,16 +744,7 @@ class Repositories(object):
                                                                  filename=tablefile)
                     if not os.path.exists(tablefile):
                         raise EupsException("Failed to find table file %s" % tablefile)
-        #
-        # Expand that tablefile (adding an exact block)
-        #
-        if tablefile != "none":
-            if not isinstance(tablefile, file):
-                cmd = "\n".join(setups + ["eups expandtable -i --force %s" % tablefile])
-                try:
-                    server.system(cmd)
-                except OSError, e:
-                    print >> self.log, e
+                    expandTableFile(tablefile)
 
         self.eups.declare(mprod.product, mprod.version, rootdir, 
                           eupsPathDir=productRoot, tablefile=tablefile)
