@@ -1133,6 +1133,8 @@ only wish to assign a tag, you should use the -t option but not include
         # these are specific to this command
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
+        self.clo.add_option("-L", "--import-file", dest="externalFileList", action="append", default=[],
+                            help="Import the given file directly into $PRODUCT_DIR_EXTRA")
         self.clo.add_option("-M", "--import-table", dest="externalTablefile", action="store", 
                             help="Import the given table file directly into the database " +
                             "(may be \"-\" for stdin).")
@@ -1151,6 +1153,13 @@ only wish to assign a tag, you should use the -t option but not include
                             help="same as --tag=current")
 
     def execute(self):
+        try:
+            myeups = self.createEups()
+        except eups.EupsException, e:
+            e.status = 9
+            raise
+
+        externalFileList = []
         product, version = None, None
         if len(self.args) > 0:
             product = self.args[0]
@@ -1225,11 +1234,33 @@ only wish to assign a tag, you should use the -t option but not include
         if self.opts.verbose:
             print >> sys.stderr, "Declaring %s %s" % (product, version)
 
-        try:
-            myeups = self.createEups()
-        except eups.EupsException, e:
-            e.status = 9
-            raise
+        for f0 in self.opts.externalFileList:
+            f = f0.split(":")
+            fileNameIn = f.pop(0)
+
+            if not os.path.exists(fileNameIn):
+                print >> _errstrm, "File %s does not exist" % fileNameIn
+                return 4
+
+            if f:
+                dirName = f.pop(0)
+                if f:
+                    print >> utils.stdwarn, "Unexpected trailing text on %s: %s" % (f, ":".join(f))
+            else:
+                dirName = ""
+
+            if re.search("/", dirName):
+                dirName, fileName = os.path.split(dirName)
+            else:
+                fileName = fileNameIn
+                if re.search("/", fileName):
+                    fileName = os.path.split(fileName)[1]
+
+            externalFileList.append((fileNameIn, os.path.join(dirName, fileName),))
+
+        for fileNameIn, pathOut in externalFileList:
+            print "RHL", fileNameIn, "->", pathOut
+        return
 
         if self.opts.tag:
             try:
