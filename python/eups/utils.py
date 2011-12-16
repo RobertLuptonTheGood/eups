@@ -1,7 +1,7 @@
 """
 Utility functions used across EUPS classes.
 """
-import time, os, sys, glob, re, tempfile
+import time, os, sys, glob, re, shutil, tempfile
 from cStringIO import StringIO
 
 def _svnRevision(file=None, lastChanged=False):
@@ -449,6 +449,30 @@ def createTempDir(path):
                 os.chmod(dir, 0777)
 
     return path
+
+def issamefile(file1, file2):
+    """Are two files identical?"""
+
+    try:
+        return os.path.samefile(file1, file2)
+    except OSError:
+        pass
+
+    return False
+
+def copyfile(file1, file2):
+    """Like shutil.copy2, but don't fail copying a file onto itself"""
+
+    if issamefile(file1, file2):
+        return
+
+    try:
+        os.unlink(file2)
+    except OSError:
+        pass
+
+    shutil.copy2(file1, file2)
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

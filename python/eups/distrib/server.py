@@ -2286,28 +2286,8 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         if errno != 0:
             raise OSError("\n\t".join(("Command:\n" + cmd).split("\n")) + ("\nexited with code %d" % (errno)))
 
-def issamefile(file1, file2):
-    """Are two files identical?"""
-
-    try:
-        return os.path.samefile(file1, file2)
-    except OSError:
-        pass
-
-    return False
-
-def copyfile(file1, file2):
-    """Like shutil.copy2, but don't fail copying a file onto itself"""
-
-    if issamefile(file1, file2):
-        return
-
-    try:
-        os.unlink(file2)
-    except OSError:
-        pass
-
-    shutil.copy2(file1, file2)
+issamefile = utils.issamefile
+copyfile = utils.copyfile
 
 def findInPath(file, path):
     """return the full path to a file with a given name in by searching 
