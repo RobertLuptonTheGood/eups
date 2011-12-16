@@ -1258,10 +1258,6 @@ only wish to assign a tag, you should use the -t option but not include
 
             externalFileList.append((fileNameIn, os.path.join(dirName, fileName),))
 
-        for fileNameIn, pathOut in externalFileList:
-            print "RHL", fileNameIn, "->", pathOut
-        return
-
         if self.opts.tag:
             try:
                 tag = myeups.tags.getTag(self.opts.tag)
@@ -1281,7 +1277,8 @@ only wish to assign a tag, you should use the -t option but not include
 
         try:
             eups.declare(product, version, self.opts.productDir, 
-                         tablefile=tablefile, tag=self.opts.tag, eupsenv=myeups)
+                         tablefile=tablefile, externalFileList=externalFileList,
+                         tag=self.opts.tag, eupsenv=myeups)
         except eups.EupsException, e:
             e.status = 2
             raise

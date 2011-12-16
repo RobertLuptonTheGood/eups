@@ -385,7 +385,7 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
         raise
 
 def declare(productName, versionName, productDir=None, eupsPathDir=None, 
-            tablefile=None, tag=None, eupsenv=None):
+            tablefile=None, externalFileList=[], tag=None, eupsenv=None):
     """
     Declare a product.  That is, make this product known to EUPS.  
 
@@ -427,6 +427,8 @@ def declare(productName, versionName, productDir=None, eupsPathDir=None,
     @param tablefile     the path to the table file for this product.  If
                            "none", the product has no table file.  If None,
                            it is looked for under productDir/ups.
+    @param externalFileList  List of tuples (infile, outfile) of files that should be
+                         saved in the product's "Extra" directory
     @param tag           the tag to assign to this product.  If the 
                            specified product is already registered with
                            the same product directory and table file,
@@ -439,7 +441,7 @@ def declare(productName, versionName, productDir=None, eupsPathDir=None,
     if not eupsenv:
         eupsenv = Eups()
     return eupsenv.declare(productName, versionName, productDir, eupsPathDir,
-                           tablefile, tag)
+                           tablefile, externalFileList=externalFileList, tag=tag)
            
 def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
               eupsenv=None):

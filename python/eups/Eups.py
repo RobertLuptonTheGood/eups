@@ -2152,7 +2152,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 
 
     def declare(self, productName, versionName, productDir=None, eupsPathDir=None, tablefile=None, 
-                tag=None, declareCurrent=None):
+                tag=None, externalFileList=[], declareCurrent=None):
         """ 
         Declare a product.  That is, make this product known to EUPS.  
 
@@ -2444,33 +2444,32 @@ The what argument tells us what sort of state is expected (allowed values are de
                 info += " in %s" % (eupsPathDir)
 
                 print >> utils.stdwarn, info
-            if self.noaction:  
-                return
-            #
-            # now really declare the product.  This will also update the tags
-            #
-            dbpath = self.getUpsDB(eupsPathDir)
-            if tag:
-                tag = [self.tags.getTag(tag)]
-            product = Product(productName, versionName, self.flavor, productDir, 
-                              tablefile, tag, dbpath, ups_dir=ups_dir)
+            if not self.noaction:  
+                #
+                # now really declare the product.  This will also update the tags
+                #
+                dbpath = self.getUpsDB(eupsPathDir)
+                if tag:
+                    tag = [self.tags.getTag(tag)]
+                product = Product(productName, versionName, self.flavor, productDir, 
+                                  tablefile, tag, dbpath, ups_dir=ups_dir)
 
-            # update the database
-            self._databaseFor(eupsPathDir, dbpath).declare(product)
+                # update the database
+                self._databaseFor(eupsPathDir, dbpath).declare(product)
 
-            # update the cache (if in use)
-            if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
+                # update the cache (if in use)
+                if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
 
-                self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
-                self.versions[eupsPathDir].addProduct(product)
+                    self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
+                    self.versions[eupsPathDir].addProduct(product)
 
-                try:
-                    self.versions[eupsPathDir].save(self.flavor)
-                except CacheOutOfSync, e:
-                    if self.quiet <= 0:
-                        print >> utils.stdwarn, "Note: " + str(e)
-                        print >> utils.stdwarn, "Correcting..."
-                    self.versions[eupsPathDir].refreshFromDatabase()
+                    try:
+                        self.versions[eupsPathDir].save(self.flavor)
+                    except CacheOutOfSync, e:
+                        if self.quiet <= 0:
+                            print >> utils.stdwarn, "Note: " + str(e)
+                            print >> utils.stdwarn, "Correcting..."
+                        self.versions[eupsPathDir].refreshFromDatabase()
                 
         if tag:
             # we just want to update the tag
@@ -2498,7 +2497,25 @@ The what argument tells us what sort of state is expected (allowed values are de
                     except ProductNotFound:
                         if eupsDir == eupsDirs[-1]: # no more to try
                             raise
-
+        #
+        # Save extra files in the extra directory
+        #
+        for fileNameIn, pathOut in externalFileList:
+            pathOut = os.path.join(self.getUpsDB(eupsPathDir),
+                                   utils.extraDirPath(self.flavor, productName, versionName), pathOut)
+            dirOut = os.path.split(pathOut)[0]
+            if not os.path.exists(dirOut):
+                if self.noaction:
+                    print "mkdir -p %s" % (dirOut)
+                else:
+                    os.makedirs(dirOut)
+            if self.noaction:
+                print "cp %s %s" % (fileNameIn, pathOut)
+            else:
+                utils.copyfile(fileNameIn, pathOut)
+            if self.verbose > 1:
+                print >> utils.stdinfo, "Copying %s to %s" % (fileNameIn, pathOut)
+        
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
                   undeclareCurrent=None):
         """
