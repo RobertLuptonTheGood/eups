@@ -686,7 +686,6 @@ class Repositories(object):
             
     def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot, setups):
 
-        import pdb;pdb.set_trace()
         flavor = self.eups.flavor
 
         prod = self.eups.findProduct(mprod.product, mprod.version, flavor=flavor)
