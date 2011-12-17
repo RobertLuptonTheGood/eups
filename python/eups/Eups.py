@@ -5,6 +5,7 @@ import glob, re, os, pwd, shutil, sys, time
 import filecmp
 import fnmatch
 import tempfile
+import zlib
 
 import utils
 from stack      import ProductStack, CacheOutOfSync
@@ -2380,6 +2381,17 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not tag and not self.findProducts(productName):
             tag = "current"
         #
+        # Prepare to handle external files.  We'll do it here so that we can make the output path
+        # absolute before checking for redeclarations
+        #
+        externalFileDir = os.path.join(self.getUpsDB(eupsPathDir),
+                                       utils.extraDirPath(self.flavor, productName, versionName))
+        if externalFileList and not os.path.exists(externalFileDir):
+            if self.noaction:
+                print "mkdir -p %s" % (externalFileDir)
+            else:
+                os.makedirs(externalFileDir)
+        #
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
         dodeclare = True
@@ -2406,6 +2418,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                         differences += diff
             elif tablefileIsFd:
                 differences += ["table file from stdin"]
+                
+            for fileNameIn, pathOut in externalFileList:
+                pathOut = os.path.join(externalFileDir, pathOut)
+
+                if not os.path.exists(pathOut):
+                    differences += ["Adding %s" % pathOut]
+                else:
+                    crcOld = zlib.crc32("".join(open(fileNameIn).readlines()))
+                    crcNew = zlib.crc32("".join(open(pathOut).readlines()))
+
+                    if crcOld != crcNew:
+                        differences += ["%s's CRC32 changed" % pathOut]
 
             if differences:
                 # we're redeclaring the product in a non-trivial way
@@ -2501,14 +2525,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         # Save extra files in the extra directory
         #
         for fileNameIn, pathOut in externalFileList:
-            pathOut = os.path.join(self.getUpsDB(eupsPathDir),
-                                   utils.extraDirPath(self.flavor, productName, versionName), pathOut)
-            dirOut = os.path.split(pathOut)[0]
-            if not os.path.exists(dirOut):
-                if self.noaction:
-                    print "mkdir -p %s" % (dirOut)
-                else:
-                    os.makedirs(dirOut)
+            pathOut = os.path.join(externalFileDir, pathOut)
+            
             if self.noaction:
                 print "cp %s %s" % (fileNameIn, pathOut)
             else:
