@@ -1232,7 +1232,7 @@ only wish to assign a tag, you should use the -t option but not include
                     return 4
 
         if self.opts.verbose:
-            print >> sys.stderr, "Declaring %s %s" % (product, version)
+            print >> utils.stdinfo, "Declaring %s %s" % (product, version)
 
         for f0 in self.opts.externalFileList:
             f = f0.split(":")

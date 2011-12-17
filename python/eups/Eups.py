@@ -2301,7 +2301,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not eupsPathDirForRead:
             raise RuntimeError("eupsPathDirForRead is None; complain to RHL")
 
-        ups_dir, tablefileIsFd = "ups", False
+        ups_dir = "ups"
         if not utils.isRealFilename(tablefile):
             ups_dir = None
         elif tablefile:
@@ -2311,30 +2311,38 @@ The what argument tells us what sort of state is expected (allowed values are de
             #   if isinstance(tablefile, file):
             # look for file-like methods; this accepts StringIO objects
             #
+            tableFileIsInterned = False # the table file is in the extra directory
             if hasattr(tablefile,"readlines") and hasattr(tablefile,"next"):
-                tablefileIsFd = True
-                tfd = tablefile
+                ups_dir = os.path.join("$UPS_DB",
+                                       utils.extraDirPath(self.flavor, productName, versionName), "ups")
                 #
-                # Squirrel the table file away in
-                #    EUPS_PATH/ups_db/extraDirPath/ups/prod.table
+                # Save the desired tablefile so we can move it into the the external directory later
                 #
-                tablefile = "%s.table" % productName
-                extra_dir = utils.extraDirPath(self.flavor, productName, versionName)
-                tdir = os.path.join(self.getUpsDB(eupsPathDir), extra_dir, "ups")
-                ups_dir = os.path.join("$UPS_DB", extra_dir, "ups")
+                tfd = tablefile         # it's a file descriptor
+                tmpFd, full_tablefile = tempfile.mkstemp(prefix="eups_")
+                tmpFd = os.fdopen(tmpFd, "w")
+                tablefile, tableFileIsInterned = "%s.table" % productName, True
 
-                if not os.path.isdir(tdir):
-                    os.makedirs(tdir)
+                def _cleanup(full_tablefile=full_tablefile): # a layer needed to curry the filename
+                    os.unlink(full_tablefile)
+                def cleanup(*args):
+                    _cleanup()
 
-                tempTablefile = os.path.join(tdir, tablefile)
-                ofd = open(tempTablefile, "w")
+                import atexit, signal
+                atexit.register(cleanup)            # regular exit
+
+                for s in (signal.SIGINT, signal.SIGTERM): # user killed us
+                    signal.signal(s, cleanup)
+
                 for line in tfd:
-                    print >> ofd, line,
-                del ofd
+                    print >> tmpFd, line,
+                del tmpFd; del tfd
+
+                externalFileList.append((full_tablefile, os.path.join("ups", "%s.table" % productName)))
         #
         # Check that tablefile exists
         #
-        if not tablefileIsFd and utils.isRealFilename(tablefile):
+        if not tableFileIsInterned and utils.isRealFilename(tablefile):
             if utils.isRealFilename(productDir):
                 if ups_dir:
                     try:
@@ -2381,16 +2389,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not tag and not self.findProducts(productName):
             tag = "current"
         #
-        # Prepare to handle external files.  We'll do it here so that we can make the output path
-        # absolute before checking for redeclarations
-        #
+        # 
         externalFileDir = os.path.join(self.getUpsDB(eupsPathDir),
                                        utils.extraDirPath(self.flavor, productName, versionName))
-        if externalFileList and not os.path.exists(externalFileDir):
-            if self.noaction:
-                print "mkdir -p %s" % (externalFileDir)
-            else:
-                os.makedirs(externalFileDir)
         #
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
@@ -2416,29 +2417,28 @@ The what argument tells us what sort of state is expected (allowed values are de
                             differences += diff
                     except OSError:
                         differences += diff
-            elif tablefileIsFd:
-                differences += ["table file from stdin"]
             #
             # check external files
             #
-            for fileNameIn, pathOut in externalFileList:
-                pathOut = os.path.join(externalFileDir, pathOut)
+            if os.path.exists(externalFileDir): # check that it isn't being changed
+                for fileNameIn, pathOut in externalFileList:
+                    pathOut = os.path.join(externalFileDir, pathOut)
 
-                if not os.path.exists(pathOut):
-                    differences += ["Adding %s" % pathOut]
-                else:
-                    crcOld = zlib.crc32("".join(open(fileNameIn).readlines()))
-                    crcNew = zlib.crc32("".join(open(pathOut).readlines()))
+                    if not os.path.exists(pathOut):
+                        differences += ["Adding %s" % pathOut]
+                    else:
+                        crcOld = zlib.crc32("".join(open(fileNameIn).readlines()))
+                        crcNew = zlib.crc32("".join(open(pathOut).readlines()))
 
-                    if crcOld != crcNew:
-                        differences += ["%s's CRC32 changed" % pathOut]
+                        if crcOld != crcNew:
+                            differences += ["%s's CRC32 changed" % pathOut]
 
-            for dirName, subDirs, fileNames in os.walk(externalFileDir):
-                for f in fileNames:
-                    fullFileName = os.path.join(dirName, f)
-                    if fullFileName not in \
-                            [os.path.join(externalFileDir, fOut) for fIn, fOut in externalFileList]:
-                        differences += ["%s is not being replaced" % fullFileName]
+                for dirName, subDirs, fileNames in os.walk(externalFileDir):
+                    for f in fileNames:
+                        fullFileName = os.path.join(dirName, f)
+                        if fullFileName not in \
+                                [os.path.join(externalFileDir, fOut) for fIn, fOut in externalFileList]:
+                            differences += ["%s is not being replaced" % fullFileName]
             #
             # We now know if there any differences from the previous declaration
             #
@@ -2466,19 +2466,19 @@ The what argument tells us what sort of state is expected (allowed values are de
             verbose = 2
         if dodeclare:
             # Talk about doing a full declare.  
-            if verbose:
+            if verbose > 1:
                 info = "Declaring"
                 if verbose > 1:
                     if productDir == "/dev/null":
                         info += " \"none\" as"
                     else:
-                        info += " %s as" % productDir
+                        info += " directory %s as" % productDir
                 info += " %s %s" % (productName, versionName)
                 if tag:
                     info += " %s" % tag
                 info += " in %s" % (eupsPathDir)
 
-                print >> utils.stdwarn, info
+                print >> utils.stdinfo, info
             if not self.noaction:  
                 #
                 # now really declare the product.  This will also update the tags
@@ -2538,6 +2538,15 @@ The what argument tells us what sort of state is expected (allowed values are de
         for fileNameIn, pathOut in externalFileList:
             pathOut = os.path.join(externalFileDir, pathOut)
             
+            dirName = os.path.split(pathOut)[0]
+            if not os.path.exists(dirName):
+                if self.noaction:
+                    print "mkdir -p %s" % (dirName)
+                else:
+                    if self.verbose > 1:
+                        print >> utils.stdinfo, "mkdir -p %s" % (dirName)
+                    os.makedirs(dirName)
+
             if self.noaction:
                 print "cp %s %s" % (fileNameIn, pathOut)
             else:

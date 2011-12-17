@@ -4,7 +4,7 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for the "Builder" mechanism
 #
-import sys, os, re, atexit, shutil
+import sys, os, re, shutil
 import eups
 import Distrib as eupsDistrib
 import server as eupsServer
