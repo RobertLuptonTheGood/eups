@@ -2418,7 +2418,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                         differences += diff
             elif tablefileIsFd:
                 differences += ["table file from stdin"]
-                
+            #
+            # check external files
+            #
             for fileNameIn, pathOut in externalFileList:
                 pathOut = os.path.join(externalFileDir, pathOut)
 
@@ -2431,11 +2433,20 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if crcOld != crcNew:
                         differences += ["%s's CRC32 changed" % pathOut]
 
+            for dirName, subDirs, fileNames in os.walk(externalFileDir):
+                for f in fileNames:
+                    fullFileName = os.path.join(dirName, f)
+                    if fullFileName not in \
+                            [os.path.join(externalFileDir, fOut) for fIn, fOut in externalFileList]:
+                        differences += ["%s is not being replaced" % fullFileName]
+            #
+            # We now know if there any differences from the previous declaration
+            #
             if differences:
                 # we're redeclaring the product in a non-trivial way
                 info = ""
                 if self.verbose:
-                    info = " (%s)" % " ".join(differences)
+                    info = " (%s)" % "; ".join(differences)
                 raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
                                      (productName, versionName, info))
 
