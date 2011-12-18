@@ -8,7 +8,7 @@ import os
 import re, sys
 
 import eups
-from exceptions import BadTableContent, TableFileNotFound, ProductNotFound
+from exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
 import Product
 from tags       import TagNotRecognized
 from VersionParser import VersionParser
@@ -250,7 +250,8 @@ but no other interpretation is applied
         try:
             fd = file(tableFile)
         except IOError, e:
-            raise TableError(tablefile, str(e))
+            import pdb; pdb.set_trace() 
+            raise TableError(tableFile, str(e))
 
         contents = fd.readlines()
         contents = self._rewrite(contents)
