@@ -1958,8 +1958,9 @@ The what argument tells us what sort of state is expected (allowed values are de
             self.setEnv(self._envarDirName(product.name), productRoot)
             self.setEnv(self._envarSetupName(product.name), setup_product_str)
 
-            extraDir = os.path.join(product.stackRoot(), Eups.ups_db, setupFlavor,
-                                    product.name, product.version)
+            extraDir = os.path.join(product.stackRoot(), Eups.ups_db,
+                                    utils.extraDirPath(setupFlavor, product.name, product.version))
+                                    
             if os.path.exists(extraDir):
                 self.setEnv(utils.dirExtraEnvNameFor(product.name), extraDir)
             #
