@@ -2303,6 +2303,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             raise RuntimeError("eupsPathDirForRead is None; complain to RHL")
 
         ups_dir = "ups"
+        tableFileIsInterned = False     # the table file is in the extra directory
         if not utils.isRealFilename(tablefile):
             ups_dir = None
         elif tablefile:
@@ -2312,7 +2313,6 @@ The what argument tells us what sort of state is expected (allowed values are de
             #   if isinstance(tablefile, file):
             # look for file-like methods; this accepts StringIO objects
             #
-            tableFileIsInterned = False # the table file is in the extra directory
             if hasattr(tablefile,"readlines") and hasattr(tablefile,"next"):
                 ups_dir = os.path.join("$UPS_DB",
                                        utils.extraDirPath(self.flavor, productName, versionName), "ups")

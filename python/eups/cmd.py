@@ -1242,16 +1242,18 @@ only wish to assign a tag, you should use the -t option but not include
                 print >> _errstrm, "File %s does not exist" % fileNameIn
                 return 4
 
+            dirName, fileName = "", None
             if f:
-                dirName = f.pop(0)
+                arg = f.pop(0)
                 if f:
                     print >> utils.stdwarn, "Unexpected trailing text on %s: %s" % (f, ":".join(f))
-            else:
-                dirName = ""
 
-            if re.search("/", dirName):
-                dirName, fileName = os.path.split(dirName)
-            else:
+                if re.search("/", arg):
+                    dirName, fileName = os.path.split(arg)
+                else:
+                    fileName = arg
+
+            if not fileName:
                 fileName = fileNameIn
                 if re.search("/", fileName):
                     fileName = os.path.split(fileName)[1]
