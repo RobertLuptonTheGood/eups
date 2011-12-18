@@ -445,6 +445,10 @@ class Product(object):
 
     def envarDirName(self):
         return utils.dirEnvNameFor(self.name)
+
     def envarSetupName(self):
         return utils.setupEnvNameFor(self.name)
-    
+
+    def extraProductDir(self):
+        """Return the full path to the extra product_dir"""
+        return os.path.join(self.db, utils.extraDirPath(self.flavor, self.name, self.version))

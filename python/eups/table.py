@@ -176,19 +176,25 @@ but no other interpretation is applied
                         if not quiet:
                             print >> utils.stderr, "Unable to expand PRODUCTS in %s" % self.file
 
-                    mat = re.search(r"\$(\?)?{PRODUCT_DIR}", value)
+                    mat = re.search(r"(\$(\?)?{PRODUCT_DIR(_EXTRA)?})", value)
                     if mat:
-                        optional = mat.group(1)
-                        if optional and product.dir == "none":
-                            productDir = None
+                        var = mat.group(1)
+                        optional = mat.group(2)
+                        extra = mat.group(3)
+                        if extra:
+                            newValue = product.extraProductDir()
+                            if optional and not os.path.exists(newValue):
+                                newValue = None
                         else:
-                            productDir = product.dir
+                            newValue = product.dir
+                            if optional and newValue == "none":
+                                newValue = None
                         
-                        if productDir:
-                            value = re.sub(r"\$\??{PRODUCT_DIR}", productDir, value)
+                        if newValue:
+                            value = re.sub(re.sub(r"([$?.])", r"\\\1", var), newValue, value)
                         else:
                             if not optional and not quiet:
-                                print >> utils.stderr, "Unable to expand PRODUCT_DIR in %s" % self.file
+                                print >> utils.stderr, "Unable to expand %s in %s" % (var, self.file)
                     #
                     # Be nice; they should say PRODUCT_DIR but sometimes PRODUCT is spelled out, e.g. EUPS_DIR
                     #
