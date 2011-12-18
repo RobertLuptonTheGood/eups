@@ -514,7 +514,7 @@ class coloredFile(object):
         """Write to file object fileObj, but colour according to cclass (e.g. "ERROR") if isatty"""
         self._fileObj = fileObj
         self._class = cclass
-        self._isatty = os.isatty(fileObj.fileno())
+        self._isatty = hasattr(fileObj, 'fileno') and os.isatty(fileObj.fileno())
 
     def write(self, text):
         """Write text to fileObj"""
