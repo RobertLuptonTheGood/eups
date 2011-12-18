@@ -1,9 +1,9 @@
 2011-12-19 rhl
+       Make "eups remove -t rhl product" remove a tagged version, as opposed to
+       "eups remove -t tag" which deletes a tag
+
        Make eups undeclare -t XXX remove the version as well as the tag if the only
        version name is of the form tag:XXX
-
-       Make eups undeclare -t XXX remove the version as well as the tag if the only version name is of the
-       form tag:XXX
 
 2011-12-15 rhl
       Added support for storing arbitrary files in the ups_db (parallel to the method
@@ -23,7 +23,8 @@
 
 2011-12-07 rhl
       Add hooks.config.Eups.colorize to colour error messages (if your terminal supports it).
-      The value can be a bool or a dict with keys taken from ["OK", "WARN", "ERROR"]
+      The value can be a bool or a dict with keys taken from ["OK", "INFO", "WARN", "ERROR"] and values
+      supported colours (e.g. "red")
 
 XXX Missing entries should be filled out from svn change logs.
 
