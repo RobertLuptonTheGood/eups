@@ -15,6 +15,12 @@ elif os.path.isdir("ups_dir") and os.path.isdir("testserver") and \
     # we're in the test directory
     os.environ["EUPS_DIR"] = os.path.dirname(os.environ["PWD"])
 
+# clear out any products setup in the environment as these can interfere 
+# with the tests
+setupvars = filter(lambda k: k.startswith('SETUP_'), os.environ.keys())
+for var in setupvars:
+    del os.environ[var]
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
 # Support code for running unit tests
