@@ -3162,9 +3162,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         if isinstance(tags, str):
             tags = tags.split()
 
-        stacktags = None
+        stacktags = Tags()
         if eupsPathDir and utils.isDbWritable(eupsPathDir):
-            stacktags = self._loadServerTags().get(eupsPathDir)
+            stacktags.loadFromEupsPath(eupsPathDir)
 
         needPersist = False
         for tag in tags:
@@ -3172,11 +3172,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 tag = tag.name
             if not self.tags.isRecognized(tag):
                 self.tags.registerTag(tag)
-            if stacktags and not stacktags.isRecognized(tag):
+            if not stacktags.isRecognized(tag):
                 stacktags.registerTag(tag)
                 needPersist = True
 
-        if stacktags and needPersist:
+        if needPersist:
             stacktags.saveGlobalTags(eupsPathDir)
     
 

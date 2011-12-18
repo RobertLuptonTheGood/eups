@@ -608,7 +608,7 @@ class Repositories(object):
 	    ptags = [t for t in ptags if t not in processedTags]
 	    tags += ptags
 
-	    processedTags += availableTags
+	    processedTags += ptags
 
 	    if ptags and self.verbose > 1:
 		print >> self.log, \

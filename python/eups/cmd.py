@@ -31,7 +31,7 @@ The output of run() is a status code appropriate for passing to sys.exit().
 #
 ########################################################################
 
-import glob, re, os, shutil, sys, time
+import glob, re, os, shutil, sys, time, copy
 import optparse
 import eups, lock
 import utils
@@ -1916,6 +1916,14 @@ class DistribListCmd(EupsCmd):
 
     def execute(self):
         myeups = eups.Eups(readCache=False)
+        if self.opts.tag:
+            # Note: tag may not yet be registered locally, yet; though it may be 
+            # defined on a server
+            from eups.tags import Tag
+            tag = Tag.parse(self.opts.tag)
+            if not myeups.tags.isRecognized(self.opts.tag) and tag.isGlobal():
+                # register it in case we find it on a server
+                myeups.tags.registerTag(tag)
 
         # get rid of sub-command arg
         self.args.pop(0)
@@ -2046,7 +2054,9 @@ tag will be installed.
 
     def execute(self):
         try:
-            myeups = self.createEups()
+            _opts = copy.deepcopy(self.opts)
+            _opts.tag = None
+            myeups = self.createEups(_opts)
         except eups.EupsException, e:
             e.status = 9
             raise
@@ -2083,19 +2093,26 @@ tag will be installed.
 
         if self.opts.current: 
             if self.opts.tag:
-                self.opts.tag += " current"
+                # self.opts.tag += " current"  # list is not supported
+                self.err("--tag is set; ignoring --current")
             else:
                 self.opts.tag = "current"
 
         if self.opts.tag:
+            # Note: tag may not yet be registered locally, yet; though it may be 
+            # defined on a server
+            from eups.tags import Tag
+            tag = Tag.parse(self.opts.tag)
+            if not myeups.tags.isRecognized(self.opts.tag) and tag.isGlobal():
+                # register it in case we find it on a server
+                myeups.tags.registerTag(tag)
             try:
-                tag = myeups.tags.getTag(self.opts.tag)
                 prefs = myeups.getPreferredTags()
                 myeups.setPreferredTags([self.opts.tag] + prefs)
-                if not versionName:  versionName = tag
             except eups.TagNotRecognized, e:
                 self.err(str(e))
                 return 4
+            if not versionName:  versionName = tag
 
         if self.opts.alsoTag:
             unrecognized = []
@@ -2167,8 +2184,13 @@ tag will be installed.
             except eups.ProductNotFound, ex:
                 # this may have been a "pseudo"-package, one that just
                 # ensures the installation of other packages.
-                self.err("Note: product %s %s itself was not installed; ignoring --tag request" %
-                         (ex.name, ex.version))
+                # It may alternatively have been that the version of the 
+                # installed package was requested via a server tag name;
+                # in this case, tag has already been assigned 
+                #
+                # self.err("Note: product %s %s itself was not installed; ignoring --tag request" %
+                #          (ex.name, ex.version))
+                pass
 
         if log:  log.close()
         return 0

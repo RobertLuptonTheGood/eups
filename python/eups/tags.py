@@ -261,7 +261,7 @@ class Tags(object):
             raise TypeError("Tags.loadFromEupsPath(): eupsPath not a str/list:"
                             + str(eupsPath))
 
-        loaded = {}
+        loaded = []
         for dir in eupsPath:
             if not os.path.exists(dir):
                 if verbosity > 1:
@@ -354,7 +354,7 @@ class Tags(object):
     def saveGlobalTags(self, persistDir):
         """
         save global tag names to a  given directory.  The tag names are 
-        assumed to be persisted in Tags.persistFilename("user").  The 
+        assumed to be persisted in Tags.persistFilename("global").  The 
         directory can either be a ups_db directory or its parent (as 
         taken from the EUPS_PATH).
         """
