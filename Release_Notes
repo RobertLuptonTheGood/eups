@@ -1,3 +1,22 @@
+2011-12-19 rhl
+       Make eups undeclare -t XXX remove the version as well as the tag if the only
+       version name is of the form tag:XXX
+
+       Make eups undeclare -t XXX remove the version as well as the tag if the only version name is of the
+       form tag:XXX
+
+2011-12-15 rhl
+      Added support for storing arbitrary files in the ups_db (parallel to the method
+      used to support -M filename); the directory is available as the environment variable
+      $PRODUCT_DIR_EXTRA
+
+      E.g.
+            eups declare ... -L /u/rhl/foo.cfg:cfg -L bar:ups/aaa/mine.goo
+      to create $PRODUCT_DIR_EXTRA/cfg/foo.cgf and $PRODUCT_DIR_EXTRA/ups/aaa/mine.goo
+
+      N.b. the location of "-M" table files has (transparently) moved; they are now in
+      	    $PRODUCT_DIR_EXTRA/ups/product.table
+
 2011-12-08 rhl
       Switched name of default product from "toolchain" to "implicitProducts";
       the old name is still secretly supported

@@ -2595,13 +2595,20 @@ The what argument tells us what sort of state is expected (allowed values are de
             utils.deprecated("Eups.undeclare(): undeclareCurrent param is deprecated; use tag param.", self.quiet)
 
         if tag:
+            undeclareVersion = False
+            if not versionName and self.isUserTag(tag): # all we have is a tag
+                # We may have automatically declared this version as tag:XXX when we tagged it
+                versions = [p.version for p in
+                            self.findProducts(productName, tags=[tag], eupsPathDirs=eupsPathDir)]
+                
+                if len(versions) == 1 and versions[0] == ("tag:%s" % str(tag)):
+                    versionName = versions[0]
+                    undeclareVersion = True
+
             stat = self.unassignTag(tag, productName, versionName, eupsPathDir)
-            if self.isUserTag(tag):
-                # We may have declared this version (in ~/.eups/ups_db) as well as tagging it, but
-                # we aren't going to delete it now.  It does no harm, as the DB is generally only
-                # consulted when processing user tags.
-                pass
-            return stat
+
+            if not undeclareVersion:
+                return stat
 
         product = None
         if not versionName:
