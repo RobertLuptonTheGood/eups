@@ -103,6 +103,8 @@ configure : configure.ac
 test : 
 	@ echo "Running tests"
 	python tests/testAll.py
+	@ echo "Running server tests (requires network)"
+	python tests/testServerAll.py
 clean :
 	- /bin/rm -f *~ core
 	@ for f in $(SUBDIRS); do \
