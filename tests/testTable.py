@@ -40,6 +40,11 @@ class TableTestCase2(unittest.TestCase):
         self.tablefile = os.path.join(testEupsStack, "tablesyntax.table")
         self.table = Table(self.tablefile)
         self.eups = Eups(flavor="Linux")
+        for k in ["EIGEN_DIR",]:        # we're going to assert that it isn't set
+            try:
+                del os.environ[k]
+            except KeyError:
+                pass
 
     def tearDown(self):
         os.environ = self.environ0
