@@ -376,8 +376,7 @@ class EupsTestCase(unittest.TestCase):
         prod = self.eups.findProduct("newprod", "1.1")
         self.assert_(prod is not None, "failed to declare newprod 1.1")
         self.assertEquals(prod.tablefile, 
-                          os.path.join(self.dbpath,
-                                       "newprod","Linux","1.1.table"))
+                          os.path.join(self.dbpath, "Linux","newprod","1.1", "ups", "newprod.table"))
 
     def testUserTags(self):
         self.assert_(self.eups.tags.isRecognized("mine"), 
