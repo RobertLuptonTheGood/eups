@@ -1390,38 +1390,52 @@ where it is installed.
         EupsCmd.addOptions(self)
 
     def execute(self):
-        if self.opts.tag:
-            if self.args:
-                self.err("Please use eups undeclare to delete a tag from a product")
-                return 2
-        else:
-            if len(self.args) == 0:
-                self.err("Please specify a product name and version")
-                return 2
-            if len(self.args) < 2:
-                self.err("Please also specify a product version")
-                return 2
-            product = self.args[0]
-            version = self.args[1]
-
         try:
             myeups = self.createEups()
         except eups.EupsException, e:
             e.status = 9
             raise
 
-        if self.opts.tag:
+        tagName = self.opts.tag
+        if tagName and not self.args: # we're deleting a tag
+            pass
+        else:
+            if len(self.args) == 0:
+                self.err("Please specify a product name and version or tag")
+                return 2
+            product = self.args[0]
+        
+            if len(self.args) < 2:
+                if tagName:
+                    versions = [p.version for p in myeups.findProducts(product, tags=[tagName])]
+                    if not versions:
+                        self.err("Failed to lookup tag %s for product %s" % (tagName, product))
+                        return 2
+                    elif len(versions) == 1:
+                        version = versions[0]
+                        tagName = None
+                    else:
+                        self.err("Tag %s for product %s is applied to more than one version: %s" %
+                                 (product, ", ".join(versions)))
+                        return 2
+                else:
+                    self.err("Please also specify a product version")
+                    return 2
+            else:
+                version = self.args[1]
+
+        if tagName:
             try:
-                tag = myeups.tags.getTag(self.opts.tag)
+                tag = myeups.tags.getTag(tagName)
 
                 if myeups.isReservedTag(tag):
                     if self.opts.force:
-                        self.err("%s is a reserved tag, but proceeding anyway)" % self.opts.tag)
+                        self.err("%s is a reserved tag, but proceeding anyway)" % tagName)
                     else:
-                        self.err("%s is a reserved tag (use --force to unset)" % self.opts.tag)
+                        self.err("%s is a reserved tag (use --force to unset)" % tagName)
                         return 1
             except eups.TagNotRecognized:
-                self.err("%s: Unsupported tag name" % self.opts.tag)
+                self.err("%s: Unsupported tag name" % tagName)
                 return 1
 
             for prod in myeups.findProducts(None, None, [tag]):
