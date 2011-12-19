@@ -127,7 +127,7 @@ product and all its dependencies into the environment so that it can be used.
                             help="Select the product paths which contain this directory.  " +
                             "Default: all in path")
         self.clo.add_option("-t", "--tag", dest="tag", action="append",
-                            help="assign TAG to the specified product")
+                            help="Put TAG near the start of the VRO (may be repeated; precedence is left-to-right)")
         self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
                             help="the setup type to use (e.g. exact)")
         self.clo.add_option("-u", "--unsetup", dest="unsetup", action="store_true", default=False,
