@@ -1545,6 +1545,28 @@ the something more than once when setting up a product.
 
 %------------------------------------------------------------------------------
 
+\subsubsection{\code{eups vro}}
+\begin{verbatim}Usage: eups vro [-h|--help] [options] product [version]
+
+Print information about the Version Resolution Order (VRO) to use if issuing
+the setup command with the same arguments.
+
+Options:
+  -T SETUPTYPE, --type=SETUPTYPE
+                        the setup type to use (e.g. exact)
+  -c, --current         same as --tag=current
+  -e, --exact           Consider the as-installed versions, not the
+                        dependencies in the table file
+  -r PRODUCTDIR, --root=PRODUCTDIR
+                        root directory where product is installed
+  -t TAG, --tag=TAG     Set the VRO based on this tag name
+\end{verbatim}
+
+Sometimes you may want to know what VRO would be used by a particular \code{setup} command; here's how you can
+find out.
+
+%------------------------------------------------------------------------------
+
 \subsubsection{\code{setup}}
 \begin{verbatim}
 Usage: setup [-h|--help|-V|--version] [options] [product [version]]
