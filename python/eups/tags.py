@@ -245,7 +245,10 @@ class Tags(object):
             fd = open(file, "w")
             print >> fd, " ".join(self.bygrp[group])
         finally:
-            fd.close()
+            try:
+                fd.close()
+            except:
+                pass
 
     def loadFromEupsPath(self, eupsPath, verbosity=0):
         """
