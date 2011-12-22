@@ -3154,16 +3154,27 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def supportServerTags(self, tags, eupsPathDir=None):
         """
-        support the list of tags provided by a server
-        @param tags     the list of tags either as a python list or a space-
-                          delimited string.   
-        @param persist  If non-NULL the tag names will be saved to disk. 
+        support the list of tags provided by a server.  This function will
+        register the tag names as recognized tags provided by a distribution
+        server.  If eupsPathDir is also specified, they will be cached into 
+        the software stack that it points to so that the tags will be 
+        recognized anytime this stack is used in the future.  Not that the 
+        eupsPathDir/ups_db directory must be writable by the user for the tags 
+        to be remembered.  If it is not writable, this function will proceed 
+        quietly as if eupsPathDir were set to None.  
+        @param tags         the list of tags either as a python list or a 
+                              space-delimited string.   
+        @param eupsPathDir  The path to the Eups-managed stack that needs
+                              to support these tags.  If null, the tags 
+                              will be remembered only for the current 
+                              Eups instance.  
         """
         if isinstance(tags, str):
             tags = tags.split()
 
-        stacktags = Tags()
+        stacktags = None
         if eupsPathDir and utils.isDbWritable(eupsPathDir):
+            stacktags = Tags()
             stacktags.loadFromEupsPath(eupsPathDir)
 
         needPersist = False
@@ -3172,7 +3183,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 tag = tag.name
             if not self.tags.isRecognized(tag):
                 self.tags.registerTag(tag)
-            if not stacktags.isRecognized(tag):
+            if stacktags and not stacktags.isRecognized(tag):
                 stacktags.registerTag(tag)
                 needPersist = True
 
