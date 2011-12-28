@@ -1,0 +1,53 @@
+
+# /
+/.gdb_history
+/autom4te.cache
+/config.log
+/config.status
+/Makefile
+/eups
+/.hg*
+/.lastMergFromHg
+
+# /bin/
+/bin/TAGS
+/bin/setups.csh
+/bin/setups.sh
+/bin/setups.zsh
+/bin/*.tmproj
+/bin/*.pyc
+
+# /doc/
+/doc/*.aux
+/doc/*.dvi
+/doc/*.log
+/doc/*.out
+/doc/*.toc
+/doc/eups.html
+/doc/eups.pdf
+/doc/html
+
+# /python/eups/
+/python/eups/*.pyc
+
+# /python/eups/db/
+/python/eups/db/*.pyc
+
+# /python/eups/distrib/
+/python/eups/distrib/*.pyc
+
+# /python/eups/stack/
+/python/eups/stack/*.pyc
+
+# /tests/
+/tests/*.pyc
+/tests/tests
+/tests/tst.current
+/tests/tst.version
+/tests/_userdata_
+
+# /tests/ups_db/
+/tests/ups_db/_servers_
+
+# /ups/
+/ups/eups.table
