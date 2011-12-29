@@ -1,53 +1,26 @@
-
-# /
-/.gdb_history
-/autom4te.cache
-/config.log
-/config.status
+*.pyc
 /Makefile
-/eups
-/.hg*
-/.lastMergFromHg
-
-# /bin/
-/bin/TAGS
-/bin/setups.csh
-/bin/setups.sh
-/bin/setups.zsh
-/bin/*.tmproj
-/bin/*.pyc
-
-# /doc/
-/doc/*.aux
-/doc/*.dvi
-/doc/*.log
-/doc/*.out
-/doc/*.toc
-/doc/eups.html
-/doc/eups.pdf
-/doc/html
-
-# /python/eups/
-/python/eups/*.pyc
-
-# /python/eups/db/
-/python/eups/db/*.pyc
-
-# /python/eups/distrib/
-/python/eups/distrib/*.pyc
-
-# /python/eups/stack/
-/python/eups/stack/*.pyc
-
-# /tests/
-/tests/*.pyc
-/tests/tests
-/tests/tst.current
-/tests/tst.version
-/tests/_userdata_
-
-# /tests/ups_db/
-/tests/ups_db/_servers_
-
-# /ups/
-/ups/eups.table
+config.log
+config.status
+ups/eups.table
+doc/eups.aux
+doc/eups.dvi
+doc/eups.html
+doc/eups.log
+doc/eups.out
+doc/eups.pdf
+doc/eups.toc
+tests/_userdata_
+tests/tst.current
+tests/tst.version
+tests/ups_db/_servers_
+tests/global.tags
+tests/ups_db/base/1.0.version
+tests/ups_db/base/current.chain
+tests/Linux/newprod/1.0/ups/newprod.table
+tests/ups_db/Linux/newprod/1.0/ups/newprod.table
+tests/ups_db/Linux/newprod/1.1/ups/newprod.table
+tests/ups_db/Linux/newprod/2.0/ups/newprod.table
+bin/setups.csh
+bin/setups.sh
+bin/setups.zsh
