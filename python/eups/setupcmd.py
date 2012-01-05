@@ -256,7 +256,11 @@ product and all its dependencies into the environment so that it can be used.
                 # Use that product + version's expanded table file, but this directory
                 #
                 if self.opts.productDir and not self.opts.tablefile and productName and versionName:
-                    prod = Eups.findProduct(productName)
+                    prod = Eups.findProduct(productName, versionName)
+                    if not prod:
+                        self.err("Unable to find %s %s" % (productName, versionName))
+                        return 3
+
                     tablefile = prod.tablefile
                 else:
                     tablefile=self.opts.tablefile
