@@ -256,8 +256,7 @@ but no other interpretation is applied
         try:
             fd = file(tableFile)
         except IOError, e:
-            import pdb; pdb.set_trace() 
-            raise TableError(tableFile, str(e))
+            raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
         contents = self._rewrite(contents)
