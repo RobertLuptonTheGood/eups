@@ -794,7 +794,6 @@ def findProduct(productName, versionName=None, eupsenv=None):
     *  a Tag instance 
     *  None, in which case, the (most) preferred 
     version will be returned.
-    The default is the global tag "setup".  
     @param eupsenv       The Eups instance to use to find the product.  If 
     not provided, a default will created.  
     """
