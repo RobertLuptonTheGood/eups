@@ -1948,8 +1948,13 @@ The what argument tells us what sort of state is expected (allowed values are de
             self.unsetupSetupProduct(product, noRecursion=noRecursion)
             del q
 
+            if localProduct:
+                version = localProduct.version
+            else:
+                version = product.version
+
             setup_product_str = "%s %s -f %s -Z %s" % (
-                product.name, product.version, setupFlavor, product.stackRoot())
+                product.name, version, setupFlavor, product.stackRoot())
             if tablefile:
                 setup_product_str += " -m %s" % (tablefile)
 
