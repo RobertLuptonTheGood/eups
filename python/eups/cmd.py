@@ -78,6 +78,7 @@ Supported commands are:
         pkgroot [n]     Print the current eups pkgroot, or an element thereof
 	pkg-config	Return the options associated with product
 	remove          Remove an eups product from the system
+        startup         List files used (or potentially used) to configure eups
         tags            List information about supported and known tags
 	undeclare	Undeclare a product
         uses            List everything which depends on the specified product 

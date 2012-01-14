@@ -341,7 +341,7 @@ As the VRO is processed, entries are interpreted as follows:
 
 The VRO can be set by the \code{--vro} option, or (more commonly) by setting \code{hooks.config.Eups.VRO}
 in a startup file (Sec. \ref{customization}).  \code{hooks.config.Eups.VRO} is a dictionary with
-keys that specify the VRO to use with a commandLineVersion, with a tag (e.g. \code{rhl}) or a default value;
+keys that specify the VRO to use with a commandLineVersion, with a tag (e.g. \code{rhl}) or a default value (key \code{"default"});
 the default can itself be a dictionary with keys corresponding to elements of the \code{\$EUPS\_PATH} (cf. the
 \code{-z} option).  The \code{eups vro} command can be used to show what VRO would be used (e.g. \code{eups vro -tag rhl afw 1.2})
 
