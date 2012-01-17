@@ -548,14 +548,16 @@ def getUserDefinedTags(user):
 
     myGlobals, myLocals = {}, {}
 
-    class Foo(object): pass             # a place to put attributes
-
+    class Foo(list):                    # a place to put attributes
+        def __getattr__(self, attr): return self
+        def __setattr__(self, attr, value): pass
+        
     myGlobals["hooks"] = Foo()
     myGlobals["hooks"].config = Foo()
     myGlobals["hooks"].config.distrib = dict(builder = dict(variables = {}))
     myEups = Foo()
     myGlobals["hooks"].config.Eups = myEups
-
+    myGlobals["eups"] = Foo()
     #
     # Define lists that might be appended to
     #
