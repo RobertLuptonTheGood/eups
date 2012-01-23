@@ -3217,7 +3217,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                             print >> utils.stdwarn, ("Warning: %s" % (e))
                         continue
 
-                deps = self.getDependentProducts(pi, shouldRaise=False, followExact=None, topological=True)
+                try:
+                    deps = self.getDependentProducts(pi, shouldRaise=False, followExact=None, topological=True)
+                except TableError, e:
+                    if not self.quiet:
+                        print >> utils.stdwarn, ("Warning: %s" % (e))
+                    continue
 
                 for dep_product, dep_optional, dep_depth in deps:
                     assert not (pi.name == dep_product.name and pi.version == dep_product.version)
