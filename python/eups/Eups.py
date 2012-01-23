@@ -1698,7 +1698,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def setup(self, productName, versionName=None, fwd=True, recursionDepth=0,
               setupToplevel=True, noRecursion=False,
-              productRoot=None, tablefile=None, versionExpr=None, optional=False):
+              productRoot=None, tablefile=None, versionExpr=None, optional=False,
+              implicitProduct=False):
         """
         Update the environment to use (or stop using) a specified product.  
 
@@ -1733,6 +1734,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         @param tablefile        use this table file to setup the product
         @param versionExpr      An expression specifying the desired version
+        @param implicitProduct  True iff product is setup due to being specified in implicitProducts
         """
 
         if isinstance(versionName, str) and versionName.startswith(Product.LocalVersionPrefix):
@@ -1783,6 +1785,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                         (product.name, versionName, product.version, product.version)
 
         else:  # on setup (fwd = True)
+            # Don't allow --force to resetup products required by the defaultProduct; loops can result
+            if productName == hooks.config.Eups.defaultProduct["name"]:
+                implicitProduct = True
+
             # get the product to setup
             if productRoot:
                 if not os.path.isdir(productRoot):
@@ -1928,7 +1934,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if product.version == sprod.version or product.dir == sprod.dir: # already setup
                     if recursionDepth == 0: # top level should be resetup if that's what they asked for
                         pass
-                    elif self.force:    # force means do it!; so do it.
+                    elif self.force and not implicitProduct: # force means do it!; so do it.
                         pass
                     else:
                         # already setup and no need to go further
@@ -1995,7 +2001,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if a.cmd not in (Action.setupOptional, Action.setupRequired):
                     continue
 
-            a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion, tableProduct=product)
+            a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion, tableProduct=product,
+                      implicitProduct=implicitProduct)
         #
         # Did we want to use the dependencies from an installed table, but use a different directory?
         #
