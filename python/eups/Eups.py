@@ -1221,6 +1221,12 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         product = self.findProduct(name, version, eupsPathDirs, flavor, noCache)
 
+        if not product and version.startswith(Product.LocalVersionPrefix):
+            product = Product.createLocal(name, version)
+            if not product and self.verbose:
+                print >> utils.stdwarn, "Unable to find version %s specified in tag file %s" % \
+                    (version, fileName)                
+
         if not product:
             msg = "Unable to find product %s %s specified in %s" % (name, version, fileName)
             if self.force:
