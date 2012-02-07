@@ -485,23 +485,30 @@ class Color(object):
         )
 
     colors = {
-        "red"    : "31",
-        "green"  : "32",
-        "yellow" : "33",
-        "blue"   : "34",
-        "magenta": "35",
-        "cyan"   : "36"
+        "black"  : 0,
+        "red"    : 1,
+        "green"  : 2,
+        "yellow" : 3,
+        "blue"   : 4,
+        "magenta": 5,
+        "cyan"   : 6,
+        "white"  : 7,
         }
 
     _colorize = False
 
-    def __init__(self, text, color, bold=False):
+    def __init__(self, text, color):
         """Return a string that should display as coloured on a conformant terminal"""
         self.rawText = str(text)
-        self.color = color.lower()
+        x = color.lower().split(";")
+        self.color, bold = x.pop(0), False
+        if x:
+            props = x.pop(0)
+            if props in ("bold",):
+                bold = True
 
         try:
-            self._code = Color.colors[self.color]
+            self._code = "%s" % (30 + Color.colors[self.color])
         except KeyError:
             raise RuntimeError("Unknown colour: %s" % self.color)
 
@@ -539,7 +546,7 @@ class Color(object):
         base = "\033["
 
         prefix = base + self._code + "m"
-        suffix = base + "0m"
+        suffix = base + "m"
 
         return prefix + self.rawText + suffix
     

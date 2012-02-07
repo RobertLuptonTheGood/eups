@@ -1,3 +1,9 @@
+2012-01-23 rhl
+       Add "white" and "black" colours, and an optional ";bold" suffix.
+
+2012-01-06 rhl
+       Set the version to LOCAL:... with setup -r XXX prod version
+
 2011-12-19 rhl
        Make "eups remove -t rhl product" remove a tagged version, as opposed to
        "eups remove -t tag" which deletes a tag
@@ -26,7 +32,66 @@
       The value can be a bool or a dict with keys taken from ["OK", "INFO", "WARN", "ERROR"] and values
       supported colours (e.g. "red")
 
-XXX Missing entries should be filled out from svn change logs.
+2011-12-07 rhl
+    Taught "eups admin info" to list manifest files
+
+2011-12-07 rplante
+    bug fix: eups.findProducts(): handle version/tag collision, added tests for vers. expr.
+
+2011-11-14 cloomis
+    add SunOS flavor
+
+2011-11-11 price
+    Cleanup of 'eups distrib create --rebuild' functionality.
+    
+    New callbacks are:
+      hooks.config.Eups.repoVersioner: callable that receives a product name and version
+    name and returns the "repository version" (i.e., version name before any rebuilds).
+      hooks.config.Eups.versionIncrementer: callable that receives a product name and
+    version name and returns the next "build version".
+    
+    The defaults for both of these implement "plus versions".
+    
+2011-11-07 rhl
+    Make expressions work with eups list
+
+2011-11-07 rhl
+    Allow user to say "eups.Eups.allowRaise = True" in startup.py
+
+2011-10-27 rhl
+    Permit -r ~/foo in table files
+
+2011-10-26 rhl
+    Handle more than one tag in a table file entry; allow both tags and an explicit version
+
+2011-10-26 rhl
+    Support -r in setup{Optional,Required}
+
+2011-10-26 rhl
+    Handle setupRequired(-t productName) n.b. missing tag name
+
+2011-10-21 price
+    Fix product remapping during repository creation so that remapped products get identified
+    with table files, flavor, and distId: introduced new method Distrib.updateDependencies()
+    to do this.
+
+2011-10-20 price
+    Clean up handling of letter versions in expanding build files.
+
+2011-10-20 rhl
+    Handle e.g. hooks.config.distrib["builder"]["variables"]["SVNROOT"] in user's startup.py files
+
+2011-10-20 rhl
+    Retry taking exclusive lock in case a shared lock (e.g. a setup or expandtable) is still running
+
+2011-10-19 rhl
+    Detect 64 bit for os/x 10.7
+
+2011-09-25 rhl
+    Permit setup ... -m none
+
+2011-09-25 rhl
+    Local products need not have tables
 
 2011-09-25 rhl
       Don't fail if you can't create the lock directory when you only need a shared lock
@@ -130,7 +195,6 @@ XXX Missing entries should be filled out from svn change logs.
 	Support $?{PRODUCT_DIR} in table files
 
 2011-04-14 rhl
-
 	Ensure that only the first occurrence of a TAG.list file on the pkgroot path is used. N.b. as a
 	feature, an empty early current.list file will render NCSA's invisible; maybe there should be a way to
 	say, "and continue searching"
