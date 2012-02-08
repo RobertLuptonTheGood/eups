@@ -149,6 +149,8 @@ class Tags(object):
             owner = None
         else:
             name, owner = name
+            if owner == who:
+                owner = None
 
         if isinstance(name, list) or isinstance(name, tuple):
             for n in name:
