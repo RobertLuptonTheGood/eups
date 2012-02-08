@@ -120,7 +120,7 @@ def loadCustomizationFromDir(customDir, verbose=0, log=utils.stdinfo, execute=Fa
 
         configFiles.append(startup)
 
-    if includeAllFiles:
+    if includeAllFiles and os.path.isdir(customDir):
         for f in os.listdir(customDir):
             if re.search(r"(^\.|\.pyc$|~$|pickle)", f):
                 continue

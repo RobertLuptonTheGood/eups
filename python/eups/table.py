@@ -256,8 +256,7 @@ but no other interpretation is applied
         try:
             fd = file(tableFile)
         except IOError, e:
-            import pdb; pdb.set_trace() 
-            raise TableError(tableFile, str(e))
+            raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
         contents = self._rewrite(contents)
@@ -618,14 +617,15 @@ class Action(object):
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
 
-    def execute(self, Eups, recursionDepth, fwd=True, noRecursion=False, tableProduct=None):
+    def execute(self, Eups, recursionDepth, fwd=True, noRecursion=False, tableProduct=None,
+                implicitProduct=False):
         """Execute an action"""
 
         if self.cmd == Action.setupRequired:
             if noRecursion or recursionDepth == Eups.max_depth + 1:
                 return
 
-            self.execute_setupRequired(Eups, recursionDepth, fwd, tableProduct)
+            self.execute_setupRequired(Eups, recursionDepth, fwd, tableProduct, implicitProduct)
         elif self.cmd == Action.declareOptions: 
             pass                        # used at declare time 
         elif self.cmd == Action.envPrepend:
@@ -761,7 +761,7 @@ class Action(object):
     #
     # Here are the real execute routines
     #
-    def execute_setupRequired(self, Eups, recursionDepth, fwd=True, tableProduct=None):
+    def execute_setupRequired(self, Eups, recursionDepth, fwd=True, tableProduct=None, implicitProduct=False):
         """Execute setupRequired"""
 
         optional = self.extra["optional"]
@@ -779,7 +779,8 @@ class Action(object):
         try:
             productOK, vers, reason = \
                        Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
-                                  versionExpr=versExpr, productRoot=productDir, optional=optional)
+                                  versionExpr=versExpr, productRoot=productDir, optional=optional,
+                                  implicitProduct=implicitProduct)
         except Exception, e:
             productOK, reason = False, e
 
