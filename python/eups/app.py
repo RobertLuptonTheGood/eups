@@ -305,7 +305,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
 
         print >> outstrm, str
 
-def getDependencies(productName, versionName, eupsenv=None, setup=False, shouldRaise=False,
+def getDependencies(productName, versionName=None, eupsenv=None, setup=False, shouldRaise=False,
                     followExact=None, topological=False):
     """
     Return a list of productName's dependent products : [(productName, VersionName, optional, recursionDepth), ...]
