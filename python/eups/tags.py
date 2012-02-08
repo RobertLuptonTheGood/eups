@@ -552,7 +552,6 @@ def getUserDefinedTags(user):
 
     class Foo(list):                    # a place to put attributes
         def __getattr__(self, attr): return self
-        def __setattr__(self, attr, value): pass
         
     myGlobals["hooks"] = Foo()
     myGlobals["hooks"].config = Foo()
