@@ -938,7 +938,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     self.makeVroExact()
 
             else:
-                print >> utils.stderr, "YOU CAN'T GET HERE", vroTag
+                print >> utils.stderr, "Impossible entry on the VRO %s (%s)" % (vroTag, vro)
                 if False:
                     product = self.findProduct(name, version=Tag(vroTag), eupsPathDirs=eupsPathDirs,
                                                flavor=flavor, noCache=noCache)
