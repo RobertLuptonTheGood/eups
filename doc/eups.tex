@@ -404,6 +404,9 @@ $ setup -t mysetups.txt afw
 \end{verbatim}
 and then tell her to repeat that last line.
 
+You can use a callback function to specify a set of tags that should always be used; there's an example in
+section \ref{defaultTags}.
+
 \section{How do I Actually Use this System to Manage Code?}
 
 All that the \code{setup} command did was to set or append to a number of environment variables,
@@ -656,6 +659,7 @@ The arguments to the callbacks are:
 \end{description}
 
 For example, you could put something like this in a \file{startup.py} file:
+\label{defaultTags}
 \begin{verbatim}
 import eups
 
@@ -667,10 +671,13 @@ def cmdHook(Eups, cmd, opts, args):
             eups.enableLocking(False)
         return
 
-    if cmd == "setup":
-        if args and args[0] in ("lsst", ):
-            raise eups.OperationForbidden("You may not setup %s because I say so" % args[0])
+    if Eups and cmd == "setup":
+        if not opts.tag:
+            opts.tag = ["rhl", "Winter2012c", "beta"]
 
+            if opts.verbose >= 0:
+                import utils
+                print >> utils.stdinfo, "Adding default tags: %s" % (", ".join(opts.tag))
 eups.commandCallbacks.add(cmdHook)
 \end{verbatim}
 
