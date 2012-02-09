@@ -594,7 +594,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     by the caller, and the parameters will be forwarded to osetup().
 
     @param productName     the name of the desired product to setup.  
-    @param version         the desired version of the product.  This can 
+    @param version         the desired version of the product.  This can be
                              either a string giving an explicit version
                              or a Tag instance.  
     @param prefTags        the preferred tags, in order, for choosing 

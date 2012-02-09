@@ -149,6 +149,8 @@ class Tags(object):
             owner = None
         else:
             name, owner = name
+            if owner == who:
+                owner = None
 
         if isinstance(name, list) or isinstance(name, tuple):
             for n in name:
@@ -550,7 +552,6 @@ def getUserDefinedTags(user):
 
     class Foo(list):                    # a place to put attributes
         def __getattr__(self, attr): return self
-        def __setattr__(self, attr, value): pass
         
     myGlobals["hooks"] = Foo()
     myGlobals["hooks"].config = Foo()

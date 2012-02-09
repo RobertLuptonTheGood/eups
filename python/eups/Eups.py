@@ -1369,9 +1369,9 @@ The what argument tells us what sort of state is expected (allowed values are de
     def findPreferredProduct(self, name, eupsPathDirs=None, flavor=None, 
                              preferred=None, noCache=False):
         """
-        return the most preferred version of a product.  The versions parameter
+        return the most preferred version of a product.  The "preferred" parameter
         gives a list of versions to look for in preferred order; the first one
-        found will be returned.  Each version will be search for in all of the 
+        found will be returned.  Each version will be searched for in all of the 
         directories given in eupsPathDirs.
         @param name           the name of the desired product
         @param eupsPathDirs  the EUPS path directories to search.  (Each 
