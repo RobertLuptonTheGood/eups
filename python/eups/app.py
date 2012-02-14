@@ -16,7 +16,7 @@ from exceptions import EupsException, TableFileNotFound
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
-                  dependencies=False, showVersion=False,
+                  dependencies=False, showVersion=False, showName=False,
                   depth=None, productDir=None, topological=False):
     """
     print out a listing of products.  Returned is the number of products listed.
@@ -32,6 +32,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     @param directory       include each product's installation directory
     @param dependencies    print the product's dependencies
     @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
+    @param showName        Only print the product{'s,s'} name[s] (e.g. eups list --name -t rhl)
     @param depth           a string giving an expression for determining
                              whether a dependency of a certain depth should
                              be included.  This string can be a simple integer
@@ -201,10 +202,10 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     info += pi.tablefile
                 else:
                     info += "none"
-
+        elif showName:
+            info += "%-10s" % (name)
         elif showVersion:
             info += "%-10s" % (version)
-
         else:
             if productName and not productNameIsGlob:
                 info += "   "

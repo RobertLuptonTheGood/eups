@@ -1,3 +1,9 @@
+2012-02-14 rhl
+       Added eups list --name to only print product names (e.g. eups list -t rhl --name)
+
+2012-01-23 rhl
+       Handle LOCAL: versions in tags files (if the directory exists)
+
 2012-01-23 rhl
        Add "white" and "black" colours, and an optional ";bold" suffix.
 

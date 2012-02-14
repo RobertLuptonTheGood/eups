@@ -295,7 +295,7 @@ Common"""
 
         Eups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=force, 
-                         ignore_versions=ignorever, setupType=setupType,
+                         ignore_versions=ignorever, setupType=setupType, cmdName=self.cmd,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
 
@@ -442,6 +442,8 @@ will also be printed.
                             help="Include the product's installation directory")
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Follow the as-installed versions, not the dependencies in the table file ")
+        self.clo.add_option("--name", dest="showName", action="store_true", default=False,
+                            help="Only print the product's name")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
@@ -482,7 +484,7 @@ will also be printed.
                                    tablefile=self.opts.tablefile, 
                                    directory=self.opts.printdir, 
                                    dependencies=self.opts.depends, 
-                                   showVersion=self.opts.version, 
+                                   showVersion=self.opts.version, showName=self.opts.showName,
                                    depth=self.opts.depth,
                                    productDir=self.opts.productDir, topological=self.opts.topological)
             if n == 0:
