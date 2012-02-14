@@ -295,7 +295,7 @@ Common"""
 
         Eups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=force, 
-                         ignore_versions=ignorever, setupType=setupType,
+                         ignore_versions=ignorever, setupType=setupType, cmdName=self.cmd,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
 

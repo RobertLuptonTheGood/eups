@@ -970,11 +970,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                                              product.name, product.version,
                                                                              oproduct.name, oproduct.version)
 
-            if self.verbose > 3 or (self.cmdName == "setup" and self.verbose > 2):
+            if self.verbose > 3 or (self.cmdName in ("setup", "uses") and self.verbose > 2):
                 print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
                 if self.cmdName != "setup":
                     print >> sys.stderr, "%-15s %s" % (product.name, product.version)
-            
+
         return [product, vroReason]
 
     def findProduct(self, name, version=None, eupsPathDirs=None, flavor=None,
