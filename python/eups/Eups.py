@@ -640,7 +640,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     tags.append(t)
                 else:
                     notokay.append(t)
-            elif self.tags.isRecognized(t) or re.search(r"^(:|\d+)$", t):
+            elif self.tags.isRecognized(t):
                 tags.append(t)
             elif os.path.isfile(t):
                 tags.append(t)
