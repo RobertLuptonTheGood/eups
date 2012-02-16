@@ -388,6 +388,8 @@ class Eups(object):
         # Always search for products in user's datadir (it's where anonymous tags go)
         #
         self.includeUserDataDirInPath()
+        for user in self.tags.owners.values():
+            self.includeUserDataDirInPath(utils.defaultUserDataDir(user))
         #
         # We just changed the default defaultProduct from "toolchain" to "implicitProducts";
         # include a back-door for toolchain.  This hack should be deleted at some point.
