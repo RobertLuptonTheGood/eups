@@ -388,7 +388,13 @@ $ eups vro -t rhl
 path rhl versionExpr warn current
 \end{verbatim}
 In other words, your tagged products take priority over any other version specification (except an explicit
-path).
+path).  If you'd rather give priority to version expressions over your tags, specify them with \code{-T} or
+\code{--postTag}:
+\begin{verbatim}
+$ eups vro -T rhl
+path versionExpr rhl warn current
+\end{verbatim}
+If you need even more complete control, use the \code{--vro} command.
 
 As an alternative declaring a version with a known tagname, the `tagname' in \code{-t \textit{tagname}} may be a file
 consisting of pairs \code{product version ...} such as that produced with the
@@ -977,6 +983,8 @@ Options:
   -f USEFLAVOR, --use-flavor=USEFLAVOR
                         Create an installation specialised to the specified
                         flavor
+  -T POSTTAG, --postTag=POSTTAG
+                        Put TAG after version(Expr)? in VRO (may be repeated;
   -t TAG, --tag=TAG     Set the VRO based on this tag name
   --debug=DEBUG         turn on specified debugging behaviors (allowed: debug,
                         raise)
@@ -985,7 +993,7 @@ Options:
   --nolocks             Disable locking of eups's internal files
   -q, --quiet           Suppress messages to user (overrides -v)
   -T SETUPTYPE, --type=SETUPTYPE
-                        the setup type to use (e.g. exact)
+                        The setup type to use (e.g. exact)
   -v, --verbose         Print extra messages about progress (repeat for ever
                         more chat)
   -V, --version         Print eups version number
@@ -1618,8 +1626,9 @@ Options:
                         Default: all in path
   -t TAG, --tag=TAG     Put TAG near the start of the VRO (may be repeated;
                         precedence is left-to-right)
-  -T SETUPTYPE, --type=SETUPTYPE
-                        the setup type to use (e.g. exact)
+  -T TAG, --postTag=TAG Put TAG after version(Expr)? in VRO
+                        (may be repeated; precedence is left-to-right)
+  --type=SETUPTYPE      The setup type to use (e.g. exact)
   -u, --unsetup         Unsetup the specifed product
   -v, --verbose         Print extra messages about progress (repeat for ever
                         more chat)

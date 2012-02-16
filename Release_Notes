@@ -1,3 +1,13 @@
+2012-02-15 rhl
+       *WARNING* Changed meaning of setup -T
+       To specify a setup type use --type (e.g. --type build); -T is now used to specify a tag
+       that goes after any version or versionExpr in the VRO.
+
+       E.g.
+          setup -t rhl -T beta
+       means that rhl overrides any version specifications, and beta provides a backup if nothing
+       else matches
+
 2012-02-14 rhl
        Added eups list --name to only print product names (e.g. eups list -t rhl --name)
 

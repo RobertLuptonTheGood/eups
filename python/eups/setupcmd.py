@@ -128,7 +128,9 @@ product and all its dependencies into the environment so that it can be used.
                             "Default: all in path")
         self.clo.add_option("-t", "--tag", dest="tag", action="append",
                             help="Put TAG near the start of the VRO (may be repeated; precedence is left-to-right)")
-        self.clo.add_option("-T", "--type", dest="setupType", action="store", default="",
+        self.clo.add_option("-T", "--postTag", dest="postTag", action="append",
+                            help="Put TAG after version(Expr)? in VRO (may be repeated; precedence is left-to-right)")
+        self.clo.add_option("--type", dest="setupType", action="store", default="",
                             help="the setup type to use (e.g. exact)")
         self.clo.add_option("-u", "--unsetup", dest="unsetup", action="store_true", default=False,
                             help="Unsetup the specifed product")
@@ -239,7 +241,7 @@ product and all its dependencies into the environment so that it can be used.
                     raise
 
                 Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
-                               inexact_version=self.opts.inexact_version)
+                               inexact_version=self.opts.inexact_version, postTag=self.opts.postTag)
 
                 isUserTag = False
                 if self.opts.tag:

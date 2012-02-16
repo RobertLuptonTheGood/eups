@@ -3434,7 +3434,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Is tagName the name of a user tag?"""
         return self.tags.groupFor(tagName) == self.tags.user
 
-    def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None, inexact_version=False):
+    def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None, inexact_version=False,
+                  postTag=None):
         """Set the VRO to use given a tag or pseudo-tag (e.g. "current", "version")
         @param inexact_version    Process the VRO to remove type:exact?
         """
@@ -3494,26 +3495,36 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         extra = ""                                  # extra string for message to user
         if tag:                                     # need to put tag near the front of the VRO,
-            if True:
-                where = 0
-                for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
-                    if v == "commandLine" or re.search(r"^type:.+", v):
-                        where = i + 1
+            where = 0
+            for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
+                if v == "commandLine" or re.search(r"^type:.+", v):
+                    where = i + 1
 
-                for t in reversed(tag):
-                    self._vro[where:where] = [str(t)]
+            for t in reversed(tag):
+                self._vro[where:where] = [str(t)]
+
+            if len(tag) == 1:
+                plural = ""
             else:
-                for t in reversed(tag): # old version?
-                    where = 0
-                    for el in ("commandLine",):
-                        if self._vro.count(el):
-                            w = self._vro.index(el) + 1
-                            if w > where:
-                                where = w
+                plural = "s"
 
-                    self._vro[where:where] = [str(t)]
+            extra += " + tag%s \"%s\"" % (plural, '", "'.join(tag))
 
-            extra = " + tag \"%s\"" % t
+        if postTag:                     # need to put tag near the end of the VRO; more precisely, after
+                                        # any version or versionExpr
+            for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
+                if v in ("version", "versionExpr"):
+                    where = i + 1
+
+            for t in reversed(postTag):
+                self._vro[where:where] = [str(t)]
+
+            if len(postTag) == 1:
+                plural = ""
+            else:
+                plural = "s"
+
+            extra += " + post-tag%s \"%s\"" % (plural, '", "'.join(postTag))
         #
         # Clean the VRO to remove duplicates
         #

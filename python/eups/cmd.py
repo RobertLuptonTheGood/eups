@@ -2648,6 +2648,8 @@ same arguments.
                             help="Force requested behaviour")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
+        self.clo.add_option("-T", "--postTag", dest="postTag", action="append",
+                            help="Put TAG after version(Expr)? in VRO (may be repeated; precedence is left-to-right)")
         self.clo.add_option("-t", "--tag", dest="tag", action="append",
                             help="Set the VRO based on this tag name")
         self.clo.add_option("-z", "--select-db", dest="dbz", action="store", metavar="DIR",
@@ -2678,7 +2680,8 @@ same arguments.
         myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=setupType,
                            exact_version=self.opts.exact_version)
 
-        myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz)
+        myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
+                         postTag=self.opts.postTag)
 
         isUserTag = False
         if self.opts.tag:
@@ -2692,8 +2695,6 @@ same arguments.
         print " ".join(myeups.getVRO())
 
         return 0
-
-
 
 class HelpCmd(EupsCmd):
 
