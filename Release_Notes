@@ -1,3 +1,6 @@
+2012-02-16 rhl
+       Added --noCallbacks option to disable calling user callbacks (as defined in e.g. startup.py)
+
 2012-02-15 rhl
        *WARNING* Changed meaning of setup -T
        To specify a setup type use --type (e.g. --type build); -T is now used to specify a tag

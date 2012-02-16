@@ -88,6 +88,8 @@ product and all its dependencies into the environment so that it can be used.
 
         self.clo.add_option("-c", "--current", dest="tag", action="callback", callback=append_current,
                             help="deprecated (use --tag=current)")
+        self.clo.add_option("--noCallbacks", dest="noCallbacks", action="store_true",
+                            help="Disable all user-defined callbacks")
         self.clo.add_option("-Z", "--database", dest="path", action="store",
                             help="The colon-separated list of product stacks (databases) to use. " +
                             "Default: $EUPS_PATH")

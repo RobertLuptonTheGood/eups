@@ -95,6 +95,8 @@ Common"""
                             help="turn on specified debugging behaviors (allowed: debug, raise)")
         self.clo.add_option("-h", "--help", dest="help", action="store_true",
                             help="show command-line help and exit")
+        self.clo.add_option("--noCallbacks", dest="noCallbacks", action="store_true",
+                            help="Disable all user-defined callbacks")
         self.clo.add_option("-n", "--noaction", dest="noaction", action="store_true", default=False,
                             help="Don\'t actually do anything (for debugging purposes)")
         self.clo.add_option("--nolocks", dest="nolocks", action="store_true", default=False,
@@ -353,6 +355,9 @@ class CommandCallbacks(object):
 
     def apply(self, Eups, cmd, opts, args):
         """Call the command callbacks on cmd"""
+
+        if opts.noCallbacks:
+            return
 
         for hook in CommandCallbacks.callbacks:
             hook(Eups, cmd, opts, args)
