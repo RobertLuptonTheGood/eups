@@ -2677,13 +2677,16 @@ same arguments.
                 self.opts.tag = []
             self.opts.tag += ['current']
 
-        if self.opts.setupType:
-            setupType = self.opts.setupType.split()
+        if True:
+            myeups = self.createEups(self.opts)
         else:
-            setupType = []
-        
-        myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=setupType,
-                           exact_version=self.opts.exact_version)
+            if self.opts.setupType:
+                setupType = self.opts.setupType.split()
+            else:
+                setupType = []
+
+            myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=setupType,
+                               exact_version=self.opts.exact_version)
 
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
                          postTag=self.opts.postTag)
