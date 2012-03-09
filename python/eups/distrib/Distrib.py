@@ -503,7 +503,7 @@ class Distrib(object):
         if pinfo is None:
             if not self.noeups or self.Eups.verbose:
                 print >> self.log, \
-                      "WARNING: Failed to lookup directory for product %s %s (%s): %s" % \
+                      "WARNING: Failed to lookup directory for product %s %s (%s)" % \
                       (product, version, flavor)
             return (baseDir, product)
 
