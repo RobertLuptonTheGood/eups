@@ -448,7 +448,7 @@ but no other interpretation is applied
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
     def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None,
-                     productDictionary=None, addDefaultProduct=None):
+                     productDictionary=None, addDefaultProduct=None, requiredVersions={}):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional?, recursionDepth) tuples
@@ -465,6 +465,7 @@ but no other interpretation is applied
                                value being that product's dependencies as a list of
                                (Product, optional? recursionDepth)
         @param addDefaultProduct If not False add the defaultProduct to any table file
+        @param requiredVersions  Dict with version required for products
         """
 
         if followExact is None:
@@ -504,7 +505,10 @@ but no other interpretation is applied
                     q = utils.Quiet(Eups)
 
                 try:
-                    product, vroReason = Eups.findProductFromVRO(productName, vers, versExpr)
+                    if requiredVersions and productName in requiredVersions:
+                        product = Eups.findProduct(productName, requiredVersions[productName])
+                    else:
+                        product, vroReason = Eups.findProductFromVRO(productName, vers, versExpr)
                     if not product:
                         raise ProductNotFound(productName)
 
@@ -522,7 +526,7 @@ but no other interpretation is applied
                         if deptable:
                             deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict,
                                                           recursionDepth + 1, followExact, productDictionary,
-                                                          addDefaultProduct)
+                                                          addDefaultProduct, requiredVersions=requiredVersions)
                         
                 except (ProductNotFound, TableFileNotFound), e:
                     product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.

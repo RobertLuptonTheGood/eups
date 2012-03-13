@@ -2902,7 +2902,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         return dependencies
 
     def getDependentProducts(self, topProduct, setup=False, shouldRaise=False,
-                             followExact=None, productDictionary=None, topological=False):
+                             followExact=None, productDictionary=None, topological=False,
+                             requiredVersions={}):
         """
         Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
         @param topProduct      Desired Product
@@ -2913,6 +2914,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                value being that product's dependencies.
         @param topological     Perform a topological sort before returning the product list; in this case the
                                "recursionDepth" is the topological order
+        @param requiredVersions Require using these particular versions; to support topological sort
 
         See also getDependencies()
         """
@@ -2930,7 +2932,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for product, optional, recursionDepth in prodtbl.dependencies(self, recursive=True, recursionDepth=1,
                                                                       followExact=followExact,
-                                                                      productDictionary=productDictionary):
+                                                                      productDictionary=productDictionary,
+                                                                      requiredVersions=requiredVersions):
 
             if product == topProduct:
                 continue
@@ -2962,8 +2965,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                                             # dependencies are usually flattened)
 
             q = utils.Quiet(self)
+            reqVersions = requiredVersions.copy()
+            reqVersions.update(dict([(prod[0].name,prod[0].version) for prod in dependentProducts]))
             self.getDependentProducts(topProduct, setup, shouldRaise,
-                                      followExact=False, productDictionary=productDictionary)
+                                      followExact=False, productDictionary=productDictionary,
+                                      requiredVersions=reqVersions)
             del q
             # Create a dictionary from productDictionary that can be used as input to utils.topologicalSort
             pdir = {}
