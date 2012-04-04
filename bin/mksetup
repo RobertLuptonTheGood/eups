@@ -64,7 +64,7 @@ endif
 
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-setenv EUPS_PATH `python` << EOT
+setenv EUPS_PATH `python -E -S` << EOT
 %(unique_eups_path)s
 EOT
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
@@ -107,7 +107,7 @@ fi
 export EUPS_DIR=%(eupsdir)s
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-export EUPS_PATH=`python -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
+export EUPS_PATH=`python -E -S -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
 # Set SETUP_EUPS so that a "setup eups" will remove this EUPS_DIR/bin from PATH
 export SETUP_EUPS="eups"
 # Deprecated variables
