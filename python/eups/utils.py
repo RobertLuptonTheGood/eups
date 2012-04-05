@@ -36,40 +36,25 @@ def _svnRevision(file=None, lastChanged=False):
 
     raise RuntimeError, ("svnversion returned unexpected result \"%s\"" % res[:-1])
 
+import os, re
+
 def version():
-    """Set a version ID from an svn ID string (dollar HeadURL dollar)"""
+    """Get the eups version from git (should be set at install time)"""
 
-    versionString = re.sub(r'/python/eups/\w+.py\s*\$\s*$', '$',
-                           r"$HeadURL$")
+    eups_dir = os.environ["EUPS_DIR"]
+    dot_git = os.path.join(eups_dir, ".git")
+    
+    if not os.path.exists(dot_git):
+        version = "unknown"
+        print >> stderr, "Cannot guess version without .git directory; version will be set to \"%s\"" % version
+        return version
 
-    version = "unknown"
+    version = os.popen("(cd %s; git describe --tags --always)" % eups_dir).readline().strip()
 
-    if re.search(r"^[$]HeadURL:\s+", versionString):
-        # SVN.  Guess the tagname from the last part of the directory
-        try:
-            branch = ['', '']
-            mat = re.search(r'/([^/]+)(/([^/]+))\s*\$\s*$', versionString)
-            if mat:
-                branch[0] = mat.group(1)
-                branch[1] = mat.group(3)
-                if branch[1] == 'trunk':
-                    branch = [branch[1], '']
-
-            if branch[0] == "tags":
-                version = branch[1]
-                return version
-            elif branch[0] == "tickets":
-                version = "ticket%s+svn" % branch[1]
-            else:
-                version = "svn"
-
-            try:                    # try to add the svn revision to the version
-                (oldest, youngest, flags) = _svnRevision()
-                version += youngest
-            except IOError:
-                pass
-        except RuntimeError:
-            pass
+    status = os.popen("(cd %s; git status --porcelain --untracked-files=no)" % eups_dir).readline()
+    if status.strip():
+        print >> stdwarn, "Warning: EUPS source has uncommitted changes"
+        version += "M"
 
     return version
 
