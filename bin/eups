@@ -1,4 +1,8 @@
-#!/usr/bin/env python -E -S
+#!/usr/bin/env sh
+# N.b. some (many?) unix systems don't understand
+#  #!/usr/bin/env python options
+#
+python -E -S - "$@" <<EOT
 #
 # The main eups programme
 #
@@ -60,4 +64,4 @@ except Exception, e:
         status = 9
 
 sys.exit(status)
-
+EOT
