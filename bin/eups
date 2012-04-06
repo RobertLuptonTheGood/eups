@@ -1,8 +1,14 @@
-#!/usr/bin/env python
+#!/usr/bin/env sh
+# N.b. some (many?) unix systems don't understand
+#  #!/usr/bin/env python options
+#
+python -E -S - "$@" <<EOT
 #
 # The main eups programme
 #
 import sys, os, re
+
+sys.argv[0] = "eups"
 
 # try to recover from an incomplete PYTHONPATH
 try:
@@ -60,4 +66,4 @@ except Exception, e:
         status = 9
 
 sys.exit(status)
-
+EOT
