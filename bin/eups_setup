@@ -1,4 +1,8 @@
-#!/usr/bin/env python -E -S
+#!/usr/bin/env sh
+# N.b. some (many?) unix systems don't understand
+#  #!/usr/bin/env python options
+#
+python -E -S - "$@" <<EOT
 #
 # The EUPS setup programme
 #
@@ -60,5 +64,4 @@ except Exception, e:
     print("false")
 
 sys.exit(status)
-
-
+EOT
