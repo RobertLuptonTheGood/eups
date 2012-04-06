@@ -97,3 +97,4 @@ if [[ X$SETUP_ALIASES != X ]]; then
 fi
 
 (export EUPS_DIR=$PWD; cd bin; ./mksetup $EUPS_DIR $EUPS_PATH $SETUP_ALIASES)
+make git.version

@@ -39,14 +39,19 @@ def _svnRevision(file=None, lastChanged=False):
 import os, re
 
 def version():
-    """Get the eups version from git (should be set at install time)"""
+    """Get the eups version from git; if this isn't available consult git.version in $EUPS_DIR"""
 
-    eups_dir = os.environ["EUPS_DIR"]
+    eups_dir = os.environ.get("EUPS_DIR", ".")
     dot_git = os.path.join(eups_dir, ".git")
     
     if not os.path.exists(dot_git):
         version = "unknown"
-        print >> stderr, "Cannot guess version without .git directory; version will be set to \"%s\"" % version
+        try:
+            version = open(os.path.join(eups_dir, "git.version")).readline().strip()
+        except IOError:
+            print >> stderr, \
+                "Failed to get version from .git or git.version; setting to \"%s\"" % version
+            
         return version
 
     version = os.popen("(cd %s; git describe --tags --always)" % eups_dir).readline().strip()
