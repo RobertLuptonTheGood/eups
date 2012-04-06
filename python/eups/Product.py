@@ -353,7 +353,7 @@ class Product(object):
                 return clone.tablefile
         return self.tablefile
 
-    def getTable(self, addDefaultProduct=None, quiet=False):
+    def getTable(self, addDefaultProduct=None, quiet=False, verbose=0):
         """
         return an in-memory instance of the product table.  This will be
         loaded from the path returned by tableFileName() (and cached for 
@@ -363,6 +363,9 @@ class Product(object):
         TableFileNotFound is raised; if it contains unparsable errors, a 
         BadTableContent is raised.  
         """
+        if quiet:
+            verbose -= 2
+
         if not self._table:
             tablepath = self.tableFileName()
             if tablepath is None:
@@ -372,7 +375,8 @@ class Product(object):
                 raise TableFileNotFound(tablepath, self.name, self.version,
                                         self.flavor)
             self._table = mod_table.Table(tablepath, self,
-                                       addDefaultProduct=addDefaultProduct).expandEupsVariables(self, quiet)
+                                          addDefaultProduct=addDefaultProduct, verbose=verbose,
+                                          ).expandEupsVariables(self, quiet)
 
             if self._prodStack and self.name and self.version and self.flavor:
                 # pass the loaded table back to the cache

@@ -1,3 +1,7 @@
+2012-02-27 rhl
+       Add support for envUnset(PRODUCT_DIR) to disable setting e.g. GIT_DIR; other environment variables
+       may not be unset (as unsetup can't easily set them again)
+
 2012-02-16 rhl
        Added --noCallbacks option to disable calling user callbacks (as defined in e.g. startup.py)
 
