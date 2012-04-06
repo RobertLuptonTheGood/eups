@@ -8,6 +8,8 @@ python -E -S - "$@" <<EOT
 #
 import sys, os, re
 
+sys.argv[0] = "eups"
+
 # try to recover from an incomplete PYTHONPATH
 try:
     import eups.setupcmd
