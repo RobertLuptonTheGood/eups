@@ -2,11 +2,14 @@
 # N.b. some (many?) unix systems don't understand
 #  #!/usr/bin/env python options
 #
-python -E -S - "$@" <<EOT
+unset PYTHONSTARTUP
+python -S - "$@" <<EOT
 #
 # The main eups programme
 #
 import sys, os, re
+
+sys.argv[0] = "eups"
 
 # try to recover from an incomplete PYTHONPATH
 try:

@@ -381,7 +381,11 @@ class Eups(object):
         for product in self.getSetupProducts():
             try:
                 if product.version.startswith(Product.LocalVersionPrefix):
-                    self.localVersions[product.name] = os.environ[self._envarDirName(product.name)]
+                    try:
+                        pdir = os.environ[self._envarDirName(product.name)]
+                    except KeyError:    # they explicitly endUnset PRODUCT_DIR
+                        pdir = product.dir
+                    self.localVersions[product.name] = pdir
             except TypeError:
                 pass
         #
@@ -1886,7 +1890,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self.alreadySetupProducts[product.name] = (product, vroReason)
 
         try:
-            table = product.getTable(quiet=not fwd)
+            table = product.getTable(quiet=not fwd, verbose=self.verbose)
         except TableFileNotFound, e:
             if fwd:
                 raise

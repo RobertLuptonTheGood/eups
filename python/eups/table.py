@@ -18,7 +18,7 @@ import hooks
 class Table(object):
     """A class that represents a eups table file"""
 
-    def __init__(self, tableFile, topProduct=None, addDefaultProduct=None):
+    def __init__(self, tableFile, topProduct=None, addDefaultProduct=None, verbose=0):
         """
         Parse a tablefile
         @param  tableFile          the tablefile we're reading
@@ -38,7 +38,7 @@ class Table(object):
         self._actions = []
 
         if utils.isRealFilename(tableFile):
-            self._read(tableFile, addDefaultProduct)
+            self._read(tableFile, addDefaultProduct, verbose)
 
     def _rewrite(self, contents):
         """Rewrite the contents of a tablefile to the canonical form; each
@@ -247,7 +247,7 @@ but no other interpretation is applied
 
         return self
     
-    def _read(self, tableFile, addDefaultProduct):
+    def _read(self, tableFile, addDefaultProduct, verbose=0):
         """Read and parse a table file, setting _actions"""
 
         if not tableFile:               # nothing to do
@@ -325,12 +325,11 @@ but no other interpretation is applied
                         "declareoptions" : Action.declareOptions, 
                         "envappend" : Action.envAppend,
                         "envprepend" : Action.envPrepend,
-                        "envremove" : Action.envRemove,
                         "envset" : Action.envSet,
                         "envunset" : Action.envUnset,
                         "pathappend" : Action.envAppend,
                         "pathprepend" : Action.envPrepend,
-                        "pathremove" : Action.envRemove,
+                        "pathremove" : Action.envUnset,
                         "pathset" : Action.envSet,
                         "proddir" : Action.prodDir,
                         "setupenv" : Action.setupEnv,
@@ -378,8 +377,22 @@ but no other interpretation is applied
 
                 else:
                     args = [args[0], " ".join(args[1:])]
-            elif cmd == Action.envRemove or cmd == Action.envUnset or cmd == Action.sourceRequired:
-                print >> utils.stderr, "Ignoring unsupported entry %s at %s:%d" % (line, self.file, lineNo)
+            elif cmd == cmd == Action.envUnset:
+                if len(args) != 1:
+                    msg = "%s expected 1 argument, saw %s at %s:%d" % \
+                        (cmd, " ".join(args), self.file, lineNo)
+                    raise BadTableContent(self.file, msg=msg)
+
+                pdirVar = utils.dirEnvNameFor(self.topProduct.name) # e.g. FOO_DIR
+                if args[0] == "PRODUCT_DIR":
+                    args[0] = pdirVar
+
+                if args[0] != pdirVar:  # only allow the unsetting of this one variable
+                    if verbose > 0:
+                        print >> utils.stdwarn, "Attempt to unset $%s at %s:%d" % (args[0], self.file, lineNo)
+                    continue                
+            elif cmd == Action.sourceRequired:
+                print >> utils.stderr, "Ignoring unsupported directive %s at %s:%d" % (line, self.file, lineNo)
                 continue
             else:
                 print >> utils.stderr, "Unrecognized line: %s at %s:%d" % (line, self.file, lineNo)
@@ -587,7 +600,6 @@ class Action(object):
     declareOptions = "declareOptions"
     envAppend = "envAppend"             # not used
     envPrepend = "envPrepend"           # extra: "append"
-    envRemove = "envRemove"             # not supported
     envSet = "envSet"
     envUnset = "envUnset"               # not supported
     prodDir = "prodDir"
@@ -636,6 +648,8 @@ class Action(object):
             self.execute_envPrepend(Eups, fwd)
         elif self.cmd == Action.envSet:
             self.execute_envSet(Eups, fwd)
+        elif self.cmd == Action.envUnset:
+            self.execute_envUnset(Eups, fwd)
         elif self.cmd == Action.addAlias:
             self.execute_addAlias(Eups, fwd)
         elif self.cmd == Action.prodDir or self.cmd == Action.setupEnv:
@@ -939,6 +953,19 @@ class Action(object):
                 pp += [d]
                 
         return pp
+
+    def execute_envUnset(self, Eups, fwd=True):
+        """Execute envUnset"""
+
+        if not fwd:
+            return                      # we don't know how to reset a value. Sorry
+
+        key = self.args[0]
+
+        try:
+            del os.environ[key]
+        except KeyError:
+            pass
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
