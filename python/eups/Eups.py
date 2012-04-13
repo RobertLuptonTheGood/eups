@@ -2476,8 +2476,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                 info = ""
                 if self.verbose:
                     info = " (%s)" % "; ".join(differences)
-                raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
-                                     (productName, versionName, info))
+
+                if tag:
+                    print >> utils.stdinfo, "You asked me to redeclare %s %s%s; I'll only declare the tag" % \
+                        (productName, versionName, info)
+                        
+                    dodeclare = False
+                else:
+                    raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
+                                        (productName, versionName, info))
 
             elif _productDir and _tablefile:
                 # there's no difference with what's already declared
