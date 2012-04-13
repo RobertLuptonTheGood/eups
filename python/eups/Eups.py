@@ -2640,10 +2640,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     versionName = versions[0]
                     undeclareVersion = True
 
-            stat = self.unassignTag(tag, productName, versionName, eupsPathDir)
-
-            if not undeclareVersion:
-                return stat
+            if not undeclareVersion:    # this is all we need to do
+                return self.unassignTag(tag, productName, versionName, eupsPathDir)
 
         product = None
         if not versionName:
@@ -2672,8 +2670,11 @@ The what argument tells us what sort of state is expected (allowed values are de
             else:
                 raise EupsException("Product %s %s is already setup; specify force to proceed" % (productName, versionName))
 
+        if tag:
+            self.unassignTag(tag, productName, versionName, eupsPathDir)
+
         if self.verbose or self.noaction:
-            print >> utils.stdwarn, "Removing %s %s from version list for %s" % \
+            print "Removing %s %s from version list for %s" % \
                 (product.name, product.version, product.stackRoot())
         if self.noaction:
             return True
