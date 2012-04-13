@@ -159,7 +159,8 @@ Common"""
             ecmd.lockType = None
 
         locks = lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
-                               ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
+                               ecmd.lockType, nolocks=ecmd.opts.nolocks,
+                               verbose=ecmd.opts.verbose - ecmd.opts.quiet)
 
         try:
             return ecmd.run()
@@ -1505,7 +1506,7 @@ that are writable by the user.
             return 10
 
         lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
-                       ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
+                       ecmd.lockType, nolocks=ecmd.opts.nolocks, verbose=ecmd.opts.verbose - ecmd.opts.quiet)
 
         return ecmd.run()
 
@@ -1843,7 +1844,7 @@ Common """
             return 10
 
         lock.takeLocks(ecmd.cmd, eups.Eups.setEupsPath(ecmd.opts.path, ecmd.opts.dbz),
-                       ecmd.lockType, ecmd.opts.nolocks, ecmd.opts.verbose)
+                       ecmd.lockType, nolocks=ecmd.opts.nolocks, verbose=ecmd.opts.verbose - ecmd.opts.quiet)
 
         return ecmd.run()
 
