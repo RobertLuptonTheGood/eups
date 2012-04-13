@@ -1191,11 +1191,18 @@ only wish to assign a tag, you should use the -t option but not include
             self.opts.tag = self.opts.tag[0]
 
         if not product:
-            if self.opts.tablefile == "none" or self.opts.externalTablefile != None:
-                self.err("Unable to guess product name as product contains no table file")
+            if self.opts.tablefile == "none":
+                self.err("Unable to guess product name from table file name %s" % self.opts.tablefile)
+                return 2
+            if self.opts.externalTablefile != None:
+                self.err("Unable to guess product name from external table file \"%s\"" %
+                         self.opts.externalTablefile)
                 return 2
 
-            if not self.opts.productDir or self.opts.productDir == "none":
+            if not self.opts.productDir:
+                self.err("Unable to guess product name as you didn't specify a directory")
+                return 2
+            if self.opts.productDir == "none":
                 self.err("Unable to guess product name as product has no directory")
                 return 2
 
