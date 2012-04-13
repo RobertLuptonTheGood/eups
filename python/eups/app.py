@@ -17,7 +17,7 @@ from exceptions import EupsException, TableFileNotFound
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
                   dependencies=False, showVersion=False, showName=False,
-                  depth=None, productDir=None, topological=False):
+                  depth=None, productDir=None, topological=False, raw=False):
     """
     print out a listing of products.  Returned is the number of products listed.
     @param ostrm           the output stream to send listing to
@@ -42,6 +42,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              "> 3") implies a comparison with the depth
                              of each dependency (i.e. "depth > 3").  
     @param topological     List dependencies in topological-sorted order
+    @param raw             Generate "raw" output (suitable for further processing)
     """
 
     if not eupsenv:
@@ -138,7 +139,11 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         product = productList[0]
 
         if includeProduct(recursionDepth):
-            print "%-40s %s" % (product.name, product.version)
+            if raw:
+                fmt = "%s|%s"
+            else:
+                fmt = "%-40s %s"
+            print fmt % (product.name, product.version)
 
         for product, optional, recursionDepth in eupsenv.getDependentProducts(product, setup,
                                                                               topological=topological):
@@ -153,7 +158,10 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     if recursionDepth%2 == 1: 
                         indent += "|" 
 
-                print "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
+                if raw:
+                    print "%s|%s" % (product.name, product.version)
+                else:
+                    print "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
 
         return 1
     #
@@ -187,36 +195,65 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         
         if directory or tablefile:
             if eupsenv.verbose:
-                info += "%-10s" % (version)
+                if raw:
+                    if info:
+                        info += "|"
+                    info += version
+                else:
+                    info += "%-10s" % (version)
 
             if directory:
                 if pi.dir:
+                    if raw and info:
+                        info += "|"
                     info += pi.dir
                 else:
                     info += ""
             if tablefile:
                 if info:
-                    info += "\t"
+                    if raw:
+                        info += "|"
+                    else:
+                        info += "\t"
 
                 if pi.tablefile:
                     info += pi.tablefile
                 else:
                     info += "none"
         elif showName:
-            info += "%-10s" % (name)
+            if raw:
+                if info:
+                    info += "|"
+                info += name
+            else:
+                info += "%-10s" % (name)
         elif showVersion:
             info += "%-10s" % (version)
         else:
-            if productName and not productNameIsGlob:
-                info += "   "
+            if raw:
+                if info:
+                    info += "|"
+                info += name + "|" + version
             else:
-                info += "%-21s " % (name)
-            info += "%-10s " % (version)
+                if productName and not productNameIsGlob:
+                    info += "   "
+                else:
+                    info += "%-21s " % (name)
+                info += "%-10s " % (version)
             if eupsenv.verbose:
+                if raw:
+                    if info:
+                        info += "|"
                 if eupsenv.verbose > 1:
-                    info += "%-10s" % (pi.flavor)
+                    if raw:
+                        info += pi.flavor + "|"
+                    else:
+                        info += "%-10s" % (pi.flavor)
 
-                info += "%-20s %-55s" % (root, pi.dir)
+                if raw:
+                    info += root + "|" + pi.dir
+                else:
+                    info += "%-20s %-55s" % (root, pi.dir)
 
                 extra = pi.tags
             else:
@@ -230,8 +267,14 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
             if eupsenv.isSetup(pi.name, pi.version, pi.stackRoot()):
                 extra += ["setup"]
+            if raw and info:
+                info += "|"
+
             if extra:
-                info += "\t" + " ".join(extra)
+                if raw:
+                    info += ":".join(extra)
+                else:
+                    info += "\t" + " ".join(extra)
 
         if info:
             if info != oinfo: 

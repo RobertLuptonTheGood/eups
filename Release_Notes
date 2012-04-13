@@ -1,3 +1,12 @@
+2012-04-13 rhl
+       Added --raw option to eups list to generate machine-parseable output
+
+       Made it possible to use locks even when parts of EUPS_PATH are write protected
+
+2012-04-04 pprice + rhl
+       Some versions of readline emit junk to stdout when sourced (e.g. on os/x 10.7).  Workaround
+       this bug
+
 2012-02-27 rhl
        Add support for envUnset(PRODUCT_DIR) to disable setting e.g. GIT_DIR; other environment variables
        may not be unset (as unsetup can't easily set them again)
