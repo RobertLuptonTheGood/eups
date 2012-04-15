@@ -34,7 +34,7 @@ def getLockPath(dirName, create=False):
 
         return dirName
     
-def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
+def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
     locks = []
 
     if hooks.config.site.lockDirectoryBase is None:
@@ -51,9 +51,9 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
         if verbose > 1:
             print >> utils.stdinfo, "Acquiring %s locks for command \"%s\"" % (lockTypeName, cmdName)
 
-        ntry = 10                       # number of times to try to take the locks
         dt = 1.0                        # number of seconds to wait
         for d in path:
+            makeLock = True             # we can make the lock
             for i in range(1, ntry + 1):
                 try:
                     lockDir = os.path.join(getLockPath(d), _lockDir)
@@ -73,7 +73,15 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                             else:
                                 reason = str(e)
 
-                            msg = "Unable to take exclusive lock on %s: %s" % (d, reason)
+                            msg = "Unable to take exclusive lock on %s" % (d)
+                            if e.errno == errno.EACCES:
+                                if verbose >= 0:
+                                    print >> utils.stdinfo, "%s; your command may fail" % (msg)
+                                    utils.stdinfo.flush()
+                                makeLock = False
+                                break
+                                
+                            msg += ": %s" % (reason)
                             if i == ntry:
                                 raise RuntimeError(msg)
                             else:
@@ -87,6 +95,9 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
                             if verbose:
                                 print >> utils.stdwarn, "Unable to lock %s; proceeding with trepidation" % d
                             return []
+
+                if not makeLock:
+                    continue
 
                 if verbose > 2:
                     print >> utils.stdinfo, "Creating lock directory %s" % (lockDir)
@@ -111,6 +122,9 @@ def takeLocks(cmdName, path, lockType, nolocks=False, verbose=0):
 
                 break                   # got the lock
 
+            if not makeLock:
+                continue
+            
             if not os.environ.has_key("EUPS_LOCK_PID"): # remember the PID of the process taking the lock
                 os.environ["EUPS_LOCK_PID"] = "%d" % os.getpid()
                 os.putenv("EUPS_LOCK_PID", os.environ["EUPS_LOCK_PID"])

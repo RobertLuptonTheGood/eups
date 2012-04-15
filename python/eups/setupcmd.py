@@ -217,7 +217,8 @@ product and all its dependencies into the environment so that it can be used.
             self.opts.max_depth = 0
 
         path = eups.Eups.setEupsPath(self.opts.path, self.opts.dbz)
-        locks = lock.takeLocks("setup", path, lock.LOCK_SH, self.opts.nolocks, self.opts.verbose)
+        locks = lock.takeLocks("setup", path, lock.LOCK_SH,
+                               nolocks=self.opts.nolocks, verbose=self.opts.verbose - self.opts.quiet)
         #
         # Do the work
         #
