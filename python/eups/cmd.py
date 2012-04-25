@@ -2209,9 +2209,13 @@ tag will be installed.
             self.opts.root = "|".join(self.opts.root)
         else:
             if not os.environ.has_key("EUPS_PKGROOT"):
-                self.err("No repositories specified; please set -r or EUPS_PKGROOT")
+                self.err("No repositories specified; please set -r or $EUPS_PKGROOT")
                 return 3
             self.opts.root = os.environ["EUPS_PKGROOT"]
+
+        if not self.opts.root:
+            self.err("No repositories specified; please set -r or $EUPS_PKGROOT and try again")
+            return 3
 
         log = None
         if self.opts.quiet:
