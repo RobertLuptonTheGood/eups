@@ -227,7 +227,11 @@ class Repository(object):
         return a list of the tag names supported by this repository
         """
         if self._supportedTags is None:
-            self._supportedTags = self.distServer.getTagNames()
+            if self.distServer:
+                self._supportedTags = self.distServer.getTagNames()
+            else:
+                self._supportedTags = []
+                
         return self._supportedTags
 
     def listPackages(self, product=None, version=None, flavor=None, tag=None,
