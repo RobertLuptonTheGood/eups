@@ -9,7 +9,7 @@ all :;
 
 install :
 	@ ./mksetup $(EUPS_DIR) $(EUPS_PATH) $(SETUP_ALIASES)
-	cp Makefile mksetup setups.*sh eups eups_setup $(EUPS_DIR)/bin
+	cp Makefile mksetup setups.*sh eups eups_impl.py eups_setup eups_setup_impl.py $(EUPS_DIR)/bin
 	@ echo Building .pyc files
 	@ python -c "import compileall; compileall.compile_dir('$(EUPS_DIR)/bin')"
 
