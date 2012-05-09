@@ -822,6 +822,9 @@ def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
     @param eupsenv       The Eups instance to use to find the product.  If 
                             not provided, a default will created.  
     """
+    if productName and versionName == Tag("setup"): # we can take a shortcut
+        return os.environ.get(utils.dirEnvNameFor(productName))
+
     if not eupsenv:
         eupsenv = Eups()
 
