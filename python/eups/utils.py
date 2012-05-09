@@ -43,15 +43,15 @@ def version():
 
     eups_dir = os.environ.get("EUPS_DIR", ".")
     dot_git = os.path.join(eups_dir, ".git")
+    dot_version = os.path.join(eups_dir, "git.version")
     
     if not os.path.exists(dot_git):
-        version = "unknown"
-        try:
-            version = open(os.path.join(eups_dir, "git.version")).readline().strip()
-        except IOError:
+        if os.path.exists(dot_version):
+            version = open(dot_version).readline().strip()
+        else:
+            version = "unknown"
             print >> stderr, \
-                "Failed to get version from .git or git.version; setting to \"%s\"" % version
-            
+                "Cannot guess version without .git directory or git.version file; version will be set to \"%s\"" % version
         return version
 
     version = os.popen("(cd %s; git describe --tags --always)" % eups_dir).readline().strip()

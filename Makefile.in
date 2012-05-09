@@ -4,6 +4,8 @@
 ###############################################################################
 
 SHELL = /bin/sh
+
+VERSION="`env EUPS_DIR=. PYTHONPATH=python bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"
 #
 # Set by configure
 #
@@ -70,17 +72,18 @@ install : show
                 ); \
 	done
 	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
+
+	echo $(VERSION) > $(EUPS_DIR)/.version
 	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
 declare :
-	@vers="`env EUPS_DIR=. PYTHONPATH=python bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
+	@vers="$(VERSION)"; \
 	eups declare --root $(EUPS_DIR) eups $$vers && \
 	echo eups declare --root $(EUPS_DIR) eups $$vers
 show : git.version
 	@echo "You will be installing ups in \$$EUPS_DIR  =  $(EUPS_DIR)"
 	@echo "Eups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 	@echo "Your EUPS database[s] will be               $(EUPS_DB)"
-	@vers="`env EUPS_DIR=. PYTHONPATH=python bin/eups --version 2>&1 | awk '/Version/ {print $$3}'`"; \
-	 echo "Your EUPS version is                        $$vers"
+	@echo "Your EUPS version is                        $(VERSION)"
 	@ \
 	EUPS_DB_DIR=`echo $(EUPS_PATH) | sed -e 's/:.*//'`; \
 	if [ -d $$EUPS_DB_DIR/site ]; then \

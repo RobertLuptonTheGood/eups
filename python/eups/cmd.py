@@ -452,6 +452,8 @@ will also be printed.
                             help="Only print the product's name")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
+        self.clo.add_option("--raw", action="store_true", 
+                            help="generate \"raw\" output (suitable for further processing)")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
                             help="List only product's that are setup.")
         self.clo.add_option("-m", "--table", dest="tablefile", action="store_true", default=False,
@@ -492,7 +494,9 @@ will also be printed.
                                    dependencies=self.opts.depends, 
                                    showVersion=self.opts.version, showName=self.opts.showName,
                                    depth=self.opts.depth,
-                                   productDir=self.opts.productDir, topological=self.opts.topological)
+                                   productDir=self.opts.productDir, topological=self.opts.topological,
+                                   raw=self.opts.raw
+                                   )
             if n == 0:
                 msg = 'No products found'
                 self.err(msg)
@@ -1187,11 +1191,18 @@ only wish to assign a tag, you should use the -t option but not include
             self.opts.tag = self.opts.tag[0]
 
         if not product:
-            if self.opts.tablefile == "none" or self.opts.externalTablefile != None:
-                self.err("Unable to guess product name as product contains no table file")
+            if self.opts.tablefile == "none":
+                self.err("Unable to guess product name from table file name %s" % self.opts.tablefile)
+                return 2
+            if self.opts.externalTablefile != None:
+                self.err("Unable to guess product name from external table file \"%s\"" %
+                         self.opts.externalTablefile)
                 return 2
 
-            if not self.opts.productDir or self.opts.productDir == "none":
+            if not self.opts.productDir:
+                self.err("Unable to guess product name as you didn't specify a directory")
+                return 2
+            if self.opts.productDir == "none":
                 self.err("Unable to guess product name as product has no directory")
                 return 2
 

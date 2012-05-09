@@ -2476,8 +2476,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                 info = ""
                 if self.verbose:
                     info = " (%s)" % "; ".join(differences)
-                raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
-                                     (productName, versionName, info))
+
+                if tag:
+                    print >> utils.stdinfo, "You asked me to redeclare %s %s%s; I'll only declare the tag" % \
+                        (productName, versionName, info)
+                        
+                    dodeclare = False
+                else:
+                    raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
+                                        (productName, versionName, info))
 
             elif _productDir and _tablefile:
                 # there's no difference with what's already declared
@@ -2633,10 +2640,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     versionName = versions[0]
                     undeclareVersion = True
 
-            stat = self.unassignTag(tag, productName, versionName, eupsPathDir)
-
-            if not undeclareVersion:
-                return stat
+            if not undeclareVersion:    # this is all we need to do
+                return self.unassignTag(tag, productName, versionName, eupsPathDir)
 
         product = None
         if not versionName:
@@ -2665,8 +2670,11 @@ The what argument tells us what sort of state is expected (allowed values are de
             else:
                 raise EupsException("Product %s %s is already setup; specify force to proceed" % (productName, versionName))
 
+        if tag:
+            self.unassignTag(tag, productName, versionName, eupsPathDir)
+
         if self.verbose or self.noaction:
-            print >> utils.stdwarn, "Removing %s %s from version list for %s" % \
+            print "Removing %s %s from version list for %s" % \
                 (product.name, product.version, product.stackRoot())
         if self.noaction:
             return True
