@@ -1,3 +1,6 @@
+2012-05-23 rhl
+      Added --checkCycles to eups list to detect cycles in dependencies
+
 2012-04-13 rhl
        Added --raw option to eups list to generate machine-parseable output
 

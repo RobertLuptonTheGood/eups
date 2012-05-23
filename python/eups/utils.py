@@ -635,8 +635,10 @@ def _topological_sort(graph):
     return result
 
 
-def topologicalSort(graph, verbose=False):
+def topologicalSort(graph, verbose=False, checkCycles=False):
     """
+    If checkCycles is True, throw RuntimeError if any cycles are detected
+
     From http://code.activestate.com/recipes/577413-topological-sort (but converted back to python 2.4)
 
     Author Paddy McCarthy, under the MIT license
@@ -676,10 +678,27 @@ def topologicalSort(graph, verbose=False):
 
     components = stronglyConnectedComponents(graph)
 
+    cycles = []
     for ccomp in components:
         if len(ccomp) > 1:
-            if verbose:
-                print >> stdwarn, "Detected cycle: %s" % ", ".join([nameVersion(c) for c in ccomp])
+            cycles.append(ccomp)
+
+    msg = []
+    for ccomp in cycles:
+        msg.append(", ".join([nameVersion(c) for c in ccomp]))
+
+    if msg:
+        msg = "(%s)" % ("), (".join(msg))
+
+        if verbose:
+            if len(msg) == 0:
+                s = ""
+            else:
+                s = "s"
+            print >> stdwarn, "Detected cycle%s: %s" % (s, msg)
+            
+        if checkCycles:
+            raise RuntimeError("".join(msg))
     #
     # Rebuild the graph using tuples, so as to handle connected components
     #

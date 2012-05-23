@@ -2914,7 +2914,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return dependencies
 
     def getDependentProducts(self, topProduct, setup=False, shouldRaise=False,
-                             followExact=None, productDictionary=None, topological=False,
+                             followExact=None, productDictionary=None, topological=False, checkCycles=False,
                              requiredVersions={}):
         """
         Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
@@ -2926,6 +2926,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                value being that product's dependencies.
         @param topological     Perform a topological sort before returning the product list; in this case the
                                "recursionDepth" is the topological order
+        @param checkCycles     Raise RuntimeError if topological sort detects a cycle
         @param requiredVersions Require using these particular versions; to support topological sort
 
         See also getDependencies()
@@ -3031,7 +3032,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             # Actually do the topological sort
             #
             sortedProducts = [t for t in
-                              utils.topologicalSort(pdir,verbose=self.verbose)] # products sorted topologically
+                              utils.topologicalSort(pdir,verbose=self.verbose,
+                                                    checkCycles=checkCycles)] # products sorted topologically
             #
             # Replace the recursion level by the topological depth
             #
