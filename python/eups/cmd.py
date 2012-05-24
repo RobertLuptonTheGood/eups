@@ -486,9 +486,6 @@ will also be printed.
            self.opts.depth and not self.opts.depends:
             print >> utils.stdwarn, "Ignoring --depth as it only makes sense with --dependencies"
 
-        if self.opts.checkCycles:
-            self.opts.topological = True
-            
         try:
             n = eups.printProducts(sys.stdout, product, version, 
                                    self.createEups(self.opts, versionName=version),

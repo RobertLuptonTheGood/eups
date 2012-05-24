@@ -2973,7 +2973,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         # no clue about the order they need to be setup in.  Get the depth information from a
         # topological sort of the inexact setup
         #
-        if topological:
+        if topological or checkCycles:
             productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
                                             # dependencies are usually flattened)
 

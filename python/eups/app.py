@@ -139,7 +139,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
         product = productList[0]
 
-        if includeProduct(recursionDepth) and not checkCycles:
+        if includeProduct(recursionDepth) and not (checkCycles and not topological):
             if raw:
                 fmt = "%s|%s"
             else:
@@ -149,7 +149,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         for product, optional, recursionDepth in eupsenv.getDependentProducts(product, setup,
                                                                               topological=topological,
                                                                               checkCycles=checkCycles):
-            if checkCycles or not includeProduct(recursionDepth):
+            if not includeProduct(recursionDepth) or (checkCycles and not topological):
                 continue
 
             if eupsenv.verbose or not _msgs.has_key(product.name):
