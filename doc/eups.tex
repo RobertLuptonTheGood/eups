@@ -628,6 +628,8 @@ These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
     \item[verbose]
     \item[asAdmin]
     \item[setupTypes]
+      Permitted arguments to \code{setup --type=XXX}, \textit{e.g.}
+      \code{hooks.config.Eups.setupTypes.append("sdss")}
     \item[setupCmdName]
     \item[VRO]
     \item[fallbackFlavors]
@@ -992,8 +994,7 @@ Options:
   -n, --noaction        Don't actually do anything (for debugging purposes)
   --nolocks             Disable locking of eups's internal files
   -q, --quiet           Suppress messages to user (overrides -v)
-  -T SETUPTYPE, --type=SETUPTYPE
-                        The setup type to use (e.g. exact)
+  --type=SETUPTYPE      The setup type to use (e.g. exact)
   -v, --verbose         Print extra messages about progress (repeat for ever
                         more chat)
   -V, --version         Print eups version number
@@ -1024,8 +1025,7 @@ options:
   -h, --help            show command-line help and exit
   -n, --noaction        Don't actually do anything (for debugging purposes)
   -q, --quiet           Suppress messages to user (overrides -v)
-  -T SETUPTYPE, --type=SETUPTYPE
-                        the setup type to use (e.g. exact)
+  --type=SETUPTYPE      The setup type to use (e.g. exact)
   -v, --verbose         Print extra messages about progress (repeat for ever
                         more chat)
   -V, --version         Print eups version number
@@ -1089,8 +1089,7 @@ options:
   -h, --help            show command-line help and exit
   -n, --noaction        Don't actually do anything (for debugging purposes)
   -q, --quiet           Suppress messages to user (overrides -v)
-  -T SETUPTYPE, --type=SETUPTYPE
-                        the setup type to use (e.g. exact)
+  --type=SETUPTYPE      The setup type to use (e.g. exact)
   -v, --verbose         Print extra messages about progress (repeat for ever
                         more chat)
   -V, --version         Print eups version number
@@ -1568,8 +1567,7 @@ Print information about the Version Resolution Order (VRO) to use if issuing
 the setup command with the same arguments.
 
 Options:
-  -T SETUPTYPE, --type=SETUPTYPE
-                        the setup type to use (e.g. exact)
+  --type=SETUPTYPE      the setup type to use (e.g. exact)
   -c, --current         same as --tag=current
   -e, --exact           Consider the as-installed versions, not the
                         dependencies in the table file
