@@ -1,3 +1,7 @@
+2012-060-27 rhl
+       Added print command to table files.  The first word (which may be separated by a comma) may be one of
+       stdout, stderr, stdok, stdinfo, stdwarn
+
 2012-04-13 rhl
        Added --raw option to eups list to generate machine-parseable output
 

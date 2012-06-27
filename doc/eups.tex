@@ -1881,6 +1881,20 @@ Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to
    \item \code{envSet(<Name>, <Value>)}
      Set \code{<Name>} to \code{<Value>}.
      
+   \item \code{envUnset(<Name>)}
+     It might sound as if this directive unsets the environment variable \code{<Name>}, and it
+     would be possible to implement this if you have a use for it.  However, at present the
+     only supported \code{<envUnset>} command is
+     \code{envUnset(PRODUCT\_DIR)} which may be used to prevent
+     \eups from setting \code{\$PRODUCT\_DIR}.
+     For example, \code{git} uses \code{GIT\_DIR} for its own purposes,
+     but yet it's useful to use \eups to manage \code{git} versions.
+     
+   \item \code{print(<String>)}
+   \item \code{print(<Dest>, <String>)}
+     Print the string to stdout; if \code{<Dest>} is provided it must be one of
+     \code{stdout}, \code{stderr}, \code{stdok}, \code{stdinfo}, and \code{stdwarn}.
+     
    \item \code{setupRequired(<Name> [ <Version>])}
      Setup \code{<Name>}.  If no \code{<Version>} is specified, the current
      version is used. Fails if unable to setup.
@@ -1911,11 +1925,8 @@ Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to
 
    \item \code{setupOptional(<Name> [ <Version>]}
      Same as setupRequired except that it does not fail if unable to setup.
-\end{itemize}
 
-There are also \code{envRemove} and \code{envUnset()} commands, which
-are the inverse of \code{env\{Ap,Pre\}pend} and \code{envSet()}; I have
-never used either.     
+\end{itemize}
 
 \subsubsection{Version ordering}
 \label{versionOrdering}
@@ -2015,7 +2026,7 @@ than V2; 0 if they're equal; +1 if V1 \code{>} V2).
 \subsubsection{Variables}
 
 The arguments to these UPS commands can be variables. All environment
-variables can be used as \code{\$\{<ENV\_VARIABLE>\}}; e.g. \code{\$\{HOME\}}.
+variables can be used as \code{\$\{<ENV\_VARIABLE>\}}; \textit{e.g.} \code{\$\{HOME\}}.
 \code{\$HOME} will not be expanded, so \code{setEnv(FOO, \$\{HOME\})}
 set \code{FOO} to the \textit{value} of \code{\$HOME} (\textit{e.g.} \code{/u/rhl}), whereas
 \code{setEnv(FOO, \$HOME)} sets it to \code{\$HOME}.
