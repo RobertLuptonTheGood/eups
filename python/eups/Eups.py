@@ -2365,7 +2365,17 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 for line in tfd:
                     print >> tmpFd, line,
-                del tmpFd; del tfd
+
+                # Copy permissions as well, since tempfile.mkstemp explicitly sets -rw-------
+                try:
+                    perms = os.fstat(tfd.fileno()).st_mode & 0x0777
+                except:
+                    # Best guess as to what people will want is -rw-rw-r--
+                    import stat
+                    perms = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
+                os.fchmod(tmpFd.fileno(), perms)
+
+                del tmpFd; del tfd; del perms
 
                 externalFileList.append((full_tablefile, os.path.join("ups", "%s.table" % productName)))
         #
@@ -2914,7 +2924,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         return dependencies
 
     def getDependentProducts(self, topProduct, setup=False, shouldRaise=False,
-                             followExact=None, productDictionary=None, topological=False,
+                             followExact=None, productDictionary=None, topological=False, checkCycles=False,
                              requiredVersions={}):
         """
         Return a list of Product topProduct's dependent products : [(Product, optional, recursionDepth), ...]
@@ -2926,6 +2936,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                value being that product's dependencies.
         @param topological     Perform a topological sort before returning the product list; in this case the
                                "recursionDepth" is the topological order
+        @param checkCycles     Raise RuntimeError if topological sort detects a cycle
         @param requiredVersions Require using these particular versions; to support topological sort
 
         See also getDependencies()
@@ -2972,7 +2983,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         # no clue about the order they need to be setup in.  Get the depth information from a
         # topological sort of the inexact setup
         #
-        if topological:
+        if topological or checkCycles:
             productDictionary = {}          # look up the dependency tree assuming NON-exact (as exact
                                             # dependencies are usually flattened)
 
@@ -3031,7 +3042,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             # Actually do the topological sort
             #
             sortedProducts = [t for t in
-                              utils.topologicalSort(pdir,verbose=self.verbose)] # products sorted topologically
+                              utils.topologicalSort(pdir,verbose=self.verbose,
+                                                    checkCycles=checkCycles)] # products sorted topologically
             #
             # Replace the recursion level by the topological depth
             #

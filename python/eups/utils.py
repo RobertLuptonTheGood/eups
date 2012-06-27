@@ -39,11 +39,11 @@ def _svnRevision(file=None, lastChanged=False):
 import os, re
 
 def version():
-    """Get the eups version from git (should be set at install time)"""
+    """Get the eups version from git; if this isn't available consult git.version in $EUPS_DIR"""
 
-    eups_dir = os.environ["EUPS_DIR"]
+    eups_dir = os.environ.get("EUPS_DIR", ".")
     dot_git = os.path.join(eups_dir, ".git")
-    dot_version = os.path.join(eups_dir, ".version")
+    dot_version = os.path.join(eups_dir, "git.version")
     
     if not os.path.exists(dot_git):
         if os.path.exists(dot_version):
@@ -51,7 +51,7 @@ def version():
         else:
             version = "unknown"
             print >> stderr, \
-                "Cannot guess version without .git directory or .version file; version will be set to \"%s\"" % version
+                "Cannot guess version without .git directory or git.version file; version will be set to \"%s\"" % version
         return version
 
     version = os.popen("(cd %s; git describe --tags --always)" % eups_dir).readline().strip()
@@ -635,8 +635,10 @@ def _topological_sort(graph):
     return result
 
 
-def topologicalSort(graph, verbose=False):
+def topologicalSort(graph, verbose=False, checkCycles=False):
     """
+    If checkCycles is True, throw RuntimeError if any cycles are detected
+
     From http://code.activestate.com/recipes/577413-topological-sort (but converted back to python 2.4)
 
     Author Paddy McCarthy, under the MIT license
@@ -676,10 +678,27 @@ def topologicalSort(graph, verbose=False):
 
     components = stronglyConnectedComponents(graph)
 
+    cycles = []
     for ccomp in components:
         if len(ccomp) > 1:
-            if verbose:
-                print >> stdwarn, "Detected cycle: %s" % ", ".join([nameVersion(c) for c in ccomp])
+            cycles.append(ccomp)
+
+    msg = []
+    for ccomp in cycles:
+        msg.append(", ".join([nameVersion(c) for c in ccomp]))
+
+    if msg:
+        msg = "(%s)" % ("), (".join(msg))
+
+        if verbose:
+            if len(msg) == 0:
+                s = ""
+            else:
+                s = "s"
+            print >> stdwarn, "Detected cycle%s: %s" % (s, msg)
+            
+        if checkCycles:
+            raise RuntimeError("".join(msg))
     #
     # Rebuild the graph using tuples, so as to handle connected components
     #

@@ -464,6 +464,8 @@ will also be printed.
                             help="the setup type to assume (ignored unless -d is specified)")
         self.clo.add_option("--topological", dest="topological", action="store_true", default=False,
                             help="Return dependencies after a topological sort")
+        self.clo.add_option("--checkCycles", action="store_true", default=False,
+                            help="Generate an error if topological sort turns up a cycle")
         self.clo.add_option("-V", "--version", dest="version", action="store_true", default=False,
                             help="Print product version")
 
@@ -495,6 +497,7 @@ will also be printed.
                                    showVersion=self.opts.version, showName=self.opts.showName,
                                    depth=self.opts.depth,
                                    productDir=self.opts.productDir, topological=self.opts.topological,
+                                   checkCycles=self.opts.checkCycles,
                                    raw=self.opts.raw
                                    )
             if n == 0:

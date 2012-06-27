@@ -2,6 +2,7 @@
 /Makefile
 config.log
 config.status
+git.version
 ups/eups.table
 doc/eups.aux
 doc/eups.dvi

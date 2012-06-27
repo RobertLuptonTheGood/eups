@@ -17,7 +17,7 @@ from exceptions import EupsException, TableFileNotFound
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
                   dependencies=False, showVersion=False, showName=False,
-                  depth=None, productDir=None, topological=False, raw=False):
+                  depth=None, productDir=None, topological=False, checkCycles=False, raw=False):
     """
     print out a listing of products.  Returned is the number of products listed.
     @param ostrm           the output stream to send listing to
@@ -42,6 +42,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              "> 3") implies a comparison with the depth
                              of each dependency (i.e. "depth > 3").  
     @param topological     List dependencies in topological-sorted order
+    @param checkCycles     Raise RuntimeError if topological sort detects a cycle
     @param raw             Generate "raw" output (suitable for further processing)
     """
 
@@ -138,7 +139,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
         product = productList[0]
 
-        if includeProduct(recursionDepth):
+        if includeProduct(recursionDepth) and not (checkCycles and not topological):
             if raw:
                 fmt = "%s|%s"
             else:
@@ -146,8 +147,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             print fmt % (product.name, product.version)
 
         for product, optional, recursionDepth in eupsenv.getDependentProducts(product, setup,
-                                                                              topological=topological):
-            if not includeProduct(recursionDepth):
+                                                                              topological=topological,
+                                                                              checkCycles=checkCycles):
+            if not includeProduct(recursionDepth) or (checkCycles and not topological):
                 continue
 
             if eupsenv.verbose or not _msgs.has_key(product.name):
@@ -865,6 +867,9 @@ def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
     @param eupsenv       The Eups instance to use to find the product.  If 
                             not provided, a default will created.  
     """
+    if productName and versionName == Tag("setup"): # we can take a shortcut
+        return os.environ.get(utils.dirEnvNameFor(productName))
+
     if not eupsenv:
         eupsenv = Eups()
 

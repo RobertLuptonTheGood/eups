@@ -73,13 +73,13 @@ install : show
 	done
 	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
 
-	echo $(VERSION) > $(EUPS_DIR)/.version
+	echo $(VERSION) > $(EUPS_DIR)/git.version
 	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
 declare :
 	@vers="$(VERSION)"; \
 	eups declare --root $(EUPS_DIR) eups $$vers && \
 	echo eups declare --root $(EUPS_DIR) eups $$vers
-show :
+show : git.version
 	@echo "You will be installing ups in \$$EUPS_DIR  =  $(EUPS_DIR)"
 	@echo "Eups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 	@echo "Your EUPS database[s] will be               $(EUPS_DB)"
@@ -94,6 +94,10 @@ show :
 	else \
 		echo "Your site configuration files will be in    $$EUPS_DB_DIR/site"; \
 	fi
+git.version :
+	# Save the git version in case we have a copy of the source without a .git directory
+	@ env EUPS_DIR=. PYTHONPATH=python \
+		python -S -c "import eups.utils; print eups.utils.version()" > git.version
 #
 # Rebuild configure; almost no-one should need to do this
 #
