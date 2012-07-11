@@ -335,6 +335,7 @@ but no other interpretation is applied
                         "proddir" : Action.prodDir,
                         "setupenv" : Action.setupEnv,
                         "setenv" : Action.envSet,
+                        "unsetenv" : Action.envUnset,
                         "setuprequired" : Action.setupRequired,
                         "setupoptional" : Action.setupOptional,
                         "sourcerequired" : Action.sourceRequired,

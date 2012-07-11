@@ -2027,9 +2027,9 @@ than V2; 0 if they're equal; +1 if V1 \code{>} V2).
 
 The arguments to these UPS commands can be variables. All environment
 variables can be used as \code{\$\{<ENV\_VARIABLE>\}}; \textit{e.g.} \code{\$\{HOME\}}.
-\code{\$HOME} will not be expanded, so \code{setEnv(FOO, \$\{HOME\})}
+\code{\$HOME} will not be expanded, so \code{envSet(FOO, \$\{HOME\})}
 set \code{FOO} to the \textit{value} of \code{\$HOME} (\textit{e.g.} \code{/u/rhl}), whereas
-\code{setEnv(FOO, \$HOME)} sets it to \code{\$HOME}.
+\code{envSet(FOO, \$HOME)} sets it to \code{\$HOME}.
 
 In addition, the following special variables are defined;
 
