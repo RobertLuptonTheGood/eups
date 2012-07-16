@@ -2373,7 +2373,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     # Best guess as to what people will want is -rw-rw-r--
                     import stat
                     perms = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH
-                os.fchmod(tmpFd.fileno(), perms)
+                os.chmod(full_tablefile, perms)
 
                 del tmpFd; del tfd; del perms
 
