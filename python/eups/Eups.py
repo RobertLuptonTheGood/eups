@@ -1472,7 +1472,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                 continue
 
             try:
-                product = self.findSetupProduct(productName)
+                try:
+                    product = self.findSetupProduct(productName)
+                except Exception, e:
+                    if self.quiet <= 0:
+                        print >> utils.stdwarn, "Problem with product \"%s\" found in the environment: %s" % \
+                            (productName, e)
+
+                    continue
+
                 if not product:
                     if self.quiet <= 0:
                         print >> utils.stdwarn, "Unable to find %s %s although it is seen in the environment" % \
