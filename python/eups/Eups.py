@@ -1472,7 +1472,15 @@ The what argument tells us what sort of state is expected (allowed values are de
                 continue
 
             try:
-                product = self.findSetupProduct(productName)
+                try:
+                    product = self.findSetupProduct(productName)
+                except Exception, e:
+                    if self.quiet <= 0:
+                        print >> utils.stdwarn, "Problem with product \"%s\" found in the environment: %s" % \
+                            (productName, e)
+
+                    continue
+
                 if not product:
                     if self.quiet <= 0:
                         print >> utils.stdwarn, "Unable to find %s %s although it is seen in the environment" % \
@@ -2365,7 +2373,18 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 for line in tfd:
                     print >> tmpFd, line,
-                del tmpFd; del tfd
+
+                # Copy permissions as well, since tempfile.mkstemp explicitly sets -rw-------
+                umask = os.umask(002); os.umask(umask)
+                try:
+                    perms = os.fstat(tfd.fileno()).st_mode
+                except:
+                    perms = 0
+
+                perms |= (0666 & ~umask) # set read/write for everyone (modulu umask)
+                os.chmod(full_tablefile, perms)
+
+                del tmpFd; del tfd; del perms
 
                 externalFileList.append((full_tablefile, os.path.join("ups", "%s.table" % productName)))
         #

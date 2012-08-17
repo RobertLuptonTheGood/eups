@@ -252,8 +252,11 @@ def guessProduct(dir, productName=None):
         root, leaf = os.path.split(dir)
         if leaf == "ups" and not os.path.isdir(root):
             dir = root
-            
-        raise RuntimeError, ("%s isn't a directory" % dir)
+
+        if os.path.exists(dir):
+            raise RuntimeError, ("%s isn't a directory" % dir)
+        else:
+            raise RuntimeError, ("%s doesn't seem to exist" % dir)
             
     productNames = map(lambda t: re.sub(r".*/([^/]+)\.table$", r"\1", t), glob.glob(os.path.join(dir, "*.table")))
 

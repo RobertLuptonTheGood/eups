@@ -331,9 +331,11 @@ but no other interpretation is applied
                         "pathprepend" : Action.envPrepend,
                         "pathremove" : Action.envUnset,
                         "pathset" : Action.envSet,
+                        "print" : Action.doPrint,
                         "proddir" : Action.prodDir,
                         "setupenv" : Action.setupEnv,
                         "setenv" : Action.envSet,
+                        "unsetenv" : Action.envUnset,
                         "setuprequired" : Action.setupRequired,
                         "setupoptional" : Action.setupOptional,
                         "sourcerequired" : Action.sourceRequired,
@@ -377,7 +379,7 @@ but no other interpretation is applied
 
                 else:
                     args = [args[0], " ".join(args[1:])]
-            elif cmd == cmd == Action.envUnset:
+            elif cmd == Action.envUnset:
                 if len(args) != 1:
                     msg = "%s expected 1 argument, saw %s at %s:%d" % \
                         (cmd, " ".join(args), self.file, lineNo)
@@ -394,6 +396,8 @@ but no other interpretation is applied
             elif cmd == Action.sourceRequired:
                 print >> utils.stderr, "Ignoring unsupported directive %s at %s:%d" % (line, self.file, lineNo)
                 continue
+            elif cmd == Action.doPrint:
+                pass
             else:
                 print >> utils.stderr, "Unrecognized line: %s at %s:%d" % (line, self.file, lineNo)
                 continue
@@ -603,6 +607,7 @@ class Action(object):
     envSet = "envSet"
     envUnset = "envUnset"               # not supported
     prodDir = "prodDir"
+    doPrint = "print"
     setupEnv = "setupEnv"
     setupOptional = "setupOptional"     # not used
     setupRequired = "setupRequired"     # extra: "optional"
@@ -654,6 +659,8 @@ class Action(object):
             self.execute_addAlias(Eups, fwd)
         elif self.cmd == Action.prodDir or self.cmd == Action.setupEnv:
             pass
+        elif self.cmd == Action.doPrint: 
+            self.execute_print(Eups, fwd)
         else:
             print >> utils.stderr, "Unimplemented action", self.cmd
 
@@ -954,6 +961,31 @@ class Action(object):
                 
         return pp
 
+    def execute_print(self, Eups, fwd=True):
+        """Execute print"""
+
+        if not fwd:
+            return                      # Only generate messages on setup, not unsetup
+
+        args = self.args
+        if args[0].lower() in ("stdout", "stderr", "stdwarn", "stdinfo"):
+            dest = args[0].lower(); args = args[1:]
+        else:
+            dest = "stdout"
+
+        if dest == "stderr":
+            dest = utils.stderr
+        elif dest in ("stdout", "stdok"):
+            dest = utils.stdok
+        elif dest == "stdwarn":
+            dest = utils.stdwarn
+        elif dest == "stdinfo":
+            dest = utils.stdinfo
+        else:
+            raise RuntimeError("Impossible destination: %s" % dest)
+
+        print >> dest, " ".join(args)
+        
     def execute_envUnset(self, Eups, fwd=True):
         """Execute envUnset"""
 
