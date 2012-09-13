@@ -1,4 +1,7 @@
-2012-060-27 rhl
+2012-09-13 rhl
+       Support eups distrib list -v prod [version] to list dependencies of specified product
+
+2012-06-27 rhl
        Added print command to table files.  The first word (which may be separated by a comma) may be one of
        stdout, stderr, stdok, stdinfo, stdwarn
 
