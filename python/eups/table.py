@@ -385,12 +385,16 @@ but no other interpretation is applied
                         (cmd, " ".join(args), self.file, lineNo)
                     raise BadTableContent(self.file, msg=msg)
 
-                pdirVar = utils.dirEnvNameFor(self.topProduct.name) # e.g. FOO_DIR
+                if self.topProduct:
+                    pdirVar = utils.dirEnvNameFor(self.topProduct.name) # e.g. FOO_DIR
+                else:
+                    pdirVar = None
+
                 if args[0] == "PRODUCT_DIR":
                     args[0] = pdirVar
-
+                    
                 if args[0] != pdirVar:  # only allow the unsetting of this one variable
-                    if verbose > 0:
+                    if pdirVar and verbose > 0:
                         print >> utils.stdwarn, "Attempt to unset $%s at %s:%d" % (args[0], self.file, lineNo)
                     continue                
             elif cmd == Action.sourceRequired:
