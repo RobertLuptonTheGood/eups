@@ -2036,18 +2036,27 @@ class DistribListCmd(EupsCmd):
             e.status = 1
             raise
 
+        if len(data) == 1 and len(data[0][1]) == 1:
+            indent = ""
+        else:
+            indent = "  "
+
         primary = "primary"
-        for i in xrange(len(data)):
-            pkgroot, pkgs = data[i]
-            if i == 1:  primary = "secondary"
+        for pkgroot, pkgs in data:
             if len(pkgs) > 0:
                 if len(data) > 1:
                     print "Available products from %s server: %s" % \
                         (primary, pkgroot)
                 for (name, ver, flav) in pkgs:
-                    print "  %-20s %-10s %s" % (name, flav, ver)
+                    print "%s%-20s %-10s %s" % (indent, name, flav, ver)
+                    if self.opts.verbose:
+                        man = repos.repos[pkgroot].getManifest(name, ver, flav)
+                        for dep in man.getProducts():
+                            print "%s  %-18s %-10s %s" % (indent, dep.product, dep.version, dep.flavor)
             else:
                 print "No matching products available from %s server (%s)" % (primary, pkgroot)
+
+            primary = "secondary"
 
         return 0
 
