@@ -122,6 +122,8 @@ def loadCustomizationFromDir(customDir, verbose=0, log=utils.stdinfo, execute=Fa
 
     if includeAllFiles and os.path.isdir(customDir):
         for f in os.listdir(customDir):
+            if os.path.isdir(os.path.join(customDir, f)):
+                continue
             if re.search(r"(^\.|\.pyc$|~$|pickle)", f):
                 continue
             if f in ("Makefile", "_caches_", "ups_db",):
