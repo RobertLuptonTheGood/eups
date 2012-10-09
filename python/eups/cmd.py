@@ -2573,10 +2573,12 @@ class DistribCreateCmd(EupsCmd):
                 rebuildProduct = myeups.findProduct(rebuildName, rebuildVersion)
                 if not rebuildProduct:
                     raise RuntimeError("I can't find product %s %s" % (rebuildName, rebuildVersion))
-                rebuildProductSet.remove(rebuildName)
-                if isDependent(rebuildProduct, rebuildProductSet):
-                    rebuildProducts[rebuildName] = self.incrBuildVersion(myeups, rebuildName, rebuildVersion)
-                rebuildProductSet.add(rebuildName)
+
+                rebuildProductDeps = myeups.getDependentProducts(rebuildProduct)
+                for p in rebuildProductDeps:
+                    if p[0].name in rebuildProductSet and p[0].version != rebuildProducts[p[0].name]:
+                        rebuildProducts[rebuildName] = self.incrBuildVersion(myeups, rebuildName,
+                                                                             rebuildVersion)
 
             #
             # We need a new letter version for the top-level product even if it needn't be rebuilt,
