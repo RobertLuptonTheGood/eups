@@ -3,6 +3,7 @@
 # The EUPS setup programme
 #
 import sys, os, re
+import eups.utils as utils
 
 sys.argv[0] = "eups"
 
@@ -26,19 +27,13 @@ except ImportError:
 
 from eups.utils import Color
     
-allowedDebugOptions = ["", "raise", "debug"]
-
 # parse the command line
 setup = eups.setupcmd.EupsSetup()
 
 # set debugging features
-debugOptions = re.split("[:,]", setup.opts.debug)
-for do in debugOptions:
-    if not do in allowedDebugOptions:
-        print >> sys.stderr, "Unknown debug option: %s; exiting" % do
-        sys.exit(1)
-eups.Eups.allowRaise = "raise" in debugOptions # n.b. may be set in a cmdHook
-eups.Eups.debugFlag = "debug" in debugOptions
+
+import eups.debug
+eups.debug.parseDebugOption(setup.opts.debug)
 
 # load any local customizations
 verbosity = setup.opts.verbose
@@ -49,7 +44,17 @@ eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(dbz=setup.opt
 # run the command
 try:
     # N.b. calling sys.exit here raises SystemExit which is caught...
-    status = setup.run()
+    if eups.Eups.profile:
+        try:
+            import cProfile as profile
+        except ImportError:
+            import profile
+        profile.run("status = setup.run()", eups.Eups.profile)
+        if verbosity > 0:
+            print >> utils.stdinfo, \
+                "You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile
+    else:
+        status = setup.run()
 except Exception, e:
     if eups.Eups.allowRaise:
         raise

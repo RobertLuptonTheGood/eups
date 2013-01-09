@@ -1,3 +1,6 @@
+2013-01-09 rhl
+       Committed support for --debug=profile (it was written I don't know when)
+
 2012-09-13 rhl
        Support eups distrib list -v prod [version] to list dependencies of specified product
 

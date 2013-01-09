@@ -27,19 +27,13 @@ import eups.cmd
 import eups.hooks
 import eups.utils as utils
 
-allowedDebugOptions = ["", "raise", "debug"]
-
 # parse the command line
 cmd = eups.cmd.EupsCmd()
 
 # set debugging features
-debugOptions = re.split("[:,]", cmd.opts.debug)
-for do in debugOptions:
-    if not do in allowedDebugOptions:
-        print >> utils.stderr, "Unknown debug option: %s; exiting" % do
-        sys.exit(1)
-eups.Eups.allowRaise = "raise" in debugOptions # n.b. may be set in a cmdHook
-eups.Eups.debugFlag = "debug" in debugOptions
+
+import eups.debug
+eups.debug.parseDebugOption(cmd.opts.debug)
 
 # load any local customizations
 verbosity = cmd.opts.verbose
@@ -50,7 +44,17 @@ eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(path=cmd.opts
 # run the command
 try:
     # N.b. calling sys.exit here raises SystemExit which is caught...
-    status = cmd.run() 
+    if eups.Eups.profile:
+        try:
+            import cProfile as profile
+        except ImportError:
+            import profile
+        profile.run("status = cmd.run()", eups.Eups.profile)
+        if verbosity > 0:
+            print >> utils.stdinfo, \
+                "You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile
+    else:
+        status = cmd.run() 
 except Exception, e:
     if eups.Eups.allowRaise:
         raise

@@ -94,7 +94,7 @@ product and all its dependencies into the environment so that it can be used.
                             help="The colon-separated list of product stacks (databases) to use. " +
                             "Default: $EUPS_PATH")
         self.clo.add_option("--debug", dest="debug", action="store", default="",
-                            help="turn on specified debugging behaviors (allowed: debug, raise)")
+                            help="turn on specified debugging behaviors (allowed: debug, profile, raise)")
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Don't use exact matching even though an explicit version is specified")
         self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
