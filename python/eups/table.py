@@ -302,10 +302,6 @@ but no other interpretation is applied
                 cmd = mat.group(1).lower()
                 args = re.sub(r'^"(.*)"$', r'\1', mat.group(2))
                 #
-                # Protect , by replacing it with "\003"
-                #
-                args = args.replace(r',', r'%c' % 3)
-                #
                 # Protect \" by replacing it with "\002"
                 #
                 args = args.replace(r'\"', r'%c' % 2)
@@ -317,6 +313,10 @@ but no other interpretation is applied
                 # Replace " " within quoted strings with \1 too
                 #
                 args = re.sub(r"(\"[^\"]+\")", lambda s: re.sub(" ", "\1", s.group(0)), args)
+                #
+                # Replace , within quoted strings with "\003"
+                #
+                args = re.sub(r"(\"[^\"]+\")", lambda s: re.sub(",", "%c" % 3, s.group(0)), args)
 
                 args = filter(lambda s: s, re.split("[, ]", args))
                 args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args) # remove quotes
