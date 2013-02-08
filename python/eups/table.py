@@ -792,6 +792,30 @@ class Action(object):
 
         return requestedVRO, productName, productDir, vers, versExpr, noRecursion
 
+    def expandEnvironmentalVariable(self, value, verbose=0):
+        # look for values that are optional environment variables: ${XXX} or $?{XXX}
+        # If desired, specify a default value as e.g. ${XXX-value}
+        # if they don't exist, ignore the entire line if marked optional; raise an error otherwise
+        varRE = r"\$(\?)?{([^-}]*)(?:-([^}]+))?}"
+        mat = re.search(varRE, value)
+        if not mat:
+            return value
+        
+        optional, key, default = mat.groups()
+
+        if os.environ.has_key(key):
+            return re.sub(varRE, os.environ[key], value)
+        elif default:
+            return re.sub(varRE, default, value)
+
+        if optional:
+            if verbose > 0:
+                print >> utils.stdinfo, "$%s is not defined; skipping line containing %s" % (key, value)
+
+            return None
+        else:
+            raise RuntimeError("$%s is not defined; unable to expand %s" % (key, value))           
+
     #
     # Here are the real execute routines
     #
@@ -802,6 +826,10 @@ class Action(object):
         silent = self.extra.get("silent", False)
 
         requestedVRO, productName, productDir, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
+        if productDir:
+            productDir = self.expandEnvironmentalVariable(productDir, Eups.verbose)
+            if productDir is None:
+                return
 
         Eups.pushStack("env")
         Eups.pushStack("vro", requestedVRO)
@@ -872,20 +900,8 @@ class Action(object):
         opath = filter(lambda el: el, opath.split(delim)) # strip extra : at start or end
 
         if fwd:
-            try:                            # look for values that are optional environment variables: $?{XXX}
-                                            # if they don't exist, ignore the entire line
-                varRE = r"^\$\?{([^}]*)}"                                            
-                key = re.search(varRE, value).group(1)
-                if os.environ.has_key(key):
-                    value = re.sub(varRE, os.environ[key], value)
-                else:
-                  if Eups.verbose > 0:
-                      print >> utils.stdinfo, "$%s is not defined; not setting %s" % (key, value)
-                  return
-            except AttributeError:
-                pass
-
-            if not value:
+            value = self.expandEnvironmentalVariable(value, Eups.verbose)
+            if value is None:
                 return
 
         if delim in value:
@@ -943,18 +959,9 @@ class Action(object):
             del Eups.oldEnviron[key]
 
         if fwd:
-            try:                            # look for values that are optional environment variables: $?{XXX}
-                                            # if they don't exist, ignore the entire line
-                varRE = r"^\$\?{([^}]*)}"
-                vkey = re.search(varRE, value).group(1)
-                if os.environ.has_key(vkey):
-                    value = re.sub(varRE, os.environ[vkey], value)
-                else:
-                    if Eups.verbose > 0:
-                        print >> utils.stdinfo, "$%s is not defined; not setting %s" % (vkey, key)
-                    return
-            except AttributeError:
-                pass
+            value = self.expandEnvironmentalVariable(value, Eups.verbose)
+            if not value:
+                return
 
             Eups.setEnv(key, value, interpolateEnv=True)
         else:
