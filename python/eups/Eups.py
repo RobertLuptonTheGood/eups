@@ -595,7 +595,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         for tag, owner in self.tags.owners.items():
             for p in self.path:
                 userCacheDir = utils.userStackCacheFor(p, userDataDir=utils.defaultUserDataDir(owner))
-                extraDb = Database(self.getUpsDB(p), userCacheDir)
+                extraDb = Database(self.getUpsDB(p), userCacheDir, owner=owner)
 
                 db.addUserTagDb(userCacheDir, p, userId=owner)
 

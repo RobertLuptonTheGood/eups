@@ -19,7 +19,7 @@ try:
 except NameError:
     _databases = {}                     # the actual Database objects, making Database(XXX) a singleton 
 
-def Database(dbpath, userTagRoot=None, defStackRoot=None):
+def Database(dbpath, userTagRoot=None, defStackRoot=None, owner=None):
     """Return the singleton _Database object identified by this function call's arguments
     
         @param dbpath        the full path to the directory (usually called 
@@ -37,6 +37,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None):
                                 it defaults to the parent directory of dbpath.
                                 Specify an empty string ("") is the default is 
                                 a bad assumption.
+        @param owner         the owner of the userTagRoot
         """
 
     if defStackRoot is None:
@@ -47,7 +48,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None):
         _databases[key] = _Database(dbpath, defStackRoot)
 
     if userTagRoot:
-        _databases[key].addUserTagDb(userTagRoot, defStackRoot)
+        _databases[key].addUserTagDb(userTagRoot, defStackRoot, userId=owner)
 
     return _databases[key]
 
