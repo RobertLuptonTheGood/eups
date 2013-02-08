@@ -1139,8 +1139,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                             return prod
                         else:
                             if self.verbose > 0:
-                                print >> utils.stdwarn, "Tag %s points to %s %s -Z %s, but is missing" % \
-                                      (tag, name, version, root)
+                                print >> utils.stdwarn, \
+                                    "Product %s's tag %s points to version %s in %s, which can't be found" % \
+                                    (name, tag, version, root)
+
                 except ProductNotFound:
                     # product by this name not found in this database
                     continue
