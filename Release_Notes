@@ -1,3 +1,11 @@
+2013-02-08 rhl
+       Permit environmental variables in setup{Optional,Required}.
+
+       Allow ${XXX} (no ?) when referencing environmental variables; abort if XXX is not defined
+
+2013-02-07 rhl
+       Fix bug whereby you couldn't use other-users' tags referring to shared stacks
+
 2013-01-09 rhl
        Committed support for --debug=profile (it was written I don't know when)
 
