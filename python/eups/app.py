@@ -702,7 +702,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                           (",".join(prefTags), taggedVersion.version, version)
             else:
                 if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
-                    if eupsenv.verbose > 0:
+                    if eupsenv.verbose >= 0:
                         extra = ""
                         if os.path.isfile(prefTags[0]):
                             extra = " in"
