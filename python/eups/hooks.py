@@ -32,10 +32,11 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer colorize", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags defaultTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer colorize", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
+config.Eups.defaultTags = dict(pre=[], post=[])
 config.Eups.preferredTags = ["version", "versionExpr", "current", "stable", "newest",]
 config.Eups.globalTags = ["current", "stable",]
 config.Eups.reservedTags = ["commandLine", "keep", "type",]

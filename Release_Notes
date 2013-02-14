@@ -1,3 +1,11 @@
+2013-02-13 rhl
+       Support
+           hooks.config.Eups.defaultTags = dict(pre=["XXX", "YYY"], post=["ZZZ"])
+       in startup.py to specify that setup, with no tags, is equivalent to
+           setup -t XXX,YYY -T ZZZ
+
+       N.b. you can disable this with setup -t None (or setup -t "")
+
 2013-02-08 rhl
        Permit environmental variables in setup{Optional,Required}.
 

@@ -1680,6 +1680,16 @@ products during installation.  Implies \code{-D}, and you may not
 specify a product name. \emph{N.b.} this is not the way to set up
 a local product --- use \code{setup --root dir [product]} (e.g. setup -r .).
 
+If you don't specify any tags (with either \code{--tag} (\code{-t}) or \code{--postTag} (\code{-T})) then
+\code{hooks.config.Eups.defaultTags} is consulted.  It's a dictionary with keys \code{pre} and \code{post};
+e.g. if you have
+\begin{verbatim}
+hooks.config.Eups.defaultTags["pre"] += ["rhl", "HSC"]
+hooks.config.Eups.defaultTags["post"] += ["v6_1"]
+\end{verbatim}
+in \file{startup.py}, then \code{setup foo} is exactly equivalent to \code{setup -t rhl,HSC -T v6\_1}.
+You can disable this default tag processing with \code{setup -t None} (or \code{setup -t ""}).
+
 If \eups detects an error, the file-to-source will be empty (i.e.
 the setup will be aborted) unless you specify \code{--force}.
 
