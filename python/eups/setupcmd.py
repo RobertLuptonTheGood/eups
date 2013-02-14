@@ -285,7 +285,8 @@ product and all its dependencies into the environment so that it can be used.
                                 print >> utils.stdinfo, "Resolved %s version -> %s" % (productName, versionName)
 
                 cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
-                                  Eups, fwd=not self.opts.unsetup, tablefile=tablefile)
+                                  Eups, fwd=not self.opts.unsetup, tablefile=tablefile,
+                                  postTags=self.opts.postTag)
 
             except EupsException, e:
                 e.status = 1

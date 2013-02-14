@@ -630,7 +630,7 @@ def osetup(Eups, productName, version=None, fwd=True, setupType=[]):
     return setup(productName, version, None, setupType, Eups, fwd)
 
 def setup(productName, version=None, prefTags=None, productRoot=None, 
-          eupsenv=None, fwd=True, tablefile=None, exact_version=False):
+          eupsenv=None, fwd=True, tablefile=None, exact_version=False, postTags=[]):
     """
     Return a set of shell commands which, when sourced, will setup a product.  
     (If fwd is false, unset it up.)
@@ -643,11 +643,8 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     @param version         the desired version of the product.  This can be
                              either a string giving an explicit version
                              or a Tag instance.  
-    @param prefTags        the preferred tags, in order, for choosing 
-                             versions of product dependencies.  If set,
-                             the Eups instance will be temporarily altered 
-                             to prepend this list to the Eups' set of 
-                             preferred tags.  
+    @param prefTags        the list of requested tags (n.b. the VRO already knows about them)
+    @param postTags        the list of requested post-tags (n.b. the VRO already knows about them)
     @param productRoot     the root directory where the product is installed.
                              If set, Eups will not consult its database for
                              the product's location, but rather set it up as
@@ -674,8 +671,15 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     elif isinstance(prefTags, Tag):
         prefTags = [prefTags]
 
+    if prefTags is None:
+        prefTags = []
+    if postTags is None:
+        postTags = []
+
     if prefTags:
         checkTagsList(eupsenv, prefTags)
+    if postTags:
+        checkTagsList(eupsenv, postTags)
 
     versionRequested = version
     ok, version, reason = eupsenv.setup(productName, version, fwd,
@@ -686,11 +690,17 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         #
         # Check that we got the desired tag
         #
-        if eupsenv.quiet <= 0 and prefTags and not versionRequested:
+        if eupsenv.quiet <= 0 and (prefTags or postTags) and not versionRequested:
+            taggedVersion = None
             for tag in prefTags:
                 taggedVersion = eupsenv.findTaggedProduct(productName, tag)
                 if taggedVersion:
                     break
+            if not taggedVersion:
+                for tag in postTags:
+                    taggedVersion = eupsenv.findTaggedProduct(productName, tag)
+                    if taggedVersion:
+                        break
 
             if taggedVersion:
                 if version == taggedVersion.version: # OK, we got it
@@ -699,16 +709,16 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                     pass
                 else:
                     print >> utils.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
-                          (",".join(prefTags), taggedVersion.version, version)
+                          (",".join(prefTags + postTags), taggedVersion.version, version)
             else:
                 if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
                     if (fwd and eupsenv.verbose >= 0) or (not fwd and eupsenv.verbose > 0):
                         extra = ""
-                        if os.path.isfile(prefTags[0]):
+                        if os.path.isfile((prefTags + postTags)[0]):
                             extra = " in"
 
                         print >> utils.stdwarn, "No versions of %s are tagged%s %s; setup version is %s" % \
-                              (productName, extra, ",".join(prefTags), version)
+                              (productName, extra, ",".join(prefTags + postTags), version)
 
         #
         # Set new variables
