@@ -71,9 +71,27 @@ CREATE TABLE dependencies (
         raise
 
     cmd = """
+CREATE TABLE tagNames (
+   tid INTEGER PRIMARY KEY,
+   name TEXT,
+   fullname TEXT,
+   isGlobal BOOLEAN,
+   owner TEXT
+)
+"""
+    try:
+        conn.execute(cmd)
+        conn.commit()
+    except:
+        conn.close()
+        raise
+
+    cmd = """
 CREATE TABLE tags (
-   id INTEGER PRIMARY KEY,
-   name TEXT
+   id INTEGER,
+   tid INTEGER,
+   FOREIGN KEY(id)    REFERENCES products(id),
+   FOREIGN KEY(tid)   REFERENCES tagNames(tid)
 )
 """
     try:
@@ -104,6 +122,16 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
                 pid1 = result[0]
         else:
             pid1 = insert_product(cursor, product.name, product.version, product.dir)
+            for t in product.tags:
+                cursor.execute("SELECT tid FROM tagNames WHERE fullname = ?", (t,))
+                try:
+                    tid = cursor.fetchone()[0]
+                except TypeError:
+                    print >> utils.stdwarn, \
+                        "Unable to find tag %s for %s:%s" % (t, product.name, product.version)
+                    continue
+
+                cursor.execute("INSERT INTO tags VALUES (?, ?)", (pid1, tid))
 
         for p, v in dependencies:
             cursor.execute("SELECT id FROM products WHERE name = ? AND version = ?", (p, v))
@@ -123,19 +151,53 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
     finally:
         conn.close()
 
-    
-def listProducts(name=None, version=None, dependencies=False, flavor=None, outFile=None):
+def getTags(conn, pid):
+    cursor = conn.cursor()
+
+    query = """
+SELECT tagNames.name
+FROM products JOIN tags     ON products.id  = tags.id
+              JOIN tagNames ON tagNames.tid = tags.tid
+WHERE
+   products.id = ?
+"""
+    tagNames = []
+    for line in cursor.execute(query, (pid,)):
+        tagNames.append(line[0])
+
+    return tagNames
+
+def formatProduct(name, version, productTagNames, depth):
+    """Format a line describing a product"""
+    pstr = "%-30s %-16s" % (("%s%s" % (depth*" ", name)), version)
+
+    if productTagNames:
+        pstr += " "
+        pstr += ", ".join(productTagNames)
+
+    return pstr
+
+def listProducts(name=None, version=None, showDependencies=False, showTags=False,
+                 tag=None, flavor=None, outFile=None):
+
     conn = getConnection()
 
-    query = "SELECT id, name, version FROM products"
+    query = "SELECT products.id, products.name, products.version FROM products"
 
-    if name or version:
-        where = []
-        if name:
-            where.append("name = :name")
-        if version:
-            where.append("version = :version")
+    where = []
+    if name:
+        where.append("products.name = :name")
+    if tag:
+        query += """ JOIN tags     ON products.id  = tags.id
+                     JOIN tagNames ON tagNames.tid = tags.tid"""
+
+        where.append("tagNames.name = :tag")
+    if version:
+        where.append("products.version = :version")
+
+    if where:
         query += " WHERE " + " AND ".join(where)
+    query += " ORDER BY products.name"
 
     if outFile is None:
         fd = sys.stderr
@@ -148,17 +210,20 @@ def listProducts(name=None, version=None, dependencies=False, flavor=None, outFi
 
     try:
         cursor = conn.cursor()
-        for line in cursor.execute(query, dict(name=name, version=version)):
-            pid, p, v = line
-            print >> fd, p, v
+        for line in cursor.execute(query, dict(name=name, version=version, tag=tag)):
+            pid, n, v = line
+            productTagNames = getTags(conn, pid) if showTags else None
 
-            if not dependencies:
+            depth = 0
+            print >> fd, formatProduct(n, v, productTagNames, depth)
+
+            if not showDependencies:
                 continue
             
-            depth = 0
-            for p, v, depth in _getDependencies(conn, pid, depth, {defaultProductName : 1}, flavor):
-                print >> fd, "%-30s %s" % (("%s%s" % (depth*" ", p)), v)
-
+            for dpid, n, v, depth in _getDependencies(conn, pid, depth, {defaultProductName : 1},
+                                                      flavor, tag):
+                productTagNames = getTags(conn, dpid) if showTags else None
+                print >> fd, formatProduct(n, v, productTagNames, depth)
     except Exception, e:
         print e
         import pdb; pdb.set_trace() 
@@ -166,7 +231,7 @@ def listProducts(name=None, version=None, dependencies=False, flavor=None, outFi
         del fd
         conn.close()
 
-def _getDependencies(conn, pid, depth, listedProducts, flavor):
+def _getDependencies(conn, pid, depth, listedProducts, flavor, tag):
 
     depth += 1
 
@@ -174,26 +239,40 @@ def _getDependencies(conn, pid, depth, listedProducts, flavor):
 
     query = """
 SELECT
-   products.id, name, version, missing
+   products.id, products.name, version, missing
 FROM
    products JOIN dependencies ON dependency = products.id
 WHERE
-   dependencies.id = ?
+   dependencies.id = :pid
 """
 
     deps = []
-    for dpid, p, v, missing in depCursor.execute(query, (pid,)):
+    for dpid, p, v, missing in depCursor.execute(query, dict(pid=pid, tag=tag)):
         if listedProducts.get(p):
             continue
         if missing:
             print >> utils.stdwarn, "Unable to find %s %s for flavor %s" % (p, v, flavor)
             continue
 
-        deps.append((p, v, depth))
+        deps.append((dpid, p, v, depth))
         listedProducts[p] = v
-        deps += _getDependencies(conn, dpid, depth, listedProducts, flavor)
+        deps += _getDependencies(conn, dpid, depth, listedProducts, flavor, tag)
 
     return deps
+    
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def listTags():
+    conn = getConnection()
+
+    cursor = conn.cursor()
+
+    for line in cursor.execute("SELECT name, isGlobal, owner FROM tagNames"):
+        name, isGlobal, owner = line
+
+        print "%-10s" % (name)
+
+    conn.close()
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -208,8 +287,21 @@ def build(eupsPathDirs=None, flavors=None):
 
     if flavors is None:
         flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
+    #
+    # Fill tagNames table first as we'll fill the join table "tags" as we process the products
+    #
+    conn = getConnection()
+    cursor = conn.cursor()
 
+    for t in Eups.tags.getTags():
+        if t.isPseudo():
+            continue
+        cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)", (t.name, str(t), t.isGlobal(), ""))
+    conn.commit()
+    conn.close()
+    #
     # Iterate through each stack path
+    #
     productList = []
     for d in eupsPathDirs:
         if not Eups.versions.has_key(d):
@@ -238,14 +330,14 @@ def build(eupsPathDirs=None, flavors=None):
         if pi == defaultProduct:
             continue
 
+        insertProduct(pi)               # we'll add the dependencies later
+
         try:
             dependentProducts = Eups.getDependentProducts(pi)
         except TableError, e:
             if not Eups.quiet:
                 print >> utils.stdwarn, ("Warning: %s" % (e))
             continue
-
-        insertProduct(pi)                     # we'll add the dependencies later
 
         dependencies[pi] = [(dp.name, dp.version) for dp, optional, depth in dependentProducts if
                             dp not in defaultProductList]
