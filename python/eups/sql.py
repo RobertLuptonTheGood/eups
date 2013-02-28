@@ -294,12 +294,23 @@ def listProducts(name=None, version=None, tag=None,
     else:
         fd = open(outFile, "w")
 
-    defaultProductName = findDefaultProducts()[0]
+    Eups = eupsCmd.EupsCmd().createEups()
+    defaultProductName = findDefaultProducts(Eups)[0]
+
+    def my_version_cmp(a, b):           # comparison function for list returned by queryForProducts
+        na = a[1]; nb = b[1]            # product name
+        compar = cmp(na, nb)
+        if compar != 0:
+            return compar
+        else:
+            va = a[2]; vb = b[2]        # product version
+            return Eups.version_cmp(va, vb)
 
     conn = getConnection()
     try:
-        for line in queryForProducts(conn, name, version, tag):
-            pid, n, v, missing = line
+        productList = sorted(queryForProducts(conn, name, version, tag), my_version_cmp)
+            
+        for pid, n, v, missing in productList:
             if missing and not showMissing:
                 continue
 
