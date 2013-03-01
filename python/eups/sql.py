@@ -15,6 +15,29 @@ try:
 except NameError:
     _eupsDatabaseFile = None
 
+class ProductInfo(object):
+    def __init__(self, name, version, productTagNames, missing, depth):
+        self.name = name
+        self.version = version
+        self.productTagNames = productTagNames
+        self.depth = depth
+        self.missing = missing
+
+    def format(self):
+        """Format a line describing a product"""
+        pstr = "%-30s %-16s" % (("%s%s" % (self.depth*" ", self.name)), self.version)
+
+        if self.missing is not None:
+            pstr += " %11s" % ("(not found)" if self.missing else "")
+
+        if self.productTagNames:
+            pstr += " "
+            pstr += ", ".join(productTagNames)
+
+        return pstr
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def setDatabaseFile(fileName):
     global _eupsDatabaseFile
     _eupsDatabaseFile = fileName
@@ -249,19 +272,6 @@ WHERE
 
     return tagNames
 
-def formatProduct(name, version, productTagNames, depth, missing=None):
-    """Format a line describing a product"""
-    pstr = "%-30s %-16s" % (("%s%s" % (depth*" ", name)), version)
-
-    if missing is not None:
-        pstr += " %11s" % ("(not found)" if missing else "")
-
-    if productTagNames:
-        pstr += " "
-        pstr += ", ".join(productTagNames)
-
-    return pstr
-
 def queryForProducts(conn, name=None, version=None, tag=None):
     query = "SELECT products.id, products.name, products.version, products.missing FROM products"
 
@@ -285,6 +295,8 @@ def queryForProducts(conn, name=None, version=None, tag=None):
 
     return cursor.fetchall()
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
 def listProducts(name=None, version=None, tag=None,
                  flavor=None, outFile=None,
                  showDependencies=False, showTags=False, showMissing=False
@@ -294,6 +306,20 @@ def listProducts(name=None, version=None, tag=None,
     else:
         fd = open(outFile, "w")
 
+    try:
+        for pinfo in _listProducts(name, version, tag, flavor, showDependencies, showTags, showMissing):
+            if pinfo.missing and not showMissing:
+                continue
+            
+            print >> fd, pinfo.format()
+    finally:
+        del fd
+
+def _listProducts(name=None, version=None, tag=None,
+                  flavor=None, showDependencies=False, showTags=False, showMissing=False
+                 ):
+    """Worker routine for listProducts"""
+    
     Eups = eupsCmd.EupsCmd().createEups()
     defaultProductName = findDefaultProducts(Eups)[0]
 
@@ -307,6 +333,7 @@ def listProducts(name=None, version=None, tag=None,
             return Eups.version_cmp(va, vb)
 
     conn = getConnection()
+    res = []
     try:
         productList = sorted(queryForProducts(conn, name, version, tag), my_version_cmp)
             
@@ -317,21 +344,22 @@ def listProducts(name=None, version=None, tag=None,
             productTagNames = getTags(conn, pid) if showTags else None
 
             depth = 0
-            print >> fd, formatProduct(n, v, productTagNames, depth, missing if showMissing else None)
+            res.append(ProductInfo(n, v, productTagNames, missing, depth=depth))
 
             if not showDependencies:
                 continue
             
-            for dpid, n, v, depth in _getDependencies(conn, pid, depth, {defaultProductName : 1},
-                                                      flavor, tag):
+            for dpid, n, v, depth, missing in _getDependencies(conn, pid, depth, {defaultProductName : 1},
+                                                               flavor, tag):
                 productTagNames = getTags(conn, dpid) if showTags else None
-                print >> fd, formatProduct(n, v, productTagNames, depth)
+                res.append(ProductInfo(n, v, productTagNames, missing, depth=depth))
     except Exception, e:
         print e
         import pdb; pdb.set_trace() 
     finally:
-        del fd
         conn.close()
+
+    return res                           
 
 def _getDependencies(conn, pid, depth, listedProducts, flavor, tag=None):
 
@@ -356,7 +384,7 @@ WHERE
             print >> utils.stdwarn, "Unable to find %s %s for flavor %s" % (p, v, flavor)
             continue
 
-        deps.append((dpid, p, v, depth))
+        deps.append((dpid, p, v, depth, missing))
         listedProducts[p] = v
         deps += _getDependencies(conn, dpid, depth, listedProducts, flavor, tag)
 
@@ -366,6 +394,12 @@ WHERE
 
 def uses(name, version=None, tag=None, flavor=None):
     """Tell me who uses this product"""
+
+    for consumer, versions in _uses(name, version, tag, flavor):
+        print "%-30s %s" % (consumer, ", ".join(versions))
+
+def _uses(name, version=None, tag=None, flavor=None):
+    """Worker routine for uses"""
 
     conn = getConnection()
     products = queryForProducts(conn, name, version, tag)
@@ -390,10 +424,13 @@ def uses(name, version=None, tag=None, flavor=None):
 
     listedProducts = {}
     _getConsumers(conn, pid, listedProducts, flavor)
+    res = []
     for n in sorted(listedProducts.keys()):
-        print "%-20s %s" % (n, ", ".join(sorted(listedProducts[n], Eups.version_cmp)))
+        res.append([n, sorted(listedProducts[n], Eups.version_cmp)])
 
     conn.close()
+
+    return res
 
 def _getConsumers(conn, pid, listedProducts, flavor):
     """Insert all products that depend on product with id pid into dict listedProducts; the values
@@ -424,16 +461,25 @@ WHERE
 
 def listTags():
     """List all known tags"""
+
+    for name in _listTags():
+        print "%-10s" % (name)
+
+def _listTags():
+    """List all known tags"""
     conn = getConnection()
 
     cursor = conn.cursor()
 
+    res = []
     for line in cursor.execute("SELECT name, isGlobal, owner FROM tagNames"):
         name, isGlobal, owner = line
 
-        print "%-10s" % (name)
+        res.append(name)
 
     conn.close()
+
+    return res
     
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
