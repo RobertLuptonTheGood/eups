@@ -259,7 +259,8 @@ product and all its dependencies into the environment so that it can be used.
                                  max_depth=self.opts.max_depth, vro=self.opts.vro,
                                  exact_version=self.opts.exact_version, cmdName="setup")
 
-                self._processDefaultTags()
+                if not self.opts.unsetup:
+                    self._processDefaultTags()
 
                 try:
                     eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
