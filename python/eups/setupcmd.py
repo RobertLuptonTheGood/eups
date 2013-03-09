@@ -143,30 +143,6 @@ product and all its dependencies into the environment so that it can be used.
         self.clo.add_option("--vro", dest="vro", action="store", metavar="LIST",
                             help="Set the Version Resolution Order")
 
-    def _processDefaultTags(self):
-        """Handle any default tags defined as hooks"""
-        if self.opts.tag in (["None"], [""]):
-            self.opts.tag = None
-            return
-
-        for k in hooks.config.Eups.defaultTags.keys():
-            if k not in ("pre", "post",):
-                print >> utils.stdwarn, \
-                    "Ignoring unexpected key \"%s\" in hooks.config.Eups.defaultTags" % k       
-
-        if not self.opts.tag and not self.opts.postTag:
-            self.opts.tag = hooks.config.Eups.defaultTags["pre"]
-            self.opts.postTag = hooks.config.Eups.defaultTags["post"]
-
-            if self.opts.verbose >= 0 and (self.opts.tag or self.opts.postTag):
-                msg = "Adding default tags:"
-                tagMsg = []
-                if self.opts.tag:
-                    tagMsg.append("%s" % (", ".join(self.opts.tag)))
-                if self.opts.postTag:
-                    tagMsg.append("%s" % (", ".join(self.opts.postTag)))
-
-                print >> utils.stdinfo, msg, "; ".join(tagMsg)
 
     def execute(self):
         productName = versionName = None
@@ -259,8 +235,7 @@ product and all its dependencies into the environment so that it can be used.
                                  max_depth=self.opts.max_depth, vro=self.opts.vro,
                                  exact_version=self.opts.exact_version, cmdName="setup")
 
-                if not self.opts.unsetup:
-                    self._processDefaultTags()
+                Eups._processDefaultTags(self.opts)
 
                 try:
                     eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
