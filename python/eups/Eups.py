@@ -68,6 +68,37 @@ class Eups(object):
 
     setEupsPath = staticmethod(setEupsPath)
 
+    # staticmethod;  would use a decorator if we knew we had a new enough python
+    def _processDefaultTags(opts):
+        """Handle any default tags defined as hooks"""
+        if opts.tag in (["None"], [""]):
+            opts.tag = None
+            return
+
+        for k in hooks.config.Eups.defaultTags.keys():
+            if k not in ("pre", "post",):
+                print >> utils.stdwarn, \
+                    "Ignoring unexpected key \"%s\" in hooks.config.Eups.defaultTags" % k       
+
+        if not hasattr(opts, "postTag"):
+            opts.postTag = []
+        if not opts.tag and not opts.postTag:
+            opts.tag = hooks.config.Eups.defaultTags["pre"]
+            opts.postTag = hooks.config.Eups.defaultTags["post"]
+
+            if opts.verbose >= 0 and (opts.tag or opts.postTag):
+                msg = "Adding default tags:"
+                tagMsg = []
+                if opts.tag:
+                    tagMsg.append("%s" % (", ".join(opts.tag)))
+                if opts.postTag:
+                    tagMsg.append("%s" % (", ".join(opts.postTag)))
+
+                if not (hasattr(opts, "unsetup") and opts.unsetup):
+                    print >> utils.stdinfo, msg, "; ".join(tagMsg)
+
+    _processDefaultTags = staticmethod(_processDefaultTags)
+
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=0, quiet=0,
                  noaction=False, force=False, ignore_versions=False,

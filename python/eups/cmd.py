@@ -2746,6 +2746,8 @@ same arguments.
             myeups = eups.Eups(readCache=True, force=self.opts.force, setupType=setupType,
                                exact_version=self.opts.exact_version)
 
+        myeups._processDefaultTags(self.opts)
+        
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
                          postTag=self.opts.postTag)
 
