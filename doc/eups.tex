@@ -396,6 +396,13 @@ path versionExpr rhl warn current
 \end{verbatim}
 If you need even more complete control, use the \code{--vro} command.
 
+Post-tags are useful when you want exact products, but you don't want to have to search your email for
+the name of currently-blessed version, e.g. \code{afw 6.1.3.1}.  You might think of tagging it with
+\code{rhl}: \code{eups declare -t rhl afw 6.1.3.1; setup -t rhl afw} and that would work until you
+tagged some dependent product \code{rhl} --- at that point you'd get both of your tagged products.  The
+solution is to make the tag only apply if no version is known, in other words put the tag \textit{after}
+\code{version} in the \code{vro}.  And this is exactly what \code{-T rhl} does.
+
 As an alternative declaring a version with a known tagname, the `tagname' in \code{-t \textit{tagname}} may be a file
 consisting of pairs \code{product version ...} such as that produced with the
 \code{eups list --setup} command
@@ -408,10 +415,22 @@ $ eups list --setup > mysetups.txt
 $ emacs mysetups.txt       # remove products I don't care about
 $ setup -t mysetups.txt afw
 \end{verbatim}
-and then tell her to repeat that last line.
+and then tell her to repeat that last line.  If she wants to use some of her bug-fixed versions in conjunction
+with my versions, she'd say \code{setup -t lynda -t mysetups.txt afw} which is why this approach is often
+better than just sourcing a set of \code{setup -j XXX} lines.
 
-You can use a callback function to specify a set of tags that should always be used; there's an example in
-section \ref{defaultTags}.
+\subsubsection{Specifying default Tags}
+\label{defaultTags}
+
+If you don't specify any tags to the \code{setup} (or \code{eups vro}) command (with either \code{--tag} (\code{-t}) or \code{--postTag} (\code{-T})) then
+\code{hooks.config.Eups.defaultTags} is consulted.  It's a dictionary with keys \code{pre} and \code{post};
+e.g. if you have
+\begin{verbatim}
+hooks.config.Eups.defaultTags["pre"] += ["rhl", "HSC"]
+hooks.config.Eups.defaultTags["post"] += ["v6_1"]
+\end{verbatim}
+in \file{startup.py}, then \code{setup foo} is exactly equivalent to \code{setup -t rhl,HSC -T v6\_1}.
+You can disable this default tag processing with \code{--tag None} (or \code{--tag ""}).
 
 \section{How do I Actually Use this System to Manage Code?}
 
@@ -620,10 +639,13 @@ These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
     \code{hooks.config.Eups.reservedTags += ["stable"]}
 
     \item[userTags]
-      XXX
+      Permitted user tags.  See Sec. \ref{tags}.
     \item[preferredTags]
       XXX
+    \item[defaultTags]
+      A dict indexed by \code{pre} and \code{post}.  See Sec. \ref{defaultTags}.
     \item[globalTags]
+      Defined global tags.  See Sec. \ref{tags}.
     \item[reservedTags]
     \item[verbose]
     \item[asAdmin]
@@ -667,7 +689,6 @@ The arguments to the callbacks are:
 \end{description}
 
 For example, you could put something like this in a \file{startup.py} file:
-\label{defaultTags}
 \begin{verbatim}
 import eups
 
@@ -680,7 +701,7 @@ def cmdHook(Eups, cmd, opts, args):
         return
 
     if Eups and cmd == "setup":
-        if not opts.tag:
+        if not opts.tag:              # see also config.Eups.defaultTags
             opts.tag = ["rhl", "Winter2012c", "beta"]
 
             if opts.verbose >= 0:
@@ -688,6 +709,9 @@ def cmdHook(Eups, cmd, opts, args):
                 print >> utils.stdinfo, "Adding default tags: %s" % (", ".join(opts.tag))
 eups.commandCallbacks.add(cmdHook)
 \end{verbatim}
+
+(Since this was written a configuration option, \code{hooks.config.Eups.defaultTags}, was added
+to support default tags without writing a callback.)
 
 \subsubsection{Colour}
 \label{color}
@@ -1679,16 +1703,6 @@ even be declared to \eups; this is useful for setting up dependent
 products during installation.  Implies \code{-D}, and you may not
 specify a product name. \emph{N.b.} this is not the way to set up
 a local product --- use \code{setup --root dir [product]} (e.g. setup -r .).
-
-If you don't specify any tags (with either \code{--tag} (\code{-t}) or \code{--postTag} (\code{-T})) then
-\code{hooks.config.Eups.defaultTags} is consulted.  It's a dictionary with keys \code{pre} and \code{post};
-e.g. if you have
-\begin{verbatim}
-hooks.config.Eups.defaultTags["pre"] += ["rhl", "HSC"]
-hooks.config.Eups.defaultTags["post"] += ["v6_1"]
-\end{verbatim}
-in \file{startup.py}, then \code{setup foo} is exactly equivalent to \code{setup -t rhl,HSC -T v6\_1}.
-You can disable this default tag processing with \code{setup -t None} (or \code{setup -t ""}).
 
 If \eups detects an error, the file-to-source will be empty (i.e.
 the setup will be aborted) unless you specify \code{--force}.
