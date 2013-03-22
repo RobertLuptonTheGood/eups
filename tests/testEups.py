@@ -292,8 +292,12 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prod.tags), 0)
 
         # test redeclare w/change of product dir
-        self.assertRaises(EupsException, self.eups.declare, 
-                          "newprod", "1.1", pdir10, None, table, tag="beta")
+        prod = self.eups.findProduct("newprod", "1.1")
+        self.assertRaises(EupsException, self.eups.declare, "newprod", "1.1", pdir10, None, table)
+        # we can move the tag but not the directory
+        self.eups.declare("newprod", "1.0", pdir11, None, table, tag="beta")
+        self.assertEquals(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir10)
+        # ...unless we force it
         self.eups.force = True
         self.eups.declare("newprod", "1.1", pdir10, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", "1.1")
