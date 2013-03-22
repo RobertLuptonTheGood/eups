@@ -64,10 +64,11 @@ class EupsTestCase(unittest.TestCase):
         os.environ = self.environ0
 
     def testInit(self):
-        self.assertEquals(len(self.eups.path), 1)
+        self.assertEquals(len(self.eups.path), 2)
         self.assertEquals(self.eups.path[0], testEupsStack)
+        self.assertEquals(self.eups.path[1], os.environ["EUPS_USERDATA"])
         self.assertEquals(self.eups.getUpsDB(testEupsStack), self.dbpath)
-        self.assertEquals(len(self.eups.versions.keys()), 1)
+        self.assertEquals(len(self.eups.versions), 2)
         self.assert_(self.eups.versions.has_key(testEupsStack))
         self.assert_(self.eups.versions[testEupsStack] is not None)
 
