@@ -14,6 +14,7 @@ from testCommon import testEupsStack
 
 import eups.cmd
 import eups.lock as lock
+import eups.hooks as hooks
 from eups import Tag, TagNotRecognized
 
 prog = "eups"
@@ -399,6 +400,7 @@ class SetupCmdTestCase(unittest.TestCase):
         pdir11 = os.path.join(pdir, "1.1")
 
         cmd = "-r %s newprod" % pdir11
+        hooks.config.Eups.defaultTags = dict(pre=[], post=[]) # disable any defined in the startup.py file
         cmd = eups.setupcmd.EupsSetup(args=cmd.split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         
