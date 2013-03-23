@@ -164,86 +164,90 @@ but no other interpretation is applied
     def expandEupsVariables(self, product, quiet=False):
         """Expand eups-related variables such as $PRODUCT_DIR"""
 
-        for logical, ifBlock, elseBlock in self._actions: 
-            for a in ifBlock + elseBlock:
-                for i in range(len(a.args)):
-                    value = a.args[i]
+        for actions in self._actions: 
+            for logicalOrBlock in actions:
+                if not isinstance(logicalOrBlock, list): # a logical expression as a string
+                    continue
 
-                    root = product.stackRoot()
-                    if root:
-                        value = re.sub(r"\${PRODUCTS}", root, value)
-                    elif re.search(r"\${PRODUCTS}", value):
-                        if not quiet:
-                            print >> utils.stderr, "Unable to expand PRODUCTS in %s" % self.file
+                for a in logicalOrBlock:
+                    for i in range(len(a.args)):
+                        value = a.args[i]
 
-                    mat = re.search(r"(\$(\?)?{PRODUCT_DIR(_EXTRA)?})", value)
-                    if mat:
-                        var = mat.group(1)
-                        optional = mat.group(2)
-                        extra = mat.group(3)
-                        if extra:
-                            newValue = product.extraProductDir()
-                            if optional and not os.path.exists(newValue):
-                                newValue = None
-                        else:
-                            newValue = product.dir
-                            if optional and newValue == "none":
-                                newValue = None
-                        
-                        if newValue:
-                            value = re.sub(re.sub(r"([$?.])", r"\\\1", var), newValue, value)
-                        else:
-                            if not optional and not quiet:
-                                print >> utils.stderr, "Unable to expand %s in %s" % (var, self.file)
-                    #
-                    # Be nice; they should say PRODUCT_DIR but sometimes PRODUCT is spelled out, e.g. EUPS_DIR
-                    #
-                    regexp = r"\${%s}" % utils.dirEnvNameFor(product.name)
-                    if re.search(regexp, value):
-                        if product.dir:
-                            value = re.sub(regexp, product.dir, value)
-                        else:
+                        root = product.stackRoot()
+                        if root:
+                            value = re.sub(r"\${PRODUCTS}", root, value)
+                        elif re.search(r"\${PRODUCTS}", value):
                             if not quiet:
-                                print >> utils.stdwarn, "Unable to expand %s in %s" % \
-                                      (self.file, utils.dirEnvNameFor(product.name))
+                                print >> utils.stderr, "Unable to expand PRODUCTS in %s" % self.file
 
-                    if product.flavor:
-                        value = re.sub(r"\${PRODUCT_FLAVOR}", product.flavor, value)
-                    elif re.search(r"\${PRODUCT_FLAVOR}", value):
-                        if not quiet:
-                            print >> utils.stdwarn, "Unable to expand PRODUCT_FLAVOR in %s" % self.file
+                        mat = re.search(r"(\$(\?)?{PRODUCT_DIR(_EXTRA)?})", value)
+                        if mat:
+                            var = mat.group(1)
+                            optional = mat.group(2)
+                            extra = mat.group(3)
+                            if extra:
+                                newValue = product.extraProductDir()
+                                if optional and not os.path.exists(newValue):
+                                    newValue = None
+                            else:
+                                newValue = product.dir
+                                if optional and newValue == "none":
+                                    newValue = None
 
-                    value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
-                    if re.search(r"\${PRODUCT_VERSION}", value):
-                        if product.version:
-                            value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
-                        else:
+                            if newValue:
+                                value = re.sub(re.sub(r"([$?.])", r"\\\1", var), newValue, value)
+                            else:
+                                if not optional and not quiet:
+                                    print >> utils.stderr, "Unable to expand %s in %s" % (var, self.file)
+                        #
+                        # Be nice; they should say PRODUCT_DIR but sometimes PRODUCT is spelled out, e.g. EUPS_DIR
+                        #
+                        regexp = r"\${%s}" % utils.dirEnvNameFor(product.name)
+                        if re.search(regexp, value):
+                            if product.dir:
+                                value = re.sub(regexp, product.dir, value)
+                            else:
+                                if not quiet:
+                                    print >> utils.stdwarn, "Unable to expand %s in %s" % \
+                                          (self.file, utils.dirEnvNameFor(product.name))
+
+                        if product.flavor:
+                            value = re.sub(r"\${PRODUCT_FLAVOR}", product.flavor, value)
+                        elif re.search(r"\${PRODUCT_FLAVOR}", value):
                             if not quiet:
-                                print >> utils.stdwarn, "Unable to expand PRODUCT_VERSION in %s" % self.file
+                                print >> utils.stdwarn, "Unable to expand PRODUCT_FLAVOR in %s" % self.file
 
-                    value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
-                    #
-                    # EUPS_PATH is really an environment variable, but handle it here
-                    # if the user chose to subscript it, e.g. ${EUPS_PATH[0]}
-                    #
-                    mat = re.search(r"\${EUPS_PATH\[(\d+)\]}", value)
-                    if mat:
-                        ind = int(mat.group(1))
-                        value = re.sub(r"\[(\d+)\]}$", "", value) + "}"
+                        value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
+                        if re.search(r"\${PRODUCT_VERSION}", value):
+                            if product.version:
+                                value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
+                            else:
+                                if not quiet:
+                                    print >> utils.stdwarn, "Unable to expand PRODUCT_VERSION in %s" % self.file
 
-                        if not os.environ.has_key("EUPS_PATH"):
-                            if not quiet:
-                                print >> utils.stdwarn, "%s is not defined; not setting %s" % (value, a.args[0])
-                            continue
+                        value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
+                        #
+                        # EUPS_PATH is really an environment variable, but handle it here
+                        # if the user chose to subscript it, e.g. ${EUPS_PATH[0]}
+                        #
+                        mat = re.search(r"\${EUPS_PATH\[(\d+)\]}", value)
+                        if mat:
+                            ind = int(mat.group(1))
+                            value = re.sub(r"\[(\d+)\]}$", "", value) + "}"
 
-                        try:
-                            value = os.environ["EUPS_PATH"].split(":")[ind]
-                        except IndexError:
-                            if product.Eups.verbose > 0 and not quiet:
-                                print >> utils.stderr, "Invalid index %d for \"%s\"; not setting %s" % \
-                                      (ind, os.environ["EUPS_PATH"], a.args[0])
+                            if not os.environ.has_key("EUPS_PATH"):
+                                if not quiet:
+                                    print >> utils.stdwarn, "%s is not defined; not setting %s" % (value, a.args[0])
+                                continue
 
-                    a.args[i] = value
+                            try:
+                                value = os.environ["EUPS_PATH"].split(":")[ind]
+                            except IndexError:
+                                if product.Eups.verbose > 0 and not quiet:
+                                    print >> utils.stderr, "Invalid index %d for \"%s\"; not setting %s" % \
+                                          (ind, os.environ["EUPS_PATH"], a.args[0])
+
+                        a.args[i] = value
 
         return self
     
@@ -261,30 +265,46 @@ but no other interpretation is applied
         contents = fd.readlines()
         contents = self._rewrite(contents)
 
-        logical = "True"                 # logical condition required to execute block
+        logical = "True"                # logical condition required to execute block
         block = []
         ifBlock = []
+        logicalBlocks = []              # list of [logical1, action1, (logical2, action2)*, actionN]
+                                        # corresponding to
+                                        # if(logical1) {
+                                        #    action1
+                                        # } else if(logical2} {
+                                        #    action2
+                                        # } else {
+                                        #    actionN
+                                        # }
         for lineNo, line in contents:
-            if False:
-                print line
-                continue
             #
             # Is this the start of a logical condition?
             #
-            mat = re.search(r"^(?:if\s*\((.*)\)\s*{\s*|}\s*(?:(else)\s*{)?)$", line, re.IGNORECASE)
+            mat = re.search(r"^(?:if\s*\((.*)\)\s*{\s*|}\s*(?:(else(?:\s*if\s*\((.*)\))?)\s*{)?)$", \
+                                line, re.IGNORECASE)
             if mat:
                 if block:
                     if mat.group(2) == "else": # i.e. we saw an } else {
                         ifBlock = block
-                    else:
+                    elif mat.group(3) != None: # i.e. we saw an } else if (...) {
+                        logicalBlocks += [logical, block,]
+                        block = False
+                        logical = mat.group(3)
+                    else:               # we saw an }
                         if ifBlock:
                             elseBlock = block
                         else:
                             ifBlock = block
                             elseBlock = []
                             
-                        self._actions += [(logical, ifBlock, elseBlock)]
-                        ifBlock = []
+                        logicalBlocks += [logical, ifBlock, elseBlock,]
+
+                        if logicalBlocks and mat.group(1) != None:
+                            self._actions.append(logicalBlocks)
+                            ifBlock = []
+                            logicalBlocks = []
+                        
                     block = []
 
                 if mat.group(1) != None:
@@ -292,6 +312,10 @@ but no other interpretation is applied
                 else:
                     if mat.group(2) == None:   # we got to }
                         logical = "True"
+                        if logicalBlocks:
+                            self._actions.append(logicalBlocks)
+                            ifBlock = []
+                            logicalBlocks = []
 
                 continue
             #
@@ -415,6 +439,8 @@ but no other interpretation is applied
         #
         # Push any remaining actions onto current logical block
         #
+        if logicalBlocks:
+            self._actions.append(logicalBlocks)
         if block:
             self._actions += [(logical, block, [])]
         #
@@ -440,16 +466,23 @@ but no other interpretation is applied
         if not self._actions:
             return actions
 
-        for logical, ifBlock, elseBlock in self._actions:
-            parser = VersionParser(logical)
-            parser.define("flavor", flavor)
-            if setupType:
-                parser.define("type", setupType)
+        for LBB in self._actions:       # LBB: Logical Block Block[s]
+            while LBB:
+                logical, ifBlock, elseBlock = LBB[0], LBB[1], LBB[2:]
+                parser = VersionParser(logical)
+                parser.define("flavor", flavor)
+                if setupType:
+                    parser.define("type", setupType)
 
-            if parser.eval():
-                actions += ifBlock
-            else:
-                actions += elseBlock
+                if parser.eval():
+                    actions += ifBlock
+                    break
+                else:
+                    if len(elseBlock) == 1: # just a block
+                        actions += elseBlock[0]
+                        LBB = None
+                    else:
+                        LBB = elseBlock # another Logical Block Block[s]
 
         if len(actions) == 0 and verbose > 1:
             msg = "Table %s has no entry for flavor %s" % (self.file, flavor)
@@ -579,7 +612,7 @@ but no other interpretation is applied
         """
 
         opts = {}
-        for logical, ifBlock, elseBlocl in self._actions:
+        for logical, ifBlock, elseBlock in self._actions:
             if logical:
                 block = ifBlock
             else:

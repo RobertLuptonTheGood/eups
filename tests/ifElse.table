@@ -1,0 +1,7 @@
+if (TYPE == "sdss") {
+   setEnv(FOO, SDSS)
+} else if (TYPE == "sst") {
+   setEnv(FOO, SST)
+} else {
+   setEnv(FOO, OTHER)
+}

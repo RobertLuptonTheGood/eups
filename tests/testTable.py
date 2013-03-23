@@ -148,6 +148,28 @@ class EmptyTableTestCase(unittest.TestCase):
         for action in actions:
             action.execute(self.eups, 1, True)
 
+class IfElseTestCase(unittest.TestCase):
+    """
+    Check that if ... else if ... else blocks work
+    """
+    def setUp(self):
+        os.environ["EUPS_PATH"] = testEupsStack
+        self.tablefile = os.path.join(testEupsStack, "ifElse.table")
+        self.table = Table(self.tablefile)
+        self.eups = Eups()
+
+    def testEmptyBlock(self):
+        for t in ("sdss", "sst", ""):
+            actions = self.table.actions(None, t)
+            for action in actions:
+                action.execute(self.eups, 1, True)
+
+            if not t:
+                t = "other"
+
+            self.assertEqual(os.environ["FOO"].lower(), t)
+                
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def suite(makeSuite=True):
@@ -156,7 +178,8 @@ def suite(makeSuite=True):
     return testCommon.makeSuite([
         EmptyTableTestCase,
         TableTestCase1,
-        TableTestCase2
+        TableTestCase2,
+        IfElseTestCase,
         ], makeSuite)
 
 def run(shouldExit=False):
