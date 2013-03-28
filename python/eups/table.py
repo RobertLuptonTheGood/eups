@@ -938,16 +938,19 @@ class Action(object):
                 return
 
         if delim in value:
-            msg = "In %s value \"%s\" contains a delimiter '%s'" % (self.tableFile, value, delim)
-            raise BadTableContent(self.tableFile, msg=msg)
+            if Eups.verbose > 1:
+                print >> utils.stdwarn, \
+                    "In %s value \"%s\" contains a delimiter '%s'" % (self.tableFile, value, delim)
 
-        if fwd:
-            if append:
-                npath = opath + [value]
+        npath = opath
+        for value in value.split(delim):
+            if fwd:
+                if append:
+                    npath = npath + [value]
+                else:
+                    npath = [value] + npath
             else:
-                npath = [value] + opath
-        else:
-            npath = filter(lambda d: d != value, opath)
+                npath = filter(lambda d: d != value, npath)
 
         npath = self.pathUnique(npath) # remove duplicates
 
