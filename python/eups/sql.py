@@ -6,7 +6,8 @@ try:
 except ImportError:
     sqlite = None
 
-#from exceptions import ProductNotFound, EupsException, TableError, TableFileNotFound
+#from exceptions import ProductNotFound, EupsException, TableFileNotFound
+from exceptions import TableError
 import cmd as eupsCmd
 import utils
 
@@ -48,7 +49,10 @@ def getConnection():
 
     return sqlite.connect(_eupsDatabaseFile)
 
-def create(fileName, force=False):
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def create(fileName, force=False, populate=True):
+    """Create the sqlite database, inserting the contents of the current eups DB if populate is True"""
     if not sqlite:
         raise NotImplementedError("sqlite is not available")
     
@@ -118,31 +122,39 @@ CREATE TABLE tags (
    FOREIGN KEY(tid)   REFERENCES tagNames(tid)
 )
 """
-    try:
-        conn.execute(cmd)
-        conn.commit()
-    finally:
-        conn.close()
+    conn.execute(cmd)
+    conn.commit()
 
-    Eups = eupsCmd.EupsCmd().createEups()
-    for epd in Eups.path:
-        insertProducts(epd, Eups=Eups)
+    if populate:
+        Eups = eupsCmd.EupsCmd().createEups()
+        flavors = None
+        #
+        # Fill tagNames table first as we'll fill the join table "tags" as we process the products
+        #
+        insertTags(flavors=flavors, Eups=Eups, conn=conn)
 
-def insertProducts(eupsPathDirs, flavors=None, Eups=None):
-    """Insert a set of products into the DB"""
+        for epd in Eups.path:
+            insertProducts(epd, flavors=flavors, Eups=Eups, conn=conn)
+
+    conn.close()
+
+def insertTags(flavors=None, Eups=None, conn=None):
+    """Insert a set of tags into the DB"""
+
+    if conn:
+        closeConn = False
+    else:
+        closeConn = True
+        conn = getConnection()
 
     if not Eups:
         Eups = eupsCmd.EupsCmd().createEups()
-
-    if not isinstance(eupsPathDirs, list):
-        eupsPathDirs = [eupsPathDirs]
 
     if flavors is None:
         flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
     #
     # Fill tagNames table first as we'll fill the join table "tags" as we process the products
     #
-    conn = getConnection()
     cursor = conn.cursor()
 
     for t in Eups.tags.getTags():
@@ -150,27 +162,57 @@ def insertProducts(eupsPathDirs, flavors=None, Eups=None):
             continue
         cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)", (t.name, str(t), t.isGlobal(), ""))
     conn.commit()
-    conn.close()
+
+    if closeConn:
+        conn.close()
+
+def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
+    """Insert a set of products into the DB"""
+
+    if conn:
+        closeConn = False
+    else:
+        closeConn = True
+        conn = getConnection()
+
+    if not Eups:
+        Eups = eupsCmd.EupsCmd().createEups()
+
+    if flavors is None:
+        flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
+    #
+    # Fill tagNames table first as we'll fill the join table "tags" as we process the products
+    #
+    cursor = conn.cursor()
+
+    for t in Eups.tags.getTags():
+        if t.isPseudo():
+            continue
+        cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)", (t.name, str(t), t.isGlobal(), ""))
+    conn.commit()
+    if closeConn:
+        conn.close()
     #
     # Iterate through each stack path
     #
     productList = []
-    for d in eupsPathDirs:
-        if not Eups.versions.has_key(d):
+
+    if not Eups.versions.has_key(eupsPathDir):
+        return productList
+
+    stack = Eups.versions[eupsPathDir]
+    stack.ensureInSync(verbose=Eups.verbose)
+
+    # iterate through the flavors of interest
+    haveflavors = stack.getFlavors()
+    for flavor in flavors:
+        if flavor not in haveflavors:
             continue
-        stack = Eups.versions[d]
-        stack.ensureInSync(verbose=Eups.verbose)
 
-        # iterate through the flavors of interest
-        haveflavors = stack.getFlavors()
-        for flavor in flavors:
-            if flavor not in haveflavors:
-                continue
-
-            # match the product name
-            for pname in stack.getProductNames(flavor):
-                for ver in stack.getVersions(pname, flavor):
-                    productList.append(stack.getProduct(pname, ver, flavor))
+        # match the product name
+        for pname in stack.getProductNames(flavor):
+            for ver in stack.getVersions(pname, flavor):
+                productList.append(stack.getProduct(pname, ver, flavor))
 
     if not productList:
         return []
