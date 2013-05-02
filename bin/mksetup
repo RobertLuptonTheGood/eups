@@ -121,8 +121,8 @@ else
     export PYTHONPATH="%(pythondir)s"
 fi
 
-function setup   { eval `%(setup)s           "$@"`; }; export -f setup
-function unsetup { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup
+setup()   { eval `%(setup)s           "$@"`; }; export -f setup
+unsetup() { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup
 
 [[ -n $BASH_COMPLETION ]] && [[ -f "$EUPS_DIR/etc/bash_completion.d/eups" ]] && source "$EUPS_DIR/etc/bash_completion.d/eups"
 """ \
@@ -134,7 +134,7 @@ for s in setup_aliases.keys():
 
 del fd
 
-print "Creating zsh startup script from sh one";
+print "Creating zsh/dash startup script from sh one";
 try:
     ifd = open("setups.sh", "r")
 except IOError, e:
@@ -148,9 +148,8 @@ except IOError, e:
     sys.exit(1)
 
 for line in ifd.readlines():
-    # Modify function declaration syntax
-    line = re.sub(r"^function ((:?un)?setup)", r"\1()", line);
     line = re.sub(r"; export -f (:?un)?setup\s*$", r"\n", line);
+    line = re.sub(r"^\[\[ .*$", r"\n", line);
     
     print >> ofd, line,
 
