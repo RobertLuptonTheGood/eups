@@ -235,6 +235,11 @@ def determineFlavor():
             flav = "SunOS"
         else:
             flav = "SunOSX86"
+    elif re.search(r"^CYGWIN", uname):
+        if mach == "i686":
+            flav = "Cygwin"
+        else:
+            raise RuntimeError, ("Unknown Cygwin flavor: (%s, %s)" % (uname, mach))
     else:
         raise RuntimeError, ("Unknown flavor: (%s, %s)" % (uname, mach))
 
