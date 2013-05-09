@@ -156,14 +156,15 @@ product and all its dependencies into the environment so that it can be used.
         else:
             cmdName = "setup"
 
-        try:
-            eups.commandCallbacks.apply(None, cmdName, self.opts, self.args)
-        except eups.OperationForbidden, e:
-            e.status = 255
-            raise
-        except Exception, e:
-            e.status = 9
-            raise
+        if not self.opts.noCallbacks:
+            try:
+                eups.commandCallbacks.apply(None, cmdName, self.opts, self.args)
+            except eups.OperationForbidden, e:
+                e.status = 255
+                raise
+            except Exception, e:
+                e.status = 9
+                raise
 
         if self.opts.exact_version and self.opts.inexact_version:
             self.err("Specifying --exact --inexact confuses me, so I'll ignore both")
@@ -237,14 +238,15 @@ product and all its dependencies into the environment so that it can be used.
 
                 Eups._processDefaultTags(self.opts)
 
-                try:
-                    eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
-                except eups.OperationForbidden, e:
-                    e.status = 255
-                    raise
-                except Exception, e:
-                    e.status = 9
-                    raise
+                if not self.opts.noCallbacks:
+                    try:
+                        eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
+                    except eups.OperationForbidden, e:
+                        e.status = 255
+                        raise
+                    except Exception, e:
+                        e.status = 9
+                        raise
 
                 Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
                                inexact_version=self.opts.inexact_version, postTag=self.opts.postTag)
