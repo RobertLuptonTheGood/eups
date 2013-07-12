@@ -25,3 +25,4 @@ tests/ups_db/Linux/newprod/2.0/ups/newprod.table
 bin/setups.csh
 bin/setups.sh
 bin/setups.zsh
+TAGS
