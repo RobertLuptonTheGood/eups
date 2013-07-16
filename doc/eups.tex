@@ -910,36 +910,50 @@ product it's automatically made current.
 
 \subsubsection{\code{eups distrib}}
 \begin{verbatim}
-Usage:
-    eups distrib -V
-    eups distrib -h
-    eups distrib clean options product version
-    eups distrib create options product [version]
-    eups distrib declare [options] product [version [tag]]
-    eups distrib install options product [version]
-    eups distrib list [options] [product [version]]
+Usage: eups distrib [clean|create|declare|install|list|path] [-h|--help] [options] ...
 
-    Manage packages either as a user (via clean, install, or list) or as 
-    a provider (via create or declare).
+Interact with package distribution servers either as a user installing 
+packages or as a provider maintaining a server.  
 
-    Use "eups distrib cmd -h" for subcommand options
+An end-user uses the following sub-commands to install packages:
+   list      list the available packages from distribution servers
+   path      list the distribution servers
+   install   download and install a package
+   clean     clean up any leftover build files from an install (that failed)
+To use these, the user needs write-access to a product stack and database.
 
+A server provider uses:
+   create    create a distribution package from an installed product
+   declare   declare global tags
+To create packages, one must have a write permission to a local server.
+
+Type "eups distrib [subcmd] -h" to get more info on a sub-command.  
+
+Common 
 Options:
-   -Z, --database   arg    Use this products path. Default: $EUPS_PATH
-                           Alias: --with-eups
-       --debug      arg    Permitted Values: raise
-   -f, --flavor     arg    Use this flavor. Default: $EUPS_FLAVOR or `eups flavor`
-   -F, --force             Force requested behaviour
-   -h, --help              Print this help message
-   -n, --noaction          Don't actually do anything
-   -r, --root       arg    Location of manifests/buildfiles/tarballs (may be a URL or scp specification).
-                           Default: $EUPS_PKGROOT
-   -z, --select-db  arg    Select the product paths which contain this directory.
-                           Default: all
-   -S, --server-class arg  register this DistribServer class (repeat as needed)
-   -t, --tag        arg    Install versions with this tag (e.g. current or stable)
-   -v, --verbose           Be chattier (repeat for even more chat)
-   -V, --version           Print eups version number and exit
+  --debug=DEBUG         turn on specified debugging behaviors (allowed: debug,
+                        profile, raise)
+  -h, --help            show command-line help and exit
+  --noCallbacks         Disable all user-defined callbacks
+  -n, --noaction        Don't actually do anything (for debugging purposes)
+  --nolocks             Disable locking of eups's internal files
+  -q, --quiet           Suppress messages to user (overrides -v)
+  -T SETUPTYPE, --type=SETUPTYPE
+                        the setup type to use (e.g. exact)
+  -v, --verbose         Print extra messages about progress (repeat for ever
+                        more chat)
+  -V, --version         Print eups version number
+  --vro=LIST            Set the Version Resolution Order
+  -Z PATH, --database=PATH
+                        The colon-separated list of product stacks (databases)
+                        to use. Default: $EUPS_PATH
+  -z DIR, --select-db=DIR
+                        Select the product paths which contain this directory.
+                        Default: all in path
+  --with-eups=PATH      synonym for -Z/--database
+  -f FLAVOR, --flavor=FLAVOR
+                        Assume this target platform flavor (e.g. 'Linux')
+  -F, --force           Force requested behaviour
 \end{verbatim}
 				% $ for emacs
 
@@ -1032,36 +1046,17 @@ Options:
   --with-eups=PATH      synonym for -Z/--database
 \end{verbatim}
 
-\item\code{install}
+\item\code{declare}
 \begin{verbatim}
-usage: eups distrib declare [-h|--help] [options] [product [version]]
+Usage: eups distrib declare [-h|--help] [options] [product [version]]
 
 Declare a tag for an available package from the package distribution
-repositories.
+repositories.  If no product or version is provided, all defined tags are
+defined.
 
-options:
-  -f USEFLAVOR, --flavor=USEFLAVOR
-                        Create tag for this flavor
-  -s DIR, --server-dir=DIR
-                        the directory tree to save created packages under
-  -t TAG, --tag=TAG     Declare product to have this tag
-  --debug=DEBUG         turn on specified debugging behaviors (allowed: raise)
-  -h, --help            show command-line help and exit
-  -n, --noaction        Don't actually do anything (for debugging purposes)
-  -q, --quiet           Suppress messages to user (overrides -v)
-  --type=SETUPTYPE      The setup type to use (e.g. exact)
-  -v, --verbose         Print extra messages about progress (repeat for ever
-                        more chat)
-  -V, --version         Print eups version number
-  --vro=LIST            Set the Version Resolution Order
-  -Z PATH, --database=PATH
-                        The colon-separated list of product stacks (databases)
-                        to use. Default: $EUPS_PATH
-  -z DIR, --select-db=DIR
-                        Select the product paths which contain this directory.
-                        Default: all in path
-  --with-eups=PATH      synonym for -Z/--database
+  ...
 \end{verbatim}
+
 Declare a tag which \code{eups distrib install} will make use of, e.g.
 \begin{verbatim}
 eups distrib declare --server-dir=$HOME/packages -t current afw
@@ -1131,6 +1126,21 @@ options:
   -c, --current         Make top level product current (equivalent to --tag
                         current)
 \end{verbatim}
+
+\item\code{path}
+\begin{verbatim}
+Usage: eups distrib path [-h|--help] [n]
+
+Print the base URLs for the repositories given via EUPS_PKGROOT.  An
+optional integer argument, n, will cause just the n-th URL to be listed
+(where 0 is the first element).
+
+Options:
+
+  ...
+\end{verbatim}
+
+
 \end{itemize}
 
 You may use \code{eups distrib list} to list available products; with \code{--current}
@@ -1464,6 +1474,21 @@ The product name may be a glob expression (i.e. \code{*}, \code{?},
 and \code{[]} are special, just like the shell).  Note that you may
 need to quote them to protect them from the shell; e.g. \code{eups list $\backslash$* svn$\backslash$*}
 This command is deprecated; use \code{eups list} instead.
+
+%------------------------------------------------------------------------------
+
+\subsubsection{\code{eups path}}
+\label{eups path}
+\begin{verbatim}
+Usage: eups path [-h|--help] [n]
+
+Print the product stack directories given via EUPS_PATH.  An
+optional integer argument, n, will cause just the n-th directory
+to be listed (where 0 is the first element).
+
+\end{verbatim}
+
+Tell me the current \eups search path
 
 %------------------------------------------------------------------------------
 

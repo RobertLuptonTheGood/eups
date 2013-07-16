@@ -200,6 +200,14 @@ Common"""
         else:
             self.clo.disable_interspersed_args()
 
+        # move -h/--help to the front of the list so they're always interpreted
+        largs, rargs = [], []
+        for a in args:
+            if re.search(r"^(-h|--h(e(l(p)?)?)?)$", a):
+                largs.append(a)
+            else:
+                rargs.append(a)
+        args = largs + rargs
         # set and then parse options
         self.addOptions()
         (self.opts, self.args) = self.clo.parse_args(args)
@@ -557,7 +565,7 @@ class EnvListCmd(EupsCmd):
                     self.which = int(self.which)
                 elems = [elems[self.which]]
             except IndexError:
-                self.err("%s does not have an element a position %s" % 
+                self.err("%s does not have an element at position %s" % 
                          (self.what, self.which))
                 return 1
             except ValueError:
@@ -631,7 +639,10 @@ that would be loaded [in brackets].
 
 class PkgrootCmd(EnvListCmd):
 
-    usage = "%prog pkgroot [-h|--help] [n]"
+    usage = """%prog pkgroot [-h|--help] [n]
+
+Deprecated:  Use eups distrib path
+"""
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -645,11 +656,13 @@ integer argument, n, will cause just the n-th URL to be listed (where
 
     def __init__(self, **kwargs):
         EnvListCmd.__init__(self, **kwargs)
+        self.deprecated("this command is deprecated; please use eups distrib path")
+        
         self._init("EUPS_PKGROOT", "|")
 
 class PkgconfigCmd(EupsCmd):
 
-    usage = "%prog pkgroot [-h|--help] [options] product [version]"
+    usage = "%prog pkgconfig [-h|--help] [options] product [version]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1805,7 +1818,7 @@ class AdminListCacheCmd(EupsCmd):
 
 class DistribCmd(EupsCmd):
 
-    usage = "%prog distrib [clean|create|declare|install|list] [-h|--help] [options] ..."
+    usage = "%prog distrib [clean|create|declare|install|list|path] [-h|--help] [options] ..."
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1817,12 +1830,14 @@ packages or as a provider maintaining a server.
 
 An end-user uses the following sub-commands to install packages:
    list      list the available packages from distribution servers
+   path      list the distribution servers
    install   download and install a package
    clean     clean up any leftover build files from an install (that failed)
 To use these, the user needs write-access to a product stack and database.
 
 A server provider uses:
    create    create a distribution package from an installed product
+   declare   declare global tags
 To create packages, one must have a write permission to a local server.
 
 Type "eups distrib [subcmd] -h" to get more info on a sub-command.  
@@ -2660,6 +2675,28 @@ class DistribCreateCmd(EupsCmd):
 
         return 0
         
+class DistribPathCmd(EnvListCmd):
+
+    usage = "%prog distrib path [-h|--help] [n]"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Print the base URLs for the repositories given via EUPS_PKGROOT.  An optional
+integer argument, n, will cause just the n-th URL to be listed (where
+0 is the first element).
+"""
+
+    def __init__(self, **kwargs):
+        EnvListCmd.__init__(self, **kwargs)
+
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        self._init("EUPS_PKGROOT", "|")
+
 class TagsCmd(EupsCmd):
 
     usage = "%prog tags [-h|--help] [options]"
@@ -2897,6 +2934,7 @@ register("distrib create",  DistribCreateCmd)
 register("distrib declare", DistribDeclareCmd)
 register("distrib install", DistribInstallCmd)
 register("distrib list",    DistribListCmd, lockType=lock.LOCK_SH)
+register("distrib path",   DistribPathCmd)
 register("tags",         TagsCmd, lockType=lock.LOCK_SH)
 register("vro",          VroCmd, lockType=None)
 register("help",         HelpCmd, lockType=None)

@@ -1,3 +1,6 @@
+2013-07-16 rhl
+       Added "eups distrib path" and deprecated "eups pkgroot"
+
 2013-02-13 rhl
        Support
            hooks.config.Eups.defaultTags = dict(pre=["XXX", "YYY"], post=["ZZZ"])
