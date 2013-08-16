@@ -485,9 +485,9 @@ will also be printed.
             version = self.args[1]
 
         if self.opts.currentTag: 
-            if not self.opts.postTag:
-                self.opts.postTag = []
-            self.opts.postTag.append("current")
+            if not self.opts.tag:
+                self.opts.tag = []
+            self.opts.tag.append("current")
 
         if not self.opts.quiet and \
            self.opts.depth and not self.opts.depends:
@@ -1178,7 +1178,7 @@ only wish to assign a tag, you should use the -t option but not include
         EupsCmd.addOptions(self)
 
         self.clo.add_option("-c", "--current", dest="currentTag", action="store_true", default=False,
-                            help="same as --postTag=current")
+                            help="same as --tag=current")
 
     def execute(self):
         try:
@@ -1195,9 +1195,9 @@ only wish to assign a tag, you should use the -t option but not include
             version = self.args[1]
 
         if self.opts.currentTag:
-            if not self.opts.postTag:
-                self.opts.postTag = []
-            self.opts.postTag.append("current")
+            if not self.opts.tag:
+                self.opts.tag = []
+            self.opts.tag.append("current")
         if self.opts.tag:
             if len(self.opts.tag) > 1:
                 self.err("You may only set one tag at a time: %s" % ", ".join(self.opts.tag))
@@ -1353,7 +1353,7 @@ version currently declared.
         EupsCmd.addOptions(self)
 
         self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
-                            help="same as --postTag=current")
+                            help="same as --tag=current")
 
     def execute(self):
         if len(self.args) == 0:
@@ -2140,7 +2140,7 @@ tag will be installed.
         self.clo.add_option("-C", "--current-all", dest="installCurrent", action="store_true", default=False, 
                             help="Include current among the server tags that are installed")
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
-                            help="Make top level product current (equivalent to --postTag current)")
+                            help="Make top level product current (equivalent to --tag current)")
 
     def execute(self):
         try:
@@ -2182,11 +2182,11 @@ tag will be installed.
                 self.opts.path = "%s:%s" % (self.opts.installStack, self.opts.path)
 
         if self.opts.current: 
-            if self.opts.postTag:
-                # self.opts.postTag += " current"  # list is not supported
-                self.err("--postTag is set; ignoring --current")
+            if self.opts.tag:
+                # self.opts.tag += " current"  # list is not supported
+                self.err("--tag is set; ignoring --current")
             else:
-                self.opts.postTag = "current"
+                self.opts.tag = "current"
 
         if self.opts.tag:
             # Note: tag may not yet be registered locally, yet; though it may be 

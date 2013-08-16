@@ -23,10 +23,10 @@ import utils
 
 def append_current(option, opt_str, value, parser):
     """Add "current" to values.tag;  would use append_const but that's not in python 2.4"""
-    if not parser.values.tag:
-        parser.values.tag = []
+    if not parser.values.postTag:
+        parser.values.postTag = []
         
-    parser.values.tag.append("current")
+    parser.values.postTag.append("current")
 
 class EupsSetup(object):
     """
@@ -87,7 +87,7 @@ product and all its dependencies into the environment so that it can be used.
     def addOptions(self):
 
         self.clo.add_option("-c", "--current", dest="tag", action="callback", callback=append_current,
-                            help="deprecated (use --tag=current)")
+                            help="Use the current tag (equivalent to --postTag current)")
         self.clo.add_option("--noCallbacks", dest="noCallbacks", action="store_true",
                             help="Disable all user-defined callbacks")
         self.clo.add_option("-Z", "--database", dest="path", action="store",
@@ -274,17 +274,6 @@ product and all its dependencies into the environment so that it can be used.
                     tablefile = prod.tablefile
                 else:
                     tablefile=self.opts.tablefile
-
-                if False:
-                    # If we are asking for an exact setup but don't specify a version or tag we won't find
-                    # one as current is removed from the VRO.  Do an explicit lookup including current
-                    if not versionName and not self.opts.tag:
-                        product, vroReason = Eups.findProductFromVRO(productName,
-                                                                     vro=["current"] + Eups.getPreferredTags())
-                        if product:
-                            versionName = product.version
-                            if self.opts.verbose > 2: # we told them how we found our version
-                                print >> utils.stdinfo, "Resolved %s version -> %s" % (productName, versionName)
 
                 cmds = eups.setup(productName, versionName, self.opts.tag, self.opts.productDir,
                                   Eups, fwd=not self.opts.unsetup, tablefile=tablefile,
