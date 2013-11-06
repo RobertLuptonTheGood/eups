@@ -2458,7 +2458,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # Are there any declaration options in the table file?
         #
-        declareOptions = Table(full_tablefile).getDeclareOptions()
+        declareOptions = Table(full_tablefile).getDeclareOptions(self.flavor, self.setupType)
         try:
             self.flavor = declareOptions["flavor"]
         except KeyError:

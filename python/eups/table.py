@@ -605,30 +605,47 @@ but no other interpretation is applied
 
         return deps
 
-    def getDeclareOptions(self):
+    def getDeclareOptions(self, flavor, setupType):
         """Return a dictionary of any declareOptions commands in the table file
 
         E.g. declareOptions(flavor=NULL,   name = foo) => {'flavor': 'NULL', 'name': 'foo'}
         """
 
         opts = {}
-        for logical, ifBlock, elseBlock in self._actions:
-            if logical:
-                block = ifBlock
-            else:
-                block = elseBlock
+        for LBB in self._actions:
+            while LBB:                  # LBB: Logical Block Block[s]
+                logical, ifBlock, elseBlock = LBB[0], LBB[1], LBB[2:]
 
-            for a in block:
-                if a.cmd == Action.declareOptions:
-                    # Get all the args merged together into a list k0 v0 k1 v1 k2 v2 ...
-                    args = []
-                    for opt in a.args:
-                        args += re.split(r"\s*=\s*", opt)
+                if len(elseBlock) > 13:
+                    import pdb; pdb.set_trace() 
 
-                    args = [a for a in args if a]
-                    for i in range(0, len(args) - 1, 2):
-                        k, v = args[i], args[i + 1]
-                        opts[k] = v
+                parser = VersionParser(logical)
+                parser.define("flavor", flavor)
+                if setupType:
+                    parser.define("type", setupType)
+
+                if parser.eval():
+                    block = ifBlock
+                    LBB = None
+                else:
+                    if len(elseBlock) == 1: # just a block
+                        block = elseBlock[0]
+                        LBB = None
+                    else:
+                        LBB = elseBlock # another Logical Block Block[s]
+                        continue
+
+                for a in block:
+                    if a.cmd == Action.declareOptions:
+                        # Get all the args merged together into a list k0 v0 k1 v1 k2 v2 ...
+                        args = []
+                        for opt in a.args:
+                            args += re.split(r"\s*=\s*", opt)
+
+                        args = [a for a in args if a]
+                        for i in range(0, len(args) - 1, 2):
+                            k, v = args[i], args[i + 1]
+                            opts[k] = v
 
         return opts
 
