@@ -1850,11 +1850,11 @@ Additional mappings can be provided.
                 print >> self.log, "Looking for mapping for %s %s %s" % (p.product, p.version, flavor)
             productName, versionName = mapping.apply(p.product, p.version, flavor)
             if versionName is None:
-                if self.verbose > 0:
+                if self.verbose > -1:
                     print >> self.log, "Deleting [%s, %s] from manifest" % (p.product, p.version)
                 continue
             if (productName, versionName) != (p.product, p.version):
-                if self.verbose > 0:
+                if self.verbose > -1:
                     print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
                           (p.product, p.version, productName, versionName)
 
@@ -1865,7 +1865,7 @@ Additional mappings can be provided.
                 #
                 if versionName == "dummy":
                     if not self.eups.findProduct(productName, versionName):
-                        if self.verbose > 0:
+                        if self.verbose > -1:
                             print >> self.log, "Declaring %s %s" % (productName, versionName)
                         try:
                             eups.declare(productName, versionName,
