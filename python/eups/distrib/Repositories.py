@@ -330,6 +330,8 @@ class Repositories(object):
             man = self.repos[pkgroot].getManifest(product, version, flavor)
 
         man.remapEntries()              # allow user to rewrite entries in the manifest
+        if product not in [p.product for p in man.getProducts()]:
+            raise EupsException("You asked to install %s %s but it is not in the manifest\nCheck manifest.remap (see \"eups startup\") and/or increase the verbosity" % (product, version))
 
         self._msgs = {}
         self._recursiveInstall(0, man, product, version, flavor, pkgroot, 

@@ -1850,11 +1850,11 @@ Additional mappings can be provided.
                 print >> self.log, "Looking for mapping for %s %s %s" % (p.product, p.version, flavor)
             productName, versionName = mapping.apply(p.product, p.version, flavor)
             if versionName is None:
-                if self.verbose > -1:
+                if self.verbose > 0:
                     print >> self.log, "Deleting [%s, %s] from manifest" % (p.product, p.version)
                 continue
             if (productName, versionName) != (p.product, p.version):
-                if self.verbose > -1:
+                if self.verbose > 0:
                     print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
                           (p.product, p.version, productName, versionName)
 
@@ -1865,7 +1865,7 @@ Additional mappings can be provided.
                 #
                 if versionName == "dummy":
                     if not self.eups.findProduct(productName, versionName):
-                        if self.verbose > -1:
+                        if self.verbose > 0:
                             print >> self.log, "Declaring %s %s" % (productName, versionName)
                         try:
                             eups.declare(productName, versionName,
@@ -1897,12 +1897,17 @@ Additional mappings can be provided.
             if not line:
                 continue
 
-            mat = re.search(r"^\[([^]]+)\]\s*(.*)", line)
+            mat = re.search(r"^\[([^]]+)\]\s*(.*)", line) # look for a line like [create] ...
             if mat:
                 if mode and mode != mat.group(1):
                     continue
                 line = mat.group(2)
             elif mode:
+                continue
+
+            mat = re.search(r"^\s*verbose\s*=\s*(True|False|0|1)\s*", line)
+            if mat:
+                verboseMapping = bool(mat.group(1))
                 continue
 
             vals = line.split()
