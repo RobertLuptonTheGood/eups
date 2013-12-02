@@ -90,6 +90,15 @@ DIST_URL = %(base)s/%(path)s
         if flavor is None:  flavor = self.Eups.flavor
         tarball = self.getDistIdForPackage(product, version, flavor)
         (baseDir, productDir) = self.getProductInstDir(product, version, flavor)
+        if not baseDir:
+            if productDir != "none":
+                raise RuntimeError("Please complain to RHL about %s %s (baseDir = '', productDir = %s)" % 
+                                   (product, version, productDir))
+
+            msg = "I don't know how to write a tarball for %s %s as it has no directory" % (product, version)
+            if self.verbose > 1:
+                print >> self.log, msg
+            return None
 
         if os.access("%s/%s" % (serverDir, tarball), os.R_OK) and not (self.Eups.force or overwrite):
             if self.verbose > 0:
