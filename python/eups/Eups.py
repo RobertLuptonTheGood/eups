@@ -432,8 +432,9 @@ class Eups(object):
         defaultProduct = hooks.config.Eups.defaultProduct["name"]
         if not self.findProduct(defaultProduct, hooks.config.Eups.defaultProduct["version"]):
             if defaultProduct == "implicitProducts" and self.findProduct("toolchain"):
-                if self.verbose:
-                    print >> utils.stdwarn, "Using old default product, \"toolchain\" not product \"%s\"" % \
+                # Changing the name was being nice, but wasn't a good idea.
+                if self.verbose > 2:
+                    print >> utils.stdwarn, "Using name \"toolchain\" for default product, not \"%s\"" % \
                         defaultProduct
                 hooks.config.Eups.defaultProduct["name"] = "toolchain"
 
