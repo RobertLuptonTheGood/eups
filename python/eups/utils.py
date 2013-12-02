@@ -58,7 +58,7 @@ def version():
 
     status = os.popen("(cd %s; git status --porcelain --untracked-files=no)" % eups_dir).readline()
     if status.strip():
-        print >> stdwarn, "Warning: EUPS source has uncommitted changes"
+        print >> stdwarn, "Warning: EUPS source has uncommitted changes (you are using an undefined eups version)"
         version += "M"
 
     return version
