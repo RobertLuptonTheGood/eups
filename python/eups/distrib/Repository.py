@@ -453,11 +453,13 @@ class Repository(object):
         distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=rebuildInverse)
 
         # we will always overwrite the top package
+        created = {}
         id = distrib.createPackage(self.pkgroot, rebuildProduct, rebuildVersion, self.flavor, overwrite=True)
+        created["%s-%s" % (rebuildProduct, rebuildVersion)] = man.getDependency(rebuildProduct,
+                                                                                version=rebuildVersion,
+                                                                                flavor=self.flavor)
 
         if not nodepend:
-            created = {}
-            created["%s-%s" % (rebuildProduct, rebuildVersion)] = None
             self._recursiveCreate(distrib, man, created, True, repositories, mapping=rebuildMapping)
 
         # update the manifest record for the requested product
