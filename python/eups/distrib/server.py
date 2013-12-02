@@ -473,7 +473,7 @@ class ConfigurableDistribServer(DistribServer):
                        "AVAILABLE_PRODUCTS_URL", "MANIFEST_DIR",
                        "BUILD_URL", "MANIFEST_URL", "TABLE_URL", "LIST_URL", 
                        "PRODUCT_FILE_URL", "FILE_URL", "DIST_URL",
-                       "MANIFEST_DIR_URL", "MANIFEST_FILE_RE", 
+                       "MANIFEST_DIR_URL", "MANIFEST_FILE_RE", "TARBALL_URL",
                        "PREFER_GENERIC", ]
 
     def _initConfig_(self):
