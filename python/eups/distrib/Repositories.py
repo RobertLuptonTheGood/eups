@@ -23,7 +23,7 @@ class Repositories(object):
     """
 
     def __init__(self, pkgroots, options=None, eupsenv=None,
-                 installFlavor=None, distribClasses=None, override=None, 
+                 installFlavor=None, distribClasses=None, override=None, allowEmptyPkgroot=False,
                  verbosity=None, log=sys.stderr):
                  
         """
@@ -42,7 +42,8 @@ class Repositories(object):
                             by a server.  
         @param override   a dictionary of server configuration parameters that
                             should override the configuration received from 
-                            each server.  
+                            each server.
+        @param allowEmptyPkgroot     we are creating a distribution, so it's OK for pkgroot to be empty
         @param verbosity  if > 0, print status messages; the higher the 
                             number, the more messages that are printed
                             (default is the value of eupsenv.verbose).
@@ -51,7 +52,7 @@ class Repositories(object):
         """
         if isinstance(pkgroots, str):
             pkgroots = map(lambda p: p.strip(), pkgroots.split("|"))
-        if len(pkgroots) == 0:
+        if not allowEmptyPkgroot and len(pkgroots) == 0:
             raise EupsException("No package servers to query; set -r or $EUPS_PKGROOT")
 
         # the Eups environment
@@ -110,8 +111,12 @@ class Repositories(object):
                 else:
                     raise RuntimeError(msg + ". Remove server from PKGROOT or use force")
 
-        if len(self.pkgroots) == 0 and self.verbose >= 0:
-            raise RuntimeError("No usable package repositories loaded")
+        if len(self.pkgroots) == 0:
+            msg = "No usable package repositories are loaded"
+            if allowEmptyPkgroot or self.eups.force:
+                print >> self.log, "WARNING: %s" % msg
+            else:
+                raise RuntimeError(msg)
 
         # a cache of the union of tag names supported by the repositories
         self._supportedTags = None

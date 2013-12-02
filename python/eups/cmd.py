@@ -2375,7 +2375,7 @@ product will be fully removed, even if its installation was successful.
 
         try:
             repos = distrib.Repositories(self.opts.root, dopts, myeups, 
-                                         self.opts.flavor, 
+                                         self.opts.flavor, allowEmptyPkgroot=True,
                                          verbosity=self.opts.verbose, log=log)
             repos.clean(product, version, self.opts.flavor, dopts, 
                         self.opts.pdir, self.opts.remove)
@@ -2657,7 +2657,7 @@ class DistribCreateCmd(EupsCmd):
                 repos = None
                 if not self.opts.force:
                     repos = distrib.Repositories(self.opts.repos, dopts, myeups,
-                                                 self.opts.flavor, 
+                                                 self.opts.flavor, allowEmptyPkgroot=True,
                                                  verbosity=self.opts.verbose, 
                                                  log=log)
                 server = distrib.Repository(myeups, self.opts.serverDir, 
