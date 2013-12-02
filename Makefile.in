@@ -19,7 +19,7 @@ export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES
 #
 SUBDIRS = @MAKE_SUBDIRS@
 
-.PHONY : all show install clean
+.PHONY : all show install clean test tests
 
 all : show
 	@ echo
@@ -107,6 +107,7 @@ configure : configure.ac
 #
 # Run tests
 #
+tests : test
 test : 
 	@ echo "Running tests"
 	python tests/testAll.py
