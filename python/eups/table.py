@@ -620,6 +620,7 @@ but no other interpretation is applied
                 logical, ifBlock, elseBlock = LBB[0], LBB[1], LBB[2:]
 
                 if len(elseBlock) > 13:
+                    print "Oh dear. Please type w at the pdb prompt and notify rhl@astro.princeton.edu"
                     import pdb; pdb.set_trace() 
 
                 parser = VersionParser(logical)
