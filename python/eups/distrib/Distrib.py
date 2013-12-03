@@ -618,7 +618,7 @@ class DefaultDistrib(Distrib):
        createPackage()
        getDistIdForPackage()
        installPackage()
-       parseDistId()
+       parseDistID()
 
     This class implements the following conventions:
        o  Manifests are written in the format supported by eups.server.Manifest.
