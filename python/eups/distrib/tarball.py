@@ -108,17 +108,43 @@ DIST_URL = %(base)s/%(path)s
 
         if self.verbose > 0:
             print >> self.log, "Writing", tarball
+        #
+        # Record where the binary distro was installed originally (and presumably tested...)
+        #
+        pwdFile = os.path.join(baseDir, productDir, ".pwd")
+        fd = None
+        try:                            # "try ... except ... finally" and "with" are too new-fangled to use
+            fd = open(pwdFile, "w")
+            print >> fd, os.path.join(baseDir, productDir)
+            del fd
+        except Exception, e:
+            if self.verbose > 0:
+                print >> self.log, \
+                    "Unable to write %s; installation will be unable to check paths: %s" % (pwdFile, e)
 
+        fullTarball = os.path.join(serverDir, tarball)
         try:
-            eupsServer.system("(cd %s && tar -cf - %s) | gzip > %s/%s" % 
-                              (baseDir, productDir, serverDir, tarball),
+            eupsServer.system("(cd %s && tar -cf - %s) | gzip > %s" % 
+                              (baseDir, productDir, fullTarball),
                               self.Eups.noaction, self.verbose-1, self.log)
         except Exception, e:
             try:
-                os.unlink("%s/%s" % (self.base, tarball))
+                os.unlink(pwdFile)
             except:
                 pass
+
+            try:
+                os.unlink(fullTarball)
+            except:
+                pass
+
             raise OSError, "Failed to write %s: %s" % (tarball, str(e))
+
+        try:
+            os.unlink(pwdFile)
+        except:
+            pass
+        
         self.setGroupPerms(os.path.join(serverDir, tarball))
 
         return tarball
@@ -179,7 +205,7 @@ DIST_URL = %(base)s/%(path)s
                 raise RuntimeError, ("Unable to read %s" % (tfile))
 
         unpackDir = os.path.join(productRoot, self.Eups.flavor)
-        if installDir is not None:
+        if installDir and installDir != "none":
             try:
                 (baseDir, pdir, vdir) = re.search(r"^(\S+)/([^/]+)/([^/]+)$", 
                                                   installDir).groups()
@@ -199,10 +225,31 @@ DIST_URL = %(base)s/%(path)s
         except Exception, e:
             raise RuntimeError, ("Failed to read %s: %s" % (tfile, e))
 
+        if installDir and installDir == "none":
+            installDir = None
+
         if installDir:
             installDir = os.path.join(productRoot, self.Eups.flavor, installDir)
-            if os.path.exists(installDir):
-                self.setGroupPerms(installDir)
+        else:
+            installDir = os.path.join(unpackDir, product, version)            
+
+        if installDir and os.path.exists(installDir):
+            self.setGroupPerms(installDir)
+        #
+        # Try to check for potential problems with non-relocatable binaries
+        #
+        pwdFile = os.path.join(installDir, ".pwd")
+        if installDir and os.path.exists(pwdFile):
+            try:                        # "try ... except ... finally" and "with" are too new-fangled to use
+                fd = open(pwdFile)
+                originalDir = fd.readline().strip()
+            except:
+                originalDir = None
+
+            if originalDir and installDir != originalDir:
+                if self.verbose > 0:
+                    print >> self.log, "Installing binary product %s %s into %s (was built for %s)" % (
+                        product, version, installDir, originalDir)
 
     def getDistIdForPackage(self, product, version, flavor=None):
         """return the distribution ID that for a package distribution created
