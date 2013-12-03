@@ -863,8 +863,8 @@ class Repositories(object):
         # check the build directory
         buildDir = self.getBuildDirFor(productRoot, product, version, 
                                        options, flavor)
-        if self.verbose > 0:
-            msg = "Looking for build directory: %s" % buildDir
+        if self.verbose > 1 or (self.verbose > 0 and not os.path.exists(buildDir)):
+            msg = "Looking for build directory to cleanup: %s" % buildDir
             if not os.path.exists(buildDir):
                 msg += "; not found"
 
