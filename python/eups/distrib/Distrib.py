@@ -768,7 +768,7 @@ class DefaultDistrib(Distrib):
         if not os.path.exists(mandir):
             os.makedirs(mandir)
 
-        out = os.path.join(mandir, "%s-%s.manifest" % (product, version))
+        out = self.getManifestPath(mandir, product, version, self.flavor)
 
         man = Manifest(product, version, self.Eups, 
                        verbosity=self.verbose-1, log=self.log)
