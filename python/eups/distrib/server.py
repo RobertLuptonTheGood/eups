@@ -2012,10 +2012,8 @@ class ServerConf(object):
                 pdir = os.path.dirname(cached)
                 if not os.path.exists(pdir):
                     os.makedirs(pdir)
-                if self.verbose > 0 and self.base != "/dev/null" and not os.path.exists(cached):
-                    print >> self.log, "Caching configuration for", self.base
-                    if self.verbose > 1:
-                        print >> self.log, "...as", cached
+                if self.verbose > 1 and self.base != "/dev/null" and not os.path.exists(cached):
+                    print >> self.log, "Caching configuration for %s as %s" % (self.base, cached)
 
         if configFile is None:
             # we were not provided with a config file, so we'll try to get it from 
