@@ -1878,7 +1878,7 @@ Common """
 
 class DistribDeclareCmd(EupsCmd):
 
-    usage = "%prog distrib declare [-h|--help] [options] [product [version]]"
+    usage = "%prog distrib declare [-h|--help] [options] [product [version] [tagname]]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1929,7 +1929,7 @@ If no product or version is provided, all defined tags are defined.
             tagName = self.opts.tag
 
         if not tagName:
-            self.err("Please specify a tag to use (-t is acceptable, but will also specify a version)")
+            self.err("Please specify a tag to use after the version or via -t")
             return 2
 
         if productName:
