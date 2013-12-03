@@ -63,7 +63,8 @@ class Distrib(eupsDistrib.DefaultDistrib):
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)
         if not os.path.exists(config):
             configcontents = """# Configuration for a tarball-based server
-MANIFEST_URL = %(base)s/manifests/%(product)s-%(version)s.manifest
+MANIFEST_FILE_RE = ^(?P<product>[^-]+)-(?P<version>[^@]+)@(?P<flavor>.*)\.manifest$
+MANIFEST_URL = %(base)s/manifests/%(product)s-%(version)s@%(flavor)s.manifest
 TARBALL_URL = %(base)s/%(path)s
 DIST_URL = %(base)s/%(path)s
 """
@@ -218,3 +219,29 @@ DIST_URL = %(base)s/%(path)s
         if not flavor:  flavor = self.flavor
         return "%s-%s@%s.tar.gz" % (product, version, flavor)
 
+    def writeManifest(self, *args, **kwargs):
+        """We want to write flavor-specific manifest files, but without a flavor subdirectory,
+        so as to make it easier to deduce the flavor"""
+        kwargs["flavor"] = None
+        return eupsDistrib.DefaultDistrib.writeManifest(self, *args, **kwargs)
+        
+    def getManifestPath(self, serverDir, product, version, flavor=None):
+        """return the path where the manifest for a particular product will
+        be deployed on the server.  In this implementation, all manifest 
+        files are deployed into a subdirectory of serverDir called "manifests"
+        with the filename form of "<product>-<version>.manifest".  Since 
+        this implementation produces generic distributions, the flavor 
+        parameter is ignored.
+
+        @param serverDir      the local directory representing the root of 
+                                 the package distribution tree.  In this 
+                                 implementation, the returned path will 
+                                 start with this directory.
+        @param product        the name of the product that the manifest is 
+                                for
+        @param version        the name of the product version
+        @param flavor         the flavor of the target platform for the 
+                                manifest.  This implementation ignores
+                                this parameter.
+        """
+        return os.path.join(serverDir, "%s-%s@%s.manifest" % (product, version, flavor))
