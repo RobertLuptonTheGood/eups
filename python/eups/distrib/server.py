@@ -1769,7 +1769,7 @@ EUPS distribution manifest for %s (%s). Version %s
                 if not flavor:
                     p.flavor = flavor
                 if not p.flavor:
-                    p.flavor = self.eups.flavor()
+                    p.flavor = self.eups.flavor
                 if not p.instDir:
                     p.instDir = "none"
                 if not p.tablefile:
