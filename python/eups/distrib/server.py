@@ -840,7 +840,7 @@ class ConfigurableDistribServer(DistribServer):
 
                 info = [m["product"], "unknown", "generic"]
                 if m["version"]:  info[1] = m["version"]
-                if m["flavor"]:  info[2] = m["flavor"]
+                if m.get("flavor"):  info[2] = m["flavor"]
                 out.append(info)
 
             return out
