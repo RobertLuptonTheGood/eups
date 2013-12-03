@@ -125,9 +125,12 @@ class Repository(object):
         if not self.distServer:
             return dict(_sortOrder=[])
 
+        # Look for both generic and flavor-specific packages
         pkgs = self.distServer.listAvailableProducts(flavor=self.flavor)
         if self.flavor != None:
-            pkgs += self.distServer.listAvailableProducts(flavor=None)
+            for p in self.distServer.listAvailableProducts(flavor=None):
+                if not pkgs.count(p):
+                    pkgs.append(p)
         #
         # arrange into a hierarchical lookup
         #

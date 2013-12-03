@@ -1974,15 +1974,10 @@ class DistribListCmd(EupsCmd):
     def addOptions(self):
         self.clo.enable_interspersed_args()
 
-        self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
-                            help="register this Distrib class (repeat as needed)")
-        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", default="generic",
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", default=None,
                             help="Specifically list for this flavor")
-        self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
-                            help="the base URL for a repository to access (repeat as needed).  " +
-                            "Default: $EUPS_PKGROOT")
-        self.clo.add_option("-S", "--server-class", dest="serverClasses", action="append",
-                            help="register this DistribServer class (repeat as needed)")
+        self.clo.add_option("-s", "--server-dir", dest="root", action="append", metavar="PKGURL",
+                            help="Servers to query (Default: $EUPS_PKGROOT)")
         self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
                             help="pass a customized option to all repositories " +
                             "(form NAME=VALUE, repeat as needed)")
@@ -1992,8 +1987,10 @@ class DistribListCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
+        self.clo.add_option("--repository", dest="root", action="append",
+                            help="equivalent to --server-dir (deprecated)")
         self.clo.add_option("--root", dest="root", action="append",
-                            help="equivalent to --repository (deprecated)")
+                            help="equivalent to --server-dir (deprecated)")
 
     def execute(self):
         myeups = eups.Eups(readCache=False)
@@ -2023,12 +2020,6 @@ class DistribListCmd(EupsCmd):
         if not pkgroots:
             self.err("Please specify a repository with -r or $EUPS_PKGROOT")
             return 2
-
-        # FIXME: enable use of these options
-        if self.opts.serverClasses and not self.opts.quiet:
-            self.err("Warning: --server-class option currently disabled")
-        if self.opts.distribClasses and not self.opts.quiet:
-            self.err("Warning: --distrib-class option currently disabled")
 
         options = None
         if self.opts.serverOpts:
