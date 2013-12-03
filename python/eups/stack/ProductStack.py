@@ -835,7 +835,7 @@ class ProductStack(object):
                 self.lookup = {}   # forget loaded data
                 if verbose:
                   print >> sys.stderr, \
-                   "Regenerating out-of-date cache for %s in\n   %s" % (flav, dbpath)
+                   "Regenerating out-of-date cache for %s in %s" % (flav, dbpath)
 
         return cacheOkay
 
