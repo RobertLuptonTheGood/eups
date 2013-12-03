@@ -320,8 +320,7 @@ class DistribServer(object):
                              be generated.
         @param noaction    if True, simulate the retrieval
         """
-        return self.getFile(path, flavor, ftype=ftype, filename=filename, 
-                            noaction=noaction)
+        return self.getFile(path, flavor, ftype=ftype, filename=filename, noaction=noaction)
 #        src = "%s/%s/%s" % (self.base, product, version)
 #        if flavor is not None and flavor != "generic":
 #            src = "%s/%s" % (src, flavor)
