@@ -109,6 +109,7 @@ class DistribFactory:
         self._registerCustomDistribs()
 
     def _registerDefaultDistribs(self):
+        self.register(NoneDistrib)
         self.register(tarball.Distrib)
         self.register(pacman.Distrib)
         self.register(builder.Distrib)
@@ -192,3 +193,31 @@ class DistribFactory:
         cls = self.lookup[name]
         return cls(self.Eups, self.distServer, flavor, tag, options, 
                    verbosity, log)
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+class NoneDistrib(Distrib):
+    """A class to handle packages that don't need installing, but should be declared
+
+E.g. python, if declared as "eups declare -r none ... python X.Y"
+    """
+
+    NAME = "none"
+
+    def __init__(self, *args, **kwargs):
+        Distrib.__init__(self,  *args, **kwargs)
+
+    # @staticmethod   # requires python 2.4
+    def parseDistID(distID):
+        """Return a valid package location if and only if we recognize the given distribution identifier"""
+        if distID == 'None':
+            return distID
+
+        return None
+
+    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
+
+    def installPackage(self, *args, **kwargs):
+        """Install a package with a given server location into a given product directory tree.
+        """
+        pass

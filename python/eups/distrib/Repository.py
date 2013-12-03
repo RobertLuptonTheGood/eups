@@ -122,16 +122,21 @@ class Repository(object):
         return out
 
     def _getPackageLookup(self):
-        pkgs = self.distServer.listAvailableProducts()
+        if not self.distServer:
+            return dict(_sortOrder=[])
 
+        pkgs = self.distServer.listAvailableProducts(flavor=self.flavor)
+        if self.flavor != None:
+            pkgs += self.distServer.listAvailableProducts(flavor=None)
+        #
         # arrange into a hierarchical lookup
         #
-        lookup = {}  # key is product
+        lookup = {}  # key is product == pkg[0]
         for pkg in pkgs:
             if not lookup.has_key(pkg[0]):   
-                lookup[pkg[0]] = {}                # key is flavor
+                lookup[pkg[0]] = {}                # key is flavor == pkg[2]
             if not lookup[pkg[0]].has_key(pkg[2]):
-                lookup[pkg[0]][pkg[2]] = []        # list of versions
+                lookup[pkg[0]][pkg[2]] = []        # list of versions == pkg[1]
             lookup[pkg[0]][pkg[2]].append(pkg[1])
 
         # now sort the contents
@@ -498,7 +503,7 @@ class Repository(object):
         packageName, packageVersion = rebuildMapping.apply(packageName, packageVersion, self.flavor)
 
         distrib.writeManifest(self.pkgroot, man.getProducts(), packageName, packageVersion,
-                              self.flavor, self.eups.force)
+                              flavor=self.flavor, force=self.eups.force)
         
     def _recursiveCreate(self, distrib, manifest, created=None, recurse=True, repos=None, mapping=Mapping()):
         if created is None: 
@@ -568,7 +573,7 @@ class Repository(object):
                 self._recursiveCreate(distrib, man, created, recurse, repos, mapping=mapping)
 
             distrib.writeManifest(self.pkgroot, man.getProducts(), dp.product, dp.version,
-                                  self.flavor, self.eups.force)
+                                  flavor=self.flavor, force=self.eups.force)
 
     def _availableAtLocation(self, dp):
         distrib = self.distFactory.createDistrib(dp.distId, dp.flavor, None,
