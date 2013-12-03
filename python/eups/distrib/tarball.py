@@ -136,8 +136,7 @@ DIST_URL = %(base)s/%(path)s
                                 that the status of a non-flavor-specific package
                                 is of interest, if supported.
         """
-        location = self.parseDistID(self.getDistIdForPackage(product, version, 
-                                                             flavor))
+        location = self.parseDistID(self.getDistIdForPackage(product, version, flavor))
         return os.path.exists(os.path.join(serverDir, location))
 
     def installPackage(self, location, product, version, productRoot, 
