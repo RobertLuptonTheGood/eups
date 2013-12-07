@@ -506,7 +506,7 @@ but no other interpretation is applied
 
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
-    def dependencies(self, Eups, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None,
+    def dependencies(self, Eups=None, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None,
                      productDictionary=None, addDefaultProduct=None, requiredVersions={}):
         """
         Return the product dependencies as specified in this table as a list 
@@ -526,6 +526,9 @@ but no other interpretation is applied
         @param addDefaultProduct If not False add the defaultProduct to any table file
         @param requiredVersions  Dict with version required for products
         """
+
+        if Eups is None:
+            Eups = eups.Eups()
 
         if followExact is None:
             followExact = Eups.exact_version
