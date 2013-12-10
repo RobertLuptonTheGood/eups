@@ -554,9 +554,9 @@ class Repository(object):
                                                  mapping=mapping.inverse())
                 man.remapEntries(mode="create", mapping=mapping)
                 distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=mapping.inverse())
-            except eups.ProductNotFound, e:
-                raise RuntimeError("Creating manifest for %s %s: %s" %
-                                   (manifest.product, manifest.version, e))
+            except eups.EupsException, e:
+                raise RuntimeError("Creating manifest for %s:%s, dependency of %s %s: %s" %
+                                   (dp.product, dp.version, manifest.product, manifest.version, e))
 
             id = distrib.createPackage(self.pkgroot, dp.product, dp.version, self.flavor)
             created[pver] = dp

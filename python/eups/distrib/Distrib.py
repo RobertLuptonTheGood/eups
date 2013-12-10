@@ -11,6 +11,7 @@ import eups.table
 import server
 from server import RemoteFileNotFound, Manifest, TaggedProductList
 from eups.VersionParser import VersionParser
+from eups.exceptions import EupsException
 
 class Distrib(object):
     """A class to encapsulate product distribution
@@ -429,7 +430,7 @@ class Distrib(object):
                                             (productName, versionName))
                     dependencies = []
                 else:
-                    raise RuntimeError("Unable to determine dependencies for %s %s" %
+                    raise EupsException("Unable to determine dependencies for %s %s" %
                                        (productName, versionName))
                                        
         #
