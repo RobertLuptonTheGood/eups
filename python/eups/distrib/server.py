@@ -2295,10 +2295,10 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         # to ensure that EUPS works properly.
         environ = os.environ.copy()
         environ['SHELL'] = BASH
-        environ['BASH_ENV'] = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
+        setups_sh = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
 
         if environ.has_key("EUPS_PATH"): # keep current path
-            cmd = ("export EUPS_PATH=%s\nunset BASH_ENV\n" % (environ["EUPS_PATH"])) + cmd
+            cmd = "source %s; export EUPS_PATH=%s; %s " % (setups_sh, environ["EUPS_PATH"], cmd)
 
         if verbosity < 0:
             cmd += "> /dev/null 2>&1"
