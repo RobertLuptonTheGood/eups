@@ -2281,7 +2281,7 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         environ['BASH_ENV'] = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
 
         if environ.has_key("EUPS_PATH"): # keep current path
-            cmd = ("export EUPS_PATH=%s\n" % (environ["EUPS_PATH"])) + cmd
+            cmd = ("export EUPS_PATH=%s\nunset BASH_ENV\n" % (environ["EUPS_PATH"])) + cmd
 
         if verbosity < 0:
             cmd += "> /dev/null 2>&1"
