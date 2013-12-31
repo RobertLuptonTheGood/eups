@@ -1,3 +1,4 @@
+*~
 *.pyc
 /Makefile
 config.log
@@ -26,3 +27,4 @@ bin/setups.csh
 bin/setups.sh
 bin/setups.zsh
 TAGS
+autom4te.cache
