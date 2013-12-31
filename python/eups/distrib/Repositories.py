@@ -65,6 +65,8 @@ class Repositories(object):
         if self.verbose is None:
             self.verbose = self.eups.verbose
         self.log = log
+        if self.log is None:
+            self.log = sys.stdout
 
         if not distribClasses:
             distribClasses = {}
