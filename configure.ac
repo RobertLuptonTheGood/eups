@@ -62,7 +62,7 @@ AC_SUBST(EUPS_DIR)
 dnl
 dnl Allow the user to disable building the documentation
 dnl
-MAKE_SUBDIRS="bin etc python site ups"
+MAKE_SUBDIRS="bin etc python site ups lib"
 AC_ARG_ENABLE(docs,
    [AS_HELP_STRING(--enable-docs, [Enable building the documentation (YES)])],
    [if [[ $enableval = "yes" ]]; then
