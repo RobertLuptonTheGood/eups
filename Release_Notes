@@ -1,3 +1,10 @@
+2014-01-01 rhl
+      Add ability to NOT reinstall a product even with eups distrib install --force
+
+      This is done via an entry in manifest.remap:
+      product[:version]  noReinstall
+      and is useful if you have local declarations of e.g. python
+
 2013-07-16 rhl
        Added "eups distrib path" and deprecated "eups pkgroot"
 

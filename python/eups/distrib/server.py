@@ -1488,6 +1488,7 @@ class Mapping(object):
     """a mapping between product,version pairs for different flavors"""
     def __init__(self):
         self._mapping = {}
+        self._noReinstall = {}          # products that should never be reinstalled (even with --force)
 
     def add(self, inProduct, inVersion="any", outProduct=None, outVersion=None,
             flavor="generic", overwrite=True):
@@ -1495,21 +1496,23 @@ class Mapping(object):
         if not outProduct:
             outProduct = inProduct
 
-        if not self._mapping.has_key(flavor):
-            self._mapping[flavor] = {}
+        mapping = self._noReinstall if outVersion and outVersion.lower() == "noreinstall" else self._mapping
 
-        if not self._mapping[flavor].has_key(inProduct):
-            self._mapping[flavor][inProduct] = {}
+        if not mapping.has_key(flavor):
+            mapping[flavor] = {}
 
-        if not overwrite and self._mapping[flavor][inProduct].has_key(inVersion):
+        if not mapping[flavor].has_key(inProduct):
+            mapping[flavor][inProduct] = {}
+
+        if not overwrite and mapping[flavor][inProduct].has_key(inVersion):
             return
 
         if outVersion:
-            self._mapping[flavor][inProduct][inVersion] = (outProduct, outVersion)
+            mapping[flavor][inProduct][inVersion] = (outProduct, outVersion)
         else:
             # Indicate product should be removed completely
-            if self._mapping[flavor][inProduct].has_key(inVersion):
-                del self._mapping[flavor][inProduct][inVersion]
+            if mapping[flavor][inProduct].has_key(inVersion):
+                del mapping[flavor][inProduct][inVersion]
 
     def exists(self, product, version, flavor="generic"):
         """does a mapping exist?"""
@@ -1543,13 +1546,16 @@ class Mapping(object):
 
     def merge(self, other, overwrite=True):
         """merge two mappings, overwriting existing entries is optional"""
-        for p in other._mapping.iterkeys():
-            for v in other._mapping[p].iterkeys():
-                if not self._mapping.has_key(p):
-                    self._mapping[p] = {}
-                if not overwrite and self._mapping[p].has_key(v):
-                    continue
-                self._mapping[p][v] = other._mapping[p][v]
+
+        for o, s in [(other._mapping, self._mapping),
+                     (other._noReinstall, self._noReinstall)]:
+            for p in o.iterkeys():
+                for v in o[p].iterkeys():
+                    if not s.has_key(p):
+                        s[p] = {}
+                    if not overwrite and s[p].has_key(v):
+                        continue
+                    s[p][v] = o[p][v]
 
     def inverse(self):
         """Calculate the inverse Mapping.
@@ -1564,6 +1570,17 @@ class Mapping(object):
                     inv.add(outProduct, inVersion=outVersion, outProduct=inProduct, outVersion=inVersion,
                             flavor=f)
         return inv
+
+    def noReinstall(self, productName, versionName, flavor):
+        """Should we refuse to reinstall this version?"""
+
+        if not self._noReinstall.get(flavor):
+            return False
+
+        if self._noReinstall[flavor].has_key(productName):
+            return self._noReinstall[flavor][productName].get(versionName)
+        else:
+            return False        
 
     def __str__(self):
         s = ""
@@ -1600,6 +1617,7 @@ class Manifest(object):
         self.product = product
         self.version = version
         self.shouldRecurse = False
+        self.mapping = None
 
     def __str__(self):
         return "Manifest: %s %s" % (self.product, self.version)
@@ -1838,6 +1856,8 @@ Additional mappings can be provided.
         for dirname in hooks.customisationDirs:
             self._readRemapFile(dirname, mappingFromFiles, mode)
         mapping.merge(mappingFromFiles, overwrite=False)
+
+        self.mapping = mapping
 
         flavor = eups.flavor()
 

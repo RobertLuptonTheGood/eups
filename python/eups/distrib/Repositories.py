@@ -14,6 +14,7 @@ from Distrib        import findInstallableRoot
 from DistribFactory import DistribFactory
 from server         import ServerConf, Manifest, ServerError
 import server
+import eups.hooks as hooks
 
 class Repositories(object):
     """
@@ -390,6 +391,8 @@ class Repositories(object):
         #
         # Process dependencies
         #
+        defaultProduct = hooks.config.Eups.defaultProduct["name"]
+
         productRoot0 = productRoot      # initial value
         for prod in products:
             pver = prodid(prod.product, prod.version, instflavor)
@@ -421,6 +424,18 @@ class Repositories(object):
             shouldInstall = True
             if thisinstalled:
                 msg = "Required product %s %s is already installed" % (prod.product, prod.version)
+
+                if prod.product == defaultProduct:
+                    continue            # we don't want to install the implicit products
+                if prod.version == "dummy":
+                    continue            # we can't reinstall dummy versions and don't want to install toolchain
+                if manifest.mapping and manifest.mapping.noReinstall(prod.product, prod.version, flavor):
+                    msg += "; manifest.remap specified no reinstall"
+                    if self.eups.force:
+                        msg += " (ignoring --force)"
+                    if self.verbose >= 0:
+                        print >> self.log, msg
+                    continue
 
                 if self.eups.force:
                     msg += "; forcing a reinstall"

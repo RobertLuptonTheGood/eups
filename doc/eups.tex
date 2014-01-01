@@ -1127,6 +1127,13 @@ options:
                         current)
 \end{verbatim}
 
+Usually \code{--force} will reinstall all products, but you can override this with an entry in
+\file{manifest.remap}:
+\begin{verbatim}
+product[:version]  noReinstall
+\end{verbatim}
+and is useful if you have local declarations of e.g. python.
+
 \item\code{path}
 \begin{verbatim}
 Usage: eups distrib path [-h|--help] [n]
