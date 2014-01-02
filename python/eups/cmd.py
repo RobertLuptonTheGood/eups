@@ -37,7 +37,7 @@ import eups, lock
 import utils
 import distrib
 import hooks
-from distrib.server import ServerConf, Mapping
+from distrib.server import ServerConf, Mapping, importClass
 
 _errstrm = utils.stderr
 
@@ -1947,7 +1947,9 @@ If no product or version is provided, all defined tags are defined.
             return 2
             
         server = distrib.Repository(myeups, pkgroot)
-        dist = distrib.DefaultDistrib(myeups, server.distServer, verbosity=self.opts.verbose)
+        clsname = server.distServer.getConfigProperty('DISTRIB_CLASS', 'eups.distrib.Distrib.DefaultDistrib').split(':')[-1]
+        distribClass = importClass(clsname)
+        dist = distribClass(myeups, server.distServer, verbosity=self.opts.verbose)
 
         pl = dist.getTaggedRelease(pkgroot, tagName)
         if not pl:

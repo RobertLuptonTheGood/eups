@@ -761,14 +761,11 @@ class DefaultDistrib(Distrib):
         """
 
         self.initServerTree(serverDir)
-        out = None
-        mandir = os.path.join(serverDir, "manifests")
-        if flavor is not None and flavor != "generic":
-            mandir = os.path.join(mandir, flavor)
-        if not os.path.exists(mandir):
-            os.makedirs(mandir)
 
-        out = self.getManifestPath(mandir, product, version, self.flavor)
+        out = self.getManifestPath(serverDir, product, version, self.flavor)
+        mandir = os.path.dirname(out)
+        if not os.path.exists(mandir):
+	        os.makedirs(mandir)
 
         man = Manifest(product, version, self.Eups, 
                        verbosity=self.verbose-1, log=self.log)

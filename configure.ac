@@ -62,7 +62,7 @@ AC_SUBST(EUPS_DIR)
 dnl
 dnl Allow the user to disable building the documentation
 dnl
-MAKE_SUBDIRS="bin etc python site ups"
+MAKE_SUBDIRS="bin etc python site ups lib"
 AC_ARG_ENABLE(docs,
    [AS_HELP_STRING(--enable-docs, [Enable building the documentation (YES)])],
    [if [[ $enableval = "yes" ]]; then
@@ -76,7 +76,7 @@ dnl Aliases for user commands (some people object to "setup", and it conflicts
 dnl with a RH linux command in /usr/bin)
 dnl
 AC_ARG_WITH(setup-aliases,
-   [AS_HELP_STRING(--with-setup-aliases=name1:name2,allow name1 as an alias for setup, and name2 for unsetup)],
+   [AS_HELP_STRING(--with-setup-aliases=name1:name2, [Allow name1 as an alias for setup, and name2 for unsetup])],
    [SETUP_ALIASES=$withval])
 AC_SUBST(SETUP_ALIASES)
 dnl
