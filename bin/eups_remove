@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!@SYSTEM_PYTHON@
 # -*- python -*-
 #
 # Remove an eups product from the system
