@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!@EUPS_PYTHON@
 #
 # The EUPS setup programme
 #

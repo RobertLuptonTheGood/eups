@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!@EUPS_PYTHON@
 # -*- python -*-
 #
 # List all the products which depend on a given product/version

@@ -22,6 +22,28 @@ AC_ARG_WITH(eups,
    ])
 AC_SUBST(EUPS_PATH)
 
+dnl
+dnl eups python management
+dnl
+AC_ARG_WITH(python,
+   [AS_HELP_STRING(--with-python=BIN, [Use BIN python interpreter to run eups])],
+   [EUPS_PYTHON=$(echo $withval)],
+   [EUPS_PYTHON=$(which python)
+    if [[ $EUPS_PYTHON != /usr/bin/python ]]; then
+      AC_MSG_ERROR([Your current python version isn't /usr/bin/python, please rerun configure with next option 
+--with-python=$(which python) will force eups to use your current python version, 
+--with-python=/usr/bin/python will force eups to use system-installed python])
+    fi
+   ]) 
+
+if [[ -x $EUPS_PYTHON ]]; then
+    $EUPS_PYTHON -c "import sys;print \"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version)" || AC_MSG_ERROR([$EUPS_PYTHON does not seem to be a valid python interpreter])
+else
+    AC_MSG_ERROR([$EUPS_PYTHON doesn't exists or doesn't have execute permission granted])
+fi
+
+AC_SUBST(EUPS_PYTHON)
+
 # Allow them to use --prefix as an alias for --with-eups_dir
 if test X$prefix != XNONE; then
    with_eups_dir=$prefix

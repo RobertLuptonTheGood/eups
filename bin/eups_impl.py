@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!@EUPS_PYTHON@
 #
 # The main eups programme
 #
