@@ -304,6 +304,31 @@ decl()
 	msg "declared $PRODUCT $VERSION in $PREFIX (eups declare options: ${@:-none})"
 }
 
+_clear_environment()
+{
+	# to the future developers of this file: to quickly list all
+	# variables that are used as ${BLA:-...} (i.e., have a default), and
+	# don't begin with a _, use the following sed incantation:
+	#
+	# sed -n 's/\(.*\$\){\(.*\)\(:-.*\)$/\2/p;' lib/eupspkg.sh | sort -u | grep -Ev '^(_|@).*$'
+
+	for _var in \
+		FLAVOR PRODUCT VERSION PREFIX \
+		SOURCE \
+		\
+		CONFIGURE_OPTIONS \
+		MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS \
+		PYSETUP_INSTALL_OPTIONS \
+		\
+		PATCHES_DIR UPSTREAM_DIR \
+		PRODUCTS_ROOT \
+		REPOSITORY REPOSITORY_PATH SHA1 \
+	; do
+		debug clearing $_var
+		unset $_var
+	done
+}
+
 ##################### ---- DEFAULT VERB IMPL ---- #####################
 
 default_create()
@@ -654,7 +679,7 @@ default_usage()
 	cat <<-"EOF"
 		eupspkg -- EupsPkg builder script
 
-		usage: eupspkg [-hedr] [-v level] [VAR1=..] [VAR2=..] verb
+		usage: eupspkg [-hedrk] [-v level] [VAR1=..] [VAR2=..] verb
 
 		  verb  : one of create, fetch, prep, config, build, install
 
@@ -667,6 +692,7 @@ default_usage()
 		      when autodetecting versions
 		  r : in developer mode, make install $PREFIX for the
 		      product point to EUPS binary directory
+		  k : keep all pre-set environment variables
 
 		EUPSPKG STANDARD MODE:
 
@@ -677,8 +703,8 @@ default_usage()
 		configuration, as well as prepare the package contents
 		depending on the chosen SOURCE.  Any existing
 		$PREFIX/ups/pkginfo will be sourced to deduce REPOSITORY and
-		SHA1.  If REPOSITORY_PATH is passed or exists in the
-		environment, it will be preferred over REPOSITORY from pkginfo.
+		SHA1.  If REPOSITORY_PATH is given, it will be preferred
+		over REPOSITORY from pkginfo.
 
 		If run with any other verb, the script will look for
 		'./ups/pkginfo' to source the configuration.  At least
@@ -686,7 +712,9 @@ default_usage()
 
 		Variables can be passed on the command line, after the
 		options and before the verb.  These override any from the
-		environment or pkginfo.
+		environment or pkginfo. Note that unless -k is specified,
+		most script-specific variables won't be taken from the
+		environment (run `eupspkg -v 2 echo' to see a list).
 
 		DEVELOPER MODE:
 		
@@ -727,15 +755,17 @@ usage()   { _FUNCNAME=usage   default_usage "$@"; }
 #
 # Parse command line options
 #
-VERBOSE=${VERBOSE:-0}
-DIRTY_FLAG=${DIRTY_FLAG:-"--dirty"}
-DEVMODE=${DEVMODE:-0}
-INSTALL_TO_EUPS_ROOT=${INSTALL_TO_EUPS_ROOT:-0}
-while getopts ":v:hedr" opt; do
+VERBOSE=0
+DIRTY_FLAG="--dirty"
+DEVMODE=0
+INSTALL_TO_EUPS_ROOT=0
+KEEP_ENVIRONMENT=0
+while getopts ":v:hedrk" opt; do
 	case $opt in
 		v) VERBOSE="$OPTARG" ;;
 		d) DIRTY_FLAG="" ;;
 		e) DEVMODE=1 ;;
+		k) KEEP_ENVIRONMENT=1 ;;
 		r) INSTALL_TO_EUPS_ROOT=1 ;;
 		h) usage; exit; ;;
 		\?) die "Invalid option: -$OPTARG" ;;
@@ -743,6 +773,14 @@ while getopts ":v:hedr" opt; do
 	esac
 done
 shift $((OPTIND-1))
+
+# Clear the environment so it doesn't accidentally interfere with internally
+# used variables (unless the user asks for it).
+if [[ $KEEP_ENVIRONMENT != 1 ]]; then
+	_clear_environment
+else
+	debug "not clearing the environment"
+fi
 
 # Peek if PREFIX or VERBOSE were given on the command line (to correctly
 # find pkginfo).  Also remember the last value as $CMD.  Inelegant, but
@@ -882,6 +920,11 @@ if [[ -z "$PRODUCT" || -z "$VERSION" || -z "$FLAVOR" ]]; then
 fi
 
 ##################### ---- Defaults ---- #####################
+#
+# Note: if you add here more variables with defaults, make sure to list them
+# in _clear_environment() as well unless you *want* them to be picked up from
+# the environment if not overridden on the command line or via pkginfo.
+#
 
 NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)   # number of cores on the machine (Darwin & Linux)
 
