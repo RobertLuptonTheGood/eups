@@ -755,7 +755,7 @@ usage()   { _FUNCNAME=usage   default_usage "$@"; }
 #
 # Parse command line options
 #
-VERBOSE=0
+VERBOSE=${EUPSPKG_VERBOSE:-0}
 DIRTY_FLAG="--dirty"
 DEVMODE=0
 INSTALL_TO_EUPS_ROOT=0
@@ -931,8 +931,11 @@ NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpu
 UPSTREAM_DIR=${UPSTREAM_DIR:-upstream}			# For "tarball-and-patch" packages (see default_prep()). Default location of source tarballs.
 PATCHES_DIR=${PATCHES_DIR:-patches}			# For "tarball-and-patch" packages (see default_prep()). Default location of patches.
 
-SOURCE=${SOURCE:-package}				# [package|git|git-archive]. Usually passed in via command line (eups distrib create ... -S SOURCE=...)
-REPOSITORY=${REPOSITORY:-}				# URL to git repository
+EUPSPKG_SOURCE=${EUPSPKG_SOURCE:-package}
+SOURCE=${SOURCE:-$EUPSPKG_SOURCE}			# [package|git|git-archive]. May be passed in via the environment, as EUPSPKG_SOURCE.
+
+REPOSITORY_PATH=${REPOSITORY_PATH:-"$EUPSPKG_REPOSITORY_PATH"}	# A '|'-delimited list of repository URL patterns (see resolve_repository() function)
+REPOSITORY=${REPOSITORY:-}					# URL to git repository
 
 MAKE_BUILD_TARGETS=${MAKE_BUILD_TARGETS:-}		# Targets for invocation of make in build phase
 MAKE_INSTALL_TARGETS=${MAKE_INSTALL_TARGETS:-"install"}	# Targets for invocation of make in test phase
@@ -954,7 +957,8 @@ export SCONSFLAGS=${SCONSFLAGS:-"opt=3"}	# Default scons flags
 # Dump the state of all key variables (helpful when debugging)
 #
 dumpvar debug PWD
+dumpvar debug VERBOSE
 dumpvar debug PRODUCT VERSION FLAVOR
-dumpvar debug NJOBS UPSTREAM_DIR PATCHES_DIR SOURCE REPOSITORY MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS
+dumpvar debug NJOBS UPSTREAM_DIR PATCHES_DIR SOURCE REPOSITORY REPOSITORY_PATH MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS
 dumpvar debug PRODUCTS_ROOT PREFIX CONFIGURE_OPTIONS PYSETUP_INSTALL_OPTIONS
 dumpvar debug CC CXX SCONSFLAGS
