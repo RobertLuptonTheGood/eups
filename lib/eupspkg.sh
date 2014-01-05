@@ -149,7 +149,7 @@ autoversion()
 	# Guess VERSION, assuming we were called from a working directory of
 	# a git repository.
 
-	VERSION="$(pkgautoversion $1)"
+	VERSION="$VERSION_PREFIX$(pkgautoversion $1)$VERSION_SUFFIX"
 
 	info "guessed VERSION='$VERSION'"
 }
@@ -161,8 +161,12 @@ version_to_gitrev()
 	# converting any _ to -.
 	#
 
-	local V=${VERSION%%+*}		# remove everything past first + (incl. the '+')
-	echo ${V//_/-}			# convert all _ to -
+	local V=${VERSION%%+*}	# remove everything past first + (incl. the '+')
+
+	V=${V#$VERSION_PREFIX}	# remove VERSION_PREFIX
+	V=${V%$VERSION_SUFFIX}	# remove VERSION_SUFFIX
+
+	echo ${V//_/-}		# convert all _ to -
 }
 
 install_ups()
@@ -319,6 +323,8 @@ _clear_environment()
 		CONFIGURE_OPTIONS \
 		MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS \
 		PYSETUP_INSTALL_OPTIONS \
+		\
+		VERSION_PREFIX VERSION_SUFFIX \
 		\
 		PATCHES_DIR UPSTREAM_DIR \
 		PRODUCTS_ROOT \
@@ -859,6 +865,11 @@ if [[ $DEVMODE == 1 ]]; then
 	# needed)
 
 	if [[ $PWD != */_eupspkg/source ]]; then
+		# making sure version prefix/suffix are declared early.
+		# a bit of a hack, since we need them here for proper autoversion inferrence
+		VERSION_PREFIX=${VERSION_PREFIX:-$EUPSPKG_VERSION_PREFIX}
+		VERSION_SUFFIX=${VERSION_SUFFIX:-$EUPSPKG_VERSION_SUFFIX}
+
 		# Make sure PRODUCT, VERSION, and FLAVOR are set
 		[ -z "$PRODUCT" ] && autoproduct
 		[ -z "$VERSION" ] && autoversion $DIRTY_FLAG
@@ -933,6 +944,9 @@ PATCHES_DIR=${PATCHES_DIR:-patches}			# For "tarball-and-patch" packages (see de
 
 EUPSPKG_SOURCE=${EUPSPKG_SOURCE:-package}
 SOURCE=${SOURCE:-$EUPSPKG_SOURCE}			# [package|git|git-archive]. May be passed in via the environment, as EUPSPKG_SOURCE.
+
+VERSION_PREFIX=${VERSION_PREFIX:-$EUPSPKG_VERSION_PREFIX}	# Prefix to be removed from $VERSION when inferring the corresponding git rev
+VERSION_SUFFIX=${VERSION_SUFFIX:-$EUPSPKG_VERSION_SUFFIX}	# Suffix to be removed from $VERSION when inferring the corresponding git rev
 
 REPOSITORY_PATH=${REPOSITORY_PATH:-"$EUPSPKG_REPOSITORY_PATH"}	# A '|'-delimited list of repository URL patterns (see resolve_repository() function)
 REPOSITORY=${REPOSITORY:-}					# URL to git repository
