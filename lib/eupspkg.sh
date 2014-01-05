@@ -342,7 +342,7 @@ _clear_environment()
 
 	for _var in \
 		FLAVOR PRODUCT VERSION PREFIX \
-		SOURCE \
+		SOURCE INCLUDES \
 		\
 		CONFIGURE_OPTIONS \
 		MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS \
@@ -1011,6 +1011,8 @@ fi
 # the environment if not overridden on the command line or via pkginfo.
 #
 
+SITECUSTOMIZE=${SITECUSTOMIZE:-"$EUPSPKG_SITECUSTOMIZE"}		# ':'-delimited list of scripts to source at the end of this script. Used to mass-customize package creation.
+
 NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)   # number of cores on the machine (Darwin & Linux)
 
 UPSTREAM_DIR=${UPSTREAM_DIR:-upstream}			# For "tarball-and-patch" packages (see default_prep()). Default location of source tarballs.
@@ -1039,7 +1041,19 @@ export CXX=${CXX:-c++}				# Autoconf prefers to look for gcc first, and the prop
 
 export SCONSFLAGS=${SCONSFLAGS:-"opt=3"}	# Default scons flags
 
-##################### ---- -------- ---- #####################
+##################### ------ Hooks ----- #####################
+#
+# Source any files given via SITECUSTOMIZE/EUPSPKG_SITECUSTOMIZE
+#
+IFS=':' read -ra _SITECUSTOMIZE <<< "$SITECUSTOMIZE"
+for _script in "${_SITECUSTOMIZE[@]}"; do
+	if [[ -f $_script ]]; then
+		debug "about to source '$_script'."
+		. $_script
+	else
+		die "script '$_script' listed on the SITECUSTOMIZE path does not exist."
+	fi
+done
 
 #
 # Dump the state of all key variables (helpful when debugging)
