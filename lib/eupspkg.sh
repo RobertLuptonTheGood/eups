@@ -262,6 +262,19 @@ contains()
 	return 250
 }
 
+copy_function()
+{
+	# usage: copy_function <old_name> <new_name>
+	#
+	# Copies function named $1 to name $2. useful when overriding
+	# existing functions, but wanting to save (and presumably call) the
+	# old implementation.  Adapted from
+	# http://stackoverflow.com/questions/1203583/how-do-i-rename-a-bash-function
+
+	declare -F $1 > /dev/null || return 1
+	eval "$(echo "$2()"; declare -f $1 | tail -n +2)"
+}
+
 fix_autoconf_timestamps()
 {
 	# git does not preserve timestamps, which makes autoconf very
