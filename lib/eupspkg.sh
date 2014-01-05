@@ -154,19 +154,29 @@ autoversion()
 	info "guessed VERSION='$VERSION'"
 }
 
-version_to_gitrev()
+resolve_gitrev()
 {
-	# Convert VERSION to a git revision that can be pulled with
-	# git-clone by removing anything past the first '+', and
-	# converting any _ to -.
+	# Discover git rev of the source.
+	#
+	# If GITREV is already set, use it. 
+	# Else, if SHA1 is set, use it as GITREV.  Othewise, convert the
+	# VERSION into a GITREV by removing +xxxx suffix, any packager-specified
+	# VERSION_PREFIX/VERSION_SUFFIX, and replacing all _ with -.
+	#
+	# Defines: GITREV
 	#
 
-	local V=${VERSION%%+*}	# remove everything past first + (incl. the '+')
+	[[ ! -z "$GITREV" ]] && { return 0; }
+	[[ ! -z "$SHA1" ]]   && { GITREV="$SHA1"; return 0; }
 
-	V=${V#$VERSION_PREFIX}	# remove VERSION_PREFIX
-	V=${V%$VERSION_SUFFIX}	# remove VERSION_SUFFIX
+	# Deduce GITREV from version
+	local V="${VERSION%%+*}"	# remove everything past the first + (incl. the '+')
 
-	echo ${V//_/-}		# convert all _ to -
+	V="${V#$VERSION_PREFIX}"	# remove VERSION_PREFIX
+	V="${V%$VERSION_SUFFIX}"	# remove VERSION_SUFFIX
+	V="${V//_/-}"			# convert all _ to -
+
+	GITREV="$V"
 }
 
 install_ups()
@@ -341,7 +351,8 @@ _clear_environment()
 		\
 		PATCHES_DIR UPSTREAM_DIR \
 		PRODUCTS_ROOT \
-		REPOSITORY REPOSITORY_PATH SHA1 \
+		REPOSITORY REPOSITORY_PATH \
+		SHA1 GITREV \
 	; do
 		debug clearing $_var
 		unset $_var
@@ -349,6 +360,19 @@ _clear_environment()
 }
 
 ##################### ---- DEFAULT VERB IMPL ---- #####################
+
+_sha1_for_remote_rev()
+{
+	# usage: _sha1_for_remote_rev $REPOSITORY $GITREV
+	# 
+	# returns the SHA1 corresponding to $GITREV at remote repository
+	# $REPOSITORY.  returns an empty string in case of failiure.
+
+	local SHA1=$(git ls-remote -t "$REPOSITORY" "$GITREV"^{} | awk '{print $1}')		# try tags first
+	local SHA1=${SHA1:-$(git ls-remote -h "$REPOSITORY" "$GITREV" | awk '{print $1}')}	# fall back to heads
+
+	echo "$SHA1"
+}
 
 default_create()
 {
@@ -388,21 +412,22 @@ default_create()
 	# Prepare the package
 	resolve_repository
 
-	# Use any SHA1 that was passed in (from pkginfo or command line), or version
-	GITREV=${SHA1:-$(version_to_gitrev)}
+	# Use any GITREV that was passed in (from pkginfo or command line), or version
+	resolve_gitrev
+	append_pkginfo GITREV
 
 	case "$SOURCE" in
 		git)
-			# Use git clone to extract ups/eupspkg. Store the SHA1 into $PKGINFO
+			# Use git clone to extract ups/eupspkg. Store the SHA1 into $PKGINFO.
 			# Note: this is terribly inefficient, but git doesn't provide a
 			# mechanism to just fetch a single file given a ref.
 			git clone --shared -n -q "$REPOSITORY" tmp
 
-			# try to avoid checking out everything (it may be a multi-GB repo)
-			(cd tmp && { git checkout -q $GITREV -- ups 2>/dev/null || git checkout -q $GITREV; })
-
-			SHA1=$(cd tmp && git rev-parse HEAD)
+			SHA1=$(cd tmp && git rev-parse $GITREV)
 			append_pkginfo SHA1
+
+			# try to avoid checking out everything (it may be a multi-GB repo)
+			(cd tmp && { git checkout -q $SHA1 -- ups 2>/dev/null || git checkout -q $GITREV; })
 
 			mkdir ups
 			if [[ -e tmp/ups/eupspkg ]]; then
@@ -413,34 +438,47 @@ default_create()
 			;;
 		git-archive)
 			# Extract ups/eupspkg using git-archive
-			git archive --format=tar.gz --remote="$REPOSITORY" "$VERSION" ups/eupspkg 2>/dev/null | (tar xzf - 2>/dev/null || true)
+			git archive --format=tar.gz --remote="$REPOSITORY" "$GITREV" ups/eupspkg 2>/dev/null | (tar xzf - 2>/dev/null || true)
 			# note: the odd tar construct (and PIPESTATUS check) is to account for BSD/gnu tar differences:
 			#       BSD tar returns success on broken pipe, gnu tar returns an error.
 			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
 				# The failure may have occurred because ups/ does not exist on the remote, or because
 				# of a problem with accessing the repository. The former is legal, the latter is not.
 				# Find out which one is it and act accordinly.
-				git archive --format=tar.gz --remote="$REPOSITORY" "$VERSION" | head -c 1 > /dev/null
+				git archive --format=tar.gz --remote="$REPOSITORY" "$GITREV" | head -c 1 > /dev/null
 				if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-					die "could not access '$REPOSITORY' via git-archive. has it been tagged with '$VERSION'"?
+					die "could not access '$REPOSITORY' via git-archive. has it been tagged with '$GITREV'"?
 				fi
+				mkdir -p ups
 			fi
-			mkdir -p ups
+
+			# Extract the SHA1 of the remote, and store it in pkginfo
+			SHA1=$(_sha1_for_remote_rev $REPOSITORY $GITREV)
+			[[ ! -z $SHA1 ]] || die "cannot deduce SHA1 for git revision '$GITREV'. bug?"
+
+			append_pkginfo SHA1
 			;;
 		"package")
 			# Extract the full source using git-archive, falling back to git-clone in case of failure.
-			git archive --format=tar.gz --remote="$REPOSITORY" "$VERSION" 2>/dev/null | (tar xzf - 2>/dev/null || true)
+			debug "attempting to extract the source for package using git-archive (for '$GITREV')"
+			git archive --format=tar.gz --remote="$REPOSITORY" "$GITREV" 2>/dev/null | (tar xzf - 2>/dev/null || true)
 			# note: the odd tar construct (and PIPESTATUS check) is to account for BSD/gnu tar differences:
 			#       BSD tar returns success on broken pipe, gnu tar returns an error.
 			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+				debug "git-archive failed. falling back to git-clone (for '$GITREV')"
 				git clone --shared -n -q "$REPOSITORY" .
-				git checkout -q $GITREV
 
-				SHA1=$(git rev-parse HEAD)
-				append_pkginfo SHA1
+				SHA1=$(git rev-parse "$GITREV")
+				git checkout -q "$SHA1"
 
 				rm -rf .git
+			else
+				# Extract the SHA1 from the remote, and store it in pkginfo
+				SHA1=$(_sha1_for_remote_rev $REPOSITORY $GITREV)
+				[[ ! -z $SHA1 ]] || die "cannot deduce SHA1 for git revision '$GITREV'. bug?"
 			fi
+
+			append_pkginfo SHA1
 			;;
 		*)
 			echo "eupspkg error: unknown source download mechanism SOURCE='$SOURCE' (known mechanisms: git, git-archive, package)."; exit -1;
@@ -487,11 +525,20 @@ default_fetch()
 		git)
 			# Obtain the source from a git repository
 			die_if_empty REPOSITORY
+			die_if_empty GITREV
 			die_if_empty SHA1
 
 			info "fetching by git cloning from $REPOSITORY"
 			git clone -q "$REPOSITORY" tmp
-			(cd tmp && git checkout -q $SHA1)
+			(cd tmp && git checkout -q $GITREV)
+
+			# security first: die if the SHA1 has changed (e.g., somebody has been changing tags)
+			SHA1r=$(cd tmp && git rev-parse HEAD)
+			if [[ "$SHA1r" != "$SHA1" ]]; then
+				die "SHA1 of the fetched source ($SHA1r) differs from the expected ($SHA1). refusing to proceed."
+			else
+				info "remote SHA1 identical to expected SHA1 ($SHA1). ok."
+			fi
 
 			rm -rf tmp/.git
 
@@ -507,14 +554,23 @@ default_fetch()
 			;;
 		git-archive)
 			die_if_empty REPOSITORY
-			die_if_empty VERSION
+			die_if_empty GITREV
+			die_if_empty SHA1
+
 			# note: the odd tar construct (and PIPESTATUS check) is to account for BSD/gnu tar differences:
 			#       BSD tar returns success on broken pipe, gnu tar returns an error.
-
-			info "fetching via git-archive from $REPOSITORY"
-			git archive --format=tar.gz  --remote="$REPOSITORY" "$VERSION" | (tar xzf - --exclude ups/eupspkg --exclude ups/pkginfo 2>/dev/null || true)
+			info "fetching via git-archive from $REPOSITORY, for ref '$GITREV'"
+			git archive --format=tar.gz  --remote="$REPOSITORY" "$GITREV" | (tar xzf - --exclude ups/eupspkg --exclude ups/pkginfo 2>/dev/null || true)
 			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-				die could not access "$REPOSITORY" via git-archive. has it been tagged with "$VERSION"?
+				die could not access "$REPOSITORY" via git-archive. has it been tagged with "$GITREV"?
+			fi
+
+			# security first: die if the SHA1 has changed (e.g., somebody has been changing tags)
+			SHA1r=$(_sha1_for_remote_rev $REPOSITORY $GITREV)
+			if [[ "$SHA1r" != "$SHA1" ]]; then
+				die "SHA1 of the fetched source ($SHA1r) differs from the expected ($SHA1). refusing to proceed."
+			else
+				info "remote SHA1 identical to expected SHA1 ($SHA1). ok."
 			fi
 			;;
 		"package")
