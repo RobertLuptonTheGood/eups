@@ -1270,6 +1270,11 @@ only wish to assign a tag, you should use the -t option but not include
             print >> utils.stdinfo, "Declaring %s %s" % (product, version)
 
         for f0 in self.opts.externalFileList:
+            if f0 == "-":
+                print >> _errstrm, \
+                    "eups declare --import-file does not interpret \"-\" as stdin; ask RHL nicely"
+                return 4
+
             f = f0.split(":")
             fileNameIn = f.pop(0)
 
