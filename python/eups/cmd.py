@@ -1493,7 +1493,7 @@ where it is installed.
 
 class AdminCmd(EupsCmd):
 
-    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|listLocks|clearServerCache|info] [-h|--help] [-r root]"
+    usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|listLocks|clearServerCache|info|show] [-h|--help] [-r root]"
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -1786,6 +1786,44 @@ class AdminInfoCmd(EupsCmd):
             
         self.err(msg)
         return 1
+
+class AdminShowCmd(EupsCmd):
+    usage = "%prog admin show [-h|--help] [options] what"
+
+    # set this to True if the description is preformatted.  If false, it 
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""Tell me about something
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        # these options are used to configure the Eups instance
+        self.addEupsOptions()
+
+        # this will override the eups option version
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+    def execute(self):
+        self.args.pop(0)                # remove the "show"
+        
+        if len(self.args) == 0:
+            self.err("Please tell me what you're interested in")
+            return 2
+        what = self.args[0]
+
+        if what == "python":
+            print sys.executable
+            return 0
+        else:
+            msg = "I don't know anything about \"%s\"" % (what)
+            self.err(msg)
+            return 1
 
 class AdminListCacheCmd(EupsCmd):
 
@@ -2920,6 +2958,7 @@ register("admin clearLocks",       AdminClearLocksCmd, lockType=None)
 register("admin listLocks",        AdminListLocksCmd, lockType=None)
 register("admin listCache",        AdminListCacheCmd, lockType=lock.LOCK_SH)
 register("admin info",             AdminInfoCmd, lockType=lock.LOCK_SH)
+register("admin show",             AdminShowCmd, lockType=None)
 register("distrib",         DistribCmd, lockType=None) # must be None, as subcommands take locks
 register("distrib clean",   DistribCleanCmd)
 register("distrib create",  DistribCreateCmd)

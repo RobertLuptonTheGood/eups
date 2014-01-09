@@ -1,3 +1,10 @@
+2014-01-09 rhl
+      Added "eups admin show" command (only "... show python" is currently implemented)
+
+2014-01-01 mjuric
+      Added new distribution type, eupspkg.  Supercedes build, and can be used to replace tarball too
+      N.b.  pacman is deprecated and unsupported, as is the lsst-specific .bld system
+
 2014-01-01 rhl
       Add ability to NOT reinstall a product even with eups distrib install --force
 

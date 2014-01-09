@@ -799,12 +799,31 @@ The desired database can also be specified explicitly with the \code{-Z} option 
 \subsubsection{\code{eups admin}}
 \begin{verbatim}
 Usage:
-    eups admin [options] [buildCache|clearCache|listCache|clearLocks|clearServerCache|info]
+    eups admin [options] [buildCache|clearCache|listCache|clearLocks|clearServerCache|info|show]
 
 Options:
    -r, --root       arg    Location of manifests/buildfiles/tarballs (may be a URL or scp specification).
                            Default: $EUPS_PKGROOT
 \end{verbatim}
+
+There are a number of subcommands:
+\begin{itemize}
+  \item{\code{buildCache|clearCache|listCache}}
+    Manipulate \eups's caches
+
+  \item{\code{clearServerCache}}
+    Clear the \code{eups distrib} cache
+
+  \item{\code{clearLocks}}
+    Clear \eups locks
+
+  \item{\code{info product [--tag XXX] [version]}}
+    Provide information about a product, specifically the location of the file that \eups (currently)
+    uses to define a product/version/tag.
+
+  \item{\code{show}}
+    Show the value of something of interest to \eups.
+\end{itemize}
 
 \subsubsection{\code{eups declare}}
 \label{eups declare}
