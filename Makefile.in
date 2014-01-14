@@ -81,7 +81,8 @@ declare :
 	eups declare --root $(EUPS_DIR) eups $$vers && \
 	echo eups declare --root $(EUPS_DIR) eups $$vers
 show : git.version
-	@echo "You will be installing ups in \$$EUPS_DIR  =  $(EUPS_DIR)"
+	@echo "Eups will use                               $(EUPS_PYTHON)"
+	@echo "You will be installing ups in \$$EUPS_DIR   = $(EUPS_DIR)"
 	@echo "Eups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 	@echo "Your EUPS database[s] will be               $(EUPS_DB)"
 	@echo "Your EUPS version is                        $(VERSION)"

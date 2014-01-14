@@ -1,3 +1,6 @@
+2014-01-14 Fabrice Jammes
+      Select python interpreter at configure time
+
 2014-01-09 rhl
       Added "eups admin show" command (only "... show python" is currently implemented)
 
