@@ -3,4 +3,4 @@
 #  #!/usr/bin/env python options
 #
 unset PYTHONSTARTUP
-python -S $EUPS_DIR/bin/eups_impl.py "$@"
+@EUPS_PYTHON@ -S $EUPS_DIR/bin/eups_impl.py "$@"

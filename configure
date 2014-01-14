@@ -605,6 +605,7 @@ LIBOBJS
 SETUP_ALIASES
 MAKE_SUBDIRS
 EUPS_DIR
+EUPS_PYTHON
 EUPS_PATH
 target_alias
 host_alias
@@ -649,6 +650,7 @@ enable_option_checking
 with_ups
 with_ups_dir
 with_eups
+with_python
 with_eups_db
 with_eups_dir
 enable_docs
@@ -1286,6 +1288,7 @@ Optional Packages:
   --with-ups=DIR          Typo for --with-eups=DIR
   --with-ups_dir=DIR      Typo for --with-eups_dir=DIR
   --with-eups=DIR         Use DIR as root for installed products (EUPS_PATH)
+  --with-python=BIN       Use BIN python interpreter to run eups
   --with-eups-db=name     Select directory containing NAME from $EUPS_PATH
   --with-eups_dir=DIR     Install eups into DIR/{bin,doc} (equivalent to
                           --prefix)
@@ -1765,6 +1768,37 @@ else
        EUPS_PATH=$EUPS_PATH
     fi
 
+fi
+
+
+
+
+# Check whether --with-python was given.
+if test "${with_python+set}" = set; then
+  withval=$with_python; EUPS_PYTHON=$(echo $withval)
+else
+  EUPS_PYTHON=$(which python)
+    if [ $EUPS_PYTHON != /usr/bin/python ]; then
+      { { $as_echo "$as_me:$LINENO: error: Your current python version isn't /usr/bin/python, please rerun configure with next option
+--with-python=$(which python) will force eups to use your current python version,
+--with-python=/usr/bin/python will force eups to use system-installed python" >&5
+$as_echo "$as_me: error: Your current python version isn't /usr/bin/python, please rerun configure with next option
+--with-python=$(which python) will force eups to use your current python version,
+--with-python=/usr/bin/python will force eups to use system-installed python" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+
+fi
+
+
+if [ -x $EUPS_PYTHON ]; then
+    $EUPS_PYTHON -c "import sys;print \"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version)" || { { $as_echo "$as_me:$LINENO: error: $EUPS_PYTHON does not seem to be a valid python interpreter" >&5
+$as_echo "$as_me: error: $EUPS_PYTHON does not seem to be a valid python interpreter" >&2;}
+   { (exit 1); exit 1; }; }
+else
+    { { $as_echo "$as_me:$LINENO: error: $EUPS_PYTHON doesn't exists or doesn't have execute permission granted" >&5
+$as_echo "$as_me: error: $EUPS_PYTHON doesn't exists or doesn't have execute permission granted" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 
@@ -2963,4 +2997,3 @@ fi
 
 (export EUPS_DIR=$PWD; cd bin; ./mksetup $EUPS_DIR $EUPS_PATH $SETUP_ALIASES)
 make git.version
-
