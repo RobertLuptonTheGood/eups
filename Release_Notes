@@ -1,3 +1,6 @@
+2014-01-16 rhl
+      Remove eups_expandbuild eups_remove eups_uses (use e.g. "eups remove" instead)
+
 2014-01-14 Fabrice Jammes
       Select python interpreter at configure time
 
