@@ -104,8 +104,9 @@ AC_SUBST(SETUP_ALIASES)
 dnl
 dnl Output
 dnl
-AC_CONFIG_FILES([Makefile bin/eups_impl.py bin/eups_setup bin/eups_setup_impl.py])
+AC_CONFIG_FILES([Makefile bin/eups_impl.py bin/eups_setup_impl.py])
 AC_CONFIG_FILES([bin/eups], [chmod +x bin/eups])
+AC_CONFIG_FILES([bin/eups_setup], [chmod +x bin/eups_setup])
 dnl AC_CONFIG_FILES([ups/eups.table])
 dnl
 dnl This messy perl ensures that multiple EUPS_PATH components are added
