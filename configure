@@ -1769,7 +1769,9 @@ if test "${with_setup_aliases+set}" = set; then
 fi
 
 
-ac_config_files="$ac_config_files Makefile"
+ac_config_files="$ac_config_files Makefile bin/eups_impl.py bin/eups_setup bin/eups_setup_impl.py"
+
+ac_config_files="$ac_config_files bin/eups"
 
 ac_config_files="$ac_config_files ups/eups.table"
 
@@ -2341,6 +2343,10 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "bin/eups_impl.py") CONFIG_FILES="$CONFIG_FILES bin/eups_impl.py" ;;
+    "bin/eups_setup") CONFIG_FILES="$CONFIG_FILES bin/eups_setup" ;;
+    "bin/eups_setup_impl.py") CONFIG_FILES="$CONFIG_FILES bin/eups_setup_impl.py" ;;
+    "bin/eups") CONFIG_FILES="$CONFIG_FILES bin/eups" ;;
     "ups/eups.table") CONFIG_FILES="$CONFIG_FILES ups/eups.table" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -2747,6 +2753,7 @@ which seems to be undefined.  Please make sure it is defined." >&2;}
 
 
   case $ac_file$ac_mode in
+    "bin/eups":F) chmod +x bin/eups ;;
     "ups/eups.table":F) perl -ni -e 'if(($b,undef,$ep,$e) = /^(\s*env(Prepend|Append)\(\s*EUPS_PATH\s*,)\s*([^)]+)(.*)$/) { foreach $p (split(":",$ep)) { print "$b ${p}$e\n"} } else { print }' ups/eups.table ;;
 
   esac

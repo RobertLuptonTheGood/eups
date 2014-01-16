@@ -11,12 +11,11 @@ VERSION="`env EUPS_DIR=. PYTHONPATH=python bin/eups --version 2>&1 | awk '/Versi
 #
 prefix = @prefix@
 EUPS_PATH = @EUPS_PATH@
-EUPS_PYTHON = @EUPS_PYTHON@
 EUPS_DIR = @EUPS_DIR@
 SETUP_ALIASES = @SETUP_ALIASES@
 EUPS_DB = $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d/ups_db\n"}')
 #
-export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES EUPS_PYTHON
+export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES
 #
 SUBDIRS = @MAKE_SUBDIRS@
 
@@ -81,7 +80,7 @@ declare :
 	eups declare --root $(EUPS_DIR) eups $$vers && \
 	echo eups declare --root $(EUPS_DIR) eups $$vers
 show : git.version
-	@echo "Eups will use                               $(EUPS_PYTHON)"
+	@echo "Eups will use                               @EUPS_PYTHON@"
 	@echo "You will be installing ups in \$$EUPS_DIR   = $(EUPS_DIR)"
 	@echo "Eups will look for products in \$$EUPS_PATH = $(EUPS_PATH)"
 	@echo "Your EUPS database[s] will be               $(EUPS_DB)"
