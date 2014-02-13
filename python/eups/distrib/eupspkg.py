@@ -50,23 +50,17 @@ r"""
 
     EupsPkg knows how to build autoconf (i.e., ./configure), make, scons,
     and Python distutils driven products.  Customization of the
-    configuration or build process is possible via the ./ups/eupspkg file. 
-    For example, having the following:
+    configuration or build process is typically done via the
+    ./ups/eupspkg.cfg.sh file.  For example, having the following:
 
        ================================================================
-       #!/bin/bash
-    
-       . "$EUPS_DIR/lib/eupspkg.sh"
+       # EupsPkg config file. Sourced by 'eupspkg'
 
-       # ---- customizations start here ----
        CONFIGURE_OPTIONS="--prefix=$PREFIX --disable-shared"
        export CFLAGS="$CFLAGS -fPIC"
-       # ---- customizations end here ----
-    
-       "$@"
        ================================================================
 
-    in ./ups/eupspkg file will add --disable-shared to `./configure' command
+    in ./ups/eupspkg.cfg.sh will add --disable-shared to `./configure' command
     line, and make sure that the sources are built with -fPIC (note: make
     sure eupspkg is executable!).  For a complete list of variables one can
     override, see the bottom of $EUPS_DIR/lib/eupspkg.sh file.
@@ -74,10 +68,10 @@ r"""
 
     If your product uses an unsupported build system, or needs more complex
     customizations than enabled by simple variable modifications, read more
-    below to learn about ./ups/eupspkg scripts.
+    below to learn about ./ups/eupspkg.cfg.sh scripts.
 
-    Or, if you prefer to learn by example, look at ./ups/eupspkg scripts in
-    various repositories at:
+    Or, if you prefer to learn by example, look at ./ups/eupspkg.cfg.sh
+    scripts in various repositories at:
 
         https://dev.lsstcorp.org/cgit/LSST/DMS/external
 
@@ -96,9 +90,11 @@ r"""
     (hereafter called $pkgdir).  There, a file named ./ups/eupspkg is
     searched for, and used to fetch, prepare, configure, build and install
     the product.  If the packager hasn't provided one, a default
-    implementation is used (residing in $EUPS_DIR/lib/eupspkg.default); it
-    knows how to build and install products using the most frequent build
-    systems (e.g., autoconf, make, scons; see below for details).
+    implementation is used (residing in $EUPS_DIR/lib/eupspkg.sh); it
+    already knows how to build and install products using the most frequent
+    build systems (e.g., autoconf, make, scons; see below for details), but
+    its functionality can be further customized and fine-tuned via a
+    ./ups/eupspkg.cfg.sh bash script, which it will source.
 
     When provided, ./ups/eupspkg must be executable and define "verbs"
     invocable as:
@@ -183,8 +179,8 @@ r"""
     Standard .list files are used to capture tag information.
 
 
-    Default eupspkg implementation
-    ------------------------------
+    eupspkg.sh: the default verb implementation
+    -------------------------------------------
 
     The above requirements on verbs which must be present are all that is
     required of eupspkg scripts.  The creation and building of packages, as
@@ -207,47 +203,56 @@ r"""
     "./configure"/"make"/"make install" idioms for autoconf, etc.), a
     reasonable, base, default, eupspkg script can be written that works for
     most products out of the box and can be extended to support others. 
-    EupsPkg provides such a default library of implementations of required
-    verbs, written in bash.  This greatly simplify the writing of custom
-    eupspkg scripts, and, in a number of cases, obviates the need for them
-    entirely.
+    EupsPkg provides such a default, extensible, implementation, written in
+    bash.  This greatly simplify the writing of custom eupspkg scripts, and,
+    in a number of cases, obviates the need for them entirely.
 
-    The default eupspkg verb implementation library can be found in:
+    The default eupspkg implementation can be found in:
     
        $EUPS_DIR/lib/eupspkg.sh
 
     It is guaranteed to be present on any system running EUPS more recent
-    than 1.3.0.  A typical eupspkg script leveraging this library will be
-    as follows:
-    
+    than 1.3.0, and will be used automatically if the packager doesn't
+    provide ./ups/eupspkg.  This enables completely non-intrusive builds of
+    packages for products that eupspkg.sh knows to build.
+
+    The default implementation can be customized on a per-product basis by
+    providing a:
+
+       ./ups/eupspkg.cfg.sh
+
+    script in the package. This script will be sourced by eupspkg.sh
+    just before the verbs are executed, and can be used to customize them as
+    appropriate.  For example, a typical eupspkg.cfg.sh script customizing
+    the default implementation may appear as follows:
+
        ================================================================
-       #!/bin/bash
-    
-       . "$EUPS_DIR/lib/eupspkg.sh"
- 
-       # ... verb or variable overrides ...
+       # EupsPkg config file. Sourced by 'eupspkg'
+
+       # ... verb or variable overrides, e.g.:
+       CONFIGURE_OPTIONS="--prefix=$PREFIX --disable-shared"
    
-       "$@"
        ================================================================
 
-    The script above sources the eupspkg.sh library, and ends with "$@". 
-    The latter will execute the verb passed in on the command line.  The
-    library takes care of the interpretation of KEY=VAL keyword arguments,
-    their conversion to Bash variables, and removal from $@.  These are used
-    by the verbs to perform their functions; see the source of eupspkg.sh to
-    see how they do it.
+    The script above overrides the CONFIGURE_OPTIONS variable to add the
+    --disable-shared flag to it. See $EUPS_DIR/lib/eupspkg.cfg.sh for a list
+    of variables that can be overridden (look near the bottom of the file).
 
-    The example above actually *is* what EUPS will use if the packager
-    doesn't provides their own ./ups/eupspkg.  This enables completely
-    non-intrusive builds of eupspkg packages for products that eupspkg.sh
-    verbs know how to create and install.
+    Similarly, the behavior can be customized on a site-wide basis by
+    providing a :-delimited list of scripts to source in an EUPSPKG_SCRIPTS
+    environment variable. E.g.:
+    
+       EUPSPKG_SCRIPTS="/a/b/custom1.sh:/b/c/custom2.sh:..."
+       
+    These will be sourced, in sequence, just before ./ups/eupspkg.cfg.sh is
+    sourced.
 
 
-    Default 'create' verb implementation
-    ------------------------------------
+    eupspkg.sh: implementation of 'create'
+    --------------------------------------
 
     The default implementation of 'create' builds a package that contains
-    the source code itself (default).  Alternatively, it can be instructed
+    the source code in tself (default).  Alternatively, it can be instructed
     to record (in ./ups/pkginfo) the URL to a git repository and the
     associated commit SHA1 that can be used to fetch the source at
     install-time.
@@ -259,6 +264,10 @@ r"""
 
        REPOSITORY_PATH  -- '|'-delimited list of patterns used to construct
                            git repository URLs (default: "")
+
+    These variables can also be set in the environment, but have to be
+    prefixed with EUPSPKG_ when so (e.g., EUPSPKG_REPOSITORY_PATH,
+    EUPSPKG_SOURCE, etc.).
 
     The default create verb implementation interprets the SOURCE variable as
     the mechanism by which the source code will be obtained when the package
@@ -308,6 +317,11 @@ r"""
        eups distrib create .... \
          -S REPOSITORY_PATH='git://server1/dir1/$PRODUCT|git://server2/dir2/$PRODUCT'
 
+    or, more commonly:
+
+       export EUPSPKG_REPOSITORY_PATH='git://server1/dir1/$PRODUCT|git://server2/dir2/$PRODUCT'
+       eups distrib create ....
+
     Elements of the path are separated by | (instead of the usual colon). 
     Also note how the path has been enclosed in single quotes, to prevent
     variable expansion on the command line.
@@ -318,7 +332,7 @@ r"""
     installed product.
 
     Instead of using matching via $REPOSITORY_PATH, the repository URL can
-    be embedded into the eupspkg file itself by setting a variable named
+    be embedded into the eupspkg.cfg.sh file by setting a variable named
     REPOSITORY.  This is more intrusive and often less flexible than the
     REPOSITORY_PATH method.  If both are specified, REPOSITORY_PATH will
     always take precedence.
@@ -327,23 +341,25 @@ r"""
     All together, a typical invocation of 'eups distrib create' using the
     built-in create verb implementation is therefore:
 
-       eups distrib create base 7.3.1.1_2_g3dd8623 \
+       export EUPSPKG_REPOSITORY_PATH='....'
+
+       eups distrib create base 7.3.1.1 \
           --server-dir=...serverDir... \
           -f generic -d eupspkg \
-          -S SOURCE=git -S REPOSITORY_PATH=....
+          -S SOURCE=git
 
     If '-S SOURCE' was not given, 'package' would be the default.
-    
+
     The default create verb implementation uses this information from the
     command line to construct the package.  It also saves any information
     needed to later build it (e.g., the $SHA1, or the resolved $REPOSITORY)
     to ./ups/pkginfo in the package itself.  To restore it, this file is
-    sourced by eupspkg at 'eups distrib install' time (see the note about
+    sourced by eupspkg.sh at 'eups distrib install' time (see the note about
     the sequence of variable loading near the end of this text).
     
 
-    Default implementations of install-time verbs
-    ---------------------------------------------
+    eupspkg.sh: implementations of install-time verbs
+    -------------------------------------------------
 
     At install time, the default verb implementations will try to detect the
     build system (in the order given below), and handle it as follows:
@@ -390,20 +406,25 @@ r"""
     
     For details, and before writing customizations of their own, the
     packagers are *strongly* advised to learn from the implementations of
-    these and other verbs in eupspkg.sh.
+    these and other verbs in $EUPS_DIR/lib/eupspkg.sh.
 
 
-    Building eupspkg scripts on top of the built-in library
-    -------------------------------------------------------
+    Customizing the behavior of eupspkg.sh
+    --------------------------------------
 
-    There are two ways of customizing the eupspkg scripts that use the
-    standard verb library: setting variables, or overriding defined
-    functions.  Unless the build process is complex, overriding the
+    The behavior of the default implementation is customized on a
+    per-package basis by providing a ./ups/eupspkg.cfg.sh script. This script
+    will be sourced just before the requested verb is invoked.
+
+    Two types of custiomizations are available via ./ups/eupspkg.cfg.sh:
+    setting variables that the default verb implementations use, or
+    providing all together new implementations of the verbs themselves (Bash
+    functions).  Unless the build process is complex, overriding the
     variables is usually sufficient to achieve the desired customization.
-    
+
     For the full list of variables that can be overridden, see the bottom of
-    the $EUPS_DIR/lib/eupspkg.sh file. Here we only list a few of the more
-    commonly used ones:
+    the $EUPS_DIR/lib/eupspkg.cfg.sh file, as well as the implementations of
+    the verbs.  Here we only list a few of the more commonly used ones:
     
        $REPOSITORY              -- The URL to git repository with the
                                    source. Can use any protocol git
@@ -425,8 +446,9 @@ r"""
        $PYSETUP_INSTALL_OPTIONS -- Options to pass to setup.py in install
                                    step. Default: "--prefix $PREFIX".
 
-    The verbs themselves can also be overridden. For example, the eupspkg
-    file for Boost C++ library overrides the config verb as follows:
+    As mentioned, the verbs themselves can also be overridden. For example,
+    the eupspkg.cfg.sh file for Boost C++ library overrides the config verb
+    as follows:
     
        ================================================================
        config()
@@ -443,14 +465,15 @@ r"""
 
     This configures the Boost build system and passes it the correct toolset
     options if running with the clang compiler.  detect_compiler() is a
-    utility function present in the library, defining $COMPILER_TYPE based
+    utility function defined in eupspkg.sh, defining $COMPILER_TYPE based
     on the detected compiler.  See the source code of the library for the
     list of available functions and their typical usage. 
 
     There are many other subroutines and options that are present in the
     function library but not documented here.  Browse through the library
     code to get a feel for it. Functions beginning with an underscore ('_')
-    are considered internal and must not be used.
+    are considered internal, may change from release to release, and are not
+    be used.
 
 
     Development Support
@@ -459,23 +482,23 @@ r"""
     For developer convenience, an executable named 'eupspkg' is provided
     with EUPS (it's in $EUPS_DIR/bin, and therefore on your path when EUPS
     is setup-ed).  It's a thin wrapper that dispatches the invocation to
-    ./ups/eupspkg if it exists, and to the default EUPS-provided
-    implementation otherwise.  It gives the developer the convenience of
-    writing:
+    ./ups/eupspkg if it exists, and to $EUPS_DIR/lib/eupspkg.sh
+    otherwise.  It gives the developer the convenience of being able to
+    write:
     
        eupspkg PRODUCT=a VERSION=b FLAVOR=c config
        
-    in the root product directory, and the confidence that it will work
+    in the root product directory, and be confident that it will work
     irrespective of whether ./ups/eupspkg or the default eupspkg
     implementation is being used.  This script supports the -h switch (to
     get help), the -v switch (to set verbosity), and a few others, described
     below.
 
 
-    To assist the development of eupspkg scripts, eupspkg.sh provides a
-    'developer mode', activated by the -e command line switch. When run in
-    developer mode, eupspkg must be invoked from the root of the setup-ed
-    product source code, i.e.:
+    To assist the development of eupspkg.cfg.sh scripts, eupspkg.sh
+    provides a 'developer mode', activated by the -e command line switch. 
+    When run in developer mode, eupspkg must be invoked from the root of the
+    setup-ed product source code, i.e.:
 
         [mjuric@gamont pex_config]$ setup -r .
         [mjuric@gamont pex_config]$ eupspkg -e create
@@ -602,7 +625,7 @@ r"""
     
     If that was the case, we could run:
     
-        [mjuric@gamont pex_config]$ pkgbuild -e decl -t current
+        [mjuric@gamont pex_config]$ eupspkg -e decl -t current
         
     to declare the package to EUPS and tag it as 'current'.
 
@@ -610,16 +633,16 @@ r"""
     Appendix: Sequence of variable loading
     --------------------------------------
 
-    eupspkg is internally driven by variables such as PRODUCT, VERSION, etc. 
-    As these can come from several sources, it's important to understand the
-    sequence in which they apply.  The variables are logically loaded in the
-    following order:
+    eupspkg.sh is internally driven by variables such as PRODUCT, VERSION,
+    etc.  As these can come from several sources, it's important to
+    understand the sequence in which they apply.  The variables are
+    logically loaded in the following order:
 
-        1.) Defaults from eupspkg.sh
-        2.) Variables from the environment
-        3.) Variables set in ./ups/pkginfo
+        1.) Defaults from $EUPS_DIR/lib/eupspkg.sh
+        2.) EUPSPKG_-prefixed variables from the environment
+        3.) Variables defined in ./ups/pkginfo
         4.) Variables passed as command line KEY=VAL arguments
-        5.) Variables set in ./ups/eupspkg, after sourcing eupspkg.sh
+        5.) Variables set in ./ups/eupspkg.cfg.sh
 
     and the latter ones override the former.
 
@@ -759,7 +782,7 @@ TAGLIST_DIR = tags
         eupspkg = os.path.join(baseDir, productDir, "ups", "eupspkg")
         if not os.path.exists(eupspkg):
             # Use the defalt build file
-            eupspkg = os.path.join(os.environ["EUPS_DIR"], 'lib', 'eupspkg.default')
+            eupspkg = os.path.join(os.environ["EUPS_DIR"], 'lib', 'eupspkg.sh')
 
         # Construct the package in a temporary directory
         pkgdir0 = tempfile.mkdtemp(suffix='.eupspkg')
@@ -921,7 +944,7 @@ cd "$PKGDIR"
 # If ./ups/eupspkg is not present, symlink in the default
 if [[ ! -e ./ups/eupspkg ]]; then
     mkdir -p ./ups
-    ln -s "$EUPS_DIR/lib/eupspkg.default" ups/eupspkg
+    ln -s "$EUPS_DIR/lib/eupspkg.sh" ups/eupspkg
 fi
 
 # eups setup the dependencies
