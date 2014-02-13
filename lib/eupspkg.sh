@@ -657,7 +657,12 @@ default_config()
 	#   run custom configuration scripts
 
 	if [[ -f configure ]]; then
-		fix_autoconf_timestamps
+
+		if [[ ! -d "$UPSTREAM_DIR" ]]; then
+			# fix timestamps only if this wasn't a TaP package
+			fix_autoconf_timestamps
+		fi
+
 		./configure $CONFIGURE_OPTIONS
 	fi
 }
