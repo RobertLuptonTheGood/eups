@@ -620,8 +620,8 @@ default_prep()
 			fi
 			msg "unpacking $_tb ..."
 			case $_tb in
-				*.tar.gz|*.tgz)  tar xzf "$_tb" --strip-components 1 ;;
-				*.tar.bz2|*.tbz) tar xjf "$_tb" --strip-components 1 ;;
+				*.tar.gz|*.tgz)  tar xzf "$_tb" --strip-components 1 $TAP_TAR_OPTIONS ;;
+				*.tar.bz2|*.tbz) tar xjf "$_tb" --strip-components 1 $TAP_TAR_OPTIONS ;;
 				*) die "unrecognized archive format for '$_tb'." ;;
 			esac
 		done
@@ -631,7 +631,7 @@ default_prep()
 		# safe for overrides to place patches they plan to apply
 		# into subdirs.
 		if [[ -d "$PATCHES_DIR" ]]; then
-			for _p in $(find "$PATCHES_DIR" -maxdepth 1 -mindepth 1 -name "*.patch"); do
+			for _p in $(find "$PATCHES_DIR" -maxdepth 1 -mindepth 1 -name "*.patch" ! -type d | sort); do
 				msg "applying $_p ..."
 				patch -s -p1 < "$_p"
 			done
