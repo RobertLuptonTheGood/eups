@@ -140,9 +140,9 @@ class Eups(object):
 
         if not shell:
             try:
-                shell = os.environ["SHELL"]
+                shell = os.environ["EUPS_SHELL"]
             except KeyError:
-                raise EupsException("I cannot guess what shell you're running as $SHELL isn't set")
+                raise EupsException("I cannot guess what shell you're running as $EUPS_SHELL isn't set")
 
             if re.search(r"(^|/)(bash|ksh|sh)$", shell):
                 shell = "sh"
