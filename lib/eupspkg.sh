@@ -357,7 +357,7 @@ default_create()
 			# try to avoid checking out everything (it may be a multi-GB repo)
 			(cd tmp && { git checkout -q $GITREV -- ups 2>/dev/null || git checkout -q $GITREV; })
 
-			SHA1=$(cd tmp && git rev-parse HEAD)
+			SHA1=$(cd tmp && git rev-parse --verify $GITREV)
 			append_pkginfo SHA1
 
 			mkdir ups
