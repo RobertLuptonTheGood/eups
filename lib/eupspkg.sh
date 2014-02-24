@@ -35,6 +35,28 @@ debug() { [[ $VERBOSE -ge 2 ]] && echo "eupspkg.${_FUNCNAME:-${FUNCNAME[1]}} (de
 
 die_if_empty() { eval VAL_="\$$1"; if [ -z "$VAL_" ]; then die "$1 is not set. refusing to proceed."; fi; }
 
+# File descriptor 4 is opened for writing to EUPS console (for messages to
+# the user).  We'll point it to /dev/null if it hasn't already been opened
+# by the parent process.
+( exec >&4 ) 2>/dev/null || exec 4>/dev/null
+
+eups_console()
+{
+	# Pipe a message to EUPS console (by convention, file descriptor 4).
+	# and to stdout.
+	#
+	# usage: echo "Message" | eups_console
+	#
+
+	while read line
+	do
+		echo "$line" 1>&4
+
+		local _FUNCNAME="${FUNCNAME[1]}"
+		msg "$line"
+	done
+}
+
 dumpvar()
 {
 	local cmd="$1"

@@ -629,6 +629,19 @@ r"""
         
     to declare the package to EUPS and tag it as 'current'.
 
+    Appendix: Echoing messages to console
+    -------------------------------------
+    
+    To echo a message to console, redirect it to file descriptor 4.
+    
+    When 'eupspkg distrib install' is run, all output by ups/eupspkg (to
+    stdout and stderr; fds 0 and 2) is redirected to a log file and is not
+    shown to the user unless there's an error.  If you want to show a
+    message to a user, echo it to file description 4. To make this easier,
+    eupspkg.sh provides an eups_console() function to be used as:
+    
+        echo "The user will see this message" | eups_console
+
 
     Appendix: Sequence of variable loading
     --------------------------------------
@@ -895,6 +908,7 @@ TAGLIST_DIR = tags
                                                    noaction=self.Eups.noaction)
 
         logfile = os.path.join(buildDir, "build.log") # we'll log the build to this file
+        uimsgfile = os.path.join(buildDir, "build.msg") # messages to be shown on the console go to this file
 
         # Determine temporary build directory
         if not buildDir:
@@ -992,7 +1006,7 @@ setup --type=build -k -r .
             self.setGroupPerms(buildDir + "*")
 
             # Run the build
-            cmd = "(%s) >> %s 2>&1 " % (q(buildscript), q(logfile))
+            cmd = "(%s) >> %s 2>&1 4>%s" % (q(buildscript), q(logfile), q(uimsgfile))
             if not self.nobuild:
                 if self.Eups.verbose >= 1:
                     print >> self.log, "[build]",; self.log.flush()
@@ -1006,6 +1020,15 @@ setup --type=build -k -r .
                         print >> self.log, "Build log file copied to %s/%s" % (installDirUps, os.path.basename(logfile))
                 else:
                     print >> self.log, "Build log file not copied as %s does not exist (this shouldn't happen)." % installDirUps
+
+                # Echo any lines from "messages" file
+                # TODO: This should be piped in real time, not written out to a file and echoed.
+                if os.path.getsize(uimsgfile) > 0:
+                    print >> self.log, ""
+                    fp = open(uimsgfile)
+                    for line in fp:
+                        self.log.write("             %s" % line)
+                    fp.close()
 
         except OSError, e:
             if self.verbose >= 0 and os.path.exists(logfile):
