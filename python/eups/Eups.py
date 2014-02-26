@@ -1969,9 +1969,14 @@ The what argument tells us what sort of state is expected (allowed values are de
         setup_msgs = self._msgs["setup"]
         if fwd and self.verbose and recursionDepth >= 0:
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
+
             if self.verbose > 1 or not setup_msgs.has_key(key):
-                print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
-                      (indent + product.name, setupFlavor, product.version)
+                if self.verbose < 2 and \
+                        vroReason[0] == "keep" and self.alreadySetupProducts.get(product.name):
+                    pass
+                else:
+                    print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
+                        (indent + product.name, setupFlavor, product.version)
                 setup_msgs[key] = 1
 
         if fwd and setupToplevel:

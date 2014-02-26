@@ -1,3 +1,8 @@
+2014-02-26 rhl
+       Stop "setup --keep --verbose" from printing the products that are being kept
+
+       They are still printed at verbosity >= 2
+
 2014-01-16 rhl
       Remove eups_expandbuild eups_remove eups_uses (use e.g. "eups remove" instead)
 
