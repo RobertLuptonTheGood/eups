@@ -29,6 +29,9 @@
        They are still printed at verbosity >= 2
 
 2014-01-16 rhl
+      Added etc/eups.el to syntax-colour table files in emacs
+
+2014-01-16 rhl
       Remove eups_expandbuild eups_remove eups_uses (use e.g. "eups remove" instead)
 
 2014-01-14 Fabrice Jammes
