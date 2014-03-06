@@ -738,21 +738,25 @@ default_install()
 		scons -j$NJOBS prefix="$PREFIX" version="$VERSION" cc="$CC" install
 	elif [[ -f configure ]]; then
 		make -j$NJOBS $MAKE_INSTALL_TARGETS
-		install_ups
 	elif [[ -f Makefile || -f makefile || -f GNUmakefile ]]; then
 		make -j$NJOBS prefix="$PREFIX" version="$VERSION"  $MAKE_INSTALL_TARGETS
-		install_ups
 	elif [[ -f setup.py ]]; then
 		PYDEST="$PREFIX/lib/python"
 		mkdir -p "$PYDEST"
 		PYTHONPATH="$PYDEST:$PYTHONPATH" python setup.py install $PYSETUP_INSTALL_OPTIONS
 		evil_setuptools_pth_fix "$PYDEST"
-		install_ups
 	else
-		# just copy everything
+		# just copy everything, except for the ups directory
 		mkdir -p "$PREFIX"
 		cp -a ./ "$PREFIX"
+		rm -rf "$PREFIX/ups"
 		msg "Copied the product into '$PREFIX'"
+	fi
+
+	# Install ups if the native build system hasn't done it already.
+	# We do this check to avoid expanding the table file twice (EUPS has a bug there)
+	if [[ -d "ups" && ! -d "$PREFIX/ups" ]]; then
+		install_ups
 	fi
 }
 
