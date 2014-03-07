@@ -51,7 +51,8 @@ r"""
     EupsPkg knows how to build autoconf (i.e., ./configure), make, scons,
     and Python distutils driven products.  Customization of the
     configuration or build process is typically done via the
-    ./ups/eupspkg.cfg.sh file.  For example, having the following:
+    ./ups/eupspkg.cfg.sh file (where the leading dot refers to the root
+    directory of the product).  For example, having the following:
 
        ================================================================
        # EupsPkg config file. Sourced by 'eupspkg'
@@ -92,8 +93,8 @@ r"""
     the product.  If the packager hasn't provided one, a default
     implementation is used (residing in $EUPS_DIR/lib/eupspkg.sh); it
     already knows how to build and install products using the most frequent
-    build systems (e.g., autoconf, make, scons; see below for details), but
-    its functionality can be further customized and fine-tuned via a
+    build systems (e.g., autoconf+make, make, scons; see below for details),
+    but its functionality can be further customized and fine-tuned via a
     ./ups/eupspkg.cfg.sh bash script, which it will source.
 
     When provided, ./ups/eupspkg must be executable and define "verbs"
@@ -324,7 +325,8 @@ r"""
 
     Elements of the path are separated by | (instead of the usual colon). 
     Also note how the path has been enclosed in single quotes, to prevent
-    variable expansion on the command line.
+    variable expansion on the command line, and the interpretation of |
+    by the shell.
 
     `eupspkg create' will construct a candidate URL from each element of
     $REPOSITORY_PATH, and test for its existence until a matching one is

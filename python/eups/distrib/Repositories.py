@@ -529,7 +529,7 @@ class Repositories(object):
 
             if self.verbose >= 0:
                 if self.log.isatty():
-                    print >> self.log, "\x0d", msg, " "*(70-len(msg)), "done. "
+                    print >> self.log, "\r", msg, " "*(70-len(msg)), "done. "
                 else:
                     print >> self.log, "done."
 
