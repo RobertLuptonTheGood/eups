@@ -1,9 +1,0 @@
-#!/bin/bash
-#
-# Default eupspkg file. This will be run if no 'ups/eupspkg' exists in the
-# package being created or installed.
-#
-
-. "$EUPS_DIR/lib/eupspkg.sh"
-
-"$@"

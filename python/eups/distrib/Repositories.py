@@ -451,13 +451,14 @@ class Repositories(object):
                     continue
 
                 if self.eups.force:
-                    msg += " (forcing a reinstall)"
+                    # msg += " (forcing a reinstall)"
+                    msg = ''
                 else:
                     shouldInstall = False
                     msg += " (already installed)"
 
-                if self.verbose >= 0:
-                    print >> self.log, msg
+                if self.verbose >= 0 and msg:
+                    print >> self.log, msg,
 
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
@@ -498,11 +499,12 @@ class Repositories(object):
 
                 if shouldInstall:
                     if self.verbose >= 0:
-                        msg1 = prod.flavor
-                        if prod.flavor == "generic":
-                            msg1 = "from source";
-                        msg = "  [ %2d%s ]  %s %s (%s)" % (at+1, nprods, prod.product, prod.version, msg1)
-                        print >> self.log, msg,
+                        if prod.flavor != "generic":
+                            msg1 = " (%s)" % prod.flavor
+                        else:
+                            msg1 = "";
+                        msg = "  [ %2d%s ]  %s %s%s" % (at+1, nprods, prod.product, prod.version, msg1)
+                        print >> self.log, msg, "...",
                         self.log.flush()
 
                     pkg = self.findPackage(prod.product, prod.version, prod.flavor)
@@ -522,11 +524,14 @@ class Repositories(object):
 
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 
-                    if self.verbose >= 0:
-                        print >> self.log, " "*(70-len(msg)), "done."
-
                     if pver not in ances:
                         ances.append(pver)
+
+            if self.verbose >= 0:
+                if self.log.isatty():
+                    print >> self.log, "\r", msg, " "*(70-len(msg)), "done. "
+                else:
+                    print >> self.log, "done."
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups

@@ -1,11 +1,9 @@
-#!/bin/bash -- just to enable syntax highlighting --
+#!/bin/bash
 #
-# EupsPkg Distrib Mechanism Function Library
+# EupsPkg Distrib Mechanism Default Shell Implementation
 #
 # Defines utility functions, default implementations of eupspkg verbs, and
 # performs common initialization.
-#
-# Should be sourced early on in eupspkg scripts.
 #
 
 set -e
@@ -36,6 +34,28 @@ info()  { [[ $VERBOSE -ge 1 ]] && echo "eupspkg.${_FUNCNAME:-${FUNCNAME[1]}} (in
 debug() { [[ $VERBOSE -ge 2 ]] && echo "eupspkg.${_FUNCNAME:-${FUNCNAME[1]}} (debug): $@" >&3 || true; }
 
 die_if_empty() { eval VAL_="\$$1"; if [ -z "$VAL_" ]; then die "$1 is not set. refusing to proceed."; fi; }
+
+# File descriptor 4 is opened for writing to EUPS console (for messages to
+# the user).  We'll point it to /dev/null if it hasn't already been opened
+# by the parent process.
+( exec >&4 ) 2>/dev/null || exec 4>/dev/null
+
+eups_console()
+{
+	# Pipe a message to EUPS console (by convention, file descriptor 4).
+	# and to stdout.
+	#
+	# usage: echo "Message" | eups_console
+	#
+
+	while read line
+	do
+		echo "$line" 1>&4
+
+		local _FUNCNAME="${FUNCNAME[1]}"
+		msg "$line"
+	done
+}
 
 dumpvar()
 {
@@ -149,20 +169,9 @@ autoversion()
 	# Guess VERSION, assuming we were called from a working directory of
 	# a git repository.
 
-	VERSION="$(pkgautoversion $1)"
+	VERSION="$VERSION_PREFIX$(pkgautoversion $1)$VERSION_SUFFIX"
 
 	info "guessed VERSION='$VERSION'"
-}
-
-version_to_gitrev()
-{
-	# Convert VERSION to a git revision that can be pulled with
-	# git-clone by removing anything past the first '+', and
-	# converting any _ to -.
-	#
-
-	local V=${VERSION%%+*}		# remove everything past first + (incl. the '+')
-	echo ${V//_/-}			# convert all _ to -
 }
 
 install_ups()
@@ -242,6 +251,32 @@ resolve_repository()
 	info "using predefined REPOSITORY='$REPOSITORY'"
 }
 
+resolve_repoversion()
+{
+	# Discover the source code revision within the repository
+	#
+	# If REPOVERSION is already set, use it. 
+	# Else, if SHA1 is set, use it as REPOVERSION.  Othewise, convert the
+	# VERSION into a REPOVERSION by removing +xxxx suffix, any packager-specified
+	# VERSION_PREFIX/VERSION_SUFFIX, and replacing all _ with -.
+	#
+	# Defines: REPOVERSION
+	#
+
+	[[ ! -z "$REPOVERSION" ]] && { return 0; }
+	[[ ! -z "$SHA1" ]]   && { REPOVERSION="$SHA1"; return 0; }
+
+	# Deduce REPOVERSION from version
+	local V="${VERSION%%+*}"	# remove everything past the first + (incl. the '+')
+
+	V="${V#$VERSION_PREFIX}"	# remove VERSION_PREFIX
+	V="${V%$VERSION_SUFFIX}"	# remove VERSION_SUFFIX
+	V="${V//_/-}"			# convert all _ to -
+
+	REPOVERSION="$V"
+}
+
+
 contains()
 {
 	#
@@ -256,6 +291,19 @@ contains()
 	done
 
 	return 250
+}
+
+copy_function()
+{
+	# usage: copy_function <old_name> <new_name>
+	#
+	# Copies function named $1 to name $2. useful when overriding
+	# existing functions, but wanting to save (and presumably call) the
+	# old implementation.  Adapted from
+	# http://stackoverflow.com/questions/1203583/how-do-i-rename-a-bash-function
+
+	declare -F $1 > /dev/null || return 1
+	eval "$(echo "$2()"; declare -f $1 | tail -n +2)"
 }
 
 fix_autoconf_timestamps()
@@ -304,7 +352,48 @@ decl()
 	msg "declared $PRODUCT $VERSION in $PREFIX (eups declare options: ${@:-none})"
 }
 
+_clear_environment()
+{
+	# to the future developers of this file: to quickly list all
+	# variables that are used as ${BLA:-...} (i.e., have a default), and
+	# don't begin with a _, use the following sed incantation:
+	#
+	# sed -n 's/\(.*\$\){\(.*\)\(:-.*\)$/\2/p;' lib/eupspkg.sh | sort -u | grep -Ev '^(_|@).*$'
+
+	for _var in \
+		FLAVOR PRODUCT VERSION PREFIX \
+		SOURCE INCLUDES \
+		\
+		CONFIGURE_OPTIONS \
+		MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS \
+		PYSETUP_INSTALL_OPTIONS \
+		\
+		VERSION_PREFIX VERSION_SUFFIX \
+		\
+		PATCHES_DIR UPSTREAM_DIR \
+		PRODUCTS_ROOT \
+		REPOSITORY REPOSITORY_PATH \
+		SHA1 REPOVERSION \
+	; do
+		debug clearing $_var
+		unset $_var
+	done
+}
+
 ##################### ---- DEFAULT VERB IMPL ---- #####################
+
+_sha1_for_remote_rev()
+{
+	# usage: _sha1_for_remote_rev $REPOSITORY $REPOVERSION
+	# 
+	# returns the SHA1 corresponding to $REPOVERSION at remote repository
+	# $REPOSITORY.  returns an empty string in case of failiure.
+
+	local SHA1=$(git ls-remote -t "$REPOSITORY" "$REPOVERSION"^{} | awk '{print $1}')		# try tags first
+	local SHA1=${SHA1:-$(git ls-remote -h "$REPOSITORY" "$REPOVERSION" | awk '{print $1}')}	# fall back to heads
+
+	echo "$SHA1"
+}
 
 default_create()
 {
@@ -341,24 +430,22 @@ default_create()
 	append_pkginfo FLAVOR
 	append_pkginfo SOURCE
 
-	# Prepare the package
+	# Find out the source code repository, and the code revision within that repository
 	resolve_repository
-
-	# Use any SHA1 that was passed in (from pkginfo or command line), or version
-	GITREV=${SHA1:-$(version_to_gitrev)}
+	resolve_repoversion
 
 	case "$SOURCE" in
 		git)
-			# Use git clone to extract ups/eupspkg. Store the SHA1 into $PKGINFO
+			# Use git clone to extract ups/eupspkg. Store the SHA1 into $PKGINFO.
 			# Note: this is terribly inefficient, but git doesn't provide a
 			# mechanism to just fetch a single file given a ref.
 			git clone --shared -n -q "$REPOSITORY" tmp
 
-			# try to avoid checking out everything (it may be a multi-GB repo)
-			(cd tmp && { git checkout -q $GITREV -- ups 2>/dev/null || git checkout -q $GITREV; })
-
-			SHA1=$(cd tmp && git rev-parse HEAD)
+			SHA1=$(cd tmp && git rev-parse "$REPOVERSION"^{})
 			append_pkginfo SHA1
+
+			# try to avoid checking out everything (it may be a multi-GB repo)
+			(cd tmp && { git checkout -q $SHA1 -- ups 2>/dev/null || git checkout -q "$REPOVERSION"; })
 
 			mkdir ups
 			if [[ -e tmp/ups/eupspkg ]]; then
@@ -369,34 +456,47 @@ default_create()
 			;;
 		git-archive)
 			# Extract ups/eupspkg using git-archive
-			git archive --format=tar.gz --remote="$REPOSITORY" "$VERSION" ups/eupspkg 2>/dev/null | (tar xzf - 2>/dev/null || true)
+			git archive --format=tar.gz --remote="$REPOSITORY" "$REPOVERSION" ups/eupspkg 2>/dev/null | (tar xzf - 2>/dev/null || true)
 			# note: the odd tar construct (and PIPESTATUS check) is to account for BSD/gnu tar differences:
 			#       BSD tar returns success on broken pipe, gnu tar returns an error.
 			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
 				# The failure may have occurred because ups/ does not exist on the remote, or because
 				# of a problem with accessing the repository. The former is legal, the latter is not.
 				# Find out which one is it and act accordinly.
-				git archive --format=tar.gz --remote="$REPOSITORY" "$VERSION" | head -c 1 > /dev/null
+				git archive --format=tar.gz --remote="$REPOSITORY" "$REPOVERSION" | head -c 1 > /dev/null
 				if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-					die "could not access '$REPOSITORY' via git-archive. has it been tagged with '$VERSION'"?
+					die "could not access '$REPOSITORY' via git-archive. has it been tagged with '$REPOVERSION'"?
 				fi
+				mkdir -p ups
 			fi
-			mkdir -p ups
+
+			# Extract the SHA1 of the remote, and store it in pkginfo
+			SHA1=$(_sha1_for_remote_rev $REPOSITORY $REPOVERSION)
+			[[ ! -z $SHA1 ]] || die "cannot deduce SHA1 for git revision '$REPOVERSION'. bug?"
+
+			append_pkginfo SHA1
 			;;
 		"package")
 			# Extract the full source using git-archive, falling back to git-clone in case of failure.
-			git archive --format=tar.gz --remote="$REPOSITORY" "$VERSION" 2>/dev/null | (tar xzf - 2>/dev/null || true)
+			debug "attempting to extract the source for package using git-archive (for '$REPOVERSION')"
+			git archive --format=tar.gz --remote="$REPOSITORY" "$REPOVERSION" 2>/dev/null | (tar xzf - 2>/dev/null || true)
 			# note: the odd tar construct (and PIPESTATUS check) is to account for BSD/gnu tar differences:
 			#       BSD tar returns success on broken pipe, gnu tar returns an error.
 			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+				debug "git-archive failed. falling back to git-clone (for '$REPOVERSION')"
 				git clone --shared -n -q "$REPOSITORY" .
-				git checkout -q $GITREV
 
-				SHA1=$(git rev-parse HEAD)
-				append_pkginfo SHA1
+				SHA1=$(git rev-parse "$REPOVERSION"^{})
+				git checkout -q "$SHA1"
 
 				rm -rf .git
+			else
+				# Extract the SHA1 from the remote, and store it in pkginfo
+				SHA1=$(_sha1_for_remote_rev $REPOSITORY $REPOVERSION)
+				[[ ! -z $SHA1 ]] || die "cannot deduce SHA1 for git revision '$REPOVERSION'. bug?"
 			fi
+
+			append_pkginfo SHA1
 			;;
 		*)
 			echo "eupspkg error: unknown source download mechanism SOURCE='$SOURCE' (known mechanisms: git, git-archive, package)."; exit -1;
@@ -411,7 +511,9 @@ default_create()
 			REPOSITORY="$URL"
 		fi
 	fi
+
 	append_pkginfo REPOSITORY
+	append_pkginfo REPOVERSION
 
 	# move pkginfo file to its final location
 	mkdir -p ups
@@ -443,11 +545,20 @@ default_fetch()
 		git)
 			# Obtain the source from a git repository
 			die_if_empty REPOSITORY
+			die_if_empty REPOVERSION
 			die_if_empty SHA1
 
 			info "fetching by git cloning from $REPOSITORY"
 			git clone -q "$REPOSITORY" tmp
-			(cd tmp && git checkout -q $SHA1)
+			(cd tmp && git checkout -q $REPOVERSION)
+
+			# security first: die if the SHA1 has changed (e.g., somebody has been changing tags)
+			SHA1r=$(cd tmp && git rev-parse HEAD)
+			if [[ "$SHA1r" != "$SHA1" ]]; then
+				die "SHA1 of the fetched source ($SHA1r) differs from the expected ($SHA1). refusing to proceed."
+			else
+				info "remote SHA1 identical to expected SHA1 ($SHA1). ok."
+			fi
 
 			rm -rf tmp/.git
 
@@ -463,14 +574,23 @@ default_fetch()
 			;;
 		git-archive)
 			die_if_empty REPOSITORY
-			die_if_empty VERSION
+			die_if_empty REPOVERSION
+			die_if_empty SHA1
+
 			# note: the odd tar construct (and PIPESTATUS check) is to account for BSD/gnu tar differences:
 			#       BSD tar returns success on broken pipe, gnu tar returns an error.
-
-			info "fetching via git-archive from $REPOSITORY"
-			git archive --format=tar.gz  --remote="$REPOSITORY" "$VERSION" | (tar xzf - --exclude ups/eupspkg --exclude ups/pkginfo 2>/dev/null || true)
+			info "fetching via git-archive from $REPOSITORY, for ref '$REPOVERSION'"
+			git archive --format=tar.gz  --remote="$REPOSITORY" "$REPOVERSION" | (tar xzf - --exclude ups/eupspkg --exclude ups/pkginfo 2>/dev/null || true)
 			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-				die could not access "$REPOSITORY" via git-archive. has it been tagged with "$VERSION"?
+				die could not access "$REPOSITORY" via git-archive. has it been tagged with "$REPOVERSION"?
+			fi
+
+			# security first: die if the SHA1 has changed (e.g., somebody has been changing tags)
+			SHA1r=$(_sha1_for_remote_rev $REPOSITORY $REPOVERSION)
+			if [[ "$SHA1r" != "$SHA1" ]]; then
+				die "SHA1 of the fetched source ($SHA1r) differs from the expected ($SHA1). refusing to proceed."
+			else
+				info "remote SHA1 identical to expected SHA1 ($SHA1). ok."
 			fi
 			;;
 		"package")
@@ -522,8 +642,8 @@ default_prep()
 			fi
 			msg "unpacking $_tb ..."
 			case $_tb in
-				*.tar.gz|*.tgz)  tar xzf "$_tb" --strip-components 1 ;;
-				*.tar.bz2|*.tbz) tar xjf "$_tb" --strip-components 1 ;;
+				*.tar.gz|*.tgz)  tar xzf "$_tb" --strip-components 1 $TAP_TAR_OPTIONS ;;
+				*.tar.bz2|*.tbz) tar xjf "$_tb" --strip-components 1 $TAP_TAR_OPTIONS ;;
 				*) die "unrecognized archive format for '$_tb'." ;;
 			esac
 		done
@@ -533,7 +653,7 @@ default_prep()
 		# safe for overrides to place patches they plan to apply
 		# into subdirs.
 		if [[ -d "$PATCHES_DIR" ]]; then
-			for _p in $(find "$PATCHES_DIR" -maxdepth 1 -mindepth 1 -name "*.patch"); do
+			for _p in $(find "$PATCHES_DIR" -maxdepth 1 -mindepth 1 -name "*.patch" ! -type d | sort); do
 				msg "applying $_p ..."
 				patch -s -p1 < "$_p"
 			done
@@ -557,7 +677,12 @@ default_config()
 	#   run custom configuration scripts
 
 	if [[ -f configure ]]; then
-		fix_autoconf_timestamps
+
+		if [[ ! -d "$UPSTREAM_DIR" ]]; then
+			# fix timestamps only if this wasn't a TaP package
+			fix_autoconf_timestamps
+		fi
+
 		./configure $CONFIGURE_OPTIONS
 	fi
 }
@@ -613,21 +738,25 @@ default_install()
 		scons -j$NJOBS prefix="$PREFIX" version="$VERSION" cc="$CC" install
 	elif [[ -f configure ]]; then
 		make -j$NJOBS $MAKE_INSTALL_TARGETS
-		install_ups
 	elif [[ -f Makefile || -f makefile || -f GNUmakefile ]]; then
 		make -j$NJOBS prefix="$PREFIX" version="$VERSION"  $MAKE_INSTALL_TARGETS
-		install_ups
 	elif [[ -f setup.py ]]; then
 		PYDEST="$PREFIX/lib/python"
 		mkdir -p "$PYDEST"
 		PYTHONPATH="$PYDEST:$PYTHONPATH" python setup.py install $PYSETUP_INSTALL_OPTIONS
 		evil_setuptools_pth_fix "$PYDEST"
-		install_ups
 	else
-		# just copy everything
+		# just copy everything, except for the ups directory
 		mkdir -p "$PREFIX"
 		cp -a ./ "$PREFIX"
+		rm -rf "$PREFIX/ups"
 		msg "Copied the product into '$PREFIX'"
+	fi
+
+	# Install ups if the native build system hasn't done it already.
+	# We do this check to avoid expanding the table file twice (EUPS has a bug there)
+	if [[ -d "ups" && ! -d "$PREFIX/ups" ]]; then
+		install_ups
 	fi
 }
 
@@ -654,7 +783,7 @@ default_usage()
 	cat <<-"EOF"
 		eupspkg -- EupsPkg builder script
 
-		usage: eupspkg [-hedr] [-v level] [VAR1=..] [VAR2=..] verb
+		usage: eupspkg [-hedrk] [-v level] [VAR1=..] [VAR2=..] verb
 
 		  verb  : one of create, fetch, prep, config, build, install
 
@@ -667,6 +796,7 @@ default_usage()
 		      when autodetecting versions
 		  r : in developer mode, make install $PREFIX for the
 		      product point to EUPS binary directory
+		  k : keep all pre-set environment variables
 
 		EUPSPKG STANDARD MODE:
 
@@ -677,8 +807,8 @@ default_usage()
 		configuration, as well as prepare the package contents
 		depending on the chosen SOURCE.  Any existing
 		$PREFIX/ups/pkginfo will be sourced to deduce REPOSITORY and
-		SHA1.  If REPOSITORY_PATH is passed or exists in the
-		environment, it will be preferred over REPOSITORY from pkginfo.
+		SHA1.  If REPOSITORY_PATH is given, it will be preferred
+		over REPOSITORY from pkginfo.
 
 		If run with any other verb, the script will look for
 		'./ups/pkginfo' to source the configuration.  At least
@@ -686,7 +816,9 @@ default_usage()
 
 		Variables can be passed on the command line, after the
 		options and before the verb.  These override any from the
-		environment or pkginfo.
+		environment or pkginfo. Note that unless -k is specified,
+		most script-specific variables won't be taken from the
+		environment (run `eupspkg -v 2 echo' to see a list).
 
 		DEVELOPER MODE:
 		
@@ -724,18 +856,24 @@ usage()   { _FUNCNAME=usage   default_usage "$@"; }
 
 ##################### ---- INITIALIZATION ---- #####################
 
+if [[ -f ./ups/eupspkg.cfg.sh ]]; then
+	export EUPSPKG_SCRIPTS="$EUPSPKG_SCRIPTS:$PWD/ups/eupspkg.cfg.sh"
+fi
+
 #
 # Parse command line options
 #
-VERBOSE=${VERBOSE:-0}
-DIRTY_FLAG=${DIRTY_FLAG:-"--dirty"}
-DEVMODE=${DEVMODE:-0}
-INSTALL_TO_EUPS_ROOT=${INSTALL_TO_EUPS_ROOT:-0}
-while getopts ":v:hedr" opt; do
+VERBOSE=${EUPSPKG_VERBOSE:-0}
+DIRTY_FLAG="--dirty"
+DEVMODE=0
+INSTALL_TO_EUPS_ROOT=0
+KEEP_ENVIRONMENT=0
+while getopts ":v:hedrk" opt; do
 	case $opt in
 		v) VERBOSE="$OPTARG" ;;
 		d) DIRTY_FLAG="" ;;
 		e) DEVMODE=1 ;;
+		k) KEEP_ENVIRONMENT=1 ;;
 		r) INSTALL_TO_EUPS_ROOT=1 ;;
 		h) usage; exit; ;;
 		\?) die "Invalid option: -$OPTARG" ;;
@@ -743,6 +881,14 @@ while getopts ":v:hedr" opt; do
 	esac
 done
 shift $((OPTIND-1))
+
+# Clear the environment so it doesn't accidentally interfere with internally
+# used variables (unless the user asks for it).
+if [[ $KEEP_ENVIRONMENT != 1 ]]; then
+	_clear_environment
+else
+	debug "not clearing the environment"
+fi
 
 # Peek if PREFIX or VERBOSE were given on the command line (to correctly
 # find pkginfo).  Also remember the last value as $CMD.  Inelegant, but
@@ -821,6 +967,11 @@ if [[ $DEVMODE == 1 ]]; then
 	# needed)
 
 	if [[ $PWD != */_eupspkg/source ]]; then
+		# making sure version prefix/suffix are declared early.
+		# a bit of a hack, since we need them here for proper autoversion inferrence
+		VERSION_PREFIX=${VERSION_PREFIX:-$EUPSPKG_VERSION_PREFIX}
+		VERSION_SUFFIX=${VERSION_SUFFIX:-$EUPSPKG_VERSION_SUFFIX}
+
 		# Make sure PRODUCT, VERSION, and FLAVOR are set
 		[ -z "$PRODUCT" ] && autoproduct
 		[ -z "$VERSION" ] && autoversion $DIRTY_FLAG
@@ -882,14 +1033,27 @@ if [[ -z "$PRODUCT" || -z "$VERSION" || -z "$FLAVOR" ]]; then
 fi
 
 ##################### ---- Defaults ---- #####################
+#
+# Note: if you add here more variables with defaults, make sure to list them
+# in _clear_environment() as well unless you *want* them to be picked up from
+# the environment if not overridden on the command line or via pkginfo.
+#
+
+SCRIPTS=${SCRIPTS:-"$EUPSPKG_SCRIPTS"}		# ':'-delimited list of scripts to source at the end of this script. Used to mass-customize package creation.
 
 NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)   # number of cores on the machine (Darwin & Linux)
 
 UPSTREAM_DIR=${UPSTREAM_DIR:-upstream}			# For "tarball-and-patch" packages (see default_prep()). Default location of source tarballs.
 PATCHES_DIR=${PATCHES_DIR:-patches}			# For "tarball-and-patch" packages (see default_prep()). Default location of patches.
 
-SOURCE=${SOURCE:-package}				# [package|git|git-archive]. Usually passed in via command line (eups distrib create ... -S SOURCE=...)
-REPOSITORY=${REPOSITORY:-}				# URL to git repository
+EUPSPKG_SOURCE=${EUPSPKG_SOURCE:-package}
+SOURCE=${SOURCE:-$EUPSPKG_SOURCE}			# [package|git|git-archive]. May be passed in via the environment, as EUPSPKG_SOURCE.
+
+VERSION_PREFIX=${VERSION_PREFIX:-$EUPSPKG_VERSION_PREFIX}	# Prefix to be removed from $VERSION when inferring the corresponding git rev
+VERSION_SUFFIX=${VERSION_SUFFIX:-$EUPSPKG_VERSION_SUFFIX}	# Suffix to be removed from $VERSION when inferring the corresponding git rev
+
+REPOSITORY_PATH=${REPOSITORY_PATH:-"$EUPSPKG_REPOSITORY_PATH"}	# A '|'-delimited list of repository URL patterns (see resolve_repository() function)
+REPOSITORY=${REPOSITORY:-}					# URL to git repository
 
 MAKE_BUILD_TARGETS=${MAKE_BUILD_TARGETS:-}		# Targets for invocation of make in build phase
 MAKE_INSTALL_TARGETS=${MAKE_INSTALL_TARGETS:-"install"}	# Targets for invocation of make in test phase
@@ -905,13 +1069,35 @@ export CXX=${CXX:-c++}				# Autoconf prefers to look for gcc first, and the prop
 
 export SCONSFLAGS=${SCONSFLAGS:-"opt=3"}	# Default scons flags
 
-##################### ---- -------- ---- #####################
+##################### ------ Overrides ----- #####################
+#
+# Source config/override files given via SCRIPTS/EUPSPKG_SCRIPTS
+#
+
+IFS=':' read -ra _SCRIPTS <<< "$SCRIPTS"
+for _script in "${_SCRIPTS[@]}"; do
+	if [[ -f $_script ]]; then
+		info "sourcing '$_script'."
+		. $_script
+	elif [[ -z $_script ]]; then
+		continue
+	else
+		die "script '$_script' listed on the SCRIPTS path does not exist."
+	fi
+done
 
 #
 # Dump the state of all key variables (helpful when debugging)
 #
 dumpvar debug PWD
+dumpvar debug VERBOSE
 dumpvar debug PRODUCT VERSION FLAVOR
-dumpvar debug NJOBS UPSTREAM_DIR PATCHES_DIR SOURCE REPOSITORY MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS
+dumpvar debug NJOBS UPSTREAM_DIR PATCHES_DIR SOURCE REPOSITORY REPOSITORY_PATH MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS
 dumpvar debug PRODUCTS_ROOT PREFIX CONFIGURE_OPTIONS PYSETUP_INSTALL_OPTIONS
+dumpvar debug REPOVERSION SHA1
 dumpvar debug CC CXX SCONSFLAGS
+
+#
+# Run the commands
+#
+"$@"
