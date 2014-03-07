@@ -1,3 +1,7 @@
+2014-03-07 mjuric (v1.3.0)
+      Stabilized the eupspkg distribution mechanism and API. See eups.distrib.eupspkg
+      module docstring for details
+
 2014-02-26 rhl
        Stop "setup --keep --verbose" from printing the products that are being kept
 
