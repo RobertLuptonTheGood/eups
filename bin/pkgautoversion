@@ -181,11 +181,7 @@ git_version()
 	local RES=($RES)
 	unset IFS
 
-	if [[ ${RES[1]} == "0" ]]; then
-		# Simplify it <seq> == 0
-		unset RES[2]			# drop <sha1>
-		unset RES[1]			# drop <seq>
-	elif [[ ${#RES[@]} -gt 2 ]]; then
+	if [[ ${#RES[@]} -gt 2 ]]; then
 		# Succeeded at getting a description.
 		# workarounds: if there are multiple tags on the commit,
 		# git-describe will return a random one.  Work around this by
@@ -196,9 +192,15 @@ git_version()
 		# that match the same pattern
 		local TAGSHA1=$(git show-ref --tags -d "${RES[0]}" | grep '{}$' | cut -d' ' -f 1)
 		local TAGS=$(git show-ref --tags -d | grep "^$TAGSHA1" | sed -n 's|.* refs/tags/\(.*\)^{}|\1|p' | glob_match "$TAG_PATTERN")
-	
+
 		# Find the "earliest" one
 		RES[0]=$(_earliest_version ${TAGS[@]})
+
+		# Simplify it <seq> == 0
+		if [[ ${RES[1]} == "0" ]]; then
+			unset RES[2]			# drop <sha1>
+			unset RES[1]			# drop <seq>
+		fi
 	else
 		# Failed to get a description; still try to be friendly
 		
