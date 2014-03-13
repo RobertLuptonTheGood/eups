@@ -9,15 +9,14 @@ usage()
 
 		Applies the following logic:
 		  * If ref is a tag, returns the ref
-		  * Otherwise, calls git-describe for tags matching <tag_pattern>
-		    - if a matching annotated tag is found, returns <tag>_g<sha1>[_dirty]
-		    - otherwise, returns [branch_g]<sha1>[_dirty]
-		
+		  * Otherwise, return an annotated tag attached to ref
+		  * Otherwise, returns [branch-g]<sha1>[-dirty]
+
 		If multiple tags are elegible to describe the ref, uses the
 		one that's the lowest when compared per-component (i.e.,
 		given tags "1.2.3", "1.2.4", and "1.12" it will use 1.2.3).
 		
-		If --dirty is given, ref must be empty.
+		If --dirty is given, ref must be empty or HEAD.
 	EOF
 }
 
@@ -55,26 +54,14 @@ _earliest_version()
 
 _eups_compat_version()
 {
-	# Make a string "EUPS compatible" by removing illegal characters
-	# (anything other than alphanumerics, dot, and underscore).
+	# Make a string "EUPS compatible" by converting all / to ., and
+	# removing anything other than alphanumerics, dot, dash, and
+	# underscore.
 	#
 	# Returns via STDOUT
 
-	echo "$@" | tr -c -d '[0-9a-zA-z._]'
-}
-
-glob_match()
-{
-	# usage: glob_match <pattern>
-	#
-	# Match lines on STDIN against <pattern> and echo only those that
-	# match.
-
-	while read line; do
-		if [[ "$line" == $1 ]]; then
-			echo "$line"
-		fi
-	done
+	echo "$@" | tr '/' '.' | tr -c -d '[0-9a-zA-z._\-]'
+	echo
 }
 
 _get_best_branch()
@@ -89,7 +76,7 @@ _get_best_branch()
 	# Otherwise, return the branch where $1 is the closest to the tip.
 	#
 	local REF="$1"
-	local SHA1="$2"
+	local SHA1=$(git rev-parse "$REF^{}")
 	
 	if git show-ref -q --verify refs/heads/"$REF"; then
 		echo "$REF"
@@ -128,99 +115,59 @@ _get_best_branch()
 	done | sort -n -k1,1 | head -n 1 | cut -d' ' -f 2
 }
 
-_git_create_repo()
-{
-	mkdir $1
-	cd $1
-	git init > /dev/null
-}
-
-_git_add_commit()
-{
-	for _F in "$@"; do
-		echo "$_F" >> "$_F"
-	done
-	git add "$@" > /dev/null
-	git commit -a -m "Added files" > /dev/null
-}
-
 git_version()
 {
 	# See if there's a --dirty option
-	local DIRTY=
 	if [[ $1 == --dirty ]]; then
-		DIRTY="--dirty"
 		shift
+		if [[ ! -z $1 && $1 != HEAD ]]; then
+			echo "When --dirty is given, the first argument must be omitted or 'HEAD'"
+			exit -1
+		fi
+		if [[ $(git describe --always --dirty=magicniznakprljavo) == *magicniznakprljavo ]]; then
+			local DIRTY="dirty"
+		fi
 	fi
 
-	local REF=$1
+	local REF=${1:-HEAD}
 
-	# Check if this ref is already a tag; if yes, we're done.
-	if git show-ref -q --verify refs/tags/"$REF"; then
+	# Check if this ref is already an annotated tag; if yes, we're done.
+	if [[ $(git cat-file -t "$REF" 2>/dev/null) == tag ]]; then
 		_eups_compat_version "$REF"
-		echo
 		return
 	fi
 
-	# Get pattern defining eligible tags for git-describe
+	# Get pattern defining eligible tags
 	local TAG_PATTERN=${2:-'[0-9]*'}
 
-	# Ask git-describe to describe the ref in human friendly terms, and
-	# split the output on '-' sign. The result will be one of:
-	#  <tag>-<seq>-g<hash>[-dirty]
-	#  <hash>[-dirty]
-	# with -dirty present only if --dirty flag was passed to `git describe'
-	#
-	local RES=$(git describe $DIRTY --first-parent --always --long --abbrev=10 --match "$TAG_PATTERN" $REF)
-	if [[ -z $RES ]]; then
-		echo "error getting version description from git." 1>&2
-		exit -1
-	fi
-
-	IFS="-"
-	local RES=($RES)
-	unset IFS
-
-	if [[ ${RES[1]} == "0" ]]; then
-		# Simplify it <seq> == 0
-		unset RES[2]			# drop <sha1>
-		unset RES[1]			# drop <seq>
-	elif [[ ${#RES[@]} -gt 2 ]]; then
-		# Succeeded at getting a description.
-		# workarounds: if there are multiple tags on the commit,
-		# git-describe will return a random one.  Work around this by
-		# finding the tag with the lowest version number when compared in
-		# per component (i.e., "naturally").
-
-		# Find all tags for commit pointed to by the tag found by git-describe
-		# that match the same pattern
-		local TAGSHA1=$(git show-ref --tags -d "${RES[0]}" | grep '{}$' | cut -d' ' -f 1)
-		local TAGS=$(git show-ref --tags -d | grep "^$TAGSHA1" | sed -n 's|.* refs/tags/\(.*\)^{}|\1|p' | glob_match "$TAG_PATTERN")
+	# See if any annotated tags matching TAG_PATTERN point to $REF. If yes,
+	# find the tag with the lowest version number (when versions are
+	# interpreted as dot-delimited tuples):
 	
-		# Find the "earliest" one
-		RES[0]=$(_earliest_version ${TAGS[@]})
+	# get a list of annotated tags pointing to $REF
+	TAGS=( $(for tag in $(git tag -l "$TAG_PATTERN" --points-at $REF); do [[ $(git cat-file -t $tag) == tag ]] && echo -n "$tag "; done) )
+	local RES
+	if [[ ! -z $TAGS ]]; then
+		# Tag found. Use the tag as version
+		RES=( "$(_earliest_version ${TAGS[@]})" $DIRTY )
 	else
-		# Failed to get a description; still try to be friendly
-		
-		# Check if the ref that was passed in was a branch
-		if git show-ref -q --verify refs/heads/"$REF"; then
-			local BRANCH="$REF"
-		else
-			local BRANCH=$(_get_best_branch "$REF" ${RES[0]})
-		fi
+		# No annotated tags found.
+		# Use the branch-gSHA1 notation
 
-		if [[ ! -z $BRANCH ]]; then
-			RES=($BRANCH "${RES[@]}")
-			RES[1]="g${RES[1]}"
+		local BRANCH=$(_get_best_branch "$REF") 
+		local ABBRSHA=$(git rev-parse --short=10 "$REF^{}")
+		if [[ -z $BRANCH ]]; then
+			# Commit is not on any branch (orphaned)
+			RES=($ABBRSHA $DIRTY)
+		else
+			RES=($BRANCH g$ABBRSHA $DIRTY )
 		fi
 	fi
 
-	# Construct the (EUPS-compatible) version string
-	IFS="_" VERSION="${RES[*]}"
+	IFS="-" VERSION="${RES[*]}"
 	unset IFS
 
 	_eups_compat_version "$VERSION"
-	echo
 }
 
 ##################### ---- BEGIN UNIT TESTS ---- #####################
@@ -228,6 +175,22 @@ git_version()
 if [[ "$RUN_UNIT" == 1 ]]; then
 
 	. "$EUPS_DIR/lib/bunit.sh"
+
+	_git_create_repo()
+	{
+		mkdir $1
+		cd $1
+		git init > /dev/null
+	}
+
+	_git_add_commit()
+	{
+		for _F in "$@"; do
+			echo "$_F" >> "$_F"
+		done
+		git add "$@" > /dev/null
+		git commit -a -m "Added files" > /dev/null
+	}
 
 	_ut_earliest_version()
 	{
@@ -265,51 +228,51 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				_git_add_commit README
 				COMMIT0=$(git rev-parse --short=10 HEAD)
 				_git_add_commit README
-				ut "git_version --dirty" == "master_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 	
 				ut0 Version on dirty commit
 				echo "stuff" >> README
-				ut "git_version --dirty" == "master_g$(git rev-parse --short=10 HEAD)_dirty"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)-dirty"
 				git reset --hard -q
 	
 				ut0 Version for commit on branch
 				git checkout -q -b next
 				_git_add_commit next
-				ut "git_version --dirty" == "next_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "next-g$(git rev-parse --short=10 HEAD)"
 	
 				ut0 Version for commit on two branches
 				git checkout -q master
-				ut "git_version --dirty" == "master_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 	
 				ut0 "Version for commit on branch (2)"
 				git checkout -q next
 				git checkout -q -b next2
 				_git_add_commit next2
-				ut "git_version --dirty" == "next2_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "next2-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 "Branch name with reserved characters"
 				git checkout -q next
 				git checkout -q -b a/b/c/d
 				_git_add_commit next3
-				ut "git_version --dirty" == "abcd_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "a.b.c.d-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Prefer branch with closest tip
 				git checkout -q --detach next2^
-				ut "git_version --dirty" == "next_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "next-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Version on dirty commit
 				echo "stuff" >> README
-				ut "git_version --dirty" == "next_g$(git rev-parse --short=10 HEAD)_dirty"
+				ut "git_version --dirty" == "next-g$(git rev-parse --short=10 HEAD)-dirty"
 				git reset --hard -q
 
 				ut0 Ver from branch name
-				ut "git_version next" == "next_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version next" == "next-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Ver from SHA1, non-tip
-				ut "git_version $COMMIT0" == "master_g$COMMIT0"
+				ut "git_version $COMMIT0" == "master-g$COMMIT0"
 
 				ut0 Ver from SHA1, tip
-				ut "git_version $(git rev-parse --short=10 a/b/c/d)" == "abcd_g$(git rev-parse --short=10 a/b/c/d)"
+				ut "git_version $(git rev-parse --short=10 a/b/c/d)" == "a.b.c.d-g$(git rev-parse --short=10 a/b/c/d)"
 
 				ut0 "Ver from SHA1 on merge pt (HEAD is next2)"
 				next2sha=$(git rev-parse --short=10 next2)
@@ -319,14 +282,14 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				git checkout -q a/b/c/d
 				git merge -q next2 >/dev/null
 				git checkout -q next2
-				ut "git_version $(git rev-parse --short=10 HEAD)" == "next2_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version $(git rev-parse --short=10 HEAD)" == "next2-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 "Ver from SHA1 on merge pt (HEAD is a/b/c/d)"
 				git checkout -q a/b/c/d
-				ut "git_version $(git rev-parse --short=10 HEAD)" == "abcd_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version $(git rev-parse --short=10 HEAD)" == "a.b.c.d-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 "Ver from name on merge pt (HEAD is a/b/c/d)"
-				ut "git_version next2" == "next2_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version next2" == "next2-g$(git rev-parse --short=10 HEAD)"
 
 				# return the tree to pre-merged state
 				git checkout -q next2
@@ -338,7 +301,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut0 Single non-annotated tag on HEAD
 				git checkout -q master
 				git tag 1.0
-				ut "git_version --dirty" == "master_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Annotated and non-annotated tags on HEAD
 				git tag -a 2.0 -m "Version 2.0"
@@ -357,19 +320,19 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 
 				ut0 Dirty commit on the tag
 				echo "stuff" >> README
-				ut "git_version --dirty" == "1.1_dirty"
+				ut "git_version --dirty" == "1.1-dirty"
 
 				ut0 Commit away from the tag
 				_git_add_commit newfile
-				ut "git_version --dirty" == "1.1_1_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Commit away from the tag
 				_git_add_commit newfile2
-				ut "git_version --dirty" == "1.1_2_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Dirty commit away from the tag
 				echo "stuff" >> newfile2
-				ut "git_version --dirty" == "1.1_2_g$(git rev-parse --short=10 HEAD)_dirty"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)-dirty"
 				git reset --hard -q
 
 
@@ -379,10 +342,16 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				git tag -a 3.0 -m "Version 3.0"
 				ut "git_version --dirty" == "3.0"
 				
+				ut0 Version of orphaned commit
+				_git_add_commit newfile3
+				REF=$(git rev-parse --short=10 HEAD)
+				git reset --hard HEAD^ --quiet
+				ut "git_version $REF" == "$REF"
+
 				ut0 Where --first-parent makes a difference
 				git checkout -q master > /dev/null
 				git merge next2 -m "Merge" > /dev/null
-				ut "git_version --dirty" == "1.1_3_g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 
 				#git log --decorate --oneline --graph --all
 				#git describe
