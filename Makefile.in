@@ -13,9 +13,10 @@ prefix = @prefix@
 EUPS_PATH = @EUPS_PATH@
 EUPS_DIR = @EUPS_DIR@
 SETUP_ALIASES = @SETUP_ALIASES@
+EUPS_PYTHON = @EUPS_PYTHON@
 EUPS_DB = $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d/ups_db\n"}')
 #
-export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES
+export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES EUPS_PYTHON
 #
 SUBDIRS = @MAKE_SUBDIRS@
 
