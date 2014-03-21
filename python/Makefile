@@ -14,7 +14,7 @@ install :
 	@ $(EUPS_PYTHON) -c "import compileall; compileall.compile_dir('$(EUPS_DIR)/python')"
 # Prevent recompilation by a different python (which can introduce race conditions).
 	@ find $(EUPS_DIR)/python -name "*.pyc" -exec chmod ugo-w {} \;
-
+	chmod ugo-w $(EUPS_DIR)/python
 
 TAGS :
 	etags *.py
