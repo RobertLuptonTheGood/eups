@@ -62,9 +62,9 @@ r"""
        ================================================================
 
     in ./ups/eupspkg.cfg.sh will add --disable-shared to `./configure' command
-    line, and make sure that the sources are built with -fPIC (note: make
-    sure eupspkg is executable!).  For a complete list of variables one can
-    override, see the bottom of $EUPS_DIR/lib/eupspkg.sh file.
+    line, and make sure that the sources are built with -fPIC.  For a complete
+    list of variables one can override, see the bottom of
+    $EUPS_DIR/lib/eupspkg.sh file.
 
 
     If your product uses an unsupported build system, or needs more complex
@@ -74,7 +74,7 @@ r"""
     Or, if you prefer to learn by example, look at ./ups/eupspkg.cfg.sh
     scripts in various repositories at:
 
-        https://dev.lsstcorp.org/cgit/LSST/DMS/external
+        https://dev.lsstcorp.org/cgit/LSST/external
 
 
     Overview
