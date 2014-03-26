@@ -61,6 +61,7 @@ install : show
 	fi
 
 	@ if [ -d $(EUPS_DIR) ]; then \
+	        chmod u+w -R $(EUPS_DIR)/* ; \
 		$(RM) -r `ls -d $(EUPS_DIR)/* | awk '{ if($$1 != "site") { print } }'`; \
 	else \
 		mkdir -p $(EUPS_DIR); \
