@@ -1581,8 +1581,24 @@ used are also listed, enclosed in square brackets).
 \begin{verbatim}
 Usage: eups tags [-h|--help] [options]
 
-Print information about known tags
+Print information about known tags, or clone or delete a tag
+
+  --clone=CLONE         Specify a tag to clone (must also specify new tag)
+  --delete=DELETE       Specify a tag to delete
 \end{verbatim}
+
+For example,
+\begin{verbatim}
+$ eups tags --clone rhl tmp
+\end{verbatim}
+assigns the tag \code{tmp} to all products tagged \code{rhl} (remember to declare \code{tmp}
+in your \file{startup.py} file with \code{hooks.config.Eups.userTags.append("tmp")}
+)
+while
+\begin{verbatim}
+$ eups tags --delete tmp
+\end{verbatim}
+removes the tag \code{tmp} from all products (but doesn't undeclare it).
 
 %------------------------------------------------------------------------------
 

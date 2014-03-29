@@ -583,5 +583,19 @@ def getUserDefinedTags(user):
 
     return theirTags
 
-__all__ = "Tags Tag TagNotRecognized TagNameConflict".split()
+def cloneTag(eupsenv, newTag, oldTag):
+    checkTagsList(eupsenv, [newTag, oldTag])
+
+    for p in eupsenv.findProducts(tags=[oldTag]):
+        eupsenv.declare(p.name, p.version, tag=newTag)
+
+def deleteTag(eupsenv, tag):
+    checkTagsList(eupsenv, [tag])
+
+    for p in eupsenv.findProducts(tags=[tag]):
+        if eupsenv.verbose:
+            print >> utils.stdinfo, "Untagging %-40s %s" % (p.name, p.version)
+        eupsenv.undeclare(p.name, p.version, tag=tag)
+
+__all__ = "Tags Tag TagNotRecognized TagNameConflict cloneTag deleteTag".split()
 

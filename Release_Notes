@@ -1,3 +1,12 @@
+2014-03-29 rhl
+      Added command
+      	    eups tags --clone OLD NEW
+      to assign tag NEW to all products tagged OLD
+
+      Added command
+      	    eups tags --delete XXX
+      to delete tag XXX from all tagged products
+
 2014-03-07 mjuric (v1.3.0)
       Stabilized the eupspkg distribution mechanism and API. See eups.distrib.eupspkg
       module docstring for details

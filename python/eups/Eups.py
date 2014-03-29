@@ -2610,7 +2610,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if verbose:
                 info = "Assigning tag \"%s\" to %s %s" % (tag[0].name, productName, versionName)
-                print >> utils.stdwarn, info
+                print >> utils.stdinfo, info
 
             if not self.noaction:
                 eupsDirs = [eupsPathDirForRead, eupsPathDir]
