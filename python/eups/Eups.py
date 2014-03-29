@@ -75,6 +75,9 @@ class Eups(object):
             opts.tag = None
             return
 
+        if opts.vro:
+            return
+
         for k in hooks.config.Eups.defaultTags.keys():
             if k not in ("pre", "post",):
                 print >> utils.stdwarn, \
@@ -3523,7 +3526,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.userVRO:
             vroTag = "commandLine"
             if tag:
-                raise RuntimeError("Cannot use both a commandline VRO and a commandline tag")
+                raise RuntimeError("You may not specify both a commandline VRO and a commandline tag")
             tag = None
         else:
             # Note that the order of these tests is significant
