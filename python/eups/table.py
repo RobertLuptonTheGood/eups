@@ -792,7 +792,7 @@ class Action(object):
             vers = " ".join(args)
 
         if ignoredOpts:
-            if Eups.verbose > 0: 
+            if fwd or Eups.verbose > 1: 
                 print >> utils.stdwarn, "Ignoring options %s for %s %s" % \
                       (" ".join(ignoredOpts), productName, vers) 
 
@@ -810,10 +810,27 @@ class Action(object):
         if not fwd:
             requestedTag = []           # ignore if not setting up
 
-        if keep and requestedVRO:
-            print >> utils.stdinfo, "You specified vro \"%s\" and --keep ; ignoring the latter" % \
-                  (requestedVRO)
-            keep = False
+        vro = Eups.getPreferredTags()
+
+        if requestedVRO:
+            if keep:
+                if fwd:
+                    print >> utils.stdwarn, \
+                        "You specified vro \"%s\" and --keep for %s%s; ignoring the latter" % \
+                        (requestedVRO, productName, (" in %s" % self.tableFile if Eups.verbose > 0 else ""))
+                keep = False
+
+            if requestedVRO == "version":
+                if "keep" in vro:
+                    if fwd and not Eups.quiet:
+                        print >> utils.stdinfo, \
+                            "You are setting up --keep and specifying %s --vro \"%s\"%s. %s" \
+                             % (productName, requestedVRO,
+                                (" in %s" % self.tableFile if Eups.verbose > 1 else ""), " Ignoring --keep")
+            else:
+                keep = "keep" in vro
+        elif not keep:
+            keep = "keep" in vro
 
         if requestedTags and requestedVRO:
             print >> utils.stdinfo, "You specified vro \"%s\" and tag[s] \"%s\"; ignoring the latter" % \
@@ -831,15 +848,15 @@ class Action(object):
 
             requestedTags = tags
 
-        vro = Eups.getPreferredTags()
         if requestedVRO:
-            pass
-        elif keep:
-            requestedVRO = ["keep"] + vro
+            requestedVRO = requestedVRO.split()
         elif requestedTags:
             requestedVRO = requestedTags + vro
         else:
             requestedVRO = vro
+
+        if keep:
+            requestedVRO[0:0] = ["keep"]
 
         if not productName:
             raise RuntimeError("I was unable to find a product specification in \"%s\"" % " ".join(_args))
