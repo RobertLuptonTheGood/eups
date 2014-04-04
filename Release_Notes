@@ -1,3 +1,6 @@
+2014-04-03 rhl
+      Interpret -r DIR in a tableFile as $PRODUCT_DIR/DIR if DIR isn't an absolute path
+
 2014-04-02 rhl
       Made a vro of "version" in a setup{Optional,Required} statement ignore --keep
       (but generate a warning unless --quiet)
@@ -8,7 +11,7 @@
 
 2014-03-31 rhl
       Always obey --keep while processing setup{Requested,Optional} statements (i.e. fixed
-      but where specifying tags disabled --keep)
+      bug where specifying tags disabled --keep)
 
 2014-03-29 rhl
       Added command

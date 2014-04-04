@@ -38,7 +38,7 @@ class Table(object):
         self._actions = []
 
         if utils.isRealFilename(tableFile):
-            self._read(tableFile, addDefaultProduct, verbose)
+            self._read(tableFile, addDefaultProduct, verbose, topProduct)
 
     def _rewrite(self, contents):
         """Rewrite the contents of a tablefile to the canonical form; each
@@ -251,7 +251,7 @@ but no other interpretation is applied
 
         return self
     
-    def _read(self, tableFile, addDefaultProduct, verbose=0):
+    def _read(self, tableFile, addDefaultProduct, verbose=0, topProduct=None):
         """Read and parse a table file, setting _actions"""
 
         if not tableFile:               # nothing to do
@@ -435,7 +435,7 @@ but no other interpretation is applied
                 print >> utils.stderr, "Unrecognized line: %s at %s:%d" % (line, self.file, lineNo)
                 continue
 
-            block += [Action(tableFile, cmd, args, extra)]
+            block += [Action(tableFile, cmd, args, extra, topProduct=topProduct)]
         #
         # Push any remaining actions onto current logical block
         #
@@ -676,7 +676,7 @@ class Action(object):
     setupRequired = "setupRequired"     # extra: "optional"
     sourceRequired = "sourceRequired"   # not supported
 
-    def __init__(self, tableFile, cmd, args, extra):
+    def __init__(self, tableFile, cmd, args, extra, topProduct=None):
         """
         Create the Action.
         @param tableFile  the parent tableFile; used in user messages
@@ -685,7 +685,8 @@ class Action(object):
         @param args     the list of arguments passed to the command as 
                           instantiated in a table file.
         @param extra    dictionary of extra, command-specific data passed by the parser to 
-                          control the execution of the command.  
+                          control the execution of the command.
+        @param topProduct The top-level Product that we're setting up
         """
         self.tableFile = tableFile
         self.cmd = cmd
@@ -697,6 +698,7 @@ class Action(object):
 
         self.args = args
         self.extra = extra
+        self.topProduct = topProduct
 
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
@@ -779,6 +781,13 @@ class Action(object):
 
         if productDir:
             productDir = os.path.expanduser(productDir)
+            if not os.path.isabs(productDir):
+                toplevelDir = self.topProduct.dir if self.topProduct else "."
+                if (fwd and Eups.verbose > 0) or Eups.verbose > 1:
+                    print >> utils.stdwarn, "Interpreting directory %s relative to %s in %s" % \
+                        (productDir, toplevelDir, self.tableFile)
+
+            productDir = os.path.abspath(os.path.join(toplevelDir, productDir))
             productName = utils.guessProduct(os.path.join(productDir, "ups"), productName)
 
         vers = None

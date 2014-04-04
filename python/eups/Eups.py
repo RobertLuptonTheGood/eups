@@ -417,7 +417,7 @@ class Eups(object):
                 if product.version.startswith(Product.LocalVersionPrefix):
                     try:
                         pdir = os.environ[self._envarDirName(product.name)]
-                    except KeyError:    # they explicitly endUnset PRODUCT_DIR
+                    except KeyError:    # they explicitly envUnset PRODUCT_DIR
                         pdir = product.dir
                     self.localVersions[product.name] = pdir
             except TypeError:
