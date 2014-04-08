@@ -29,8 +29,9 @@
    '(
      ("\\<\\(else\\|if\\|not\\|print\\)\\>" (1 font-lock-keyword-face))
      ("\\<\\(std\\(err\\|info\\|ok\\|warn\\)\\)\\>" (1 font-lock-variable-name-face))
-     ;; relatively unusual variants of common commands
-     ("\\<\\(envAppend\\|setupOptional\\)\\>" (1 font-lock-constant-face))
+     ;; relatively unusual commands
+     ("\\<\\(envAppend\\|setupOptional\\|unsetup\\(Required\\|Optional\\)\\)\\>" (1 font-lock-constant-face))
+     ;; common commands
      ("\\<\\(addAlias\\|declareOptions\\|env\\(Set\\|Unset\\|Prepend\\)\\|setupRequired\\)\\>" (1 font-lock-function-name-face))
      ;; deprecated synonyms
      ("\\<\\(path\\(Append\\|Prepend\\|Remove\\|Set\\|Unset\\)\\|prodDir\\|setupenv\\|\\(un\\)?setenv\\|sourceRequired\\)\\>" (1 font-lock-keyword-face))

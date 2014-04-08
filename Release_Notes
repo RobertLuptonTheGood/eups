@@ -1,3 +1,10 @@
+2014-04-04 rhl
+      Added unsetup{Required|Optional} to table files.
+
+      An example is the LSST processing stack, where setup algorithms are run and a top-level
+      product sets up a default set.  If want to disable some it's convenient to unsetup them up
+      in your own product (using unsetupOptional(ALG -j))
+
 2014-04-03 rhl
       Interpret -r DIR in a tableFile as $PRODUCT_DIR/DIR if DIR isn't an absolute path
 

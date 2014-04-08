@@ -1985,7 +1985,7 @@ Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to
      Print the string to stdout; if \code{<Dest>} is provided it must be one of
      \code{stdout}, \code{stderr}, \code{stdok}, \code{stdinfo}, and \code{stdwarn}.
      
-   \item \code{setupRequired(<Name> [ <Version>])}
+   \item \code{setupRequired(<Name> [options] [<Version>])}
      Setup \code{<Name>}.  If no \code{<Version>} is specified, the current
      version is used. Fails if unable to setup.
 
@@ -2014,7 +2014,25 @@ Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to
     version \code{> 1.2}).  You can do this with \code{setup -i} or \code{--ignore-versions}.
 
    \item \code{setupOptional(<Name> [ <Version>]}
-     Same as setupRequired except that it does not fail if unable to setup.
+     Same as \code{setupRequired} except that it does not fail if unable to setup.
+
+%------------------------------------------------------------------------------
+   \item \code{setupRequired(<Name> [options])}
+     Unsetup \code{<Name>}.  Fails if unable to unsetup.
+
+     An example is the LSST processing stack, where setup algorithms are run and a top-level
+     product sets up a default set.  If want to disable some it's convenient to unsetup them up
+     in your own product:
+\begin{verbatim}
+setupRequired(pipe_tasks)
+unsetupOptional(meas_extensions_multiShapelet -j)
+print(stdinfo, Disabling model fitting)
+\end{verbatim}
+
+   \item \code{unsetupOptional(<Name> [options]}
+     Same as \code{setupRequired} except that it does not fail if unable to unsetup.
+
+%------------------------------------------------------------------------------
 
 \end{itemize}
 

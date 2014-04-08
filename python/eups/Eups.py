@@ -1823,7 +1823,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> utils.stdwarn, msg
 
                 if not self.force:
-                    return False, versionName, msg
+                    return False, versionName, ProductNotFound(productName, versionName) # msg
                 #
                 # Fake enough to be able to unset the environment variables
                 #
@@ -1988,6 +1988,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                         (indent + product.name, setupFlavor, product.version)
                 setup_msgs[key] = 1
 
+        if not fwd and self.verboseUnsetup:
+            print >> sys.stderr, "UnsettingUp:%-30s  Flavor: %-10s Version: %s" % \
+                (indent + product.name, setupFlavor, product.version)
+
+        if fwd and recursionDepth == 0:
+            pass
         if fwd and setupToplevel:
             #
             # Are we already setup?
@@ -2064,7 +2070,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         for a in actions:
             if localProduct:    # we'll set e.g. PATH from localProduct
-                if a.cmd not in (Action.setupOptional, Action.setupRequired):
+                if a.cmd not in (Action.setupOptional,   Action.setupRequired,
+                                 Action.unsetupOptional, Action.unsetupRequired):
                     continue
 
             a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion, tableProduct=product,
@@ -2096,10 +2103,11 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return True, product.version, None
 
-    def unsetup(self, productName, versionName=None):
+    def unsetup(self, productName, versionName=None, recursionDepth=0, noRecursion=False, optional=False):
         """Unsetup a product"""
 
-        return self.setup(productName, versionName, fwd=False)
+        return self.setup(productName, versionName, fwd=False, optional=optional,
+                          recursionDepth=recursionDepth, noRecursion=noRecursion)
 
     def assignTag(self, tag, productName, versionName, eupsPathDir=None, eupsPathDirForRead=None):
         """
