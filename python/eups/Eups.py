@@ -140,6 +140,7 @@ class Eups(object):
         """
 
         self.verbose = verbose
+        self.verboseUnsetup = False     # used by unsetup{Required,Optional} in table files
 
         if not shell:
             try:
@@ -250,6 +251,7 @@ class Eups(object):
         self._stacks = {}               # used for saving/restoring state
         self._stacks["env"] = []        # environment that we'll setup
         self._stacks["vro"] = []        # the VRO
+        self._stacks["verbose"] = []    # the values of verbose/verboseUnsetup
         #
         # The Version Resolution Order.  The entries may be a string (which should be split), or a dictionary
         # indexed by dictionary names in the EUPS_PATH (as set by -z); each value in this dictionary should
@@ -455,6 +457,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             current = self.getPreferredTags()
             if value:
                 self.setPreferredTags(value)
+        elif what == "verbose":
+            current = self.verbose, self.verboseUnsetup
 
         self._stacks[what].append(current)
 
@@ -477,6 +481,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             os.environ = value
         elif what == "vro":
             self.setPreferredTags(value)
+        elif what == "verbose":
+            self.verbose, self.verboseUnsetup = value
 
         self.__showStack("pop", what)
 
