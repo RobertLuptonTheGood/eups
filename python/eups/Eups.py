@@ -1142,8 +1142,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param eupsPathDirs  the Eups path directories to search
         @param flavor        the desired flavor
         @param noCache       if true, do not use the product inventory cache;
-                               else (the default), a cache will be used if
-                               available.
+                               otherwise (the default), a cache will be used if available.
         """
 
         if not flavor:
@@ -1213,8 +1212,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param eupsPathDirs  the Eups path directories to search
         @param flavor        the desired flavor
         @param noCache       if true, do not use the product inventory cache;
-                               else (the default), a cache will be used if
-                               available.
+                             otherwise (the default), a cache will be used if available.
         """
 
         if not flavor:

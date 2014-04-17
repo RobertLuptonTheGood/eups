@@ -674,7 +674,7 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
     # in the graph, not single elements
     #
     def name(p):
-        """Return a p's name (if a Product), else str(p)"""
+        """Return a p's name (if a Product), otherwise str(p)"""
         try:
             return p.name
         except AttributeError:

@@ -12,7 +12,7 @@ from eups.db import Database
 # It is intended to match the version of EUPS when this format was introduced
 persistVersionName = "1.3.0"
 
-# the prefix to a tag name that labels it as a user tag.  Anything else is 
+# the prefix to a tag name that labels it as a user tag.  Anything left over is 
 # considered a global tag.
 userPrefix = "user:"     
 

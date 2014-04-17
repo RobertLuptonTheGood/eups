@@ -355,7 +355,7 @@ class CommandCallbacks(object):
         Add a command callback.
         
         The arguments are the command (e.g. "admin" if you type "eups admin")
-        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 otherwise None
         
         E.g.
         if cmd == "fetch":
@@ -2769,20 +2769,32 @@ class TagsCmd(EupsCmd):
 
                 tags.cloneTag(myeups, newTag, oldTag)
             else:
-                self.err("Unexpected argument%s: %s" % ("" if len(self.args) == 1 else "s",
-                                                        ", ".join(self.args)))
+                if len(self.args) == 1:
+                    _s = ""
+                else:
+                    _s = "s"
+
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
                 return 1
         elif self.opts.delete:
             if self.args:
-                self.err("Unexpected argument%s: %s" % ("" if len(self.args) == 1 else "s",
-                                                        ", ".join(self.args)))
+                if len(self.args) == 1:
+                    _s = ""
+                else:
+                    _s = "s"
+
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
                 return 1
 
             tags.deleteTag(myeups, self.opts.delete)
         else:
             if self.args:
-                self.err("Unexpected argument%s: %s" % ("" if len(self.args) == 1 else "s",
-                                                        ", ".join(self.args)))
+                if len(self.args) == 1:
+                    _s = ""
+                else:
+                    _s = "s"
+
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
                 return 1
 
             print " ".join(myeups.tags.getTagNames(omitPseudo=True))

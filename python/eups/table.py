@@ -818,7 +818,10 @@ class Action(object):
         if productDir:
             productDir = os.path.expanduser(productDir)
             if not os.path.isabs(productDir):
-                toplevelDir = self.topProduct.dir if self.topProduct else "."
+                if self.topProduct:
+                    toplevelDir = self.topProduct.dir
+                else:
+                    toplevelDir = "."
                 if (fwd and Eups.verbose > 0) or Eups.verbose > 1:
                     print >> utils.stdwarn, "Interpreting directory %s relative to %s in %s" % \
                         (productDir, toplevelDir, self.tableFile)
@@ -860,18 +863,27 @@ class Action(object):
         if requestedVRO:
             if keep:
                 if fwd:
+                    if Eups.verbose > 0:
+                        extraText = " in %s" % self.tableFile 
+                    else:
+                        extraText = ""
+
                     print >> utils.stdwarn, \
                         "You specified vro \"%s\" and --keep for %s%s; ignoring the latter" % \
-                        (requestedVRO, productName, (" in %s" % self.tableFile if Eups.verbose > 0 else ""))
+                        (requestedVRO, productName, extraText)
                 keep = False
 
             if requestedVRO == "version":
                 if "keep" in vro:
                     if fwd and not Eups.quiet:
+                        if Eups.verbose > 1:
+                            extraText = " in %s" % self.tableFile
+                        else:
+                            extraText = ""
+
                         print >> utils.stdinfo, \
-                            "You are setting up --keep and specifying %s --vro \"%s\"%s. %s" \
-                             % (productName, requestedVRO,
-                                (" in %s" % self.tableFile if Eups.verbose > 1 else ""), " Ignoring --keep")
+                            "You are setting up --keep and specifying %s --vro \"%s\"%s. Ignoring --keep" % \
+                            (productName, requestedVRO, extraText)
             else:
                 keep = "keep" in vro
         elif not keep:
