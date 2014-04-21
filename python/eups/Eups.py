@@ -2554,7 +2554,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> utils.stdinfo, "You asked me to redeclare %s %s%s; I'll only declare the tag" % \
                         (productName, versionName, info)
                         
-                    dodeclare = False
+                    versionName = "tag:%s" % tag # Declare a tag:XXX version with those differences
                 else:
                     raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
                                         (productName, versionName, info))
@@ -2633,7 +2633,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     self.unassignTag(tag[0], productName, None, p.stackRoot(), eupsPathDir)
                 #
                 # And set it in the Proper Place
-                #                        
+                #
                 for eupsDir in eupsDirs:
                     try:
                         self.assignTag(tag[0], productName, versionName, eupsPathDir, eupsDir)

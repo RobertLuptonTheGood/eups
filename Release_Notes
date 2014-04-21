@@ -1,3 +1,9 @@
+2014-04-21 rhl
+      Support e.g. eups declare -t XXX -r DDD PROD VERSION
+
+      In general, if we are changing a definition and also declaring a tag, generate
+      a tag:XXX version with the changed attributes
+
 2014-04-04 rhl
       Added unsetup{Required|Optional} to table files.
 
