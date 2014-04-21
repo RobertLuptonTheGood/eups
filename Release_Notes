@@ -1,4 +1,7 @@
 2014-04-21 rhl
+      Make "eups unsetup" cleanup all eups shell variables
+
+2014-04-21 rhl
       Support e.g. eups declare -t XXX -r DDD PROD VERSION
 
       In general, if we are changing a definition and also declaring a tag, generate

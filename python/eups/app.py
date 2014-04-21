@@ -747,11 +747,19 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
             cmds += [cmd]
         #
+        # Extra environment variables that EUPS uses
+        #
+        if not fwd and productName == "eups":
+            for k in ("EUPS_PATH", "EUPS_PKGROOT", "EUPS_SHELL",):
+                if k in os.environ:
+                    del os.environ[k]
+        #
         # unset ones that have disappeared
         #
         for key in eupsenv.oldEnviron.keys():
-            if re.search(r"^EUPS_(DIR|PATH)$", key): # the world will break if we delete these
-                continue        
+            if productName != "eups":   # the world will break if we delete these
+                if re.search(r"^EUPS_(DIR|PATH|PKGROOT|SHELL)$", key):
+                    continue
 
             if os.environ.has_key(key):
                 continue
