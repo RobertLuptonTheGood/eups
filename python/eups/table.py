@@ -873,9 +873,9 @@ class Action(object):
                         (requestedVRO, productName, extraText)
                 keep = False
 
-            if requestedVRO == "version":
+            if requestedVRO == "version!":
                 if "keep" in vro:
-                    if fwd and not Eups.quiet:
+                    if fwd and Eups.verbose > 0:
                         if Eups.verbose > 1:
                             extraText = " in %s" % self.tableFile
                         else:

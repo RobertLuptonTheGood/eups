@@ -351,7 +351,7 @@ class Eups(object):
             (["newest",], None),
             (hooks.config.Eups.userTags, Tags.user),
             (["commandLine", "keep", "path", "setup", "type",
-              "version", "versionExpr", "warn",], Tags.pseudo),
+              "version", "version!", "versionExpr", "warn",], Tags.pseudo),
             ]:
             if isinstance(tags, str):
                 tags = tags.split()
@@ -400,7 +400,7 @@ class Eups(object):
         # and some are used internally by eups
         #
         self._internalTags = []
-        for k in ["commandLine", "keep", "type", "version", "versionExpr", "warn"]:
+        for k in ["commandLine", "keep", "type", "version", "version!", "versionExpr", "warn"]:
             self._internalTags.append(k)
         #
         # Check that nobody's used an internal tag by mistake (setup -t keep would be bad...)
@@ -863,13 +863,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                         product, vroReason = oproduct, ovroReason
                         break
 
-            elif vroTag in ("version", "versionExpr",):
+            elif vroTag in ("version", "version!", "versionExpr",):
 
                 if not version or self.ignore_versions:
                     continue
 
                 if self.isLegalRelativeVersion(version): # version is actually a versionExpr
-                    if vroTag == "version":
+                    if vroTag in ("version", "version!",):
                         if "versionExpr" in postVro:
                             continue
                         else:
@@ -931,7 +931,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if recursionDepth == 0:
                         vroReason[0] = "commandLine"
                 else:
-                    if not "version" in postVro and not "versionExpr" in postVro:
+                    if not ("version" in postVro or "version!" in postVro or "versionExpr" in postVro):
                         if self.verbose > self.quiet:
                             print >> utils.stdwarn, "Failed to find %s %s for flavor %s" % \
                                   (name, version, flavor)
@@ -3612,7 +3612,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if postTag:                     # need to put tag near the end of the VRO; more precisely, after
                                         # any version or versionExpr
             for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
-                if v in ("version", "versionExpr"):
+                if v in ("version", "version!", "versionExpr"):
                     where = i + 1
 
             for t in reversed(postTag):
@@ -3734,8 +3734,9 @@ such sequences can be generated while rewriting the VRO"""
         self._vro = vro
 
         if False:
-            # ensure that "version" and "versionExpr" are on the VRO, after "path" and "version" respectively
-            for v, vv in [("version", "path"), ("versionExpr", "version")]:
+            # ensure that "version", "version!", and "versionExpr" are on the VRO, after "path"
+            # and "version" as appropriate
+            for v, vv in [("version", "path"), ("version!", "path"), ("versionExpr", "version")]:
                 if not self._vro.count(v):
                     if self._vro.count(vv):             # ... but not before vv
                         where = self._vro.index(vv) + 1
