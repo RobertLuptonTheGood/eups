@@ -2885,13 +2885,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                 for pname in prodnames:
                     if tags:
                         for t in tags:
-                            prod = self.findTaggedProduct(pname, t)
-                            if prod:
-                                out.append(prod)
-
-                    # peel off newest version if specifically desired 
-                    if tags and "newest" in tags:
-                        newest = self.findTaggedProduct(pname, "newest", d, flavor)
+                            if t == "newest":
+                                newest = self.findTaggedProduct(pname, "newest", d, flavor)
+                            else:
+                                prod = self.findTaggedProduct(pname, t)
+                                if prod:
+                                    out.append(prod)
 
                     # select out matched versions
                     vers = stack.getVersions(pname, flavor)
@@ -2929,13 +2928,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # setup:
                         key = prodkey(prod)
                         if setup.has_key(key):  del setup[key]
-
+                    #
                     # add newest if we have/want it
+                    #
+                    # As a special case, don't include newest versions declared in userDataDir
+                    # when there's any other newest tag available
+                    #
                     if newest:
-                        out.append(newest)
-                        key = prodkey(newest)
-                        if setup.has_key(key):  del setup[key]
-                        newest = None
+                        if not out or d != self.userDataDir:
+                            out.append(newest)
+                            key = prodkey(newest)
+                            if setup.has_key(key):  del setup[key]
+                            newest = None
 
                     # append any matched setup products having current
                     # name, flavor and stack directory

@@ -1,4 +1,7 @@
 2014-04-21 rhl
+      Ignore "-t newest" tags in ~/.eups unless that's the only version available
+
+2014-04-21 rhl
       Make "eups unsetup" cleanup all eups shell variables
 
 2014-04-21 rhl
