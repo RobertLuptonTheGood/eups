@@ -214,32 +214,32 @@ class Repositories(object):
             versions = [self.eups.tags.getTag(t) for t in self.eups.getPreferredTags()
                         if not re.search(r"^(type|warn):", t)]
 
-        newest = None
+        latest = None
 
         for vers in versions:
             for flav in prefFlavors:
                 for pkgroot in self.pkgroots:
                     out = self.repos[pkgroot].findPackage(product, vers, flav)
                     if out:  
-                        # Question: if tag is "newest", should it return the 
-                        # newest from across all repositories, or just the 
-                        # newest from the first one that has the right 
+                        # Question: if tag is "latest", should it return the 
+                        # latest from across all repositories, or just the 
+                        # latest from the first one that has the right 
                         # product/flavor.  If the later, change "True" below
                         # to "False".  
                         if True and \
-                           isinstance(vers, Tag) and vers.name == "newest" \
-                           and (not newest or 
-                                self.eups.version_cmp(newest[1], out[1]) > 0):
-                            newest = (out[0], out[1], out[2], pkgroot) 
+                           isinstance(vers, Tag) and vers.name == "latest" \
+                           and (not latest or 
+                                self.eups.version_cmp(latest[1], out[1]) > 0):
+                            latest = (out[0], out[1], out[2], pkgroot) 
                         else:
                             return (out[0], out[1], out[2], pkgroot)
 
-            if newest:
-                # if we were searching for the newest and found at least one
+            if latest:
+                # if we were searching for the latest and found at least one
                 # acceptable version, don't bother looking for other tags
                 break
 
-        return newest
+        return latest
 
     def findReposFor(self, product, version=None, prefFlavors=None):
         """

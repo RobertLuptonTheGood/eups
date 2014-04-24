@@ -1,3 +1,7 @@
+2014-04-24 rhl
+      Renamed "newest" tag to "latest".  Maybe it's just an Real English thing, but "newest" just
+      sounds wrong.
+
 2014-04-21 rhl
       Made a vro of "version!" (not version) in a setup{Optional,Required} statement ignore --keep
       (see change on 2014-04-02).

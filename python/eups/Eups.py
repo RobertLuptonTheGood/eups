@@ -348,7 +348,7 @@ class Eups(object):
 
         for tags, group in [
             (hooks.config.Eups.globalTags, None), # None => global
-            (["newest",], None),
+            (["latest",], None),
             (hooks.config.Eups.userTags, Tags.user),
             (["commandLine", "keep", "path", "setup", "type",
               "version", "version!", "versionExpr", "warn",], Tags.pseudo),
@@ -393,7 +393,7 @@ class Eups(object):
         #
         # Some tags are always reserved
         #
-        for k in ["newest",]:
+        for k in ["latest",]:
             if not self._reservedTags.count(k):
                 self._reservedTags.append(k)
         #
@@ -882,7 +882,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if vroTag == "versionExpr" and versionExpr:
                     if self.isLegalRelativeVersion(versionExpr):  # raises exception if bad syntax used
                         products = self._findProductsByExpr(name, versionExpr, eupsPathDirs, flavor, noCache)
-                        product = self._selectPreferredProduct(products, ["newest"])
+                        product = self._selectPreferredProduct(products, ["latest"])
 
                         if product:
                             vroReason = [vroTag, versionExpr]
@@ -1152,8 +1152,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         if isinstance(eupsPathDirs, str):
             eupsPathDirs = [eupsPathDirs]
 
-        if tag.name == "newest":
-            return self._findNewestProduct(name, eupsPathDirs, flavor)
+        if tag.name == "latest":
+            return self._findLatestProduct(name, eupsPathDirs, flavor)
 
         if tag.name == "setup":
             out = self.findSetupProduct(name)
@@ -1289,9 +1289,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return product
 
-    def _findNewestProduct(self, name, eupsPathDirs, flavor, minver=None, 
+    def _findLatestProduct(self, name, eupsPathDirs, flavor, minver=None, 
                            noCache=False):
-        # find the newest version of a product.  If minver is not None, 
+        # find the latest version of a product.  If minver is not None, 
         # the product must have a version matching this or newer.  
         out = None
 
@@ -1304,17 +1304,17 @@ The what argument tells us what sort of state is expected (allowed values are de
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
-                latest = self._selectPreferredProduct(products, [ Tag("newest") ])
+                latest = self._selectPreferredProduct(products, [ Tag("latest") ])
                 if latest is None:
                     continue
 
-                # is newest version in this stack newer than minimum version?
+                # is latest version in this stack newer than minimum version?
                 if minver and self.version_cmp(latest.version, minver) < 0:
                     continue
 
                 if out == None or self.version_cmp(latest.version, 
                                                     out.version) > 0:
-                    # newest one in this stack is newest one seen
+                    # latest one in this stack is latest one seen
                     out = latest
 
             else:
@@ -1325,13 +1325,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if len(vers) == 0:
                         continue
 
-                    # is newest version in this stack newer than minimum version?
+                    # is latest version in this stack newer than minimum version?
                     if minver and self.version_cmp(vers[-1], minver) < 0:
                         continue
 
                     if out == None or self.version_cmp(vers[-1], 
                                                         out.version) > 0:
-                        # newest one in this stack is newest one seen
+                        # latest one in this stack is latest one seen
                         out = self.versions[root].getProduct(name, vers[-1], flavor)
 
                 except ProductNotFound:
@@ -1387,7 +1387,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _selectPreferredProduct(self, products, preferredTags=None):
         # return the product in a list that is most preferred.
         # None is returned if no products are so tagged.
-        # The special "newest" tag will select the product with the latest 
+        # The special "latest" tag will select the product with the latest 
         # version.  
         if not products:
             return None
@@ -1396,7 +1396,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for tag in preferredTags:
             tag = self.tags.getTag(tag)  # should not fail
-            if tag.name == "newest":
+            if tag.name == "latest":
                 # find the latest version; first order the versions
                 vers = map(lambda p: p.version, products)
                 vers.sort(self.version_cmp)
@@ -2832,7 +2832,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         prodkey = lambda p: "%s:%s:%s:%s" % (p.name,p.flavor,p.db,p.version)
         tagset = _TagSet(self, tags)
         out = []
-        newest = None
+        latest = None
 
         # first get all the currently setup products.  We will integrate these
         # into the list
@@ -2885,8 +2885,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 for pname in prodnames:
                     if tags:
                         for t in tags:
-                            if t == "newest":
-                                newest = self.findTaggedProduct(pname, "newest", d, flavor)
+                            if t == "latest":
+                                latest = self.findTaggedProduct(pname, "latest", d, flavor)
                             else:
                                 prod = self.findTaggedProduct(pname, t)
                                 if prod:
@@ -2901,16 +2901,16 @@ The what argument tells us what sort of state is expected (allowed values are de
                             vers = fnmatch.filter(vers, version)
                     vers.sort(self.version_cmp)
 
-                    # only include newest if it passes the version constraint
-                    if newest is not None and newest.version not in vers:
-                        newest = None
+                    # only include latest if it passes the version constraint
+                    if latest is not None and latest.version not in vers:
+                        latest = None
 
                     for ver in vers:
                         prod = stack.getProduct(pname, ver, flavor)
 
                         # match against the desired tags
                         if tags:
-                            if newest and newest.version == ver:
+                            if latest and latest.version == ver:
                                 # we'll add this on the end so as not to 
                                 # double-list it
                                 continue
@@ -2929,17 +2929,17 @@ The what argument tells us what sort of state is expected (allowed values are de
                         key = prodkey(prod)
                         if setup.has_key(key):  del setup[key]
                     #
-                    # add newest if we have/want it
+                    # add latest if we have/want it
                     #
-                    # As a special case, don't include newest versions declared in userDataDir
-                    # when there's any other newest tag available
+                    # As a special case, don't include latest versions declared in userDataDir
+                    # when there's any other latest tag available
                     #
-                    if newest:
+                    if latest:
                         if not out or d != self.userDataDir:
-                            out.append(newest)
-                            key = prodkey(newest)
+                            out.append(latest)
+                            key = prodkey(latest)
                             if setup.has_key(key):  del setup[key]
-                            newest = None
+                            latest = None
 
                     # append any matched setup products having current
                     # name, flavor and stack directory
@@ -3427,7 +3427,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if self.tags.isRecognized(versionName):
                 versionName = None
-            prod = self._findNewestVersion(productName, eupsPathDirs, flavor, 
+            prod = self._findLatestVersion(productName, eupsPathDirs, flavor, 
                                            versionName)
         if not prod:
             raise RuntimeError(msg %s (productName, versionName, flavor))

@@ -205,7 +205,7 @@ class Repository(object):
             prefFlavors = [prefFlavors]
             
         versions = [version]
-        supportedTags = self.getSupportedTags() + ["newest"]
+        supportedTags = self.getSupportedTags() + ["latest"]
         if version and isinstance(version, Tag) and not version.isPseudo():
             if not version.isGlobal():
                 raise TagNotRecognized(version.name, "global", 
@@ -270,7 +270,7 @@ class Repository(object):
         if queryServer is None:
             queryServer = self._alwaysQueryServer
             
-        if isinstance(version, Tag) and version.name != "newest":
+        if isinstance(version, Tag) and version.name != "latest":
             tag = version
             version = None
 
@@ -288,8 +288,8 @@ class Repository(object):
                 if not tag.isGlobal():
                     raise TagNotRecognized(tagName, "global", 
                                            msg="Non-global tag \"%s\" requested." % tagName)
-                if tagName == "newest":
-                    return self._listNewestProducts(product, flavor)
+                if tagName == "latest":
+                    return self._listLatestProducts(product, flavor)
 
                 if tagName not in self.getSupportedTags():
                     raise TagNotRecognized(tag, "global", 
@@ -324,12 +324,12 @@ class Repository(object):
                             continue
                         out.append( (prod, version, flav) )
                     else:
-                        # looking for newest
+                        # looking for latest
                         out.append((prod,self._pkgList[prod][flav][-1],flav))
 
             return out
 
-    def _listNewestProducts(self, product, flavor):
+    def _listLatestProducts(self, product, flavor):
         prods = self.distServer.listAvailableProducts(product, None, flavor)
         names = {}
         flavors = {}
@@ -345,9 +345,9 @@ class Repository(object):
         
         for name in names:
             for flav in flavors:
-                newest = filter(lambda p: p[0] == name and p[2] == flav, prods)
-                newest.sort(lambda a,b: self.eups.version_cmp(a[1],b[1]))
-                out.extend(newest)
+                latest = filter(lambda p: p[0] == name and p[2] == flav, prods)
+                latest.sort(lambda a,b: self.eups.version_cmp(a[1],b[1]))
+                out.extend(latest)
 
         return out
 
