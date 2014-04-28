@@ -1259,7 +1259,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 fields = line.split()
 
             if len(fields) < 2:
-                raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo, fileName, line))
+                raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo,
+                                                                          os.path.abspath(fileName), line))
 
             productName, versionName = fields[0:2]
 
