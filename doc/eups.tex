@@ -632,6 +632,7 @@ For example if \code{\$EUPS\_STARTUP=\$HOME/Python/foo.py} and \code{\$EUPS\_PAT
 These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
 
 \subsubsection{Contents of startup files}
+\label{secStartupFiles}
 
 \begin{description}
   \item[Hook commands]
@@ -1930,15 +1931,30 @@ specified by three types of files:
     more important to you than speed considerations.
 \end{itemize}
 
-\subsubsection{\eups commands}
+\subsubsection{\eups table format}
 
-The following table commands are supported by \eups: (\code{<Name>} either specifies an
-alias or an environment variable - clear from the context.)
+Table files consist of blocks of commands, possible subject to if-else if-else blocks, \textit{e.g.}
+\begin{verbatim}
+if (FLAVOR == DarwinX86) {
+   print(stdinfo, os/x)
+} else if(FLAVOR == Linux || FLAVOR == Linux64) {
+   print(stdinfo, linux)
+}
+\end{verbatim}
+
+By default the test may use \code{FLAVOR} or \code{TYPE} (\textit{e.g.} \code{setup --type build})
+(you can add more by setting \code{config.Eups.setupTypes} in a \file{startup.py} file; see
+\ref{secStartupFiles})
+
+\paragraph{\eups table commands}
 
 If a value looks like \code{\$?\{NAME\}}, and there is no such environment variable, the entire line is
 ignored (As a special case, \code{PRODUCT\_DIR} is considered undefined if its value is \code{none}).
 If you omit the \code{?} it's an error for \code{NAME} not to exist.
 Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to \code{XXX} otherwise.
+
+The following table commands are supported by \eups: (\code{<Name>} either specifies an
+alias or an environment variable - clear from the context.)
 
 \begin{itemize}
    \item \code{addAlias(<Name>,<Value>)}
