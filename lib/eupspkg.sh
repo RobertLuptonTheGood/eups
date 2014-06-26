@@ -1041,7 +1041,7 @@ fi
 
 SCRIPTS=${SCRIPTS:-"$EUPSPKG_SCRIPTS"}		# ':'-delimited list of scripts to source at the end of this script. Used to mass-customize package creation.
 
-NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)   # number of cores on the machine (Darwin & Linux)
+NJOBS=${EUPSPKG_NJOBS:-$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)}   # number of cores on the machine (Darwin & Linux)
 
 UPSTREAM_DIR=${UPSTREAM_DIR:-upstream}			# For "tarball-and-patch" packages (see default_prep()). Default location of source tarballs.
 PATCHES_DIR=${PATCHES_DIR:-patches}			# For "tarball-and-patch" packages (see default_prep()). Default location of patches.
