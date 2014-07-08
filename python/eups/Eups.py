@@ -75,6 +75,9 @@ class Eups(object):
             opts.tag = None
             return
 
+        if opts.vro:
+            return
+
         for k in hooks.config.Eups.defaultTags.keys():
             if k not in ("pre", "post",):
                 print >> utils.stdwarn, \
@@ -137,12 +140,13 @@ class Eups(object):
         """
 
         self.verbose = verbose
+        self.verboseUnsetup = False     # used by unsetup{Required,Optional} in table files
 
         if not shell:
             try:
-                shell = os.environ["SHELL"]
+                shell = os.environ["EUPS_SHELL"]
             except KeyError:
-                raise EupsException("I cannot guess what shell you're running as $SHELL isn't set")
+                raise EupsException("I cannot guess what shell you're running as $EUPS_SHELL isn't set")
 
             if re.search(r"(^|/)(bash|ksh|sh)$", shell):
                 shell = "sh"
@@ -247,6 +251,7 @@ class Eups(object):
         self._stacks = {}               # used for saving/restoring state
         self._stacks["env"] = []        # environment that we'll setup
         self._stacks["vro"] = []        # the VRO
+        self._stacks["verbose"] = []    # the values of verbose/verboseUnsetup
         #
         # The Version Resolution Order.  The entries may be a string (which should be split), or a dictionary
         # indexed by dictionary names in the EUPS_PATH (as set by -z); each value in this dictionary should
@@ -343,10 +348,10 @@ class Eups(object):
 
         for tags, group in [
             (hooks.config.Eups.globalTags, None), # None => global
-            (["newest",], None),
+            (["latest",], None),
             (hooks.config.Eups.userTags, Tags.user),
             (["commandLine", "keep", "path", "setup", "type",
-              "version", "versionExpr", "warn",], Tags.pseudo),
+              "version", "version!", "versionExpr", "warn",], Tags.pseudo),
             ]:
             if isinstance(tags, str):
                 tags = tags.split()
@@ -388,14 +393,14 @@ class Eups(object):
         #
         # Some tags are always reserved
         #
-        for k in ["newest",]:
+        for k in ["latest",]:
             if not self._reservedTags.count(k):
                 self._reservedTags.append(k)
         #
         # and some are used internally by eups
         #
         self._internalTags = []
-        for k in ["commandLine", "keep", "type", "version", "versionExpr", "warn"]:
+        for k in ["commandLine", "keep", "type", "version", "version!", "versionExpr", "warn"]:
             self._internalTags.append(k)
         #
         # Check that nobody's used an internal tag by mistake (setup -t keep would be bad...)
@@ -414,7 +419,7 @@ class Eups(object):
                 if product.version.startswith(Product.LocalVersionPrefix):
                     try:
                         pdir = os.environ[self._envarDirName(product.name)]
-                    except KeyError:    # they explicitly endUnset PRODUCT_DIR
+                    except KeyError:    # they explicitly envUnset PRODUCT_DIR
                         pdir = product.dir
                     self.localVersions[product.name] = pdir
             except TypeError:
@@ -452,6 +457,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             current = self.getPreferredTags()
             if value:
                 self.setPreferredTags(value)
+        elif what == "verbose":
+            current = self.verbose, self.verboseUnsetup
 
         self._stacks[what].append(current)
 
@@ -474,6 +481,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             os.environ = value
         elif what == "vro":
             self.setPreferredTags(value)
+        elif what == "verbose":
+            self.verbose, self.verboseUnsetup = value
 
         self.__showStack("pop", what)
 
@@ -854,13 +863,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                         product, vroReason = oproduct, ovroReason
                         break
 
-            elif vroTag in ("version", "versionExpr",):
+            elif vroTag in ("version", "version!", "versionExpr",):
 
                 if not version or self.ignore_versions:
                     continue
 
                 if self.isLegalRelativeVersion(version): # version is actually a versionExpr
-                    if vroTag == "version":
+                    if vroTag in ("version", "version!",):
                         if "versionExpr" in postVro:
                             continue
                         else:
@@ -873,7 +882,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if vroTag == "versionExpr" and versionExpr:
                     if self.isLegalRelativeVersion(versionExpr):  # raises exception if bad syntax used
                         products = self._findProductsByExpr(name, versionExpr, eupsPathDirs, flavor, noCache)
-                        product = self._selectPreferredProduct(products, ["newest"])
+                        product = self._selectPreferredProduct(products, ["latest"])
 
                         if product:
                             vroReason = [vroTag, versionExpr]
@@ -922,7 +931,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if recursionDepth == 0:
                         vroReason[0] = "commandLine"
                 else:
-                    if not "version" in postVro and not "versionExpr" in postVro:
+                    if not ("version" in postVro or "version!" in postVro or "versionExpr" in postVro):
                         if self.verbose > self.quiet:
                             print >> utils.stdwarn, "Failed to find %s %s for flavor %s" % \
                                   (name, version, flavor)
@@ -1133,8 +1142,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param eupsPathDirs  the Eups path directories to search
         @param flavor        the desired flavor
         @param noCache       if true, do not use the product inventory cache;
-                               else (the default), a cache will be used if
-                               available.
+                               otherwise (the default), a cache will be used if available.
         """
 
         if not flavor:
@@ -1144,8 +1152,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         if isinstance(eupsPathDirs, str):
             eupsPathDirs = [eupsPathDirs]
 
-        if tag.name == "newest":
-            return self._findNewestProduct(name, eupsPathDirs, flavor)
+        if tag.name == "latest":
+            return self._findLatestProduct(name, eupsPathDirs, flavor)
 
         if tag.name == "setup":
             out = self.findSetupProduct(name)
@@ -1204,8 +1212,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param eupsPathDirs  the Eups path directories to search
         @param flavor        the desired flavor
         @param noCache       if true, do not use the product inventory cache;
-                               else (the default), a cache will be used if
-                               available.
+                             otherwise (the default), a cache will be used if available.
         """
 
         if not flavor:
@@ -1252,7 +1259,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 fields = line.split()
 
             if len(fields) < 2:
-                raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo, fileName, line))
+                raise TagNotRecognized("Invalid line %d in %s: \"%s\"" % (lineNo,
+                                                                          os.path.abspath(fileName), line))
 
             productName, versionName = fields[0:2]
 
@@ -1282,9 +1290,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return product
 
-    def _findNewestProduct(self, name, eupsPathDirs, flavor, minver=None, 
+    def _findLatestProduct(self, name, eupsPathDirs, flavor, minver=None, 
                            noCache=False):
-        # find the newest version of a product.  If minver is not None, 
+        # find the latest version of a product.  If minver is not None, 
         # the product must have a version matching this or newer.  
         out = None
 
@@ -1297,17 +1305,17 @@ The what argument tells us what sort of state is expected (allowed values are de
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
-                latest = self._selectPreferredProduct(products, [ Tag("newest") ])
+                latest = self._selectPreferredProduct(products, [ Tag("latest") ])
                 if latest is None:
                     continue
 
-                # is newest version in this stack newer than minimum version?
+                # is latest version in this stack newer than minimum version?
                 if minver and self.version_cmp(latest.version, minver) < 0:
                     continue
 
                 if out == None or self.version_cmp(latest.version, 
                                                     out.version) > 0:
-                    # newest one in this stack is newest one seen
+                    # latest one in this stack is latest one seen
                     out = latest
 
             else:
@@ -1318,13 +1326,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if len(vers) == 0:
                         continue
 
-                    # is newest version in this stack newer than minimum version?
+                    # is latest version in this stack newer than minimum version?
                     if minver and self.version_cmp(vers[-1], minver) < 0:
                         continue
 
                     if out == None or self.version_cmp(vers[-1], 
                                                         out.version) > 0:
-                        # newest one in this stack is newest one seen
+                        # latest one in this stack is latest one seen
                         out = self.versions[root].getProduct(name, vers[-1], flavor)
 
                 except ProductNotFound:
@@ -1380,7 +1388,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _selectPreferredProduct(self, products, preferredTags=None):
         # return the product in a list that is most preferred.
         # None is returned if no products are so tagged.
-        # The special "newest" tag will select the product with the latest 
+        # The special "latest" tag will select the product with the latest 
         # version.  
         if not products:
             return None
@@ -1389,7 +1397,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for tag in preferredTags:
             tag = self.tags.getTag(tag)  # should not fail
-            if tag.name == "newest":
+            if tag.name == "latest":
                 # find the latest version; first order the versions
                 vers = map(lambda p: p.version, products)
                 vers.sort(self.version_cmp)
@@ -1814,7 +1822,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> utils.stdwarn, msg
 
                 if not self.force:
-                    return False, versionName, msg
+                    return False, versionName, ProductNotFound(productName, versionName) # msg
                 #
                 # Fake enough to be able to unset the environment variables
                 #
@@ -1969,11 +1977,22 @@ The what argument tells us what sort of state is expected (allowed values are de
         setup_msgs = self._msgs["setup"]
         if fwd and self.verbose and recursionDepth >= 0:
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
+
             if self.verbose > 1 or not setup_msgs.has_key(key):
-                print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
-                      (indent + product.name, setupFlavor, product.version)
+                if self.verbose < 2 and \
+                        vroReason[0] == "keep" and self.alreadySetupProducts.get(product.name):
+                    pass
+                else:
+                    print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
+                        (indent + product.name, setupFlavor, product.version)
                 setup_msgs[key] = 1
 
+        if not fwd and self.verboseUnsetup:
+            print >> sys.stderr, "UnsettingUp:%-30s  Flavor: %-10s Version: %s" % \
+                (indent + product.name, setupFlavor, product.version)
+
+        if fwd and recursionDepth == 0:
+            pass
         if fwd and setupToplevel:
             #
             # Are we already setup?
@@ -2050,7 +2069,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         for a in actions:
             if localProduct:    # we'll set e.g. PATH from localProduct
-                if a.cmd not in (Action.setupOptional, Action.setupRequired):
+                if a.cmd not in (Action.setupOptional,   Action.setupRequired,
+                                 Action.unsetupOptional, Action.unsetupRequired):
                     continue
 
             a.execute(self, recursionDepth + 1, fwd, noRecursion=noRecursion, tableProduct=product,
@@ -2082,10 +2102,11 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return True, product.version, None
 
-    def unsetup(self, productName, versionName=None):
+    def unsetup(self, productName, versionName=None, recursionDepth=0, noRecursion=False, optional=False):
         """Unsetup a product"""
 
-        return self.setup(productName, versionName, fwd=False)
+        return self.setup(productName, versionName, fwd=False, optional=optional,
+                          recursionDepth=recursionDepth, noRecursion=noRecursion)
 
     def assignTag(self, tag, productName, versionName, eupsPathDir=None, eupsPathDirForRead=None):
         """
@@ -2534,7 +2555,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print >> utils.stdinfo, "You asked me to redeclare %s %s%s; I'll only declare the tag" % \
                         (productName, versionName, info)
                         
-                    dodeclare = False
+                    versionName = "tag:%s" % tag # Declare a tag:XXX version with those differences
                 else:
                     raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
                                         (productName, versionName, info))
@@ -2602,7 +2623,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if verbose:
                 info = "Assigning tag \"%s\" to %s %s" % (tag[0].name, productName, versionName)
-                print >> utils.stdwarn, info
+                print >> utils.stdinfo, info
 
             if not self.noaction:
                 eupsDirs = [eupsPathDirForRead, eupsPathDir]
@@ -2613,7 +2634,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     self.unassignTag(tag[0], productName, None, p.stackRoot(), eupsPathDir)
                 #
                 # And set it in the Proper Place
-                #                        
+                #
                 for eupsDir in eupsDirs:
                     try:
                         self.assignTag(tag[0], productName, versionName, eupsPathDir, eupsDir)
@@ -2812,7 +2833,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         prodkey = lambda p: "%s:%s:%s:%s" % (p.name,p.flavor,p.db,p.version)
         tagset = _TagSet(self, tags)
         out = []
-        newest = None
+        latest = None
 
         # first get all the currently setup products.  We will integrate these
         # into the list
@@ -2865,13 +2886,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                 for pname in prodnames:
                     if tags:
                         for t in tags:
-                            prod = self.findTaggedProduct(pname, t)
-                            if prod:
-                                out.append(prod)
-
-                    # peel off newest version if specifically desired 
-                    if tags and "newest" in tags:
-                        newest = self.findTaggedProduct(pname, "newest", d, flavor)
+                            if t == "latest":
+                                latest = self.findTaggedProduct(pname, "latest", d, flavor)
+                            else:
+                                prod = self.findTaggedProduct(pname, t)
+                                if prod:
+                                    out.append(prod)
 
                     # select out matched versions
                     vers = stack.getVersions(pname, flavor)
@@ -2882,16 +2902,16 @@ The what argument tells us what sort of state is expected (allowed values are de
                             vers = fnmatch.filter(vers, version)
                     vers.sort(self.version_cmp)
 
-                    # only include newest if it passes the version constraint
-                    if newest is not None and newest.version not in vers:
-                        newest = None
+                    # only include latest if it passes the version constraint
+                    if latest is not None and latest.version not in vers:
+                        latest = None
 
                     for ver in vers:
                         prod = stack.getProduct(pname, ver, flavor)
 
                         # match against the desired tags
                         if tags:
-                            if newest and newest.version == ver:
+                            if latest and latest.version == ver:
                                 # we'll add this on the end so as not to 
                                 # double-list it
                                 continue
@@ -2909,13 +2929,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # setup:
                         key = prodkey(prod)
                         if setup.has_key(key):  del setup[key]
-
-                    # add newest if we have/want it
-                    if newest:
-                        out.append(newest)
-                        key = prodkey(newest)
-                        if setup.has_key(key):  del setup[key]
-                        newest = None
+                    #
+                    # add latest if we have/want it
+                    #
+                    # As a special case, don't include latest versions declared in userDataDir
+                    # when there's any other latest tag available
+                    #
+                    if latest:
+                        if not out or d != self.userDataDir:
+                            out.append(latest)
+                            key = prodkey(latest)
+                            if setup.has_key(key):  del setup[key]
+                            latest = None
 
                     # append any matched setup products having current
                     # name, flavor and stack directory
@@ -3403,7 +3428,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if self.tags.isRecognized(versionName):
                 versionName = None
-            prod = self._findNewestVersion(productName, eupsPathDirs, flavor, 
+            prod = self._findLatestVersion(productName, eupsPathDirs, flavor, 
                                            versionName)
         if not prod:
             raise RuntimeError(msg %s (productName, versionName, flavor))
@@ -3518,7 +3543,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.userVRO:
             vroTag = "commandLine"
             if tag:
-                raise RuntimeError("Cannot use both a commandline VRO and a commandline tag")
+                raise RuntimeError("You may not specify both a commandline VRO and a commandline tag")
             tag = None
         else:
             # Note that the order of these tests is significant
@@ -3588,7 +3613,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if postTag:                     # need to put tag near the end of the VRO; more precisely, after
                                         # any version or versionExpr
             for i, v in enumerate(self._vro): # don't put tag before commandLine or a type:SSS entry
-                if v in ("version", "versionExpr"):
+                if v in ("version", "version!", "versionExpr"):
                     where = i + 1
 
             for t in reversed(postTag):
@@ -3710,8 +3735,9 @@ such sequences can be generated while rewriting the VRO"""
         self._vro = vro
 
         if False:
-            # ensure that "version" and "versionExpr" are on the VRO, after "path" and "version" respectively
-            for v, vv in [("version", "path"), ("versionExpr", "version")]:
+            # ensure that "version", "version!", and "versionExpr" are on the VRO, after "path"
+            # and "version" as appropriate
+            for v, vv in [("version", "path"), ("version!", "path"), ("versionExpr", "version")]:
                 if not self._vro.count(v):
                     if self._vro.count(vv):             # ... but not before vv
                         where = self._vro.index(vv) + 1

@@ -214,32 +214,32 @@ class Repositories(object):
             versions = [self.eups.tags.getTag(t) for t in self.eups.getPreferredTags()
                         if not re.search(r"^(type|warn):", t)]
 
-        newest = None
+        latest = None
 
         for vers in versions:
             for flav in prefFlavors:
                 for pkgroot in self.pkgroots:
                     out = self.repos[pkgroot].findPackage(product, vers, flav)
                     if out:  
-                        # Question: if tag is "newest", should it return the 
-                        # newest from across all repositories, or just the 
-                        # newest from the first one that has the right 
+                        # Question: if tag is "latest", should it return the 
+                        # latest from across all repositories, or just the 
+                        # latest from the first one that has the right 
                         # product/flavor.  If the later, change "True" below
                         # to "False".  
                         if True and \
-                           isinstance(vers, Tag) and vers.name == "newest" \
-                           and (not newest or 
-                                self.eups.version_cmp(newest[1], out[1]) > 0):
-                            newest = (out[0], out[1], out[2], pkgroot) 
+                           isinstance(vers, Tag) and vers.name == "latest" \
+                           and (not latest or 
+                                self.eups.version_cmp(latest[1], out[1]) > 0):
+                            latest = (out[0], out[1], out[2], pkgroot) 
                         else:
                             return (out[0], out[1], out[2], pkgroot)
 
-            if newest:
-                # if we were searching for the newest and found at least one
+            if latest:
+                # if we were searching for the latest and found at least one
                 # acceptable version, don't bother looking for other tags
                 break
 
-        return newest
+        return latest
 
     def findReposFor(self, product, version=None, prefFlavors=None):
         """
@@ -451,13 +451,14 @@ class Repositories(object):
                     continue
 
                 if self.eups.force:
-                    msg += " (forcing a reinstall)"
+                    # msg += " (forcing a reinstall)"
+                    msg = ''
                 else:
                     shouldInstall = False
                     msg += " (already installed)"
 
-                if self.verbose >= 0:
-                    print >> self.log, msg
+                if self.verbose >= 0 and msg:
+                    print >> self.log, msg,
 
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
@@ -498,11 +499,12 @@ class Repositories(object):
 
                 if shouldInstall:
                     if self.verbose >= 0:
-                        msg1 = prod.flavor
-                        if prod.flavor == "generic":
-                            msg1 = "from source";
-                        msg = "  [ %2d%s ]  %s %s (%s)" % (at+1, nprods, prod.product, prod.version, msg1)
-                        print >> self.log, msg,
+                        if prod.flavor != "generic":
+                            msg1 = " (%s)" % prod.flavor
+                        else:
+                            msg1 = "";
+                        msg = "  [ %2d%s ]  %s %s%s" % (at+1, nprods, prod.product, prod.version, msg1)
+                        print >> self.log, msg, "...",
                         self.log.flush()
 
                     pkg = self.findPackage(prod.product, prod.version, prod.flavor)
@@ -522,11 +524,14 @@ class Repositories(object):
 
                     self._doInstall(pkgroot, prod, productRoot, instflavor, opts, noclean, setups, tag)
 
-                    if self.verbose >= 0:
-                        print >> self.log, " "*(70-len(msg)), "done."
-
                     if pver not in ances:
                         ances.append(pver)
+
+            if self.verbose >= 0:
+                if self.log.isatty():
+                    print >> self.log, "\r", msg, " "*(70-len(msg)), "done. "
+                else:
+                    print >> self.log, "done."
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups

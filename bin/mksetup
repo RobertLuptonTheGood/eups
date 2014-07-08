@@ -50,6 +50,8 @@ unique_eups_path = re.sub(r"sys\.argv\[1\]", "\"$EUPS_PATH\"", unique_eups_path)
 unique_eups_path = re.sub(r"sys\.argv\[2\]", "\"%s\"" % prefix, unique_eups_path)
 
 print >> fd, """
+setenv EUPS_SHELL csh
+
 if ("$?EUPS_DIR" == "1" ) then
    setenv PATH `echo $PATH | perl -pe "s|:%(bindir)s||g"`
    if ("$?PYTHONPATH" == "1" ) then
@@ -99,6 +101,8 @@ except IOError, e:
     sys.exit(1)
 
 print >> fd, """
+export EUPS_SHELL=sh
+
 if [ "$EUPS_DIR" != "" ]; then
    PATH=`echo $PATH | perl -pe "s|:%(bindir)s||g"`
    PYTHONPATH=`echo $PYTHONPATH | perl -pe "s|:%(pythondir)s||g"`
@@ -148,6 +152,7 @@ except IOError, e:
     sys.exit(1)
 
 for line in ifd.readlines():
+    line = re.sub(r"^export EUPS_SHELL=.*$", r"export EUPS_SHELL=zsh", line);
     line = re.sub(r"; export -f (:?un)?setup\s*$", r"\n", line);
     line = re.sub(r"^\[\[ .*$", r"\n", line);
     

@@ -1,3 +1,73 @@
+2014-04-24 rhl
+      Renamed "newest" tag to "latest".  Maybe it's just an Real English thing, but "newest" just
+      sounds wrong.
+
+2014-04-21 rhl
+      Made a vro of "version!" (not version) in a setup{Optional,Required} statement ignore --keep
+      (see change on 2014-04-02).
+
+
+      Motivation:  it's useful to set an absolute version even when you want
+      to keep already setup products.  The absolute path specification is also useful,
+      so here's a way to support the latter.  E.g.
+         setupRequired(hscPipe --vro version 2.10.0b_hsc)
+         setupRequired(astrometry_net_data --vro version! sdss-dr8)
+
+2014-04-21 rhl
+      Ignore "-t newest" tags in ~/.eups unless that's the only version available
+
+2014-04-21 rhl
+      Make "eups unsetup" cleanup all eups shell variables
+
+2014-04-21 rhl
+      Support e.g. eups declare -t XXX -r DDD PROD VERSION
+
+      In general, if we are changing a definition and also declaring a tag, generate
+      a tag:XXX version with the changed attributes
+
+2014-04-04 rhl
+      Added unsetup{Required|Optional} to table files.
+
+      An example is the LSST processing stack, where setup algorithms are run and a top-level
+      product sets up a default set.  If want to disable some it's convenient to unsetup them up
+      in your own product (using unsetupOptional(ALG -j))
+
+2014-04-03 rhl
+      Interpret -r DIR in a tableFile as $PRODUCT_DIR/DIR if DIR isn't an absolute path
+
+2014-04-02 rhl
+      Made a vro of "version" in a setup{Optional,Required} statement ignore --keep
+      (but generate a warning unless --quiet)
+
+      Motivation: when setting an absolute version in a table file irrespective of tags e.g.
+           setupRequired(astrometry_net_data --vro version sdss-dr8)
+      setting up --keep failed to setup sdss-dr8 if a version was already setup.
+
+2014-03-31 rhl
+      Always obey --keep while processing setup{Requested,Optional} statements (i.e. fixed
+      bug where specifying tags disabled --keep)
+
+2014-03-29 rhl
+      Added command
+      	    eups tags --clone OLD NEW
+      to assign tag NEW to all products tagged OLD
+
+      Added command
+      	    eups tags --delete XXX
+      to delete tag XXX from all tagged products
+
+2014-03-07 mjuric (v1.3.0)
+      Stabilized the eupspkg distribution mechanism and API. See eups.distrib.eupspkg
+      module docstring for details
+
+2014-02-26 rhl
+       Stop "setup --keep --verbose" from printing the products that are being kept
+
+       They are still printed at verbosity >= 2
+
+2014-01-16 rhl
+      Added etc/eups.el to syntax-colour table files in emacs
+
 2014-01-16 rhl
       Remove eups_expandbuild eups_remove eups_uses (use e.g. "eups remove" instead)
 

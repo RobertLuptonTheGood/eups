@@ -37,7 +37,7 @@ config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
 config.Eups.defaultTags = dict(pre=[], post=[])
-config.Eups.preferredTags = ["version", "versionExpr", "current", "stable", "newest",]
+config.Eups.preferredTags = ["version", "versionExpr", "current", "stable", "latest",]
 config.Eups.globalTags = ["current", "stable",]
 config.Eups.reservedTags = ["commandLine", "keep", "type",]
 config.Eups.verbose = 0

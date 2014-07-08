@@ -38,7 +38,7 @@ class Table(object):
         self._actions = []
 
         if utils.isRealFilename(tableFile):
-            self._read(tableFile, addDefaultProduct, verbose)
+            self._read(tableFile, addDefaultProduct, verbose, topProduct)
 
     def _rewrite(self, contents):
         """Rewrite the contents of a tablefile to the canonical form; each
@@ -251,7 +251,7 @@ but no other interpretation is applied
 
         return self
     
-    def _read(self, tableFile, addDefaultProduct, verbose=0):
+    def _read(self, tableFile, addDefaultProduct, verbose=0, topProduct=None):
         """Read and parse a table file, setting _actions"""
 
         if not tableFile:               # nothing to do
@@ -368,6 +368,8 @@ but no other interpretation is applied
                         "setuprequired" : Action.setupRequired,
                         "setupoptional" : Action.setupOptional,
                         "sourcerequired" : Action.sourceRequired,
+                        "unsetuprequired" : Action.unsetupRequired,
+                        "unsetupoptional" : Action.unsetupOptional,
                         }[cmd]
                 except KeyError:
                     print >> utils.stderr, "Unexpected line in %s:%d: %s" % (tableFile, lineNo, line)
@@ -382,6 +384,12 @@ but no other interpretation is applied
                 pass
             elif cmd == Action.declareOptions: 
                 pass
+            elif cmd == Action.unsetupOptional or cmd == Action.unsetupRequired:
+                if cmd == Action.unsetupRequired:
+                    extra["optional"] = False
+                else:
+                    cmd = Action.unsetupRequired
+                    extra["optional"] = True
             elif cmd == Action.setupOptional or cmd == Action.setupRequired:
                 if cmd == Action.setupRequired:
                     extra["optional"] = False
@@ -435,7 +443,7 @@ but no other interpretation is applied
                 print >> utils.stderr, "Unrecognized line: %s at %s:%d" % (line, self.file, lineNo)
                 continue
 
-            block += [Action(tableFile, cmd, args, extra)]
+            block += [Action(tableFile, cmd, args, extra, topProduct=topProduct)]
         #
         # Push any remaining actions onto current logical block
         #
@@ -555,7 +563,31 @@ but no other interpretation is applied
 
         deps = []
         for a in self.actions(Eups.flavor, setupType=setupType):
-            if a.cmd == Action.setupRequired:
+            if a.cmd == Action.unsetupRequired:
+                if True:
+                    optional = a.extra["optional"]
+                      
+                    requestedVRO, productName, productDir, vers, versExpr, noRecursion = a.processArgs(Eups)
+                    #
+                    # Remove all mention of the unsetup product
+                    #
+                    try:
+                        thisProduct = [val for val in deps if val[0].name == productName][0][0]
+                    except IndexError:
+                        continue
+                    table = thisProduct.getTable()
+
+                    unsetupProducts = [thisProduct.name]
+                    if table and not noRecursion:
+                        subDeps = table.dependencies(Eups, eupsPathDirs=eupsPathDirs,
+                                                    recursive=True, followExact=followExact)
+                        unsetupProducts += [val[0].name for val in subDeps]
+
+                    for pn in unsetupProducts:
+                        for i in reversed(sorted([i for i, val in enumerate(deps) if val[0].name == pn])):
+                            del deps[i]
+                        
+            elif a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
 
                 requestedVRO, productName, productDir, vers, versExpr, noRecursion = a.processArgs(Eups)
@@ -674,9 +706,11 @@ class Action(object):
     setupEnv = "setupEnv"
     setupOptional = "setupOptional"     # not used
     setupRequired = "setupRequired"     # extra: "optional"
+    unsetupOptional = "unsetupOptional" # not used
+    unsetupRequired = "unsetupRequired" # extra: "optional"
     sourceRequired = "sourceRequired"   # not supported
 
-    def __init__(self, tableFile, cmd, args, extra):
+    def __init__(self, tableFile, cmd, args, extra, topProduct=None):
         """
         Create the Action.
         @param tableFile  the parent tableFile; used in user messages
@@ -685,10 +719,10 @@ class Action(object):
         @param args     the list of arguments passed to the command as 
                           instantiated in a table file.
         @param extra    dictionary of extra, command-specific data passed by the parser to 
-                          control the execution of the command.  
+                          control the execution of the command.
+        @param topProduct The top-level Product that we're setting up
         """
         self.tableFile = tableFile
-        self.cmd = cmd
         try:
             i = args.index("-f")
             del args[i:i+2]
@@ -697,6 +731,12 @@ class Action(object):
 
         self.args = args
         self.extra = extra
+        self.topProduct = topProduct
+
+        self.cmd = cmd
+        self.cmdName = cmd              # used only for diagnostics
+        if self.cmdName in ("setupRequired", "unsetupRequired",) and self.extra.get("optional"):
+            self.cmdName = re.sub("Required", "Optional", self.cmdName)
 
     def __str__(self):
         return "%s %s %s" % (self.cmd, self.args, self.extra)
@@ -710,6 +750,11 @@ class Action(object):
                 return
 
             self.execute_setupRequired(Eups, recursionDepth, fwd, tableProduct, implicitProduct)
+        elif self.cmd == Action.unsetupRequired:
+            if noRecursion or recursionDepth == Eups.max_depth + 1:
+                return
+
+            self.execute_unsetupRequired(Eups, recursionDepth, fwd, tableProduct)
         elif self.cmd == Action.declareOptions: 
             pass                        # used at declare time 
         elif self.cmd == Action.envPrepend:
@@ -729,13 +774,6 @@ class Action(object):
 
     def processArgs(self, Eups, fwd=True):
         """Process the arguments in a setup command found in a table file"""
-
-        optional = self.extra["optional"]
-
-        if optional:
-            cmdStr = "setupOptional"    # name of this command, used in diagnostics
-        else:
-            cmdStr = "setupRequired"
 
         _args = self.args; args = []
         i = -1
@@ -779,6 +817,16 @@ class Action(object):
 
         if productDir:
             productDir = os.path.expanduser(productDir)
+            if not os.path.isabs(productDir):
+                if self.topProduct:
+                    toplevelDir = self.topProduct.dir
+                else:
+                    toplevelDir = "."
+                if (fwd and Eups.verbose > 0) or Eups.verbose > 1:
+                    print >> utils.stdwarn, "Interpreting directory %s relative to %s in %s" % \
+                        (productDir, toplevelDir, self.tableFile)
+
+            productDir = os.path.abspath(os.path.join(toplevelDir, productDir))
             productName = utils.guessProduct(os.path.join(productDir, "ups"), productName)
 
         vers = None
@@ -792,12 +840,12 @@ class Action(object):
             vers = " ".join(args)
 
         if ignoredOpts:
-            if Eups.verbose > 0: 
+            if fwd or Eups.verbose > 1: 
                 print >> utils.stdwarn, "Ignoring options %s for %s %s" % \
                       (" ".join(ignoredOpts), productName, vers) 
 
         if fwd and requestedFlavor and requestedFlavor != Eups.flavor:
-            print >> utils.stdwarn, "Ignoring --flavor option in \"%s(%s)\"" % (cmdStr, " ".join(_args))
+            print >> utils.stdwarn, "Ignoring --flavor option in \"%s(%s)\"" % (self.cmdName, " ".join(_args))
 
 
         versExpr = None                 # relational expression for version
@@ -810,10 +858,36 @@ class Action(object):
         if not fwd:
             requestedTag = []           # ignore if not setting up
 
-        if keep and requestedVRO:
-            print >> utils.stdinfo, "You specified vro \"%s\" and --keep ; ignoring the latter" % \
-                  (requestedVRO)
-            keep = False
+        vro = Eups.getPreferredTags()
+
+        if requestedVRO:
+            if keep:
+                if fwd:
+                    if Eups.verbose > 0:
+                        extraText = " in %s" % self.tableFile 
+                    else:
+                        extraText = ""
+
+                    print >> utils.stdwarn, \
+                        "You specified vro \"%s\" and --keep for %s%s; ignoring the latter" % \
+                        (requestedVRO, productName, extraText)
+                keep = False
+
+            if requestedVRO == "version!":
+                if "keep" in vro:
+                    if fwd and Eups.verbose > 0:
+                        if Eups.verbose > 1:
+                            extraText = " in %s" % self.tableFile
+                        else:
+                            extraText = ""
+
+                        print >> utils.stdinfo, \
+                            "You are setting up --keep and specifying %s --vro \"%s\"%s. Ignoring --keep" % \
+                            (productName, requestedVRO, extraText)
+            else:
+                keep = "keep" in vro
+        elif not keep:
+            keep = "keep" in vro
 
         if requestedTags and requestedVRO:
             print >> utils.stdinfo, "You specified vro \"%s\" and tag[s] \"%s\"; ignoring the latter" % \
@@ -827,19 +901,19 @@ class Action(object):
                     Eups.tags.getTag(tag)
                     tags.append(tag)
                 except TagNotRecognized, e:
-                    print >> utils.stdwarn, "%s in \"%s(%s)\"" % (e, cmdStr, " ".join(_args))
+                    print >> utils.stdwarn, "%s in \"%s(%s)\"" % (e, self.cmdName, " ".join(_args))
 
             requestedTags = tags
 
-        vro = Eups.getPreferredTags()
         if requestedVRO:
-            pass
-        elif keep:
-            requestedVRO = ["keep"] + vro
+            requestedVRO = requestedVRO.split()
         elif requestedTags:
             requestedVRO = requestedTags + vro
         else:
             requestedVRO = vro
+
+        if keep:
+            requestedVRO[0:0] = ["keep"]
 
         if not productName:
             raise RuntimeError("I was unable to find a product specification in \"%s\"" % " ".join(_args))
@@ -879,7 +953,8 @@ class Action(object):
         optional = self.extra["optional"]
         silent = self.extra.get("silent", False)
 
-        requestedVRO, productName, productDir, vers, versExpr, noRecursion = self.processArgs(Eups, fwd)
+        requestedVRO, productName, productDir, vers, versExpr, noRecursion = \
+            self.processArgs(Eups, fwd)
         if productDir:
             productDir = self.expandEnvironmentalVariable(productDir, Eups.verbose)
             if productDir is None:
@@ -904,14 +979,61 @@ class Action(object):
 
         Eups.popStack("vro")
 
-        if productOK:                   # clean up the stack, dropping the value we pushed
-            Eups.dropStack("env")       # forget the value we just pushed
+        if productOK:                   # clean up the stack, dropping the value we saved
+            Eups.dropStack("env")       # (and thus accepting the values that setup set)
         else:
             Eups.popStack("env")
             if fwd:
                 if optional:
                     if Eups.verbose and not silent:
                         msg = "... optional setup %s" % (productName)
+                        if tableProduct:
+                            msg += " requested by %s" % tableProduct.name
+                            if tableProduct.version is not None:
+                                msg += " %s" % tableProduct.version
+                        msg += " failed"
+                        if Eups.verbose > 1:
+                            msg += ": %s" % reason
+                        print >> utils.stdinfo, "            %s%s" % (recursionDepth*" ", msg)
+                else:
+                    if isinstance(reason, str):
+                        utils.debug("reason is a str", reason)
+
+                    reason.msg = "in file %s: %s" % (self.tableFile, reason)
+                    raise reason
+
+    def execute_unsetupRequired(self, Eups, recursionDepth, fwd, tableProduct=None):
+        """Execute unsetupRequired"""
+
+        if not fwd:
+            return
+
+        optional = self.extra["optional"]
+        silent = self.extra.get("silent", False)
+
+        requestedVRO, productName, productDir, vers, versExpr, noRecursion = self.processArgs(Eups, fwd=False)
+
+        Eups.pushStack("env")
+        Eups.pushStack("verbose")
+        Eups.verboseUnsetup = Eups.verbose
+
+        try:
+            productOK, vers, reason = Eups.unsetup(productName, vers, recursionDepth,
+                                                   noRecursion=noRecursion, optional=optional)
+                                                   
+        except Exception, e:
+            productOK, reason = False, e
+
+        Eups.popStack("verbose")
+
+        if productOK:                   # clean up the stack, dropping the value we saved
+            Eups.dropStack("env")       # (and thus accepting the changes that unsetup made)
+        else:
+            Eups.popStack("env")
+            if fwd:
+                if optional:
+                    if Eups.verbose and not silent:
+                        msg = "... optional unsetup %s" % (productName)
                         if tableProduct:
                             msg += " requested by %s" % tableProduct.name
                             if tableProduct.version is not None:

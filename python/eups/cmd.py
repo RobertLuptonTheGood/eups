@@ -34,6 +34,7 @@ The output of run() is a status code appropriate for passing to sys.exit().
 import glob, re, os, shutil, sys, time, copy
 import optparse
 import eups, lock
+import tags
 import utils
 import distrib
 import hooks
@@ -354,7 +355,7 @@ class CommandCallbacks(object):
         Add a command callback.
         
         The arguments are the command (e.g. "admin" if you type "eups admin")
-        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 else None
+        and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 otherwise None
         
         E.g.
         if cmd == "fetch":
@@ -2741,7 +2742,7 @@ class TagsCmd(EupsCmd):
     noDescriptionFormatting = False
 
     description = \
-"""Print information about known tags
+"""Print information about known tags, or clone or delete a tag
 """
 
     def addOptions(self):
@@ -2750,11 +2751,53 @@ class TagsCmd(EupsCmd):
 
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
+        self.clo.add_option("--clone", action="store", default=None,
+                            help="Specify a tag to clone (must also specify new tag)")
+        self.clo.add_option("--delete", action="store", default=None,
+                            help="Specify a tag to delete")
 
     def execute(self):
-        myeups = eups.Eups(readCache=True, force=self.opts.force)
+        myeups = self.createEups(self.opts)
 
-        print " ".join(myeups.tags.getTagNames(omitPseudo=True))
+        if self.opts.clone:
+            oldTag = self.opts.clone
+            if not len(self.args):
+                self.err("You must specify a tag to set: eups tags --clone OLD NEW")
+                return 1
+            elif len(self.args) == 1:
+                newTag = self.args.pop(0)
+
+                tags.cloneTag(myeups, newTag, oldTag)
+            else:
+                if len(self.args) == 1:
+                    _s = ""
+                else:
+                    _s = "s"
+
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
+                return 1
+        elif self.opts.delete:
+            if self.args:
+                if len(self.args) == 1:
+                    _s = ""
+                else:
+                    _s = "s"
+
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
+                return 1
+
+            tags.deleteTag(myeups, self.opts.delete)
+        else:
+            if self.args:
+                if len(self.args) == 1:
+                    _s = ""
+                else:
+                    _s = "s"
+
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
+                return 1
+
+            print " ".join(myeups.tags.getTagNames(omitPseudo=True))
 
         return 0
 

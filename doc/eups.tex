@@ -632,6 +632,7 @@ For example if \code{\$EUPS\_STARTUP=\$HOME/Python/foo.py} and \code{\$EUPS\_PAT
 These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
 
 \subsubsection{Contents of startup files}
+\label{secStartupFiles}
 
 \begin{description}
   \item[Hook commands]
@@ -1581,8 +1582,24 @@ used are also listed, enclosed in square brackets).
 \begin{verbatim}
 Usage: eups tags [-h|--help] [options]
 
-Print information about known tags
+Print information about known tags, or clone or delete a tag
+
+  --clone=CLONE         Specify a tag to clone (must also specify new tag)
+  --delete=DELETE       Specify a tag to delete
 \end{verbatim}
+
+For example,
+\begin{verbatim}
+$ eups tags --clone rhl tmp
+\end{verbatim}
+assigns the tag \code{tmp} to all products tagged \code{rhl} (remember to declare \code{tmp}
+in your \file{startup.py} file with \code{hooks.config.Eups.userTags.append("tmp")}
+)
+while
+\begin{verbatim}
+$ eups tags --delete tmp
+\end{verbatim}
+removes the tag \code{tmp} from all products (but doesn't undeclare it).
 
 %------------------------------------------------------------------------------
 
@@ -1914,15 +1931,30 @@ specified by three types of files:
     more important to you than speed considerations.
 \end{itemize}
 
-\subsubsection{\eups commands}
+\subsubsection{\eups table format}
 
-The following table commands are supported by \eups: (\code{<Name>} either specifies an
-alias or an environment variable - clear from the context.)
+Table files consist of blocks of commands, possible subject to if-else if-else blocks, \textit{e.g.}
+\begin{verbatim}
+if (FLAVOR == DarwinX86) {
+   print(stdinfo, os/x)
+} else if(FLAVOR == Linux || FLAVOR == Linux64) {
+   print(stdinfo, linux)
+}
+\end{verbatim}
+
+By default the test may use \code{FLAVOR} or \code{TYPE} (\textit{e.g.} \code{setup --type build})
+(you can add more by setting \code{config.Eups.setupTypes} in a \file{startup.py} file; see
+\ref{secStartupFiles})
+
+\paragraph{\eups table commands}
 
 If a value looks like \code{\$?\{NAME\}}, and there is no such environment variable, the entire line is
 ignored (As a special case, \code{PRODUCT\_DIR} is considered undefined if its value is \code{none}).
 If you omit the \code{?} it's an error for \code{NAME} not to exist.
 Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to \code{XXX} otherwise.
+
+The following table commands are supported by \eups: (\code{<Name>} either specifies an
+alias or an environment variable - clear from the context.)
 
 \begin{itemize}
    \item \code{addAlias(<Name>,<Value>)}
@@ -1969,7 +2001,7 @@ Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to
      Print the string to stdout; if \code{<Dest>} is provided it must be one of
      \code{stdout}, \code{stderr}, \code{stdok}, \code{stdinfo}, and \code{stdwarn}.
      
-   \item \code{setupRequired(<Name> [ <Version>])}
+   \item \code{setupRequired(<Name> [options] [<Version>])}
      Setup \code{<Name>}.  If no \code{<Version>} is specified, the current
      version is used. Fails if unable to setup.
 
@@ -1998,7 +2030,25 @@ Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to
     version \code{> 1.2}).  You can do this with \code{setup -i} or \code{--ignore-versions}.
 
    \item \code{setupOptional(<Name> [ <Version>]}
-     Same as setupRequired except that it does not fail if unable to setup.
+     Same as \code{setupRequired} except that it does not fail if unable to setup.
+
+%------------------------------------------------------------------------------
+   \item \code{setupRequired(<Name> [options])}
+     Unsetup \code{<Name>}.  Fails if unable to unsetup.
+
+     An example is the LSST processing stack, where setup algorithms are run and a top-level
+     product sets up a default set.  If want to disable some it's convenient to unsetup them up
+     in your own product:
+\begin{verbatim}
+setupRequired(pipe_tasks)
+unsetupOptional(meas_extensions_multiShapelet -j)
+print(stdinfo, Disabling model fitting)
+\end{verbatim}
+
+   \item \code{unsetupOptional(<Name> [options]}
+     Same as \code{setupRequired} except that it does not fail if unable to unsetup.
+
+%------------------------------------------------------------------------------
 
 \end{itemize}
 

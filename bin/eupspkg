@@ -1,15 +1,15 @@
 #!/bin/bash
 #
 # Convenience launcher for ./ups/eupspkg. If ./ups/eupspkg does not exist,
-# it will launch the default one from $EUPS_DIR/lib/eupspkg.default
+# it will run the default implementation in $EUPS_DIR/lib/eupspkg.sh
 #
 
 [[ -f ./ups/eupspkg ]] && exec ./ups/eupspkg "$@"
 
 if [[ ! -d ./ups && "$1" != "-h" ]]; then
 	echo "eupspkg: no ./ups directory found (are you running from the root directory of your package?)."
-	echo "eupspkg: run \$EUPS_DIR/lib/eupspkg.default directly if you know what you're doing."
+	echo "eupspkg: run \$EUPS_DIR/lib/eupspkg.sh directly if you know what you're doing."
 	exit -1
 fi
 
-exec $EUPS_DIR/lib/eupspkg.default "$@"
+exec $EUPS_DIR/lib/eupspkg.sh "$@"

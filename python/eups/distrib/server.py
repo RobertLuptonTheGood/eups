@@ -1495,7 +1495,10 @@ class Mapping(object):
         if not outProduct:
             outProduct = inProduct
 
-        mapping = self._noReinstall if outVersion and outVersion.lower() == "noreinstall" else self._mapping
+        if outVersion and outVersion.lower() == "noreinstall":
+            mapping = self._noReinstall
+        else:
+            mapping = self._mapping
 
         if not mapping.has_key(flavor):
             mapping[flavor] = {}
