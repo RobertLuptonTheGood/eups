@@ -421,7 +421,8 @@ class Repositories(object):
                         continue
                 ances.append(pver)
 
-            if nodepend and prod.product != product and prod.version != version:
+            is_product = (prod.product == product and prod.version == version)
+            if nodepend and not is_product:
                 continue
 
             if pver in installed:
