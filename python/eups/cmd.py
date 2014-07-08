@@ -2142,8 +2142,13 @@ tag will be installed.
                             help="Prevent automatic assignment of server/global tags")
         self.clo.add_option("--noclean", dest="noclean", action="store_true", default=False,
                             help="Don't clean up after successfully building the product")
-        self.clo.add_option("-j", "--nodepend", dest="nodepend", action="store_true", default=False,
+        self.clo.add_option("-j", "--nodepend", dest="depends", action="store_const",
+                            const=distrib.Repositories.DEPS_NONE,
                             help="Just install product, but not its dependencies")
+        self.clo.add_option("-o", "--onlydepend", dest="depends", action="store_const",
+                            const=distrib.Repositories.DEPS_ONLY,
+                            help="Just install product dependencies, not the product itself")
+        self.clo.set_defaults(depends=distrib.Repositories.DEPS_ALL)
         self.clo.add_option("-N", "--noeups", dest="noeups", action="store_true", default=False,
                             help="Don't attempt to lookup product in eups (always install)")
         self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
@@ -2300,7 +2305,7 @@ tag will be installed.
                                          self.opts.flavor, 
                                          verbosity=self.opts.verbose, log=log)
             repos.install(productName, versionName, self.opts.updateTags, 
-                          self.opts.alsoTag, self.opts.nodepend, 
+                          self.opts.alsoTag, self.opts.depends,
                           self.opts.noclean, self.opts.noeups, dopts, 
                           self.opts.manifest, self.opts.searchDep)
         except eups.EupsException, e:

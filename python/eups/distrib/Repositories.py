@@ -17,6 +17,11 @@ import server
 import eups.hooks as hooks
 
 class Repositories(object):
+
+    DEPS_NONE = 0
+    DEPS_ALL  = 1
+    DEPS_ONLY = 2
+
     """
     A set of repositories to be to look for products to install.
 
@@ -261,7 +266,7 @@ class Repositories(object):
         return self.repos[pkg[3]]
 
     def install(self, product, version=None, updateTags=True, alsoTag=None,
-                nodepend=False, noclean=False, noeups=False, options=None, 
+                depends=DEPS_ALL, noclean=False, noeups=False, options=None,
                 manifest=None, searchDep=None):
         """
         Install a product and all its dependencies.
@@ -279,8 +284,11 @@ class Repositories(object):
                             (in addition to server tags).  This can either be
                             a space-delimited list, a list of string names,
                             a Tag instance, or a list of Tag instances.
-        @param nodepend    if True, the product dependencies will not be 
-                            installed
+        @param depends     If DEPS_ALL, product and dependencies will be installed
+                              DEPS_NONE, dependencies will not be installed
+                              DEPS_ONLY, only dependencies will be installed,
+                              usefull for developement purpose (before a 
+                              setup -r .)
         @param noclean     If False (default), the build directory will get
                             cleaned up after a successful install.  A True
                             value prevents this.
@@ -344,11 +352,11 @@ class Repositories(object):
         self._msgs = {}
         self._recursiveInstall(0, man, product, version, flavor, pkgroot, 
                                productRoot, updateTags, alsoTag, options, 
-                               nodepend, noclean, noeups)
+                               depends, noclean, noeups)
         
     def _recursiveInstall(self, recursionLevel, manifest, product, version, 
                           flavor, pkgroot, productRoot, updateTags=False, 
-                          alsoTag=None, opts=None, nodepend=False, 
+                          alsoTag=None, opts=None, depends=DEPS_ALL,
                           noclean=False, noeups=False, searchDep=None, 
                           setups=None, installed=None, tag=None, ances=None):
                           
@@ -370,9 +378,15 @@ class Repositories(object):
         
         idstring = prodid(manifest.product, manifest.version, flavor)
 
-        if nodepend and self.verbose > 0:
-            print >> self.log, \
-                "Skipping dependencies for %s %s" % (product, version)
+	if self.verbose >0:
+            msg=None
+            if depends == self.DEPS_NONE:
+                msg = "Skipping dependencies for {0} {1}".format(product, version)
+            elif depends == self.DEPS_ONLY:
+                msg = ("Installing dependencies for {0} {1}, but not {0} itself"
+                       .format(product, version))
+	    if msg is not None:
+                print  >> self.log, msg
 
         products = manifest.getProducts()
         if self.verbose >= 0 and len(products) == 0:
@@ -422,7 +436,10 @@ class Repositories(object):
                 ances.append(pver)
 
             is_product = (prod.product == product and prod.version == version)
-            if nodepend and not is_product:
+            # is_product==False => prod.product is a dependency
+            if depends == self.DEPS_NONE and not is_product:
+                continue
+            elif depends == self.DEPS_ONLY and is_product:
                 continue
 
             if pver in installed:
@@ -483,7 +500,7 @@ class Repositories(object):
                                                    prod.product, prod.version, 
                                                    prod.flavor, pkg[3], 
                                                    productRoot, updateTags, 
-                                                   alsoTag, opts, nodepend, 
+                                                   alsoTag, opts, depends,
                                                    noclean, noeups, searchDep, setups, 
                                                    installed, tag, ances)
                         if thisinstalled:
