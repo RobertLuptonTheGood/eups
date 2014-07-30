@@ -2395,6 +2395,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         ups_dir = "ups"
         tableFileIsInterned = False     # the table file is in the extra directory
+        dbpath = self.getUpsDB(eupsPathDir)
+        externalFileDir = os.path.join(dbpath, utils.extraDirPath(self.flavor, productName, versionName))
+
         if not utils.isRealFilename(tablefile):
             ups_dir = None
         elif tablefile:
@@ -2442,6 +2445,18 @@ The what argument tells us what sort of state is expected (allowed values are de
                 del tmpFd; del tfd; del perms
 
                 externalFileList.append((full_tablefile, os.path.join("ups", "%s.table" % productName)))
+            elif os.path.isabs(tablefile): # maybe we're redeclaring an interned filesystem?
+                if os.path.commonprefix([dbpath, tablefile]) == dbpath:
+                    ups_dir = os.path.join("$UPS_DB",
+                                           utils.extraDirPath(self.flavor, productName, versionName), "ups")
+
+                    tablefile, tableFileIsInterned = "%s.table" % productName, True
+                    #
+                    # We're not changing anything in externalFileDir, so we need to note that
+                    # we already have interned files
+                    #
+                    for f in glob.glob(os.path.join(externalFileDir, "ups", "*")):
+                        externalFileList.append((f, os.path.join("ups", os.path.split(f)[1])))
         #
         # Check that tablefile exists
         #
@@ -2491,10 +2506,6 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         if not tag and not self.findProducts(productName):
             tag = "current"
-        #
-        # 
-        externalFileDir = os.path.join(self.getUpsDB(eupsPathDir),
-                                       utils.extraDirPath(self.flavor, productName, versionName))
         #
         # See if we're redeclaring a product and complain if the new declaration conflicts with the old
         #
@@ -2593,7 +2604,6 @@ The what argument tells us what sort of state is expected (allowed values are de
                 #
                 # now really declare the product.  This will also update the tags
                 #
-                dbpath = self.getUpsDB(eupsPathDir)
                 if tag:
                     tag = [self.tags.getTag(tag)]
                 product = Product(productName, versionName, self.flavor, productDir, 
