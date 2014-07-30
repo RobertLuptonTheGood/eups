@@ -2463,10 +2463,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not tableFileIsInterned and utils.isRealFilename(tablefile):
             if utils.isRealFilename(productDir):
                 if ups_dir:
-                    try:
-                        full_tablefile = os.path.join(ups_dir, tablefile)
-                    except Exception, e:
-                        raise EupsException("Unable to generate full tablefilename: %s" % e)
+                    if os.path.isabs(tablefile):
+                        full_tablefile = tablefile
+                    else:
+                        try:
+                            full_tablefile = os.path.join(ups_dir, tablefile)
+                        except Exception, e:
+                            raise EupsException("Unable to generate full tablefilename: %s" % e)
                     
                     if not os.path.isabs(full_tablefile):
                         #
