@@ -470,6 +470,9 @@ class Tag(object):
                 parts[0] = Tags.user
             elif parts[0] == "" or parts[0] == "global":
                 parts[0] = Tags.global_
+            elif parts[0] == "tag":
+                return Tag(parts[1])    # unknown tag, probably from a version name
+
             return Tag(parts[1], parts[0])
     parse = staticmethod(parse) #should work as of python 2.2
 
