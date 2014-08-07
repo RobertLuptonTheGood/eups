@@ -98,9 +98,14 @@ show : git.version
 		echo "Your site configuration files will be in    $$EUPS_DB_DIR/site"; \
 	fi
 git.version :
-	# Save the git version in case we have a copy of the source without a .git directory
-	@ env EUPS_DIR=. PYTHONPATH=python \
-		python -S -c "import eups.utils; print eups.utils.version()" > git.version
+	# Save the git version in case we have a copy of the source without a .git directory (such as after make install)
+	@ if [ -d .git ]; then \
+                env EUPS_DIR=. PYTHONPATH=python \
+                        python -S -c "import eups.utils; print eups.utils.version()" > git.version; \
+        else \
+	# Assume we are in a eups-$VERSION directory from a tarball
+		echo $${PWD##*eups-} > git.version; \
+	fi
 #
 # Rebuild configure; almost no-one should need to do this
 #
