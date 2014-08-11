@@ -1,0 +1,4 @@
+Please run release-new-version.sh to cut a new release.
+
+This script will store the release number to git.version, update the release
+notes, commit these files and tag the result with the version number.
