@@ -196,7 +196,7 @@ def isDbWritable(dbpath):
     """
     return os.access(dbpath, (os.F_OK|os.R_OK|os.W_OK))
 
-def findWritableDb(pathdirs):
+def findWritableDb(pathdirs, ups_db):
     """return the first directory in the eups path that the user can install 
     stuff into
     """
@@ -206,7 +206,7 @@ def findWritableDb(pathdirs):
         raise TypeError("findWritableDb(): arg is not list or string: " + 
                         pathdirs)
     for path in pathdirs:
-        if isDbWritable(path):
+        if isDbWritable(os.path.join(path, ups_db)):
             return path
 
     return None

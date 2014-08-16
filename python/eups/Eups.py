@@ -2374,7 +2374,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 eupsPathDirForRead = eupsPathDir
                 
             if not eupsPathDir or not utils.isDbWritable(self.getUpsDB(eupsPathDir)):
-                eupsPathDir = utils.findWritableDb(self.path)
+                eupsPathDir = utils.findWritableDb(self.path, self.ups_db)
 
             if not eupsPathDirForRead:
                 eupsPathDirForRead = eupsPathDir
