@@ -1,3 +1,8 @@
+2014-08-18 mjuric (v1.5.1)
+      Add a script to correctly cut new EUPS releases (release-new-version.sh)
+
+      Other feature additions and fixes (see git log for details)
+
 2014-04-24 rhl
       Renamed "newest" tag to "latest".  Maybe it's just an Real English thing, but "newest" just
       sounds wrong.
