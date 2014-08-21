@@ -19,6 +19,9 @@ def getLockPath(dirName, create=False):
     else:
         base = hooks.config.site.lockDirectoryBase
 
+        if base is None: # no locking
+            return None
+        
         if not os.path.isabs(base):
             raise RuntimeError("hooks.config.site.lockDirectoryBase must be an absolute path, not \"%s\"" %
                                hooks.config.site.lockDirectoryBase)
@@ -210,7 +213,11 @@ def listLocks(path, verbose=0, noaction=False):
     """List all locks found in the directories listed in path"""
 
     for d in path:
-        lockDir = os.path.join(getLockPath(d), _lockDir)
+        lockPath = getLockPath(d)
+        if not lockPath:                # no locking
+            continue
+
+        lockDir = os.path.join(lockPath, _lockDir)
 
         if not os.path.isdir(lockDir):
             continue
