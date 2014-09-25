@@ -816,7 +816,7 @@ class Action(object):
             productName = None
 
         if productDir:
-            productDir = os.path.expanduser(productDir)
+            productDir = os.path.expanduser(self.expandEnvironmentalVariable(productDir, Eups.verbose))
             if not os.path.isabs(productDir):
                 if self.topProduct:
                     toplevelDir = self.topProduct.dir
@@ -826,7 +826,9 @@ class Action(object):
                     print >> utils.stdwarn, "Interpreting directory %s relative to %s in %s" % \
                         (productDir, toplevelDir, self.tableFile)
 
-            productDir = os.path.abspath(os.path.join(toplevelDir, productDir))
+                productDir = os.path.join(toplevelDir, productDir)
+
+            productDir = os.path.abspath(productDir)
             productName = utils.guessProduct(os.path.join(productDir, "ups"), productName)
 
         vers = None
