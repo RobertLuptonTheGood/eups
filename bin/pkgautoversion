@@ -36,8 +36,7 @@ _lex_normalize()
 		local VC=( $tag )
 		unset IFS
 
-		local FORMAT="$(yes "%10s" 2>/dev/null | head -n ${#VC[@]} | tr -d '\n')"
-		local VH=$(printf "$FORMAT" "${VC[@]}")
+		local VH=$(printf "%10s" "${VC[@]}")
 
 		echo "$VH|$tag"
 	done
