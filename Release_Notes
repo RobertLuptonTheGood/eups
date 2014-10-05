@@ -1,3 +1,7 @@
+2014-10-04 mjuric (v1.5.2)
+      Support expanding environment variables when productDir is specified in a table file
+      Avoid hang in pkgautoversion on OS X
+
 2014-08-18 mjuric (v1.5.1)
       Add a script to correctly cut new EUPS releases (release-new-version.sh)
 
