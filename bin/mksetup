@@ -125,10 +125,12 @@ else
     export PYTHONPATH="%(pythondir)s"
 fi
 
-setup()   { eval `%(setup)s           "$@"`; }; export -f setup
-unsetup() { eval `%(setup)s --unsetup "$@"`; }; export -f unsetup
+setup()   { eval `%(setup)s           "$@"`; }
+unsetup() { eval `%(setup)s --unsetup "$@"`; }
 
-[[ -n $BASH_COMPLETION ]] && [[ -f "$EUPS_DIR/etc/bash_completion.d/eups" ]] && source "$EUPS_DIR/etc/bash_completion.d/eups"
+if [ X$BASH_COMPLETION != X -a -f "$EUPS_DIR/etc/bash_completion.d/eups" ]; then
+    source "$EUPS_DIR/etc/bash_completion.d/eups"
+fi
 """ \
     % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
            "pythondir" : pythondir, "setup" : setup,  "unique_path" : unique_path}
@@ -137,27 +139,13 @@ for s in setup_aliases.keys():
     print >> fd, "alias %s=%s" % (setup_aliases[s], s)
 
 del fd
-
-print "Creating zsh/dash startup script from sh one";
-try:
-    ifd = open("setups.sh", "r")
-except IOError, e:
-    print >> sys.stderr, "Unable to open setups.sh: %s" % e
-    sys.exit(1)
-
-try:
-    ofd = open("setups.zsh", "w")
-except IOError, e:
-    print >> sys.stderr, "Unable to open setups.zsh: %s" % e
-    sys.exit(1)
-
-for line in ifd.readlines():
-    line = re.sub(r"^export EUPS_SHELL=.*$", r"export EUPS_SHELL=zsh", line);
-    line = re.sub(r"; export -f (:?un)?setup\s*$", r"\n", line);
-    line = re.sub(r"^\[\[ .*$", r"\n", line);
-    
-    print >> ofd, line,
-
-del ifd; del ofd
+#
+# Keep setups.zsh purely for backwards compatibility
+#
+print "Linking zsh/dash startup script from sh one for historical reasons";
+setups_zsh = "setups.zsh"
+if os.path.exists(setups_zsh):
+    os.unlink(setups_zsh)
+os.symlink("setups.sh", setups_zsh)
 
 sys.exit(0)
