@@ -57,9 +57,11 @@ if ("$?EUPS_DIR" == "1" ) then
    if ("$?PYTHONPATH" == "1" ) then
       setenv PYTHONPATH `echo $PYTHONPATH | perl -pe "s|:%(pythondir)s||g"`
    endif
+   setenv EUPS_DIR "${EUPS_DIR}"
+else
+   setenv EUPS_DIR %(eupsdir)s
 endif
 
-setenv EUPS_DIR %(eupsdir)s
 if ("$?EUPS_PATH" == "0" ) then
     setenv EUPS_PATH ""
 endif
@@ -106,9 +108,11 @@ export EUPS_SHELL=sh
 if [ "$EUPS_DIR" != "" ]; then
    PATH=`echo $PATH | perl -pe "s|:%(bindir)s||g"`
    PYTHONPATH=`echo $PYTHONPATH | perl -pe "s|:%(pythondir)s||g"`
+   export EUPS_DIR
+else
+   export EUPS_DIR=%(eupsdir)s
 fi
 
-export EUPS_DIR=%(eupsdir)s
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
 export EUPS_PATH=`python -E -S -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
