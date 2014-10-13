@@ -94,10 +94,12 @@ detect_compiler()
 {
 	#
 	# Properly detects C and C++ compiler types. Dies if the two are not
-	# the same.
+	# the same. Detects the flag to use with the C++ compiler to enable
+	# C++11 support.
 	#
 	# Defines:
 	#	COMPILER_TYPE, CXX_COMP_TYPE, C_COMP_TYPE
+	#	CXX_CXX11_FLAG
 	#
 
 	# Construct test source files
@@ -143,6 +145,15 @@ detect_compiler()
 	fi
 
 	COMPILER_TYPE="$CXX_COMP_TYPE"
+
+	# Test if the C++ compiler recognizes -std=c++11 or -std=c++0x
+	if   "$CXX1" "$SCXX" -std=c++11 -o "$OCXX" 2>/dev/null; then
+		CXX_CXX11_FLAG="-std=c++11"
+	elif "$CXX1" "$SCXX" -std=c++0x -o "$OCXX" 2>/dev/null; then
+		CXX_CXX11_FLAG="-std=c++0x"
+	else
+		CXX_CXX11_FLAG=
+	fi
 }
 
 autoproduct()
