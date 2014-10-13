@@ -168,6 +168,36 @@ eups_version()
 	echo "$ev"
 }
 
+require_eups_version()
+{
+	# Die if EUPS version not greater than or equal than the argument.
+	#
+	# Usage: require_eups_version <min_version> [error_message]
+	#
+	# Example: require_eups_version 1.5.4
+	#
+	# While developing: if envvar NOVERCHECK=1, warn instead of dying
+
+	eups_ver=$(eups_version)
+
+	# Split the version string into an array
+	IFS=. read -ra SA <<< "$eups_ver"
+	IFS=. read -ra SB <<< "$1"
+
+	# Print the array as zero-padded string, so we can compare it leicographically
+	V1=$(printf "%05d" ${SA[@]})
+	V2=$(printf "%05d" ${SB[@]})
+
+	if [[ "$V1" < "$V2" ]]; then
+		message=${2-"EUPS v$eups_ver too old for this package; v$1 or later required."}
+		if [[ $NOVERCHECK != 1 ]]; then
+			die "$message"
+		else
+			warn "$message"
+		fi
+	fi
+}
+
 autoproduct()
 {
 	# Guess PRODUCT, assuming we were called from a working directory of
