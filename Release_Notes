@@ -1,3 +1,6 @@
+2014-10-12 mjuric (v1.5.4)
+      detect_compiler: set $CXX_CXX11_FLAG to the flag that enables C++11
+
 2014-10-10 rhl (v1.5.3)
       Prevent setups.* overriding EUPS_DIR
 
