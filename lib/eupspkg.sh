@@ -156,6 +156,18 @@ detect_compiler()
 	fi
 }
 
+eups_version()
+{
+	# Return (on stdout) the version of EUPS
+
+	local ev
+
+	ev=$(eups --version)
+	ev=${ev#EUPS Version: }
+
+	echo "$ev"
+}
+
 autoproduct()
 {
 	# Guess PRODUCT, assuming we were called from a working directory of
