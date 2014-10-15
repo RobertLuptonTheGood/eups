@@ -939,6 +939,9 @@ TAGLIST_DIR = tags
 set -xe
 cd %(buildDir)s
 
+# make sure the EUPS environment is set up
+. "$EUPS_DIR/bin/setups.sh"
+
 # sanitize the environment: unsetup any packages that were setup-ed
 #
 # NOTE: this has been disabled as there are legitimate reasons to have EUPS
