@@ -17,6 +17,13 @@ EOF
 
 read -e -p "Enter the new version string (e.g., 1.2.3): " VERSION
 
+if ! [[ "$VERSION" =~ ^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$ ]]; then
+	echo
+	echo "warning: the version doesn't conform to the customary X.Y.Z format."
+	read -p "Are you sure you want to continue (y/n)? " -r
+	[[ ! $REPLY =~ ^[Yy]$ ]] && exit -1
+fi
+
 "${EDITOR:-vi}" Release_Notes
 
 echo "$VERSION" > git.version
