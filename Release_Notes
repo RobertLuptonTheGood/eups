@@ -1,3 +1,7 @@
+2014-11-11 rhl (1.5.7)
+      Multi-tasking failure on my part.  We stopped using a "v" prefix with 1.0.0
+      Otherwise this is identical to v1.5.6 and 1.5.5
+
 2014-11-11 rhl (v1.5.6)
       Tagged at Frossie's request
 
