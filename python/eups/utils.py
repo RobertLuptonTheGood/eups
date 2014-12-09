@@ -14,27 +14,26 @@ def getUserName(full=False):
     
     euid = os.geteuid()
     try:
+        pw = pwd.getpwuid(euid)
         getUserName.who = {
-            True: re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4]),
-            False : pwd.getpwuid(os.geteuid())[0]
+            False : pw[0],
+            True: re.sub(r",.*", "", pw[4])
             }
-        return getUserName.who[full]
     except KeyError:
         print >> stdwarn, "Warning: getpwuid failed, guessing username from LOGNAME or USER variable"
-    
-    try:
-        getUserName.who = dict(zip([True,False],[os.environ['LOGNAME']]*2))
-        return getUserName.who
-    except KeyError:
-        print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
+        key = None 
+        if 'LOGNAME' in os.environ:
+            key = 'LOGNAME'
+        elif 'USER' in os.environ:
+            print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
+            key = 'USER'    
+        if key is None:
+            print >> stdwarn, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'"
+            getUserName.who = dict(zip([False,True],['(unkwnown user)']*2))
+        else:
+            getUserName.who = dict(zip([False,True],[os.environ[key]]*2))
 
-    try:
-        getUserName.who = dict(zip([True,False],[os.environ['USER']]*2))
-        return getUserName.who
-    except KeyError:
-        print >> stdwarn, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'"
-        getUserName.who = dict(zip([True,False],['(unkwnown user)']*2))
-        return getUserName.who
+    return getUserName.who[full]
 
             
 def _svnRevision(file=None, lastChanged=False):
