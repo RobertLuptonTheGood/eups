@@ -1,4 +1,4 @@
-import os, re, sys, pwd
+import os, re, sys
 from eups.Product import Product
 from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename

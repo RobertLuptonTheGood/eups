@@ -1,4 +1,4 @@
-import os, re, sys, pwd
+import os, re, sys
 from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName
 
 who = getUserName(full=True)

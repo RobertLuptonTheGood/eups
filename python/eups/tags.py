@@ -1,4 +1,4 @@
-import fnmatch, os, pwd, re, sys
+import fnmatch, os, re, sys
 import hooks, utils
 from exceptions import EupsException
 

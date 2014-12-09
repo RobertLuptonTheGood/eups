@@ -1,7 +1,7 @@
 """
 The Eups class 
 """
-import glob, re, os, pwd, shutil, sys, time
+import glob, re, os, shutil, sys, time
 import filecmp
 import fnmatch
 import tempfile

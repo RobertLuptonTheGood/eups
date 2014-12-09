@@ -1,4 +1,4 @@
-import pwd, re, os, cPickle, sys
+import re, os, cPickle, sys
 from eups import utils
 from eups import Product
 from ProductFamily import ProductFamily
