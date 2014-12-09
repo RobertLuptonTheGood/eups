@@ -18,14 +18,12 @@ def getUserName(full=False):
         print >> stdwarn, "Warning: getpwuid failed, guessing username from LOGNAME or USER variable"
     
     try:
-        who = os.environ['LOGNAME']
-        return who
+        return os.environ['LOGNAME']
     except KeyError:
         print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
 
     try:
-        who = os.environ['USER']
-        return who
+        return os.environ['USER']
     except KeyError:
         raise RuntimeError, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined"
 
