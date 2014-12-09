@@ -4,7 +4,7 @@ from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename
 import eups.utils
 
-who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
+who = eups.utils.getUserName(full=True)
 defaultProductUpsDir = "ups"
 
 class VersionFile(object):

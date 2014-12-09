@@ -2,7 +2,7 @@ import fnmatch, os, pwd, re, sys
 import hooks, utils
 from exceptions import EupsException
 
-who = pwd.getpwuid(os.geteuid())[0]
+who = utils.getUserName()
 
 tagListFileExt = "tags"
 tagListFileTmpl = "%s." + tagListFileExt

@@ -1,9 +1,27 @@
 """
 Utility functions used across EUPS classes.
 """
-import time, os, sys, glob, re, shutil, tempfile
+import time, os, sys, glob, re, shutil, tempfile, pwd
 from cStringIO import StringIO
 
+def getUserName(full=False):
+    # get the current username
+    # if getpwuid fails use USER environment variable
+    euid = os.geteuid()
+    try:
+        if full:
+            who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
+        else:
+            who = pwd.getpwuid(os.geteuid())[0]
+    except KeyError:
+        print >> stdwarn, "Warning: getpwuid failed, guessing username from USER variable"
+        try:
+            who = os.environ['USER']
+        except KeyError:
+            raise RuntimeError, "Cannot find out the user name. getpwuid failed and USER environment variable is undefined"
+    return who
+
+            
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
     a tuple (oldestRevision, youngestRevision, flags) as reported
