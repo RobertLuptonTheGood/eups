@@ -6,20 +6,28 @@ from cStringIO import StringIO
 
 def getUserName(full=False):
     # get the current username
-    # if getpwuid fails use USER environment variable
+    # if getpwuid fails use LOGNAME or USER environment variable
     euid = os.geteuid()
     try:
         if full:
             who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
         else:
             who = pwd.getpwuid(os.geteuid())[0]
+        return who
     except KeyError:
-        print >> stdwarn, "Warning: getpwuid failed, guessing username from USER variable"
-        try:
-            who = os.environ['USER']
-        except KeyError:
-            raise RuntimeError, "Cannot find out the user name. getpwuid failed and USER environment variable is undefined"
-    return who
+        print >> stdwarn, "Warning: getpwuid failed, guessing username from LOGNAME or USER variable"
+    
+    try:
+        who = os.environ['LOGNAME']
+        return who
+    except KeyError:
+        print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
+
+    try:
+        who = os.environ['USER']
+        return who
+    except KeyError:
+        raise RuntimeError, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined"
 
             
 def _svnRevision(file=None, lastChanged=False):
