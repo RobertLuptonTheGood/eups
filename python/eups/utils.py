@@ -5,27 +5,36 @@ import time, os, sys, glob, re, shutil, tempfile, pwd
 from cStringIO import StringIO
 
 def getUserName(full=False):
-    # get the current username
-    # if getpwuid fails use LOGNAME or USER environment variable
+    """ Get the current username (or the full name)
+    if getpwuid fails use LOGNAME or USER environment variable
+    """
+    if 'who' in getUserName.__dict__:
+        return getUserName.who[full]
+    # we cache the function output in the dictionary 'who' 
+    
     euid = os.geteuid()
     try:
-        if full:
-            who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
-        else:
-            who = pwd.getpwuid(os.geteuid())[0]
-        return who
+        getUserName.who = {
+            True: re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4]),
+            False : pwd.getpwuid(os.geteuid())[0]
+            }
+        return getUserName.who[full]
     except KeyError:
         print >> stdwarn, "Warning: getpwuid failed, guessing username from LOGNAME or USER variable"
     
     try:
-        return os.environ['LOGNAME']
+        getUserName.who = dict(zip([True,False],[os.environ['LOGNAME']]*2))
+        return getUserName.who
     except KeyError:
         print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
 
     try:
-        return os.environ['USER']
+        getUserName.who = dict(zip([True,False],[os.environ['USER']]*2))
+        return getUserName.who
     except KeyError:
-        raise RuntimeError, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined"
+        print >> stdwarn, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'"
+        getUserName.who = dict(zip([True,False],['(unkwnown user)']*2))
+        return getUserName.who
 
             
 def _svnRevision(file=None, lastChanged=False):
