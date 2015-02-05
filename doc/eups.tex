@@ -1170,11 +1170,12 @@ Options:
 
 \end{itemize}
 
-You may use \code{eups distrib list} to list available products; with \code{--current}
+You may use \code{eups distrib list} to list available products; with \code{--tag current}
 only current products are listed.  E.g.
 \begin{verbatim}
-eups distrib list --root http://www.astro/~rhl/LSST/packages --current mwi 2.4
+eups distrib list --root http://www.astro/~rhl/LSST/packages --tag current mwi 2.4
 \end{verbatim}
+(or you could use any other tag of your choice).
 
 Once you've created a package with \code{eups distrib create} you can log on to
 another machine and use \code{eups distrib install} to
