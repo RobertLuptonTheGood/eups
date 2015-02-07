@@ -241,7 +241,6 @@ def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
 
     defaultProductName = defaultProduct.name if defaultProduct else None
     for pi, deps in dependencies.items():
-        assert pi.name != defaultProductName
         if pi.name == defaultProductName:
             continue
 
