@@ -227,7 +227,7 @@ def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
         if pi == defaultProduct:
             continue
 
-        insertProduct(pi)               # we'll add the dependencies later
+        insertProduct(pi, newProduct=False) # we'll add the dependencies later
 
         try:
             dependentProducts = Eups.getDependentProducts(pi)
@@ -250,7 +250,7 @@ def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=None):
-    """If newProduct is True, the product may not already be declared"""
+    """If newProduct is True, the product must not be already declared"""
     
     def insert_product(cursor, name, version, directory, missing=False):
         cursor.execute("INSERT INTO products VALUES (NULL, ?, ?, ?, ?)", (name, version,
