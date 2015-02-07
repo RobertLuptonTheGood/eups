@@ -51,6 +51,9 @@ def getConnection():
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def createEups():
+    return eupsCmd.EupsCmd([]).createEups()
+
 def create(fileName, force=False, populate=True):
     """Create the sqlite database, inserting the contents of the current eups DB if populate is True"""
     if not sqlite:
@@ -126,7 +129,7 @@ CREATE TABLE tags (
     conn.commit()
 
     if populate:
-        Eups = eupsCmd.EupsCmd().createEups()
+        Eups = createEups()
         flavors = None
         #
         # Fill tagNames table first as we'll fill the join table "tags" as we process the products
@@ -148,7 +151,7 @@ def insertTags(flavors=None, Eups=None, conn=None):
         conn = getConnection()
 
     if not Eups:
-        Eups = eupsCmd.EupsCmd().createEups()
+        Eups = createEups()
 
     if flavors is None:
         flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
@@ -176,7 +179,7 @@ def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
         conn = getConnection()
 
     if not Eups:
-        Eups = eupsCmd.EupsCmd().createEups()
+        Eups = createEups()
 
     if flavors is None:
         flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
@@ -362,7 +365,7 @@ def _listProducts(name=None, version=None, tag=None,
                  ):
     """Worker routine for listProducts"""
     
-    Eups = eupsCmd.EupsCmd().createEups()
+    Eups = createEups()
     defaultProductName = findDefaultProducts(Eups)[0]
 
     def my_version_cmp(a, b):           # comparison function for list returned by queryForProducts
@@ -461,7 +464,7 @@ def _uses(name, version=None, tag=None, flavor=None):
 
     pid, name, version, missing = products[0]
 
-    Eups = eupsCmd.EupsCmd().createEups()
+    Eups = createEups()
     defaultProductName = findDefaultProducts(Eups)[0]
 
     listedProducts = {}
@@ -529,7 +532,7 @@ def findDefaultProducts(Eups=None, productList=None):
     """Find the default product"""
 
     if Eups is None:
-        Eups = eupsCmd.EupsCmd().createEups()
+        Eups = createEups()
     
     import hooks
 
