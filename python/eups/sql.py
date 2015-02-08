@@ -43,11 +43,23 @@ def setDatabaseFile(fileName):
     global _eupsDatabaseFile
     _eupsDatabaseFile = fileName
 
-def getConnection():
-    if not _eupsDatabaseFile:
-        raise RuntimeError("Please specify a database filename with setDatabaseFile()")
+class Connection(object):
+    def __init__(self, connection=None):
+        if connection:
+            self._connection = connection
+            self._mustClose = False
+        else:
+            if not _eupsDatabaseFile:
+                raise RuntimeError("Please specify a database filename with setDatabaseFile()")
+            self._connection = sqlite.connect(_eupsDatabaseFile)
+            self._mustClose = True
 
-    return sqlite.connect(_eupsDatabaseFile)
+    def __enter__(self):
+        return self._connection
+
+    def __exit__(self, type, value, tb):
+        if self._mustClose:
+            self._connection.close()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -67,134 +79,106 @@ def create(fileName, force=False, populate=True):
     
     setDatabaseFile(fileName)
 
-    conn = getConnection()
+    with Connection() as conn:
+        cmd = """
+            CREATE TABLE products (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                version TEXT,
+                directory TEXT,
+                missing BOOLEAN
+            )
+        """
 
-    cmd = """
-CREATE TABLE products (
-   id INTEGER PRIMARY KEY,
-   name TEXT,
-   version TEXT,
-   directory TEXT,
-   missing BOOLEAN
-)
-"""
-    try:
         conn.execute(cmd)
         conn.commit()
-    except:
-        conn.close()
-        raise
 
-    cmd = """
-CREATE TABLE dependencies (
-   id INTEGER,
-   dependency INTEGER,
-   optional BOOLEAN,
-   FOREIGN KEY(id)         REFERENCES products(id),
-   FOREIGN KEY(dependency) REFERENCES products(id)
-)
-"""
-    try:
+        cmd = """
+            CREATE TABLE dependencies (
+                id INTEGER,
+                dependency INTEGER,
+                optional BOOLEAN,
+                FOREIGN KEY(id)         REFERENCES products(id),
+                FOREIGN KEY(dependency) REFERENCES products(id)
+            )
+        """
         conn.execute(cmd)
         conn.commit()
-    except:
-        conn.close()
-        raise
 
-    cmd = """
-CREATE TABLE tagNames (
-   tid INTEGER PRIMARY KEY,
-   name TEXT,
-   fullname TEXT,
-   isGlobal BOOLEAN,
-   owner TEXT
-)
-"""
-    try:
+        cmd = """
+            CREATE TABLE tagNames (
+                tid INTEGER PRIMARY KEY,
+                name TEXT,
+                fullname TEXT,
+                isGlobal BOOLEAN,
+                owner TEXT
+            )
+        """
         conn.execute(cmd)
         conn.commit()
-    except:
-        conn.close()
-        raise
 
-    cmd = """
-CREATE TABLE tags (
-   id INTEGER,
-   tid INTEGER,
-   FOREIGN KEY(id)    REFERENCES products(id),
-   FOREIGN KEY(tid)   REFERENCES tagNames(tid)
-)
-"""
-    conn.execute(cmd)
-    conn.commit()
+        cmd = """
+            CREATE TABLE tags (
+                id INTEGER,
+                tid INTEGER,
+                FOREIGN KEY(id)    REFERENCES products(id),
+                FOREIGN KEY(tid)   REFERENCES tagNames(tid)
+            )
+        """
+        conn.execute(cmd)
+        conn.commit()
 
-    if populate:
-        Eups = createEups()
-        flavors = None
-        #
-        # Fill tagNames table first as we'll fill the join table "tags" as we process the products
-        #
-        insertTags(flavors=flavors, Eups=Eups, conn=conn)
-
-        for epd in Eups.path:
-            insertProducts(epd, flavors=flavors, Eups=Eups, conn=conn)
-
-    conn.close()
+        if populate:
+            Eups = createEups()
+            flavors = None
+            #
+            # Fill tagNames table first as we'll fill the join table "tags" as we process the products
+            #
+            insertTags(flavors=flavors, Eups=Eups, conn=conn)
+            
+            for epd in Eups.path:
+                insertProducts(epd, flavors=flavors, Eups=Eups, conn=conn)
 
 def insertTags(flavors=None, Eups=None, conn=None):
     """Insert a set of tags into the DB"""
 
-    if conn:
-        closeConn = False
-    else:
-        closeConn = True
-        conn = getConnection()
+    with Connection(conn) as conn:
+        if not Eups:
+            Eups = createEups()
 
-    if not Eups:
-        Eups = createEups()
+        if flavors is None:
+            flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
+        #
+        # Fill tagNames table first as we'll fill the join table "tags" as we process the products
+        #
+        cursor = conn.cursor()
 
-    if flavors is None:
-        flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
-    #
-    # Fill tagNames table first as we'll fill the join table "tags" as we process the products
-    #
-    cursor = conn.cursor()
-
-    for t in Eups.tags.getTags():
-        if t.isPseudo():
-            continue
-        cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)", (t.name, str(t), t.isGlobal(), ""))
-    conn.commit()
-
-    if closeConn:
-        conn.close()
+        for t in Eups.tags.getTags():
+            if t.isPseudo():
+                continue
+            cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)",
+                           (t.name, str(t), t.isGlobal(), ""))
+        conn.commit()
 
 def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
     """Insert a set of products into the DB"""
 
-    if conn:
-        closeConn = False
-    else:
-        closeConn = True
-        conn = getConnection()
+    with Connection(conn) as conn:
+        if not Eups:
+            Eups = createEups()
 
-    if not Eups:
-        Eups = createEups()
+        if flavors is None:
+            flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
+        #
+        # Fill tagNames table first as we'll fill the join table "tags" as we process the products
+        #
+        cursor = conn.cursor()
 
-    if flavors is None:
-        flavors = utils.Flavor().getFallbackFlavors(Eups.flavor, True)
-    #
-    # Fill tagNames table first as we'll fill the join table "tags" as we process the products
-    #
-    cursor = conn.cursor()
-
-    for t in Eups.tags.getTags():
-        if t.isPseudo():
-            continue
-        cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)", (t.name, str(t), t.isGlobal(), ""))
-    conn.commit()
-    if closeConn:
-        conn.close()
+        for t in Eups.tags.getTags():
+            if t.isPseudo():
+                continue
+            cursor.execute("INSERT INTO tagNames VALUES (NULL, ?, ?, ?, ?)", (t.name, str(t), t.isGlobal(), ""))
+        conn.commit()
     #
     # Iterate through each stack path
     #
@@ -256,10 +240,8 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
                                                                           directory, missing))
         return cursor.lastrowid
 
-    conn = getConnection()
-
-    cursor = conn.cursor()
-    try:
+    with Connection() as conn:
+        cursor = conn.cursor()
         cursor.execute("SELECT id FROM products WHERE name = ? AND version = ?",
                        (product.name, product.version))
         result = cursor.fetchone()
@@ -376,10 +358,9 @@ def _listProducts(name=None, version=None, tag=None,
             va = a[2]; vb = b[2]        # product version
             return Eups.version_cmp(va, vb)
 
-    conn = getConnection()
     res = []
-    try:
-        productList = sorted(queryForProducts(conn, name, version, tag), my_version_cmp)
+    with Connection() as conn:
+        productList = sorted(queryForProducts(conn, productName, versionName, tagName), my_version_cmp)
             
         for pid, n, v, missing in productList:
             if missing and not showMissing:
@@ -397,11 +378,6 @@ def _listProducts(name=None, version=None, tag=None,
                                                                flavor, tag):
                 productTagNames = getTags(conn, dpid) if showTags else None
                 res.append(ProductInfo(n, v, productTagNames, missing, depth=depth))
-    except Exception, e:
-        print e
-        import pdb; pdb.set_trace() 
-    finally:
-        conn.close()
 
     return res                           
 
@@ -445,34 +421,17 @@ def uses(name, version=None, tag=None, flavor=None):
 def _uses(name, version=None, tag=None, flavor=None):
     """Worker routine for uses"""
 
-    conn = getConnection()
-    products = queryForProducts(conn, name, version, tag)
+    with Connection() as conn:
+        pid, name, version, missing = queryForOneProduct(conn, name, version, tag)
 
-    idStr = ["%s" % name]
-    if version:
-        idStr.append("version %s" % version)
-    if tag:
-        idStr.append("tag %s" % tag)
-    idStr = " ".join(idStr)
+        Eups = createEups()
+        defaultProductName = findDefaultProducts(Eups)[0]
 
-    if len(products) == 0:
-        raise RuntimeError("Unable to find %s" % (idStr))
-    elif len(products) > 1:
-        raise RuntimeError("Requested product \"%s\" is not unique. Found versions: %s" %
-                           (idStr, ", ".join([_[2] for _ in products])))
-
-    pid, name, version, missing = products[0]
-
-    Eups = createEups()
-    defaultProductName = findDefaultProducts(Eups)[0]
-
-    listedProducts = {}
-    _getConsumers(conn, pid, listedProducts, flavor)
-    res = []
-    for n in sorted(listedProducts.keys()):
-        res.append([n, sorted(listedProducts[n], Eups.version_cmp)])
-
-    conn.close()
+        listedProducts = {}
+        _getConsumers(conn, pid, listedProducts, flavor)
+        res = []
+        for n in sorted(listedProducts.keys()):
+            res.append([n, sorted(listedProducts[n], Eups.version_cmp)])
 
     return res
 
@@ -511,17 +470,14 @@ def listTags():
 
 def _listTags():
     """List all known tags"""
-    conn = getConnection()
+    with Connection() as conn:
+        cursor = conn.cursor()
 
-    cursor = conn.cursor()
+        res = []
+        for line in cursor.execute("SELECT name, isGlobal, owner FROM tagNames"):
+            name, isGlobal, owner = line
 
-    res = []
-    for line in cursor.execute("SELECT name, isGlobal, owner FROM tagNames"):
-        name, isGlobal, owner = line
-
-        res.append(name)
-
-    conn.close()
+            res.append(name)
 
     return res
     
