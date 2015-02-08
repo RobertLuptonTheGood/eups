@@ -319,7 +319,7 @@ def queryForProducts(conn, name=None, version=None, tag=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def listProducts(name=None, version=None, tag=None,
+def listProducts(productName=None, versionName=None, tagName=None,
                  flavor=None, outFile=None,
                  showDependencies=False, showTags=False, showMissing=False
                  ):
@@ -329,7 +329,8 @@ def listProducts(name=None, version=None, tag=None,
         fd = open(outFile, "w")
 
     try:
-        for pinfo in _listProducts(name, version, tag, flavor, showDependencies, showTags, showMissing):
+        for pinfo in _listProducts(productName, versionName, tagName, flavor,
+                                   showDependencies, showTags, showMissing):
             if pinfo.missing and not showMissing:
                 continue
             
@@ -337,7 +338,7 @@ def listProducts(name=None, version=None, tag=None,
     finally:
         del fd
 
-def _listProducts(name=None, version=None, tag=None,
+def _listProducts(productName=None, versionName=None, tagName=None,
                   flavor=None, showDependencies=False, showTags=False, showMissing=False
                  ):
     """Worker routine for listProducts"""
@@ -371,7 +372,7 @@ def _listProducts(name=None, version=None, tag=None,
                 continue
             
             for dpid, n, v, depth, missing in _getDependencies(conn, pid, depth, {defaultProductName : 1},
-                                                               flavor, tag):
+                                                               flavor, tagName):
                 productTagNames = getTags(conn, dpid) if showTags else None
                 res.append(ProductInfo(n, v, productTagNames, missing, depth=depth))
 
