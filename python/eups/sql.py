@@ -510,6 +510,38 @@ def findDefaultProducts(Eups=None, productList=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+def undeclareProduct(name, version, checkUsers=False):
+    """Undeclare a version, including any tags
+
+    If checkUsers is True check if any products depend on (name, version), and raise RuntimeError
+    it if there are any
+    """
+
+    if checkUsers:
+        users = _uses(name, version, tag=None, flavor=None)
+        if users:
+            raise RuntimeError("%s %s is used by %d products (see eups.sql.uses() to list them)" %
+                               (name, version, len(users)))
+
+
+    with Connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT id FROM products WHERE name = ? AND version = ?",
+                       (name, version))
+        result = cursor.fetchone()
+        if not result:
+            raise RuntimeError("Unable to find %s %s" % (name, version))
+        pid = result[0]
+
+        cursor.execute("DELETE FROM products WHERE id = ?", (pid,))
+        cursor.execute("DELETE FROM dependencies WHERE id = ?", (pid,))
+        cursor.execute("DELETE FROM tags WHERE id = ?", (pid,))
+
+        #cursor.execute("SELECT tid FROM tagNames WHERE fullname = ?", (t,))
+
+        conn.commit()
+
 def test():
     create("eups.sql", force=True)
 
