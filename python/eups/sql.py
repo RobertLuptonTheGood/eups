@@ -323,6 +323,14 @@ def listProducts(productName=None, versionName=None, tagName=None,
                  flavor=None, outFile=None,
                  showDependencies=False, showTags=False, showMissing=False
                  ):
+    if showDependencies:                # check that only one version is requested
+        with Connection() as conn:
+            try:
+                queryForOneProduct(conn, productName, versionName, tagName)
+            except RuntimeError as e:
+                print >> sys.stderr, e
+                return
+
     if outFile is None:
         fd = sys.stderr
     else:
