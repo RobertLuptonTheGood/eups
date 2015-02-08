@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-import os
-import sys
+import os, re, sys
 try:
     import sqlite3 as sqlite
 except ImportError:
@@ -541,6 +540,104 @@ def undeclareProduct(name, version, checkUsers=False):
         #cursor.execute("SELECT tid FROM tagNames WHERE fullname = ?", (t,))
 
         conn.commit()
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+def queryForOneProduct(conn, productName=None, versionName=None, tagName=None):
+    """Return the unique product defined by the combination of productName, versionName, and tagName"""
+    
+    products = queryForProducts(conn, productName, versionName, tagName)
+
+    idStr = ["%s" % productName]
+    if versionName:
+        idStr.append("version %s" % versionName)
+    if tagName:
+        idStr.append("tag %s" % tagName)
+    idStr = " ".join(idStr)
+
+    if len(products) == 0:
+        raise RuntimeError("Unable to find %s" % (idStr))
+    elif len(products) > 1:
+        if not tagName:
+            # Drop tag:XXX versions
+            products = [_ for _ in products if not re.search("^tag:", _[2])]
+            
+        if len(products) > 1:
+            raise RuntimeError("Requested product \"%s\" is not unique. Found versions: %s" %
+                               (idStr, ", ".join([_[2] for _ in products])))
+
+    return products[0]
+
+def _setDependencies(cursor, productName, pid, showOptional=False, ignoredProducts=set(),
+                     dependencies={}, checked=set()):
+    query = """
+       SELECT
+          products.id, products.name, version
+       FROM
+          products JOIN dependencies ON dependency = products.id
+       WHERE
+          dependencies.id = :pid
+    """
+    if not showOptional:
+        query += " AND NOT dependencies.optional"
+
+    defaultProductName = findDefaultProducts()[0]
+    ignoredProducts.add(defaultProductName)
+
+    dpids = []
+    for dpid, name, version in cursor.execute(query, dict(pid=pid)):
+        if name in ignoredProducts:
+            continue
+
+        if not productName in dependencies:
+            dependencies[productName] = set()
+        dependencies[productName].add(name)
+        dpids.append((dpid, name))
+
+    if False and productName in dependencies:
+        print productName, sorted([str(_) for _ in dependencies[productName]]); print
+
+    for dpid, name in dpids:
+        if dpid not in checked:
+            checked.add(dpid)
+            _setDependencies(cursor, name, dpid, showOptional, ignoredProducts,
+                             dependencies=dependencies, checked=checked)
+
+    return dependencies
+
+def graphViz(productName, versionName=None, tagName=None, showOptional=False, ignoredProducts=[],
+             fileName="deps.dot", dirName=".", fileType="pdf"):
+
+    ignoredProducts = set(ignoredProducts) # makes a copy
+
+    with Connection() as conn:
+        pid, name, version = queryForOneProduct(conn, productName, versionName, tagName)[:-1]
+        
+        dependencies = _setDependencies(conn.cursor(), name, pid, showOptional,
+                                        ignoredProducts=ignoredProducts)
+
+    with open(fileName, "w") as fd:
+        print >> fd, "digraph {"
+        #
+        # Only print dependencies that do *not* also appear at the next level down
+        #
+        for dependency, names in dependencies.items():
+            for n in sorted(names):
+                skip = False
+                for nn in names:
+                    if nn in dependencies and n in dependencies[nn]:
+                        skip = True
+                        break
+
+                if not skip:
+                    print >> fd, "  ", dependency, "->", n
+        print >> fd, "}"
+
+    import subprocess
+    outName = os.path.join(dirName, "%s.%s" % (os.path.splitext(fileName)[0], fileType))
+    subprocess.check_call(["dot", fileName, "-T%s" % fileType, "-o", outName])
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def test():
     create("eups.sql", force=True)
