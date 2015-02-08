@@ -17,7 +17,7 @@ except NameError:
     _eupsDatabaseFile = None
 
 class ProductInfo(object):
-    def __init__(self, name, version, productTagNames, missing, depth):
+    def __init__(self, name, version, productTagNames, missing, depth=None):
         self.name = name
         self.version = version
         self.productTagNames = productTagNames
@@ -220,7 +220,7 @@ def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
                 print >> utils.stdwarn, ("Warning: %s" % (e))
             continue
 
-        dependencies[pi] = [(dp.name, dp.version) for dp, optional, depth in dependentProducts if
+        dependencies[pi] = [(dp.name, dp.version, optional) for dp, optional, depth in dependentProducts if
                             dp not in defaultProductList]
 
     defaultProductName = defaultProduct.name if defaultProduct else None
@@ -263,7 +263,7 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
 
                 cursor.execute("INSERT INTO tags VALUES (?, ?)", (pid1, tid))
 
-        for p, v in dependencies:
+        for p, v, optional in dependencies:
             cursor.execute("SELECT id FROM products WHERE name = ? AND version = ?", (p, v))
             try:
                 pid2 = cursor.fetchone()[0]
@@ -274,13 +274,9 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
 
                 pid2 = insert_product(cursor, p, v, None, missing=True)
 
-            optional = False
+            #optional = False
             cursor.execute("INSERT INTO dependencies VALUES (?, ?, ?)", (pid1, pid2, optional))
         conn.commit()
-    except RuntimeError, e:
-        print >> sys.stderr, "Error loading DB: %s" % e
-    finally:
-        conn.close()
 
 def getTags(conn, pid):
     cursor = conn.cursor()
