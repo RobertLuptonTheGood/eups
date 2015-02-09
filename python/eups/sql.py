@@ -97,6 +97,7 @@ def create(fileName, force=False, populate=True):
                 id INTEGER,
                 dependency INTEGER,
                 optional BOOLEAN,
+                directDependency BOOLEAN,
                 FOREIGN KEY(id)         REFERENCES products(id),
                 FOREIGN KEY(dependency) REFERENCES products(id)
             )
@@ -214,13 +215,15 @@ def insertProducts(eupsPathDir, flavors=None, Eups=None, conn=None):
 
         try:
             dependentProducts = Eups.getDependentProducts(pi)
+            directDependentProducts = [p[0].name for p in
+                                       Eups.getDependentProducts(pi, followExact=False, recursive=False)]
         except TableError, e:
             if not Eups.quiet:
                 print >> utils.stdwarn, ("Warning: %s" % (e))
             continue
 
-        dependencies[pi] = [(dp.name, dp.version, optional) for dp, optional, depth in dependentProducts if
-                            dp not in defaultProductList]
+        dependencies[pi] = [(dp.name, dp.version, optional, dp.name in directDependentProducts)
+                            for dp, optional, depth in dependentProducts if dp not in defaultProductList]
 
     defaultProductName = defaultProduct.name if defaultProduct else None
     for pi, deps in dependencies.items():
@@ -262,7 +265,7 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
 
                 cursor.execute("INSERT INTO tags VALUES (?, ?)", (pid1, tid))
 
-        for p, v, optional in dependencies:
+        for p, v, optional, direct in dependencies:
             cursor.execute("SELECT id FROM products WHERE name = ? AND version = ?", (p, v))
             try:
                 pid2 = cursor.fetchone()[0]
@@ -273,8 +276,8 @@ def insertProduct(product, dependencies={}, newProduct=True, defaultProductName=
 
                 pid2 = insert_product(cursor, p, v, None, missing=True)
 
-            #optional = False
-            cursor.execute("INSERT INTO dependencies VALUES (?, ?, ?)", (pid1, pid2, optional))
+            cursor.execute("INSERT INTO dependencies VALUES (?, ?, ?, ?)",
+                           (pid1, pid2, optional, direct))
         conn.commit()
 
 def getTags(conn, pid):
@@ -568,11 +571,11 @@ def queryForOneProduct(conn, productName=None, versionName=None, tagName=None):
 
     return products[0]
 
-def _setDependencies(cursor, productName, pid, showOptional=False, ignoredProducts=set(),
-                     dependencies={}, checked=set()):
+def _setDependencies(cursor, productName, pid, showOptional=False, showTableDependencies=False,
+                     ignoredProducts=set(), dependencies={}, checked=set()):
     query = """
        SELECT
-          products.id, products.name, version
+          products.id, products.name, version, directDependency
        FROM
           products JOIN dependencies ON dependency = products.id
        WHERE
@@ -585,7 +588,9 @@ def _setDependencies(cursor, productName, pid, showOptional=False, ignoredProduc
     ignoredProducts.add(defaultProductName)
 
     dpids = []
-    for dpid, name, version in cursor.execute(query, dict(pid=pid)):
+    for dpid, name, version, direct in cursor.execute(query, dict(pid=pid)):
+        if showTableDependencies and not direct:
+            continue
         if name in ignoredProducts:
             continue
 
@@ -594,43 +599,50 @@ def _setDependencies(cursor, productName, pid, showOptional=False, ignoredProduc
         dependencies[productName].add(name)
         dpids.append((dpid, name))
 
-    if False and productName in dependencies:
-        print productName, sorted([str(_) for _ in dependencies[productName]]); print
-
     for dpid, name in dpids:
         if dpid not in checked:
             checked.add(dpid)
-            _setDependencies(cursor, name, dpid, showOptional, ignoredProducts,
+            _setDependencies(cursor, name, dpid, showOptional, showTableDependencies, ignoredProducts,
                              dependencies=dependencies, checked=checked)
 
     return dependencies
 
-def graphViz(productName, versionName=None, tagName=None, showOptional=False, ignoredProducts=[],
+def graphViz(productName, versionName=None, tagName=None, showOptional=False, showTableDependencies=False,
+             ignoredProducts=[],
              fileName="deps.dot", dirName=".", fileType="pdf"):
 
     ignoredProducts = set(ignoredProducts) # makes a copy
 
     with Connection() as conn:
-        pid, name, version = queryForOneProduct(conn, productName, versionName, tagName)[:-1]
+        pid, productName, versionName = queryForOneProduct(conn, productName, versionName, tagName)[:-1]
         
-        dependencies = _setDependencies(conn.cursor(), name, pid, showOptional,
+        dependencies = _setDependencies(conn.cursor(), productName, pid, showOptional, showTableDependencies,
                                         ignoredProducts=ignoredProducts)
 
     with open(fileName, "w") as fd:
         print >> fd, "digraph {"
-        #
-        # Only print dependencies that do *not* also appear at the next level down
-        #
+        print >> fd, '   // title'
+        print >> fd, '   labelloc="l"; fontsize=30'
+        print >> fd, '   label="%s %s %s";' % (productName, versionName,
+                                               ("Table declarations" if showTableDependencies else
+                                                "Derived dependencies"))
+
         for dependency, names in dependencies.items():
             for n in sorted(names):
-                skip = False
-                for nn in names:
-                    if nn in dependencies and n in dependencies[nn]:
-                        skip = True
-                        break
-
-                if not skip:
+                if showTableDependencies:
                     print >> fd, "  ", dependency, "->", n
+                else:
+                    #
+                    # Only print dependencies that do *not* also appear at the next level down
+                    #
+                    skip = False
+                    for nn in names:
+                        if nn in dependencies and n in dependencies[nn]:
+                            skip = True
+                            break
+
+                    if not skip:
+                        print >> fd, "  ", dependency, "->", n
         print >> fd, "}"
 
     import subprocess
