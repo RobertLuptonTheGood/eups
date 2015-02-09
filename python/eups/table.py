@@ -578,7 +578,7 @@ but no other interpretation is applied
                     table = thisProduct.getTable()
 
                     unsetupProducts = [thisProduct.name]
-                    if table and not noRecursion:
+                    if table and recursive and not noRecursion:
                         subDeps = table.dependencies(Eups, eupsPathDirs=eupsPathDirs,
                                                     recursive=True, followExact=followExact)
                         unsetupProducts += [val[0].name for val in subDeps]

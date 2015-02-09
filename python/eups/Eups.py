@@ -3004,7 +3004,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return dependencies
 
-    def getDependentProducts(self, topProduct, setup=False, shouldRaise=False,
+    def getDependentProducts(self, topProduct, setup=False, shouldRaise=False, recursive=True,
                              followExact=None, productDictionary=None, topological=False, checkCycles=False,
                              requiredVersions={}):
         """
@@ -3012,6 +3012,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param topProduct      Desired Product
         @param setup           Return the versions of dependent products that are actually setup
         @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
+        @param recursive       Process table files recursively?
         @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
         @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
                                value being that product's dependencies.
@@ -3034,7 +3035,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not prodtbl:
             return dependentProducts
 
-        for product, optional, recursionDepth in prodtbl.dependencies(self, recursive=True, recursionDepth=1,
+        for product, optional, recursionDepth in prodtbl.dependencies(self,
+                                                                      recursive=recursive, recursionDepth=1,
                                                                       followExact=followExact,
                                                                       productDictionary=productDictionary,
                                                                       requiredVersions=requiredVersions):
