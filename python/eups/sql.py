@@ -608,8 +608,7 @@ def _setDependencies(cursor, productName, pid, showOptional=False, showTableDepe
     return dependencies
 
 def graphViz(productName, versionName=None, tagName=None, showOptional=False, showTableDependencies=False,
-             ignoredProducts=[],
-             fileName="deps.dot", dirName=".", fileType="pdf"):
+             ignoredProducts=[], runDot=True, fileName="deps.dot", dirName=".", fileType="pdf"):
 
     ignoredProducts = set(ignoredProducts) # makes a copy
 
@@ -649,9 +648,10 @@ def graphViz(productName, versionName=None, tagName=None, showOptional=False, sh
 
         print >> fd, "}"
 
-    import subprocess
-    outName = os.path.join(dirName, "%s.%s" % (os.path.splitext(fileName)[0], fileType))
-    subprocess.check_call(["dot", fileName, "-T%s" % fileType, "-o", outName])
+    if runDot:
+        import subprocess
+        outName = os.path.join(dirName, "%s.%s" % (os.path.splitext(fileName)[0], fileType))
+        subprocess.check_call(["dot", fileName, "-T%s" % fileType, "-o", outName])
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
