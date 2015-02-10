@@ -575,7 +575,7 @@ def _setDependencies(cursor, productName, pid, showOptional=False, showTableDepe
                      ignoredProducts=set(), dependencies={}, checked=set()):
     query = """
        SELECT
-          products.id, products.name, version, directDependency
+          products.id, products.name, version, directDependency, optional
        FROM
           products JOIN dependencies ON dependency = products.id
        WHERE
@@ -588,7 +588,7 @@ def _setDependencies(cursor, productName, pid, showOptional=False, showTableDepe
     ignoredProducts.add(defaultProductName)
 
     dpids = []
-    for dpid, name, version, direct in cursor.execute(query, dict(pid=pid)):
+    for dpid, name, version, direct, optional in cursor.execute(query, dict(pid=pid)):
         if showTableDependencies and not direct:
             continue
         if name in ignoredProducts:
@@ -596,7 +596,7 @@ def _setDependencies(cursor, productName, pid, showOptional=False, showTableDepe
 
         if not productName in dependencies:
             dependencies[productName] = set()
-        dependencies[productName].add(name)
+        dependencies[productName].add((name, optional))
         dpids.append((dpid, name))
 
     for dpid, name in dpids:
@@ -627,22 +627,26 @@ def graphViz(productName, versionName=None, tagName=None, showOptional=False, sh
                                                ("Table declarations" if showTableDependencies else
                                                 "Derived dependencies"))
 
-        for dependency, names in dependencies.items():
+        for dependency, what in dependencies.items():
+            optional = dict(what)
+            names = optional.keys()
             for n in sorted(names):
+                printDependency = True
+
                 if showTableDependencies:
-                    print >> fd, "  ", dependency, "->", n
+                    pass
                 else:
                     #
                     # Only print dependencies that do *not* also appear at the next level down
                     #
-                    skip = False
                     for nn in names:
-                        if nn in dependencies and n in dependencies[nn]:
-                            skip = True
+                        if nn in dependencies and n in dict(dependencies[nn]):
+                            printDependency = False
                             break
 
-                    if not skip:
-                        print >> fd, "  ", dependency, "->", n
+                if printDependency:
+                    print >> fd, "  ", dependency, "->", n, ("[style = dotted]" if optional[n] else "")
+
         print >> fd, "}"
 
     import subprocess
