@@ -2984,12 +2984,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                 out.append(prod)
 
         #
-        # Make productList entries uniq; would use a set but they are too newfangled
+        # Make productList entries uniq
         #
-        productList = []
-        for p in out:
-            if not p in productList:
-                productList.append(p)
+        productList = list(set(out))
 
         return productList                
 
