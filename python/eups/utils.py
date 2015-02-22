@@ -151,12 +151,12 @@ def setupEnvNameFor(productName):
     return the name of the environment variable that provides the 
     setup information for a product.  This is of the form "setupEnvPrefix() + prod".
     """
-    name = setupEnvPrefix() + productName
+    name = setupEnvPrefix() + productName.upper()
 
     if os.environ.has_key(name):
         return name                 # exact match
 
-    envNames = filter(lambda k: re.search(r"^%s$" % name, k, re.IGNORECASE), os.environ.keys())
+    envNames = [ k for k in os.environ if k.upper() == name ]
     if envNames:
         return envNames[0]
     else:
