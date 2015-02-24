@@ -1,4 +1,4 @@
-import pwd, re, os, cPickle, sys
+import re, os, cPickle, sys
 from eups import utils
 from eups import Product
 from ProductFamily import ProductFamily
@@ -17,7 +17,7 @@ persistVersionName = "1.3.0"
 userPrefix = "user:"     
 
 dotre = re.compile(r'\.')
-who = pwd.getpwuid(os.geteuid())[0]
+who = utils.getUserName()
 
 class ProductStack(object):
     """

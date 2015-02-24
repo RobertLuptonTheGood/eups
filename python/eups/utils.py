@@ -1,9 +1,41 @@
 """
 Utility functions used across EUPS classes.
 """
-import time, os, sys, glob, re, shutil, tempfile
+import time, os, sys, glob, re, shutil, tempfile, pwd
 from cStringIO import StringIO
 
+def getUserName(full=False):
+    """ Get the current username (or the full name)
+    if getpwuid fails use LOGNAME or USER environment variable
+    """
+    if 'who' in getUserName.__dict__:
+        return getUserName.who[full]
+    # we cache the function output in the dictionary 'who' 
+    
+    euid = os.geteuid()
+    try:
+        pw = pwd.getpwuid(euid)
+        getUserName.who = {
+            False : pw[0],
+            True: re.sub(r",.*", "", pw[4])
+            }
+    except KeyError:
+        print >> stdwarn, "Warning: getpwuid failed, guessing username from LOGNAME or USER variable"
+        key = None 
+        if 'LOGNAME' in os.environ:
+            key = 'LOGNAME'
+        elif 'USER' in os.environ:
+            print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
+            key = 'USER'    
+        if key is None:
+            print >> stdwarn, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'"
+            getUserName.who = dict(zip([False,True],['(unkwnown user)']*2))
+        else:
+            getUserName.who = dict(zip([False,True],[os.environ[key]]*2))
+
+    return getUserName.who[full]
+
+            
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
     a tuple (oldestRevision, youngestRevision, flags) as reported

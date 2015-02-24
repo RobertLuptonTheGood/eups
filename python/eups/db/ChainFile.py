@@ -1,7 +1,7 @@
-import os, re, sys, pwd
-from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr
+import os, re, sys
+from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName
 
-who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
+who = getUserName(full=True)
 
 class ChainFile(object):
     """

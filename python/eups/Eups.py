@@ -1,7 +1,7 @@
 """
 The Eups class 
 """
-import glob, re, os, pwd, shutil, sys, time
+import glob, re, os, shutil, sys, time
 import filecmp
 import fnmatch
 import tempfile
@@ -185,7 +185,7 @@ class Eups(object):
         self.oldAliases = {}            # initial value of aliases.  This is a bit of a fake, as we
                                         # don't know how to set it but (un)?setAlias knows how to handle this
 
-        self.who = re.sub(r",.*", "", pwd.getpwuid(os.getuid())[4])
+        self.who = utils.getUserName(full=True)
 
         if root:
             root = os.path.expanduser(root)
@@ -338,7 +338,7 @@ class Eups(object):
         # 
         # load up the recognized tags.
         # 
-        user = pwd.getpwuid(os.geteuid())[0] # our username is always a valid user tag (if not already global)
+        user = utils.getUserName() # our username is always a valid user tag (if not already global)
         if hooks.config.Eups.userTags.count(user) == 0 and \
            hooks.config.Eups.globalTags.count(user) == 0:
             hooks.config.Eups.userTags.append(user)

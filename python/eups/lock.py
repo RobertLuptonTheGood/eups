@@ -135,8 +135,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
             #
             # Create a file in it
             #
-            import pwd
-            who = pwd.getpwuid(os.geteuid())[0]
+            who = utils.getUserName()
             pid = os.getpid()
 
             lockFile = "%s-%s.%d" % (lockTypeName, who, pid)
