@@ -920,6 +920,10 @@ TAGLIST_DIR = tags
             print >> self.log, "Building in directory:", buildDir
             print >> self.log, "Writing log to: %s" % (logfile)
 
+        if self.Eups.noaction:
+            print >> self.log, "skipping [noaction]"
+            return
+
         # Make sure the buildDir is empty (to avoid interference from failed builds)
         shutil.rmtree(buildDir)
         os.mkdir(buildDir)

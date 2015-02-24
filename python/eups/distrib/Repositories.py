@@ -631,15 +631,16 @@ class Repositories(object):
         else:
             root = os.path.join(productRoot, instflavor, prod.instDir)
 
-        try:
-            self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
-        except RuntimeError, e:
-            print >> sys.stderr, e
-            return
+        if not self.eups.noaction:
+            try:
+                self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
+            except RuntimeError, e:
+                print >> sys.stderr, e
+                return
         
-        # write the distID to the installdir/ups directory to aid 
-        # clean-up
-        self._recordDistID(prod.distId, root, pkgroot)
+            # write the distID to the installdir/ups directory to aid 
+            # clean-up
+            self._recordDistID(prod.distId, root, pkgroot)
 
         # clean up the build directory
         if noclean:
@@ -671,7 +672,7 @@ class Repositories(object):
 								    prod.product, prod.version, ", ".join(ptags))
 	self.eups.supportServerTags(tags, stackRoot)
 
-        if not tags:
+        if self.eups.noaction or not tags:
             return
 
         dprod = self.eups.findProduct(prod.product, prod.version, stackRoot, flavor)
