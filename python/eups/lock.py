@@ -228,7 +228,12 @@ def listLockers(lockDir, globPattern="*", getPids=False):
     """List all the owners of locks in a lockDir"""
     lockers = []
     for f in [os.path.split(f)[1] for f in glob.glob(os.path.join(lockDir, globPattern))]:
-        who, pid = re.split(r"[-.]", f)[1:]
+        mat = re.search(r"^(exclusive|shared)-(.+)\.(\d+)$", f)
+        if not mat:
+            print >> utils.stdwarn, "Unable to parse lockfile name %s" % f
+            continue
+
+        lockType, who, pid = mat.groups()
         if getPids:
             lockers.append(pid)
         else:
