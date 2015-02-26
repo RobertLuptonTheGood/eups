@@ -68,10 +68,10 @@ class ChainFile(object):
         @param flavor : the name of the flavor to get the tagged versions for. 
         @return string : the version tag is assigned to
         """
-        if not self.info.has_key(flavor) or \
-           not self.info[flavor].has_key("version"):
+        try:
+            return self.info[flavor]["version"]
+        except KeyError:
             return None
-        return self.info[flavor]["version"]
 
     def setVersion(self, version, flavors=None):
         """
