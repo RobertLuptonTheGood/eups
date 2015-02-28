@@ -385,10 +385,10 @@ r"""
 
        TaP         -- the "tarball-and-patch" package; if a directory named
                       'upstream' exists in package root (and no other files
-                      are found there), extract any tarballs from 'upstream'
-                      and apply any patches found in 'patches', before
-                      proceeding to autodetect the build system as described
-                      above.
+                      are found there or the file ".tap_package" exists),
+                      extract any tarballs from 'upstream' and apply any
+                      patches found in 'patches', before proceeding to
+                      autodetect the build system as described above.
 
                       This is useful for packages created out of git
                       repositories that are just containers for external

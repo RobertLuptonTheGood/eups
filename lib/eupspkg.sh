@@ -672,8 +672,9 @@ default_prep()
 	# to apply once all tarballs have been expanded.
 	#
 	# To be recognized as at TaP package, there must be no files (other
-	# than those starting with a dot) in the package root directory, and
-	# there must be a directory named 'upstream'
+	# than those starting with a dot) in the package root directory unless
+	# the file ".tap_package" exists, and there must be a directory named
+	# 'upstream'
 
 	if [[ -d "$UPSTREAM_DIR" ]]; then
 	
@@ -683,8 +684,8 @@ default_prep()
 		fi
 
 		# verify that there are no files (other than .* or _*) in $pkgdir
-		# packagers: it's possible override this ckeck with TAP_PACKAGE=1
-		if [[ "$TAP_PACKAGE" != 1 && ! -z $(find . -maxdepth 1 -mindepth 1 ! -name ".*" ! -name "_*" -a -type f) ]]; then
+		# packagers: it's possible to override this check by creating .tap_package
+		if [[ ! -f ".tap_package" && ! -z $(find . -maxdepth 1 -mindepth 1 ! -name ".*" ! -name "_*" -a -type f) ]]; then
 			die "files found in root directory; guessing this is not a TaP package."
 		fi
 
