@@ -355,15 +355,15 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				#git log --decorate --oneline --graph --all
 				#git describe
 				#git describe --first-parent
+
+				echo
+				ut_exit
 			)
 		)
-		echo
 	}
 
 	_ut_earliest_version
 	_ut_git_version
-
-	ut_exit
 fi
 
 ##################### ---- END UNIT TESTS ---- #####################

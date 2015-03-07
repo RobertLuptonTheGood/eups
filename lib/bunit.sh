@@ -54,7 +54,7 @@ ut_exit()
 	# check if any unit test failed, exit if so
 
 	if [[ ! -z $_UT_FAIL ]]; then
-		echo **** error: some unit tests failed.
+		echo '****' error: some unit tests failed.
 		exit -1
 	else
 		echo all unit tests passed.
