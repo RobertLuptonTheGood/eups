@@ -158,6 +158,13 @@ git_version()
 		if [[ -z $BRANCH ]]; then
 			# Commit is not on any branch (orphaned)
 			RES=($ABBRSHA $DIRTY)
+		elif [[ $BRANCH = master ]]; then
+			local DESC=$(git describe --first-parent --match "$TAG_PATTERN" 2>/dev/null)
+			if [[ -z $DESC ]]; then
+				RES=($BRANCH g$ABBRSHA $DIRTY )
+			else
+				RES=($DESC $DIRTY )
+			fi
 		else
 			RES=($BRANCH g$ABBRSHA $DIRTY )
 		fi
@@ -323,15 +330,15 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 
 				ut0 Commit away from the tag
 				_git_add_commit newfile
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "1.1-1-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Commit away from the tag
 				_git_add_commit newfile2
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Dirty commit away from the tag
 				echo "stuff" >> newfile2
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)-dirty"
+				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=10 HEAD)-dirty"
 				git reset --hard -q
 
 
@@ -350,20 +357,20 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut0 Where --first-parent makes a difference
 				git checkout -q master > /dev/null
 				git merge next2 -m "Merge" > /dev/null
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "1.1-3-g$(git rev-parse --short=10 HEAD)"
 
 				#git log --decorate --oneline --graph --all
 				#git describe
 				#git describe --first-parent
+
+				echo
+				ut_exit
 			)
 		)
-		echo
 	}
 
 	_ut_earliest_version
 	_ut_git_version
-
-	ut_exit
 fi
 
 ##################### ---- END UNIT TESTS ---- #####################
