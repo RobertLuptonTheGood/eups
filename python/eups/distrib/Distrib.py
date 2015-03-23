@@ -797,7 +797,7 @@ class DefaultDistrib(Distrib):
             productList = dict([(p.product, p.version) for p in productDeps])
 
             eups.table.expandTableFile(self.Eups, outTable, inTable, productList,
-                                       toplevelName=product, recurse=False)
+                                       toplevelName=product, recurse=False, force=force)
             return True
 
         #
