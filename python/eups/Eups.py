@@ -1026,6 +1026,16 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if self.cmdName != "setup":
                     print >> sys.stderr, "%-15s %s" % (product.name, product.version)
 
+        # Hack around Product.getTable() slowness, by internally caching Product instances
+        # FIXME: Should be removed once the Product.getTable() bottleneck is resolved
+        try:
+            product = self._productCache[product]
+        except AttributeError:
+            self._productCache = dict()
+            self._productCache[product] = product
+        except KeyError:
+            self._productCache[product] = product
+
         return [product, vroReason]
 
     def findProduct(self, name, version=None, eupsPathDirs=None, flavor=None,
