@@ -1,4 +1,4 @@
-import os, re, sys, copy
+import os, re, sys, copy, glob
 from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName, defaultUserDataDir
 import cPickle as pickle
 
@@ -20,13 +20,22 @@ class ChainFileCache(object):
         dirName = os.path.normpath(dirName)
         return os.path.join(defaultUserDataDir(), '_chain_caches_', dirName[1:], "__chains__.pkl")
 
-    def _getCacheFor(self, fn):
-    	dirName = os.path.dirname(fn)
+    def _buildCache(self, dirName):
+        cache = dict()
 
+        chains = glob.glob(dirName + "/*.chain")
+        for chainFn in chains:
+            cf = ChainFile(chainFn, readFile=False)
+            cf._read()
+            cache[chainFn] = cf.name, cf.tag, copy.deepcopy(cf.info)
+
+        return cache
+
+    def getChainsInDir(self, dirName):
         # Cache already loaded?
         try:
             cache, mtime = self._caches[dirName]
-            return cache, dirName
+            return cache
         except KeyError:
             #print >>sys.stderr, "Cache miss:", dirName
             pass
@@ -43,31 +52,40 @@ class ChainFileCache(object):
             fp.close()
 
             if mtimeDir <= mtime:
-                return cache, dirName
+                return cache
 
-        # Return an empty cache
-        cache, mtime = self._caches[dirName] = dict(), mtimeDir
-        return cache, dirName
+        # (re)build the cache
+        cache, mtime = self._caches[dirName] = self._buildCache(dirName), mtimeDir
+        self._staleCacheFiles.add(dirName)
+        return cache
 
-    # Called to obtain an instance of ChainFile
     def __getitem__(self, fn):
         # Get a cache for the directory
-        cache, _ = self._getCacheFor(fn)
+        cache = self.getChainsInDir(os.path.dirname(fn))
         return cache[fn]
 
     def __setitem__(self, fn, chainData):
-        cache, dirName = self._getCacheFor(fn)
+        dirName = os.path.dirname(fn)
+        cache = self.getChainsInDir(dirName)
         cache[fn] = chainData
 
         # Update mtime, and mark cache as stale
         self._caches[dirName] = cache, os.path.getmtime(os.path.dirname(fn))
         self._staleCacheFiles.add(dirName)
 
+        # Make sure no stale caches are left if anything goes 
+        # wrong (i.e., we crash)
+        try:
+            os.remove(self._cacheFilenameFor(dirName))
+        except IOError:
+            pass
+
     def __delitem__(self, fn):
-        cache, _ = self._getCacheFor(fn)
+        cache = self.getChainsInDir(os.path.dirname(fn))
         del cache[fn]
 
-    def _writeDirCache(self, cacheFn, cacheData):
+    def _writeCacheForDir(self, cacheFn, cacheData):
+        print >>sys.stderr, "WRITING:", cacheFn
         # Ensure the directory exists
         try:
             os.makedirs(os.path.dirname(cacheFn))
@@ -86,7 +104,7 @@ class ChainFileCache(object):
     def autosave(self):
         # check if there are any dirty caches and write them out
         for dirName in self._staleCacheFiles:
-            self._writeDirCache(self._cacheFilenameFor(dirName), self._caches[dirName])
+            self._writeCacheForDir(self._cacheFilenameFor(dirName), self._caches[dirName])
 
 # chain cache singleton
 chainCache = ChainFileCache()
@@ -110,7 +128,7 @@ class ChainFile(object):
     ]
 
     def __init__(self, file, productName=None, tag=None, verbosity=0, 
-                 readFile=True):
+                 readFile=True, info=None):
 
         # the file containing the tag information
         self.file = file
@@ -123,16 +141,22 @@ class ChainFile(object):
 
         # tag assignment attributes as a dictionary.  Each key is a flavor 
         # name and its value is a properties set of named metadata.
-        self.info = {}
+        if info is None:
+            self.info = {}
+        else:
+            self.info = info
 
         if readFile:
             try:
-                self._read(self.file, verbosity)
-            except IOError, e:
-                # It's not an error if the file didn't exist
-                if e.errno != errno.ENOENT:
-	            raise
+                self.name, self.tag, self.info = chainCache[file]
+            except KeyError:
+                pass
 
+    @staticmethod
+    def iterTagsInDir(dirName):
+        for fn, (name, tag, info) in chainCache.getChainsInDir(dirName).iteritems():
+            cf = ChainFile(fn, name, tag, readFile=False, info=info)
+            yield cf
 
     def getFlavors(self):
         """
@@ -279,22 +303,15 @@ CHAIN = %s
     def _read(self, file=None, verbosity=0):
         """
         read in data from a file, possibly overwring previously tagged products
+        
+        Note: Can only be called from ChainFileCache._buildCache
 
         @param file : the file to read
         """
         if not file:
             file = self.file
 
-        try:
-            self.name, self.tag, self.info = chainCache[file]
-            return
-        except KeyError:
-            pass
-
-        try:
-            fd = open(file)
-        except IOError:
-            return
+        fd = open(file)
 
         flavor = None
         for at, line in enumerate(fd):
@@ -361,5 +378,3 @@ CHAIN = %s
                     self.info[flavor][key] = value
 
         fd.close()
-
-        chainCache[file] = self.name, self.tag, copy.deepcopy(self.info)

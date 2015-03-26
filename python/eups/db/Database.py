@@ -208,18 +208,7 @@ class _Database(object):
     def _findTagsInDir(self, dir, productName, version, flavor):
         # look tag assignments via chain files in a given directory
 
-        tagFiles = filter(lambda x: not x.startswith('.'), os.listdir(dir))
-        
-        tags = []
-        for file in tagFiles:
-            mat = tagFileRe.match(file)
-            if not mat:
-                continue
-
-            tag = mat.group(1)
-            cf = ChainFile(os.path.join(dir,file), productName, tag)
-            if cf.getVersion(flavor) == version:
-                tags.append(tag)
+        tags = [ cf.tag for cf in ChainFile.iterTagsInDir(dir) if cf.getVersion(flavor) == version ]
 
         return tags
 
@@ -693,6 +682,7 @@ class _Database(object):
             dbrootdir = self.dbpath
         proddirs = map(lambda d: os.path.join(self.dbpath, d), self.findProductNames())
 
+        import sys
         for prod in proddirs:
             # check the directory mod-time: this will catch recent removal
             # of files from the directory
