@@ -1,7 +1,95 @@
-import os, re, sys, errno
-from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName
+import os, re, sys, copy
+from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName, defaultUserDataDir
+import cPickle as pickle
 
 who = getUserName(full=True)
+
+class ChainFileCache(object):
+
+    def __init__(self):
+        # initialize instance variables
+        self._caches = dict()
+        self._staleCacheFiles = set()
+
+        # register self.autosave to run on interpreter exit
+        # this will save any dirty caches, for future invocations
+        import atexit
+        atexit.register(self.autosave)
+
+    def _cacheFilenameFor(self, dirName):
+        dirName = os.path.normpath(dirName)
+        return os.path.join(defaultUserDataDir(), '_chain_caches_', dirName[1:], "__chains__.pkl")
+
+    def _getCacheFor(self, fn):
+    	dirName = os.path.dirname(fn)
+
+        # Cache already loaded?
+        try:
+            cache, mtime = self._caches[dirName]
+            return cache, dirName
+        except KeyError:
+            #print >>sys.stderr, "Cache miss:", dirName
+            pass
+
+        # Already on disk (and valid)?
+        mtimeDir = os.path.getmtime(dirName)
+        try:
+            cacheFn = self._cacheFilenameFor(dirName)
+            fp = open(cacheFn)
+        except IOError:
+            pass
+        else:
+            cache, mtime = self._caches[dirName] = pickle.load(fp)
+            fp.close()
+
+            if mtimeDir <= mtime:
+                return cache, dirName
+
+        # Return an empty cache
+        cache, mtime = self._caches[dirName] = dict(), mtimeDir
+        return cache, dirName
+
+    # Called to obtain an instance of ChainFile
+    def __getitem__(self, fn):
+        # Get a cache for the directory
+        cache, _ = self._getCacheFor(fn)
+        return cache[fn]
+
+    def __setitem__(self, fn, chainData):
+        cache, dirName = self._getCacheFor(fn)
+        cache[fn] = chainData
+
+        # Update mtime, and mark cache as stale
+        self._caches[dirName] = cache, os.path.getmtime(os.path.dirname(fn))
+        self._staleCacheFiles.add(dirName)
+
+    def __delitem__(self, fn):
+        cache, _ = self._getCacheFor(fn)
+        del cache[fn]
+
+    def _writeDirCache(self, cacheFn, cacheData):
+        # Ensure the directory exists
+        try:
+            os.makedirs(os.path.dirname(cacheFn))
+        except OSError:
+            pass
+
+        # Safely write the file
+        tmpFn = cacheFn + ".tmp"
+
+        fp = open(tmpFn, "w")
+        pickle.dump(cacheData, fp, -1)
+        fp.close()
+
+        os.rename(tmpFn, cacheFn)
+
+    def autosave(self):
+        # check if there are any dirty caches and write them out
+        for dirName in self._staleCacheFiles:
+            self._writeDirCache(self._cacheFilenameFor(dirName), self._caches[dirName])
+
+# chain cache singleton
+chainCache = ChainFileCache()
 
 class ChainFile(object):
     """
@@ -135,11 +223,14 @@ class ChainFile(object):
         @param file : the file to write the data to.  If None, the 
                        configured file will be used.  
         """
-
         if not file:
             file = self.file
         if self.hasNoAssignments():
             if os.path.exists(file):  os.remove(file)
+            try:
+                del chainCache[file]
+            except KeyError:
+                pass
             return
 
         fd = open(file, "w")
@@ -180,6 +271,8 @@ CHAIN = %s
 
         fd.close()
 
+        chainCache[file] = self.name, self.tag, copy.deepcopy(self.info)
+
     REGEX_KEYVAL = re.compile(r"^(\w+)\s*=\s*(.*)", flags = re.IGNORECASE)
     REGEX_GROUPEND = re.compile(r"^(End|Group)\s*:")
 
@@ -191,7 +284,17 @@ CHAIN = %s
         """
         if not file:
             file = self.file
-        fd = open(file)
+
+        try:
+            self.name, self.tag, self.info = chainCache[file]
+            return
+        except KeyError:
+            pass
+
+        try:
+            fd = open(file)
+        except IOError:
+            return
 
         flavor = None
         for at, line in enumerate(fd):
@@ -259,5 +362,4 @@ CHAIN = %s
 
         fd.close()
 
-
-
+        chainCache[file] = self.name, self.tag, copy.deepcopy(self.info)
