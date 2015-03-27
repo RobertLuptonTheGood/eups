@@ -8,8 +8,9 @@ class ChainFileCache(object):
 
     def __init__(self):
         # initialize instance variables
-        self._caches = dict()
-        self._staleCacheFiles = set()
+        self._caches = dict()                   # key = directory name, value = (dir mtime, cache)
+                                                # cache: dict(key = chain file name, value = parsed file contents)
+        self._staleCacheFiles = set()		# values = directory names
 
         # register self.autosave to run on interpreter exit
         # this will save any dirty caches, for future invocations
@@ -27,21 +28,23 @@ class ChainFileCache(object):
         for chainFn in chains:
             cf = ChainFile(chainFn, readFile=False)
             cf._read()
-            cache[chainFn] = cf.name, cf.tag, copy.deepcopy(cf.info)
+            cache[chainFn] = ( cf.name, cf.tag, copy.deepcopy(cf.info) )
 
+        print >>sys.stderr, "REBUILD CACHE:", dirName, len(cache)
         return cache
 
     def getChainsInDir(self, dirName):
+        mtimeDir = os.path.getmtime(dirName)
+
         # Cache already loaded?
         try:
             cache, mtime = self._caches[dirName]
-            return cache
+            if mtimeDir <= mtime:
+                return cache
         except KeyError:
-            #print >>sys.stderr, "Cache miss:", dirName
             pass
 
-        # Already on disk (and valid)?
-        mtimeDir = os.path.getmtime(dirName)
+        # Already on disk?
         try:
             cacheFn = self._cacheFilenameFor(dirName)
             fp = open(cacheFn)
@@ -49,6 +52,7 @@ class ChainFileCache(object):
             pass
         else:
             cache, mtime = self._caches[dirName] = pickle.load(fp)
+            print >>sys.stderr, "LOAD:", dirName, len(cache)
             fp.close()
 
             if mtimeDir <= mtime:
@@ -60,29 +64,8 @@ class ChainFileCache(object):
         return cache
 
     def __getitem__(self, fn):
-        # Get a cache for the directory
         cache = self.getChainsInDir(os.path.dirname(fn))
         return cache[fn]
-
-    def __setitem__(self, fn, chainData):
-        dirName = os.path.dirname(fn)
-        cache = self.getChainsInDir(dirName)
-        cache[fn] = chainData
-
-        # Update mtime, and mark cache as stale
-        self._caches[dirName] = cache, os.path.getmtime(os.path.dirname(fn))
-        self._staleCacheFiles.add(dirName)
-
-        # Make sure no stale caches are left if anything goes 
-        # wrong (i.e., we crash)
-        try:
-            os.remove(self._cacheFilenameFor(dirName))
-        except IOError:
-            pass
-
-    def __delitem__(self, fn):
-        cache = self.getChainsInDir(os.path.dirname(fn))
-        del cache[fn]
 
     def _writeCacheForDir(self, cacheFn, cacheData):
         print >>sys.stderr, "WRITING:", cacheFn
@@ -155,8 +138,7 @@ class ChainFile(object):
     @staticmethod
     def iterTagsInDir(dirName):
         for fn, (name, tag, info) in chainCache.getChainsInDir(dirName).iteritems():
-            cf = ChainFile(fn, name, tag, readFile=False, info=info)
-            yield cf
+            yield ChainFile(fn, name, tag, readFile=False, info=info)
 
     def getFlavors(self):
         """
@@ -251,10 +233,6 @@ class ChainFile(object):
             file = self.file
         if self.hasNoAssignments():
             if os.path.exists(file):  os.remove(file)
-            try:
-                del chainCache[file]
-            except KeyError:
-                pass
             return
 
         fd = open(file, "w")
@@ -294,8 +272,6 @@ CHAIN = %s
             print >> fd, "#End:"
 
         fd.close()
-
-        chainCache[file] = self.name, self.tag, copy.deepcopy(self.info)
 
     REGEX_KEYVAL = re.compile(r"^(\w+)\s*=\s*(.*)", flags = re.IGNORECASE)
     REGEX_GROUPEND = re.compile(r"^(End|Group)\s*:")
