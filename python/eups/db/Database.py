@@ -682,7 +682,6 @@ class _Database(object):
             dbrootdir = self.dbpath
         proddirs = map(lambda d: os.path.join(self.dbpath, d), self.findProductNames())
 
-        import sys
         for prod in proddirs:
             # check the directory mod-time: this will catch recent removal
             # of files from the directory

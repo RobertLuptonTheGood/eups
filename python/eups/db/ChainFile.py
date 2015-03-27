@@ -21,16 +21,15 @@ class ChainFileCache(object):
         dirName = os.path.normpath(dirName)
         return os.path.join(defaultUserDataDir(), '_chain_caches_', dirName[1:], "__chains__.pkl")
 
-    def _buildCache(self, dirName):
-        cache = dict()
-
+    def _updateCache(self, dirName, cache, mtime):
         chains = glob.glob(dirName + "/*.chain")
         for chainFn in chains:
-            cf = ChainFile(chainFn, readFile=False)
-            cf._read()
-            cache[chainFn] = ( cf.name, cf.tag, copy.deepcopy(cf.info) )
+            if mtime == 0 or os.path.getmtime(chainFn) > mtime:		# mtime == 0 is an optimization to avoid a getmtime call
+                cf = ChainFile(chainFn, readFile=False)
+                cf._read()
+                cache[chainFn] = ( cf.name, cf.tag, copy.deepcopy(cf.info) )
 
-        print >>sys.stderr, "REBUILD CACHE:", dirName, len(cache)
+        print >>sys.stderr, "REBUILD CACHE:", dirName, len(cache), len([x for x in chains if(os.path.getmtime(x) > mtime)])
         return cache
 
     def getChainsInDir(self, dirName):
@@ -49,18 +48,21 @@ class ChainFileCache(object):
             cacheFn = self._cacheFilenameFor(dirName)
             fp = open(cacheFn)
         except IOError:
-            pass
+            # new cache
+            cache, mtime = dict(), 0
         else:
+            # existing cache from disk
             cache, mtime = self._caches[dirName] = pickle.load(fp)
-            print >>sys.stderr, "LOAD:", dirName, len(cache)
             fp.close()
+            print >>sys.stderr, "LOAD:", dirName, len(cache)
 
-            if mtimeDir <= mtime:
-                return cache
+        # Are we stale?
+        if mtimeDir > mtime:
+            # rebuild the cache
+            self._updateCache(dirName, cache, mtime)
+            self._caches[dirName] = cache, mtimeDir
+            self._staleCacheFiles.add(dirName)
 
-        # (re)build the cache
-        cache, mtime = self._caches[dirName] = self._buildCache(dirName), mtimeDir
-        self._staleCacheFiles.add(dirName)
         return cache
 
     def __getitem__(self, fn):
