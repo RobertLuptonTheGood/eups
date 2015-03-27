@@ -21,16 +21,23 @@ class ChainFileCache(object):
         dirName = os.path.normpath(dirName)
         return os.path.join(defaultUserDataDir(), '_chain_caches_', dirName[1:], "__chains__.pkl")
 
-    def _updateCache(self, dirName, cache, mtime):
+    def _updateCache(self, dirName, dirCacheOld):
+        cacheOld, mtimeOld = dirCacheOld
+	cache = dict()
+
         chains = glob.glob(dirName + "/*.chain")
         for chainFn in chains:
-            if mtime == 0 or os.path.getmtime(chainFn) > mtime:		# mtime == 0 is an optimization to avoid a getmtime call
+            if mtimeOld == 0 or os.path.getmtime(chainFn) > mtimeOld:		# mtime == 0 is an optimization to avoid a getmtime call
+                # load from .chain file
                 cf = ChainFile(chainFn, readFile=False)
                 cf._read()
                 cache[chainFn] = ( cf.name, cf.tag, copy.deepcopy(cf.info) )
+            else:
+                # re-use existing entry
+                cache[chainFn] = cacheOld[chainFn]
 
         print >>sys.stderr, "REBUILD CACHE:", dirName, len(cache), len([x for x in chains if(os.path.getmtime(x) > mtime)])
-        return cache
+        return cache, os.path.getmtime(dirName)
 
     def getChainsInDir(self, dirName):
         mtimeDir = os.path.getmtime(dirName)
@@ -45,22 +52,19 @@ class ChainFileCache(object):
 
         # Already on disk?
         try:
-            cacheFn = self._cacheFilenameFor(dirName)
-            fp = open(cacheFn)
-        except IOError:
-            # new cache
-            cache, mtime = dict(), 0
-        else:
-            # existing cache from disk
+            fp = open(self._cacheFilenameFor(dirName))
             cache, mtime = self._caches[dirName] = pickle.load(fp)
             fp.close()
             print >>sys.stderr, "LOAD:", dirName, len(cache)
+        except:
+            # Any exception while loading the cache (e.g., no file, or
+            # corrupted pickle file, etc.) will invalidate it
+            cache, mtime = dict(), 0
 
         # Are we stale?
         if mtimeDir > mtime:
             # rebuild the cache
-            self._updateCache(dirName, cache, mtime)
-            self._caches[dirName] = cache, mtimeDir
+            cache, _ = self._caches[dirName] = self._updateCache(dirName, cache, mtime)
             self._staleCacheFiles.add(dirName)
 
         return cache
@@ -69,7 +73,7 @@ class ChainFileCache(object):
         cache = self.getChainsInDir(os.path.dirname(fn))
         return cache[fn]
 
-    def _writeCacheForDir(self, cacheFn, cacheData):
+    def _writeCacheForDir(self, cacheFn, dirCache):
         print >>sys.stderr, "WRITING:", cacheFn
         # Ensure the directory exists
         try:
@@ -81,15 +85,17 @@ class ChainFileCache(object):
         tmpFn = cacheFn + ".tmp"
 
         fp = open(tmpFn, "w")
-        pickle.dump(cacheData, fp, -1)
+        pickle.dump(dirCache, fp, -1)
         fp.close()
 
         os.rename(tmpFn, cacheFn)
 
     def autosave(self):
-        # check if there are any dirty caches and write them out
+        # write out any dirty caches
         for dirName in self._staleCacheFiles:
-            self._writeCacheForDir(self._cacheFilenameFor(dirName), self._caches[dirName])
+            dirCache = self._caches[dirName]
+            self._updateCache(dirName, dirCache)
+            self._writeCacheForDir(self._cacheFilenameFor(dirName), dirCache )
 
 # chain cache singleton
 chainCache = ChainFileCache()
