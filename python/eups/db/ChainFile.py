@@ -5,30 +5,79 @@ import cPickle as pickle
 who = getUserName(full=True)
 
 class ChainFileCache(object):
+    """
+        Pickle cache for directories of .chain files
+
+        Speeds up the access to data in .chain files, by keeping a pickle
+        file of the contents. Exposes two public methods:
+
+          __getitem__(chainFilename):
+            - returns the (name, tag, info) tuple corresponding to data in
+              the chainFilename, that can be used to initialize the
+              ChainFile object
+
+          getChainsInDir(dirName):
+            - return a dictionary of chainFilename -> (name, tag, info) pairs
+              for all .chain files in directory dirName
+
+        The cache is stored in _chain_caches_ subdir of
+        defaultUserDataDir(), typically ~/.eups.  Cache validity is checked
+        by testing for mtime of the directory containing the .chain files;
+        if it's greater than the time recorded in the pickle jar, it's
+        assumed the directory has changed and needs to be regenerated.
+
+        IMPORTANT: because of this strategy, any change to a .chain file in
+        the directory must be followed by a change to directory mtime; if
+        the modification is done by deleting the old file, and creating a
+        new one (the current strategy employed by ChainFile), this is satisfied
+        automatically.
+   
+    """
 
     def __init__(self):
-        # initialize instance variables
-        self._caches = dict()                   # key = directory name, value = (dir mtime, cache)
-                                                # cache: dict(key = chain file name, value = parsed file contents)
-        self._staleCacheFiles = set()		# values = directory names
+        # Dictionary of per-directory caches.
+        #   key = chain directory name, value = (cache, dir mtime),
+        #   where cache: dict(key = chain file name, value = parsed file contents)
+        self._caches = dict()
 
-        # register self.autosave to run on interpreter exit
-        # this will save any dirty caches, for future invocations
+        # A set of keys from self._caches that need to be written to disk on
+        # exit
+        self._staleCacheFiles = set()
+
+        # register self.autosave to run on interpreter exit, to write out
+        # any stale caches
         import atexit
         atexit.register(self.autosave)
 
     def _cacheFilenameFor(self, dirName):
+        """ Return the filename of the .pkl cache """
         dirName = os.path.normpath(dirName)
         return os.path.join(defaultUserDataDir(), '_chain_caches_', dirName[1:], "__chains__.pkl")
 
-    def _updateCache(self, dirName, dirCacheOld):
+    def _refreshCache(self, dirName, dirCacheOld):
+        """
+            Refresh the cache of directory dirName, using the old cache to
+            speed up the refresh.
+
+            Do the refresh by iterating through all .chain files in dirName,
+            loading the ones whose mtime is greatr than the old cache's
+            mtime, and re-using the old cache entries for the rest.
+
+            Returns the new (cache, dir mtime) tuple.
+
+            NOTE: This method does not write the refreshed cache to the disk
+                  -- the writing is deferred until interpreter exit, when
+                  self.autosave() will be called.
+        """
         cacheOld, mtimeOld = dirCacheOld
 	cache = dict()
 
         chains = glob.glob(dirName + "/*.chain")
+        print >>sys.stderr, "REBUILD CACHE:", dirName, mtimeOld, os.path.getmtime(dirName), len(chains), len([x for x in chains if(os.path.getmtime(x) > mtimeOld)])
         for chainFn in chains:
-            if mtimeOld == 0 or os.path.getmtime(chainFn) > mtimeOld:		# mtime == 0 is an optimization to avoid a getmtime call
+            if mtimeOld == 0 or os.path.getmtime(chainFn) > mtimeOld:		# mtimeOld == 0 is an optimization to avoid a getmtime call
                 # load from .chain file
+                print >>sys.stderr, "  ", chainFn, os.path.getsize(chainFn)
                 cf = ChainFile(chainFn, readFile=False)
                 cf._read()
                 cache[chainFn] = ( cf.name, cf.tag, copy.deepcopy(cf.info) )
@@ -36,40 +85,45 @@ class ChainFileCache(object):
                 # re-use existing entry
                 cache[chainFn] = cacheOld[chainFn]
 
-        print >>sys.stderr, "REBUILD CACHE:", dirName, len(cache), len([x for x in chains if(os.path.getmtime(x) > mtime)])
         return cache, os.path.getmtime(dirName)
 
     def getChainsInDir(self, dirName):
-        mtimeDir = os.path.getmtime(dirName)
+        """
+            Return a dictionary of chainFilename -> (name, tag, info) pairs
+            for all .chain files in directory dirName.
+
+            Fetch the information from the cache, whenever possible.
+        """
 
         # Cache already loaded?
         try:
             cache, mtime = self._caches[dirName]
-            if mtimeDir <= mtime:
-                return cache
         except KeyError:
-            pass
+            # Exists on disk?
+            try:
+                fp = open(self._cacheFilenameFor(dirName))
+                cache, mtime = self._caches[dirName] = pickle.load(fp)
+                fp.close()
+                print >>sys.stderr, "LOAD:", dirName, len(cache)
+            except:
+                # Any exception while loading the cache (e.g., no file, or
+                # corrupted pickle file, etc.) will invalidate it
+                cache, mtime = dict(), 0
 
-        # Already on disk?
-        try:
-            fp = open(self._cacheFilenameFor(dirName))
-            cache, mtime = self._caches[dirName] = pickle.load(fp)
-            fp.close()
-            print >>sys.stderr, "LOAD:", dirName, len(cache)
-        except:
-            # Any exception while loading the cache (e.g., no file, or
-            # corrupted pickle file, etc.) will invalidate it
-            cache, mtime = dict(), 0
-
-        # Are we stale?
+        # Do we need refreshing?
+        mtimeDir = os.path.getmtime(dirName)
         if mtimeDir > mtime:
-            # rebuild the cache
-            cache, _ = self._caches[dirName] = self._updateCache(dirName, cache, mtime)
+            cache, _ = self._caches[dirName] = self._refreshCache(dirName, (cache, mtime))
             self._staleCacheFiles.add(dirName)
 
         return cache
 
     def __getitem__(self, fn):
+        """
+            Return the (name, tag, info) tuple corresponding to data in the
+            .chain file fn.  This tuple can be used to initialize the
+            ChainFile object
+        """
         cache = self.getChainsInDir(os.path.dirname(fn))
         return cache[fn]
 
@@ -91,10 +145,9 @@ class ChainFileCache(object):
         os.rename(tmpFn, cacheFn)
 
     def autosave(self):
-        # write out any dirty caches
+        # write out any stale caches
         for dirName in self._staleCacheFiles:
-            dirCache = self._caches[dirName]
-            self._updateCache(dirName, dirCache)
+            dirCache = self._refreshCache(dirName, self._caches[dirName])
             self._writeCacheForDir(self._cacheFilenameFor(dirName), dirCache )
 
 # chain cache singleton
@@ -240,9 +293,11 @@ class ChainFile(object):
         if not file:
             file = self.file
         if self.hasNoAssignments():
+            print >>sys.stderr, "  removing: ", file
             if os.path.exists(file):  os.remove(file)
             return
 
+        print >>sys.stderr, "  writing: ", file
         fd = open(file, "w")
 
         # Should really be "FILE = chain", but eups checks for version.  I've changed it to allow 
