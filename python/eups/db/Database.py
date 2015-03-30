@@ -683,6 +683,12 @@ class _Database(object):
         @param dbrootdir    directory where to look for file times.  If None,
                                defaults to database root.  
         """
+        # HACK: If the user is _certain_ that the caches are up-to-date,
+        #       allow them to say so. This is a hack to speed up builds
+        #       on systems with thousands of products installed
+        if os.environ.get("_EUPS_ASSUME_CACHES_UP_TO_DATE", "0") == "1":
+            return False
+
         if not dbrootdir:
             dbrootdir = self.dbpath
         proddirs = map(lambda d: os.path.join(self.dbpath, d), self.findProductNames())

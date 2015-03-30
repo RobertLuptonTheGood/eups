@@ -1,4 +1,4 @@
-import os, re, sys
+import os, re, sys, errno
 from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName
 
 who = getUserName(full=True)
@@ -37,8 +37,13 @@ class ChainFile(object):
         # name and its value is a properties set of named metadata.
         self.info = {}
 
-        if readFile and os.path.exists(self.file):
-            self._read(self.file, verbosity)
+        if readFile:
+            try:
+                self._read(self.file, verbosity)
+            except IOError, e:
+                # It's not an error if the file didn't exist
+                if e.errno != errno.ENOENT:
+	            raise
 
 
     def getFlavors(self):
@@ -63,10 +68,10 @@ class ChainFile(object):
         @param flavor : the name of the flavor to get the tagged versions for. 
         @return string : the version tag is assigned to
         """
-        if not self.info.has_key(flavor) or \
-           not self.info[flavor].has_key("version"):
+        try:
+            return self.info[flavor]["version"]
+        except KeyError:
             return None
-        return self.info[flavor]["version"]
 
     def setVersion(self, version, flavors=None):
         """
@@ -175,6 +180,9 @@ CHAIN = %s
 
         fd.close()
 
+    REGEX_KEYVAL = re.compile(r"^(\w+)\s*=\s*(.*)", flags = re.IGNORECASE)
+    REGEX_GROUPEND = re.compile(r"^(End|Group)\s*:")
+
     def _read(self, file=None, verbosity=0):
         """
         read in data from a file, possibly overwring previously tagged products
@@ -186,31 +194,28 @@ CHAIN = %s
         fd = open(file)
 
         flavor = None
-        lineNo = 0           # line number in input file, for diagnostics
-        for line in fd.readlines():
-            lineNo += 1
-            line = line.strip()
-            line = re.sub(r"#.*$", "", line)
-            if not line:
+        for at, line in enumerate(fd):
+            line = line.lstrip()  # remove any leading whitespace
+            if not line or line.startswith('#'):
                 continue
 
             #
             # Get key = value
             #
-            mat = re.search(r"^(\w+)\s*=\s*(.*)", line, re.IGNORECASE)
+            mat = ChainFile.REGEX_KEYVAL.search(line)
             if mat:
                 key = mat.group(1).lower()
-                value = re.sub(r"^\"|\"$", "", mat.group(2))
+                value = mat.group(2).strip('"')
 
             #
             # Ignore Group: and End:
             #
-            elif re.search(r"^(End|Group)\s*:", line):
+            elif ChainFile.REGEX_GROUPEND.search(line):
                 continue
             else:
                 raise RuntimeError, \
                       ("Unexpected line \"%s\" at %s:%d" % \
-                         (line, self.file, lineNo))
+                         (line, self.file, at+1))
 
             #
             # Check for information about product
@@ -219,7 +224,7 @@ CHAIN = %s
                 if value.lower() not in ["chain", "version"]:
                     raise RuntimeError, \
                           ("Expected \"File = Version\"; saw \"%s\" at %s:%d" \
-                             % (line, self.file, lineNo))
+                             % (line, self.file, at+1))
 
             elif key == "product":
                 if not self.name:
@@ -243,8 +248,6 @@ CHAIN = %s
                 flavor = value
                 self.info[flavor] = {}
             else:
-                value = re.sub(r"^\"(.*)\"$", r"\1", mat.group(2)) # strip ""
-
                 if key == "qualifiers":
                     if value:           # flavor becomes e.g. Linux:build
                         newflavor = "%s:%s" % (flavor, value)

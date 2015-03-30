@@ -1374,7 +1374,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
             version = productList[productName]
         else:
             try:
-                version = eups.getSetupVersion(productName)
+                version = eups.getSetupVersion(productName, eupsenv=Eups)
             except ProductNotFound:
                 notFound[productName] = True
                 if not optional:
