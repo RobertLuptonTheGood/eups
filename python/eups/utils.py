@@ -781,6 +781,54 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
         raise RuntimeError("A cyclic dependency exists amongst %s" %
                            " ".join(sorted([name([x for x in p]) for p in graph.keys()])))
 
+class AtomicFile(object):
+    """
+        A file to which all the changes (writes) are committed all at once,
+        or not at all.  Useful for avoiding race conditions where a reader
+        may be trying to read from a file that's still being written to.
+
+        This is accomplished by creating a temporary file into which all the
+        writes are directed, and then renaming it to the destination
+        filename on close().  On POSIX-compliant filesystems, the rename is
+        guaranteed to be atomic.
+
+        Presents a file-like object interface.
+
+        Constructor arguments:
+            fn:      filename (string)
+          mode:      the read/write mode (string), must be equal to "w" for now
+
+        Return value:
+            file object
+    """
+    def __init__(self, fn, mode):
+        assert(mode == "w")   # no other modes are currently implemented
+
+        self._fn = fn
+        dir = os.path.dirname(fn)
+
+        (self._fh, self._tmpfn) = tempfile.mkstemp(suffix='.tmp', dir=dir)
+        self._fp = os.fdopen(self._fh, "w")
+
+    def __getattr__(self, name): 
+        try:
+            return object.__getattr__(self, name)
+        except AttributeError:
+            return getattr(self._fp, name)
+
+    def __setattr__(self, name, value): 
+        if name.startswith('_'):
+            return object.__setattr__(self, name, value)
+        else:
+            return setattr(self._fp, name, value) 
+
+    def close(self):
+        os.fsync(self._fh)  # Needed because fclose() doesn't guarantee fsync()
+                            # in POSIX, which may lead to interesting issues (e.g., see
+                            # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
+        self._fp.close()
+        os.rename(self._tmpfn, self._fn)
+
 if __name__ == "__main__":
     data = {
         'des_system_lib':   set('std synopsys std_cell_lib des_system_lib dw02 dw01 ramlib ieee'.split()),
