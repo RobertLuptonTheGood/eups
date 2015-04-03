@@ -453,20 +453,6 @@ class Product(object):
 
         return config
 
-    def persist(self, fd):
-        out = (self.name, self.version, self.flavor, self.dir, self.tablefile,
-               self.tags, self.db, self._table)
-        pickle.dump(out, fd, protocol=2);
-
-    # @staticmethod   # requires python 2.4
-    def unpersist(fd):
-        """return a Product instance restored from a file persistence"""
-        p = pickle.load(fd);
-        out = Product(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
-        out._table = p[7]
-        return out
-    unpersist = staticmethod(unpersist)  # should work as of python 2.2
-
     # this replaces from initFromDirectory()
     # @staticmethod   # requires python 2.4
     def createLocal(productName, productDir, flavor=None, checkForTable=True, tablefile=None):
