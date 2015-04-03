@@ -294,7 +294,7 @@ class ProductStack(object):
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
-        fd = open(file, "w")
+        fd = utils.AtomicFile(file, "w")
         cPickle.dump(flavorData, fd)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
