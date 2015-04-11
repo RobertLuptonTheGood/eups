@@ -2740,7 +2740,10 @@ integer argument, n, will cause just the n-th URL to be listed (where
 
 class TagsCmd(EupsCmd):
 
-    usage = "%prog tags [-h|--help] [options]"
+    usage = """%prog tags [-h|--help] [options] [tagname]
+
+    When listing tags, tagname may be a glob pattern
+    """
 
     # set this to True if the description is preformatted.  If false, it 
     # will be automatically reformatted to fit the screen
@@ -2793,16 +2796,32 @@ class TagsCmd(EupsCmd):
 
             tags.deleteTag(myeups, self.opts.delete)
         else:
-            if self.args:
-                if len(self.args) == 1:
+            nargs = len(self.args)
+            if nargs == 0:
+                globPattern = None
+            elif nargs == 1:
+                globPattern = self.args[0]
+            else:
+                if len(self.args) == 2:
                     _s = ""
                 else:
                     _s = "s"
 
-                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
+                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args[1:])))
                 return 1
 
-            print " ".join(myeups.tags.getTagNames(omitPseudo=True))
+            tagNames = myeups.tags.getTagNames(omitPseudo=True)
+            if globPattern:
+                import fnmatch
+                
+                tagNames = [n for n in tagNames if fnmatch.fnmatch(n, globPattern)]
+
+        try:
+            isatty = os.isatty(sys.stdout.fileno())
+        except:
+            isatty = False
+            
+        print (" " if isatty else "\n").join(tagNames)
 
         return 0
 
