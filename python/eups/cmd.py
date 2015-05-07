@@ -2821,7 +2821,11 @@ class TagsCmd(EupsCmd):
         except:
             isatty = False
             
-        print (" " if isatty else "\n").join(tagNames)
+        if isatty:
+            sep = " "
+        else:
+            sep = "\n"
+        print sep.join(tagNames)
 
         return 0
 

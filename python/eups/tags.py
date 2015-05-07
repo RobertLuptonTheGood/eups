@@ -592,7 +592,7 @@ def cloneTag(eupsenv, newTag, oldTag):
     for p in eupsenv.findProducts(tags=[oldTag]):
         try:
             eupsenv.declare(p.name, p.version, tag=newTag)
-        except EupsException as e:
+        except EupsException, e:
             print >> utils.stderr, e
 
 def deleteTag(eupsenv, tag):
