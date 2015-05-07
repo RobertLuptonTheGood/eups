@@ -1,5 +1,6 @@
-2015-04-11 rhl
-      Added "eups tags glob" and made "eups tags" write tags on separate lines when writing to a pipe
+2015-05-06 mjuric (1.5.9)
+      rhl: Added "eups tags glob" and made "eups tags" write tags on separate lines when writing to a pipe
+      Python 2.4 compatibility fix
 
 2015-03-30 mjuric (1.5.8)
       Various improvements and performance optimizations for stacks with
