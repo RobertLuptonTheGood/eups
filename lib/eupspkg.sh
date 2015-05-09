@@ -397,7 +397,7 @@ decl()
 
 	# Sanity checks
 	if [[ ! -d "$PREFIX/ups" ]]; then
-		die "directory $PREFIX doesn't exist or is not a directory. did you forget to run 'eupspkg install'?"
+		die "directory $PREFIX/ups doesn't exist or is not a directory. did you forget to run 'eupspkg install'?"
 	fi
 
 	eups declare "$PRODUCT" "$VERSION" -r "$PREFIX" "$@"
