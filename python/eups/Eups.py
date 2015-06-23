@@ -3041,10 +3041,35 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not prodtbl:
             return dependentProducts
 
-        for product, optional, recursionDepth in prodtbl.dependencies(self, recursive=True, recursionDepth=1,
-                                                                      followExact=followExact,
-                                                                      productDictionary=productDictionary,
-                                                                      requiredVersions=requiredVersions):
+        productDict = {}
+        dependencies = prodtbl.dependencies(self, recursive=True, recursionDepth=1,
+                                            followExact=followExact,
+                                            productDictionary=productDict,
+                                            requiredVersions=requiredVersions)
+
+        # Check to see whether this product is in the list of default products
+        defaultProductName = hooks.config.Eups.defaultProduct["name"]
+        defaultProductList = [p for p, _, _ in dependencies if p.name == defaultProductName]
+        if len(defaultProductList):
+            defaultProduct = defaultProductList[0]
+            if defaultProduct.getTable():
+                defaultDeps = defaultProduct.getTable().dependencies(self, recursive=True, recursionDepth=1,
+                                                                     followExact=followExact,
+                                                                     requiredVersions=requiredVersions,
+                                                                     addDefaultProduct=False)
+                if topProduct.name in set(p[0].name for p in defaultDeps):
+                    # Our product of interest is in the list of default products, so disable the inclusion
+                    # of default products. This is to ensure we don't depend on something that depends on us.
+                    productDict = {}
+                    dependencies = prodtbl.dependencies(self, recursive=True, recursionDepth=1,
+                                                        followExact=followExact, productDictionary=productDict,
+                                                        requiredVersions=requiredVersions,
+                                                        addDefaultProduct=False)
+
+        if productDictionary is not None:
+            productDictionary.update(productDict)
+
+        for product, optional, recursionDepth in dependencies:
 
             if product == topProduct:
                 continue
