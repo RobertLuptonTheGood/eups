@@ -589,6 +589,8 @@ but no other interpretation is applied
                         
             elif a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
+                if addDefaultProduct is False and a.tableFile == "implicit":
+                    continue
 
                 requestedVRO, productName, productDir, vers, versExpr, noRecursion = a.processArgs(Eups)
 
