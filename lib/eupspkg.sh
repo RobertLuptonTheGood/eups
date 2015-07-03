@@ -975,6 +975,12 @@ if [[ $DEVMODE == 1 ]]; then
 	if [[ -d _eupspkg/source && ! ( $CMD == "create" || $CMD == fetch && -e "_eupspkg/source/.__eupspkg_mock_fetch" ) ]]; then
 		msg "switching to ./_eupspkg/source"
 		cd _eupspkg/source
+
+		# Now that we've changed the product root, we need to re-setup
+		# it in there. Note we can't just call 'setup', since it's an
+		# alias that won't propagate into this subshell
+		msg "re-running setup in ./_eupspkg/source"
+		eval $("$EUPS_DIR/bin/eups_setup" -j -r .)
 	fi
 fi
 
