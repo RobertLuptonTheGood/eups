@@ -516,6 +516,10 @@ r"""
           the EupsPkg package contents will be created) in the
           ./_eupspkg/source subdirectory.  The PREFIX will be set to the
           source directory.
+          
+          Note: you only need to run 'create' to test actual package
+          creation. To just build the checked out (and potentially modified)
+          source tree, you can start with 'fetch' (see examples below).
 
         * for all other verbs:
           + the PREFIX (the location to which the package
@@ -545,6 +549,9 @@ r"""
 
         [mjuric@gamont cfitsio]$ setup  -r .
 
+        # as noted above, you can skip 'create' if you're testing a
+        # local working copy of the source that you haven't yet committed
+        # or pushed.
         [mjuric@gamont cfitsio]$ eupspkg -e create
         eupspkg.create: package contents created for 'cfitsio-3310', sources
         will be fetched via 'package'.
