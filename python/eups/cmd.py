@@ -2776,6 +2776,7 @@ class TagsCmd(EupsCmd):
                 newTag = self.args.pop(0)
 
                 tags.cloneTag(myeups, newTag, oldTag)
+                return 0
             else:
                 if len(self.args) == 1:
                     _s = ""
@@ -2795,32 +2796,35 @@ class TagsCmd(EupsCmd):
                 return 1
 
             tags.deleteTag(myeups, self.opts.delete)
+            return 0
         else:
-            nargs = len(self.args)
-            if nargs == 0:
-                globPattern = None
-            elif nargs == 1:
-                globPattern = self.args[0]
+            pass                        # just list the tags
+
+        nargs = len(self.args)
+        if nargs == 0:
+            globPattern = None
+        elif nargs == 1:
+            globPattern = self.args[0]
+        else:
+            if len(self.args) == 2:
+                _s = ""
             else:
-                if len(self.args) == 2:
-                    _s = ""
-                else:
-                    _s = "s"
+                _s = "s"
 
-                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args[1:])))
-                return 1
+            self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args[1:])))
+            return 1
 
-            tagNames = myeups.tags.getTagNames(omitPseudo=True)
-            if globPattern:
-                import fnmatch
-                
-                tagNames = [n for n in tagNames if fnmatch.fnmatch(n, globPattern)]
+        tagNames = myeups.tags.getTagNames(omitPseudo=True)
+        if globPattern:
+            import fnmatch
+
+            tagNames = [n for n in tagNames if fnmatch.fnmatch(n, globPattern)]
 
         try:
             isatty = os.isatty(sys.stdout.fileno())
         except:
             isatty = False
-            
+
         if isatty:
             sep = " "
         else:
