@@ -2740,7 +2740,7 @@ integer argument, n, will cause just the n-th URL to be listed (where
 
 class TagsCmd(EupsCmd):
 
-    usage = """%prog tags [-h|--help] [options] [tagname]
+    usage = """%prog tags [-h|--help] [options] [tagname] [product]
 
     When listing tags, tagname may be a glob pattern
     """
@@ -2760,7 +2760,7 @@ class TagsCmd(EupsCmd):
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
         self.clo.add_option("--clone", action="store", default=None,
-                            help="Specify a tag to clone (must also specify new tag)")
+                            help="Specify a tag to clone (must also specify new tag). May specify a product")
         self.clo.add_option("--delete", action="store", default=None,
                             help="Specify a tag to delete")
 
@@ -2772,19 +2772,15 @@ class TagsCmd(EupsCmd):
             if not len(self.args):
                 self.err("You must specify a tag to set: eups tags --clone OLD NEW")
                 return 1
-            elif len(self.args) == 1:
-                newTag = self.args.pop(0)
 
-                tags.cloneTag(myeups, newTag, oldTag)
-                return 0
-            else:
-                if len(self.args) == 1:
-                    _s = ""
-                else:
-                    _s = "s"
+            newTag = self.args.pop(0)
+            productList = self.args     # may be []
 
-                self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
-                return 1
+            failedToTag = tags.cloneTag(myeups, newTag, oldTag, productList)
+
+            if failedToTag:
+                print >> utils.stdwarn, "Failed to clone tag %s for %s" % (oldTag, ", ".join(failedToTag))
+            return 0
         elif self.opts.delete:
             if self.args:
                 if len(self.args) == 1:

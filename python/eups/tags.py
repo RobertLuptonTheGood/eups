@@ -586,14 +586,22 @@ def getUserDefinedTags(user):
 
     return theirTags
 
-def cloneTag(eupsenv, newTag, oldTag):
+def cloneTag(eupsenv, newTag, oldTag, productList=[]):
     checkTagsList(eupsenv, [newTag, oldTag])
 
+    productsToTag = productList          # may be []
     for p in eupsenv.findProducts(tags=[oldTag]):
+        if productList and p.name not in productList:
+            continue
+
         try:
             eupsenv.declare(p.name, p.version, tag=newTag)
+            if productsToTag:
+                productsToTag.remove(p.name)
         except EupsException, e:
             print >> utils.stderr, e
+
+    return productsToTag                # only ones that we failed to tag will still be in list
 
 def deleteTag(eupsenv, tag):
     checkTagsList(eupsenv, [tag])

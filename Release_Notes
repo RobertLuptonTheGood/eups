@@ -1,3 +1,6 @@
+2015-09-01 rhl
+      Allow user to specify a product name with "eups tags --clone"
+
 2015-05-06 mjuric (1.5.9)
       rhl: Added "eups tags glob" and made "eups tags" write tags on separate lines when writing to a pipe
       Python 2.4 compatibility fix
