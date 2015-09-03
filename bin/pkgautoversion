@@ -159,7 +159,7 @@ git_version()
 			# Commit is not on any branch (orphaned)
 			RES=($ABBRSHA $DIRTY)
 		elif [[ $BRANCH = master ]]; then
-			local DESC=$(git describe --first-parent --match "$TAG_PATTERN" 2>/dev/null)
+			local DESC=$(git describe --abbrev=10 --first-parent --match "$TAG_PATTERN" 2>/dev/null)
 			if [[ -z $DESC ]]; then
 				RES=($BRANCH g$ABBRSHA $DIRTY )
 			else
