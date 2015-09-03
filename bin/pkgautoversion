@@ -309,10 +309,20 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				git tag 1.0
 				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 
+				ut0 Non-conforming annotated tag
+				git tag -a w.2015.33 -m "Weekly 2015.33"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+
+				ut0 Non-conforming annotated tag, on cmdline
+				ut "git_version w.2015.33" == "w.2015.33"
+
 				ut0 Annotated and non-annotated tags on HEAD
 				git tag -a 2.0 -m "Version 2.0"
 				ut "git_version --dirty" == "2.0"
 				
+				ut0 Non-conforming annotated tag, on cmdline
+				ut "git_version w.2015.33" == "w.2015.33"
+
 				ut0 Added lower version tag on the same commit
 				git tag -a 1.1 -m "Version 1.1"
 				ut "git_version --dirty" == "1.1"
@@ -335,6 +345,13 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut0 Commit away from the tag
 				_git_add_commit newfile2
 				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=10 HEAD)"
+
+				ut0 Away w. non-conforming ann. tag
+				git tag -a w.2015.34 -m "Weekly 2015.34"
+				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=10 HEAD)"
+
+				ut0 Away w. non-conforming ann. tag on cmdline
+				ut "git_version w.2015.34" == "w.2015.34"
 
 				ut0 Dirty commit away from the tag
 				echo "stuff" >> newfile2
