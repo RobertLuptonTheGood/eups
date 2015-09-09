@@ -1122,7 +1122,11 @@ PRODUCTS_ROOT=${PRODUCTS_ROOT:-"$(eups path 0)/$(eups flavor)"}		# Root director
 PREFIX=${PREFIX:-"$PRODUCTS_ROOT/$PRODUCT/$VERSION"}			# Directory to which the product will be installed
 
 CONFIGURE_OPTIONS=${CONFIGURE_OPTIONS:-"--prefix $PREFIX"}		# Options passed to ./configure. Note that --prefix is NOT passed separately!
-PYSETUP_INSTALL_OPTIONS=${PYSETUP_INSTALL_OPTIONS:-"--home $PREFIX"}	# Options passed to setup.py install. Note that --home is NOT passed separately!
+# The following '--prefix=' is meant to clear any pre-set 'prefix' from a distutils.cfg or ~/.pydistutils.cfg
+# We can only specify a value for either --home XOR --prefix, not both.
+# So if we specify --home, we have to blank out --prefix:
+# See, e.g.,   http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install
+PYSETUP_INSTALL_OPTIONS=${PYSETUP_INSTALL_OPTIONS:-"--home $PREFIX --prefix="}	# Options passed to setup.py install. Note that --home is NOT passed separately!
 
 export CC=${CC:-cc}				# Autoconf prefers to look for gcc first, and the proper thing is to default to cc. This helps on Darwin.
 export CXX=${CXX:-c++}				# Autoconf prefers to look for gcc first, and the proper thing is to default to c++. This helps on Darwin.
