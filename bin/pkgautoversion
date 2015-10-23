@@ -8,9 +8,11 @@ usage()
 		usage: $(basename $0) [--dirty] [ref=HEAD] [tag_pattern='[0-9]*']
 
 		Applies the following logic:
-		  * If ref is a tag, returns the ref
-		  * Otherwise, return an annotated tag attached to ref
+		  * If ref is a conforming annotated tag (see below), returns the ref
+		  * Otherwise, returns a conforming annotated tag attached to the ref
 		  * Otherwise, returns [branch-g]<sha1>[-dirty]
+
+		A conforming tag is one that matches <tag_pattern>.
 
 		If multiple tags are elegible to describe the ref, uses the
 		one that's the lowest when compared per-component (i.e.,
@@ -129,15 +131,13 @@ git_version()
 	fi
 
 	local REF=${1:-HEAD}
+	local TAG_PATTERN=${2:-'[0-9]*'}	# The pattern defining eligible tags
 
-	# Check if this ref is already an annotated tag; if yes, we're done.
-	if [[ $(git cat-file -t "$REF" 2>/dev/null) == tag ]]; then
+	# Check if this ref is already an annotated tag matching the tag pattern; if yes, we're done.
+	if [[ "$REF" == $TAG_PATTERN && $(git cat-file -t "$REF" 2>/dev/null) == tag ]]; then
 		_eups_compat_version "$REF"
 		return
 	fi
-
-	# Get pattern defining eligible tags
-	local TAG_PATTERN=${2:-'[0-9]*'}
 
 	# See if any annotated tags matching TAG_PATTERN point to $REF. If yes,
 	# find the tag with the lowest version number (when versions are
@@ -309,10 +309,20 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				git tag 1.0
 				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
 
+				ut0 Non-conforming annotated tag
+				git tag -a w.2015.33 -m "Weekly 2015.33"
+				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+
+				ut0 Non-conforming annotated tag, on cmdline
+				ut "git_version w.2015.33" == "master-g$(git rev-parse --short=10 HEAD)"
+
 				ut0 Annotated and non-annotated tags on HEAD
 				git tag -a 2.0 -m "Version 2.0"
 				ut "git_version --dirty" == "2.0"
 				
+				ut0 Non-conforming annotated tag, on cmdline
+				ut "git_version w.2015.33" == "2.0"
+
 				ut0 Added lower version tag on the same commit
 				git tag -a 1.1 -m "Version 1.1"
 				ut "git_version --dirty" == "1.1"
@@ -330,15 +340,22 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 
 				ut0 Commit away from the tag
 				_git_add_commit newfile
-				ut "git_version --dirty" == "1.1-1-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "1.1-1-g$(git rev-parse --short=7 HEAD)"
 
 				ut0 Commit away from the tag
 				_git_add_commit newfile2
-				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=7 HEAD)"
+
+				ut0 Away w. non-conforming ann. tag
+				git tag -a w.2015.34 -m "Weekly 2015.34"
+				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=7 HEAD)"
+
+				ut0 Away w. non-conforming ann. tag on cmdline
+				ut "git_version w.2015.34" == "1.1-2-g$(git rev-parse --short=7 HEAD)"
 
 				ut0 Dirty commit away from the tag
 				echo "stuff" >> newfile2
-				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=10 HEAD)-dirty"
+				ut "git_version --dirty" == "1.1-2-g$(git rev-parse --short=7 HEAD)-dirty"
 				git reset --hard -q
 
 
@@ -357,7 +374,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut0 Where --first-parent makes a difference
 				git checkout -q master > /dev/null
 				git merge next2 -m "Merge" > /dev/null
-				ut "git_version --dirty" == "1.1-3-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "1.1-3-g$(git rev-parse --short=7 HEAD)"
 
 				#git log --decorate --oneline --graph --all
 				#git describe
