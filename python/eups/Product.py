@@ -61,8 +61,8 @@ class Product(object):
         self.version = version
         self.ups_dir = ups_dir
 
-        if not dir and self.version is not None and self.version.startswith(self.LocalVersionPrefix):
-            dir = self.version[len(self.LocalVersionPrefix):]
+        if not dir:
+            dir = self._decode_dir(self.version)
         self.dir = dir
 
         if not table and dir and name:
@@ -101,6 +101,18 @@ class Product(object):
 
     def __ne__(self, rhs):
         return not (self == rhs)
+
+    @classmethod
+    def _decode_dir(self, version):
+        if version is not None and version.startswith(self.LocalVersionPrefix):
+            version = utils.decodePath(version)
+            return version[len(self.LocalVersionPrefix):]
+        else:
+            return None
+
+    @classmethod
+    def _encode_dir(self, productDir):
+        return self.LocalVersionPrefix + utils.encodePath(productDir)
 
     def resolvePaths(self, strict=False):
         """
@@ -435,13 +447,14 @@ class Product(object):
     # this replaces from initFromDirectory()
     # @staticmethod   # requires python 2.4
     def createLocal(productName, productDir, flavor=None, checkForTable=True, tablefile=None):
-        if productDir.startswith(Product.LocalVersionPrefix):
-            productDir = productDir[len(Product.LocalVersionPrefix):]
+        localDir = Product._decode_dir(productDir)
+        if localDir:
+            productDir = localDir
 
         if not os.path.isdir(productDir):
             return None
 
-        out = Product(productName, Product.LocalVersionPrefix + productDir, 
+        out = Product(productName, Product._encode_dir(productDir),
                       flavor, productDir)
         out.db = "(none)"
         out.tablefile = tablefile
