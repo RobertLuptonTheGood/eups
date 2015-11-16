@@ -314,6 +314,18 @@ def guessProduct(dir, productName=None):
         raise RuntimeError, \
               ("I can't guess which product you want; directory %s contains: %s" % (dir, " ".join(productNames)))
 
+SPACE_TO_STRING = "-+-"
+def encodePath(path):
+    """Encode a directory path such that it is suitable for inclusion in an EUPS
+    environment variable. This currently means that spaces are encoded. Use decodePath()
+    to reverse this process.
+    """
+    return path.replace(" ", SPACE_TO_STRING)
+
+def decodePath(encodedPath):
+    """Decode a directory path that was encoded by encodePath()."""
+    return encodedPath.replace(SPACE_TO_STRING, " ")
+
 class Flavor(object):
     """A class to handle flavors"""
 
