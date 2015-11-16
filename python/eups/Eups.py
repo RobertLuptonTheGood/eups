@@ -755,7 +755,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             args.pop(0);  flavor = args.pop(0)
 
         if len(args) > 1 and (args[0] == "-Z" or args[0] == "-z"):
-            args.pop(0);  eupsPathDir = args.pop(0)
+            args.pop(0);  eupsPathDir = utils.decodePath(args.pop(0))
 
         if len(args) > 1 and (args[0] == "-m"):
             args.pop(0);  tablefile = args.pop(0)
@@ -2047,7 +2047,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 version = product.version
 
             setup_product_str = "%s %s -f %s -Z %s" % (
-                product.name, version, setupFlavor, product.stackRoot())
+                product.name, version, setupFlavor, utils.encodePath(product.stackRoot()))
             if tablefile:
                 setup_product_str += " -m %s" % (tablefile)
 
