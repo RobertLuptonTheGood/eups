@@ -483,7 +483,7 @@ Group:
                 value = info[k]
 
                 if os.path.isfile(value) or os.path.isdir(value):
-                    if trimDir and os.path.commonprefix([trimDir, value]) == trimDir:
+                    if trimDir and eups.utils.commonpath([trimDir, value]) == trimDir:
                         if trimDir == value:
                             pass        # special case: we are setting something to trimDir
                         else:
@@ -494,7 +494,7 @@ Group:
                                 if dirName and info.has_key("ups_dir"):
                                     dirName = os.path.join(dirName, info["ups_dir"])
 
-                                if dirName and os.path.commonprefix([dirName, info[k]]) == dirName:
+                                if dirName and eups.utils.commonpath([dirName, info[k]]) == dirName:
                                     info[k] = re.sub("^%s/" % dirName, "", info[k])
 
                     if os.path.isabs(info[k]):

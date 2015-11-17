@@ -870,7 +870,7 @@ class Repositories(object):
         """
         buildDir = self.getBuildDirFor(productRoot, product, version, options, flavor)
         if os.path.exists(buildDir):
-            if force or (productRoot and os.path.commonprefix([productRoot, buildDir]) == productRoot):
+            if force or (productRoot and utils.commonpath([productRoot, buildDir]) == productRoot):
                 if self.verbose > 1: 
                     print >> self.log, "removing", buildDir
                 rmCmd = "rm -rf %s" % buildDir

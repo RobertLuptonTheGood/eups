@@ -829,6 +829,41 @@ class AtomicFile(object):
         self._fp.close()
         os.rename(self._tmpfn, self._fn)
 
+def commonpath(paths):
+    """Given a sequence of path names, returns the longest common sub-path.
+
+    Taken from python3.5 implementation
+    """
+
+    if not paths:
+        raise ValueError('commonpath() arg is an empty sequence')
+
+    if isinstance(paths[0], bytes):
+        sep = '/'
+        curdir = '.'
+    else:
+        sep = '/'
+        curdir = '.'
+
+    split_paths = [path.split(sep) for path in paths]
+
+    try:
+        isabs, = set(p[:1] == sep for p in paths)
+    except ValueError:
+        raise ValueError("Can't mix absolute and relative paths")
+
+    split_paths = [[c for c in s if c and c != curdir] for s in split_paths]
+    s1 = min(split_paths)
+    s2 = max(split_paths)
+    common = s1
+    for i, c in enumerate(s1):
+        if c != s2[i]:
+            common = s1[:i]
+            break
+
+    prefix = sep if isabs else sep[:0]
+    return prefix + sep.join(common)
+
 if __name__ == "__main__":
     data = {
         'des_system_lib':   set('std synopsys std_cell_lib des_system_lib dw02 dw01 ramlib ieee'.split()),

@@ -1,3 +1,7 @@
+515-10-26 rhl
+      Use a python2 compatible version of commonpath to replace commonprefix
+      The problem is paths such as "/foo/bar" and "/foo/bar_XXX" for which commonprefix returns "/foo/bar"
+
 2015-09-01 rhl
       Allow user to specify a product name with "eups tags --clone"
 
