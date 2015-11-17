@@ -12,4 +12,4 @@ if [[ ! -d ./ups && "$1" != "-h" ]]; then
 	exit -1
 fi
 
-exec $EUPS_DIR/lib/eupspkg.sh "$@"
+exec "$EUPS_DIR/lib/eupspkg.sh" "$@"
