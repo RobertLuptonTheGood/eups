@@ -1,4 +1,7 @@
-515-10-26 rhl
+2015-11-17 timj
+      Allow spaces in path names
+
+2015-10-26 rhl
       Use a python2 compatible version of commonpath to replace commonprefix
       The problem is paths such as "/foo/bar" and "/foo/bar_XXX" for which commonprefix returns "/foo/bar"
 
