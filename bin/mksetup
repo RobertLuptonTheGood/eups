@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+from __future__ import print_function
 import os, re, sys
 
 sys.argv.pop(0)                         # remove script name
@@ -7,7 +8,7 @@ try:
     eupsdir = sys.argv.pop(0)
     prefix = sys.argv.pop(0)
 except IndexError:
-    print >> sys.stderr, "Usage: mksetup EUPS_DIR EUPS_PATH [SETUP_ALIASES]"
+    print("Usage: mksetup EUPS_DIR EUPS_PATH [SETUP_ALIASES]", file=sys.stderr)
 
     sys.exit(1)
 
@@ -38,7 +39,7 @@ print("Writing a csh startup script");
 try:
     fd = open("setups.csh", "w")
 except IOError as e:
-    print >> sys.stderr, "Unable to open setups.csh: %s" % e
+    print("Unable to open setups.csh: %s" % e, file=sys.stderr)
     sys.exit(1)
 #
 # Problems with multi-line scripts in csh required us to use a
@@ -49,7 +50,7 @@ unique_eups_path = unique_path
 unique_eups_path = re.sub(r"sys\.argv\[1\]", "\"$EUPS_PATH\"", unique_eups_path)
 unique_eups_path = re.sub(r"sys\.argv\[2\]", "\"%s\"" % prefix, unique_eups_path)
 
-print >> fd, """
+print("""
 setenv EUPS_SHELL csh
 
 if ("$?EUPS_DIR" == "1" ) then
@@ -88,10 +89,11 @@ alias setup 'eval `"%(setup)s" \\!*`'
 alias unsetup 'eval `"%(setup)s" --unsetup \\!*`'
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-           "pythondir" : pythondir, "setup" : setup,  "unique_eups_path" : unique_eups_path }
+           "pythondir" : pythondir, "setup" : setup, \
+           "unique_eups_path" : unique_eups_path }, file=fd)
 
 for s in setup_aliases.keys():
-    print >> fd, "alias %s %s" % (setup_aliases[s], s)
+    print("alias %s %s" % (setup_aliases[s], s), file=fd)
 
 del fd
 
@@ -99,10 +101,10 @@ print("Writing a sh startup script");
 try:
     fd = open("setups.sh", "w")
 except IOError as e:
-    print >> sys.stderr, "Unable to open setups.sh: %s" % e
+    print("Unable to open setups.sh: %s" % e, file=sys.stderr)
     sys.exit(1)
 
-print >> fd, """
+print("""
 export EUPS_SHELL=sh
 
 if [ "$EUPS_DIR" != "" ]; then
@@ -137,10 +139,11 @@ if [ X$BASH_COMPLETION != X -a -f "$EUPS_DIR/etc/bash_completion.d/eups" ]; then
 fi
 """ \
     % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
-           "pythondir" : pythondir, "setup" : setup,  "unique_path" : unique_path}
+           "pythondir" : pythondir, "setup" : setup,  \
+           "unique_path" : unique_path}, file=fd)
 
 for s in setup_aliases.keys():
-    print >> fd, "alias %s=%s" % (setup_aliases[s], s)
+    print("alias %s=%s" % (setup_aliases[s], s), file=fd)
 
 del fd
 #
