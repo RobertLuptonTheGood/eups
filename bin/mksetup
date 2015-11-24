@@ -34,10 +34,10 @@ if not sys.argv[2] in pp:
     pp = [sys.argv[2]] + pp
 print ":".join(pp)"""
 
-print "Writing a csh startup script";
+print("Writing a csh startup script");
 try:
     fd = open("setups.csh", "w")
-except IOError, e:
+except IOError as e:
     print >> sys.stderr, "Unable to open setups.csh: %s" % e
     sys.exit(1)
 #
@@ -95,10 +95,10 @@ for s in setup_aliases.keys():
 
 del fd
 
-print "Writing a sh startup script";
+print("Writing a sh startup script");
 try:
     fd = open("setups.sh", "w")
-except IOError, e:
+except IOError as e:
     print >> sys.stderr, "Unable to open setups.sh: %s" % e
     sys.exit(1)
 
@@ -146,7 +146,7 @@ del fd
 #
 # Keep setups.zsh purely for backwards compatibility
 #
-print "Linking zsh/dash startup script from sh one for historical reasons";
+print("Linking zsh/dash startup script from sh one for historical reasons");
 setups_zsh = "setups.zsh"
 if os.path.exists(setups_zsh):
     os.unlink(setups_zsh)

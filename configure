@@ -1740,8 +1740,7 @@ else
 fi
 
 
-if [ -x $EUPS_PYTHON ]; then
-    $EUPS_PYTHON -c "import sys;print \"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version)" > /dev/null 2>&1 || as_fn_error $? "$EUPS_PYTHON does not seem to be a valid python interpreter" "$LINENO" 5
+if [ -x $EUPS_PYTHON ]; then $EUPS_PYTHON -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || as_fn_error $? "$EUPS_PYTHON does not seem to be a valid python interpreter" "$LINENO" 5
 else
     as_fn_error $? "$EUPS_PYTHON doesn't exists or doesn't have execute permission granted" "$LINENO" 5
 fi
