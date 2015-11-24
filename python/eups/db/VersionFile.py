@@ -389,15 +389,13 @@ class VersionFile(object):
 
                 value = re.sub(r"^\"|\"$", "", mat.group(2))
             else:
-                raise RuntimeError, \
-                      ("Unexpected line \"%s\" at %s:%d" % (line, self.file, lineNo))
+                raise RuntimeError("Unexpected line \"%s\" at %s:%d" % (line, self.file, lineNo))
             #
             # Check for information about product
             #
             if key == "file":
                 if value.lower() != "version":
-                    raise RuntimeError, \
-                          ('Expected "File = Version"; saw "%s" at %s:%d' % (line, self.file, lineNo))
+                    raise RuntimeError('Expected "File = Version"; saw "%s" at %s:%d' % (line, self.file, lineNo))
 
             elif key == "product":
                 if not self.name:

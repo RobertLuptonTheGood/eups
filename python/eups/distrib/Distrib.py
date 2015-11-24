@@ -883,7 +883,7 @@ class DefaultDistrib(Distrib):
                 try:
                     return self.Eups.getProduct(product, version).tablefile
                 except KeyboardInterrupt:
-                    raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
+                    raise RuntimeError("You hit ^C while looking for %s %s's table file" %
                                          (product, version))
                 except eups.ProductNotFound as e:
                     return self.findTableFile(prod.product, prod.version, prod.flavor)

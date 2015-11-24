@@ -489,7 +489,7 @@ class Repository(object):
         if packageId:
             vals = packageId.split(":")
             if len(vals) != 2:
-                raise RuntimeError, ("Expected package Id of form name:version, saw \"%s\"" % packageId)
+                raise RuntimeError("Expected package Id of form name:version, saw \"%s\"" % packageId)
             if vals[0] == "":
                 vals[0] = product
             if vals[1] == "":

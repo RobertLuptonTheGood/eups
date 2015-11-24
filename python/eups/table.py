@@ -1231,7 +1231,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 i += 1
 
                 if i == len(args):
-                    raise RuntimeError, ("Flag %s expected an argument" % a)
+                    raise RuntimeError("Flag %s expected an argument" % a)
 
                 flags += ["%s %s" % (a, args[i])]
             elif re.search(r"^-[cdejknoPsvtV0-3]", a):

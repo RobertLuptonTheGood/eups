@@ -215,7 +215,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
             try:
                 os.makedirs(builderDir)
             except:
-                raise RuntimeError, ("Failed to create %s" % (builderDir))
+                raise RuntimeError("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
         if os.access(full_builder, os.R_OK) and not (overwrite or self.Eups.force):
@@ -234,11 +234,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     try:
                         ifd = open(buildFile)
                     except IOError as e:
-                        raise RuntimeError, ("Failed to open file \"%s\" for read" % buildFile)
+                        raise RuntimeError("Failed to open file \"%s\" for read" % buildFile)
                     try:
                         ofd = open(full_builder, "w")
                     except IOError as e:
-                        raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
+                        raise RuntimeError("Failed to open file \"%s\" for write" % full_builder)
 
                     builderVars = eups.hooks.config.distrib["builder"]["variables"]
 
@@ -251,7 +251,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     try:
                         expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars)
                     except RuntimeError as e:
-                        raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
+                        raise RuntimeError("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
                     del ifd; del ofd
         except IOError as param:
@@ -319,7 +319,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
         if False:
             if not self.Eups.noaction and not os.access(tfile, os.R_OK):
-                raise RuntimeError, ("Unable to read %s" % (tfile))
+                raise RuntimeError("Unable to read %s" % (tfile))
 
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
@@ -353,7 +353,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
             try:
                 fd = open(tfile)
             except IOError as e:
-                raise RuntimeError, ("Failed to open %s: %s" % (tfile, e))
+                raise RuntimeError("Failed to open %s: %s" % (tfile, e))
 
             for line in fd:
                 line = re.sub(r"\n$", "", line) # strip newline
@@ -389,7 +389,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 del bfd
             except Exception as e:
                 os.unlink(bfile)
-                raise RuntimeError, ("Failed to write %s" % bfile)
+                raise RuntimeError("Failed to write %s" % bfile)
 
         if self.verbose and not self.nobuild:
             print "Issuing commands:"

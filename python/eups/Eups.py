@@ -449,7 +449,7 @@ class Eups(object):
 The what argument tells us what sort of state is expected (allowed values are defined in __init__)
         """
         if not self._stacks.has_key(what):
-            raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
+            raise RuntimeError("Programming error: attempt to use stack \"%s\"" % what)
 
         if what == "env":
             current = os.environ.copy()
@@ -470,12 +470,12 @@ The what argument tells us what sort of state is expected (allowed values are de
 The what argument tells us what sort of state is expected (allowed values are defined in __init__)
         """
         if not self._stacks.has_key(what):
-            raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
+            raise RuntimeError("Programming error: attempt to use stack \"%s\"" % what)
 
         try:
             value = self._stacks[what].pop()
         except IndexError:
-            raise RuntimeError, ("Programming error: stack \"%s\" doesn't have an element to pop" % what)
+            raise RuntimeError("Programming error: stack \"%s\" doesn't have an element to pop" % what)
 
         if what == "env":
             os.environ = value
@@ -492,12 +492,12 @@ The what argument tells us what sort of state is expected (allowed values are de
 The what argument tells us what sort of state is expected (allowed values are defined in __init__)
         """
         if not self._stacks.has_key(what):
-            raise RuntimeError, ("Programming error: attempt to use stack \"%s\"" % what)
+            raise RuntimeError("Programming error: attempt to use stack \"%s\"" % what)
 
         try:
             self._stacks[what].pop()
         except IndexError:
-            raise RuntimeError, ("Programming error: stack \"%s\" doesn't have an element to drop" % what)
+            raise RuntimeError("Programming error: stack \"%s\" doesn't have an element to drop" % what)
 
         self.__showStack("drop", what)
 
@@ -761,7 +761,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             args.pop(0);  tablefile = args.pop(0)
 
         if args:
-            raise RuntimeError, ("Unexpected arguments: %s" % args)
+            raise RuntimeError("Unexpected arguments: %s" % args)
 
         if versionName.startswith(Product.LocalVersionPrefix):
             productDir = None           # If we set productDir, the Product ctor ignores the local version
@@ -3254,7 +3254,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     try:
                         shutil.rmtree(dir)
                     except OSError as e:
-                        raise RuntimeError, e
+                        raise RuntimeError(e)
 
             removedDirs[dir] = 1
 
@@ -3548,7 +3548,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         isInternal = self._internalTags.count(str(tagName)) > 0
 
         if isInternal and abort:
-            raise RuntimeError, ("Error: tag \"%s\" is reserved to the implementation" % tagName)
+            raise RuntimeError("Error: tag \"%s\" is reserved to the implementation" % tagName)
 
     def isUserTag(self, tagName):
         """Is tagName the name of a user tag?"""
@@ -3593,7 +3593,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif self._vroDict.has_key("default"):
             vroTag = "default"
         else:
-            raise RuntimeError, ("Unable to lookup vroTag == %s in %s" % (vroTag, self._vroDict))
+            raise RuntimeError("Unable to lookup vroTag == %s in %s" % (vroTag, self._vroDict))
 
         vro = self._vroDict[vroTag]
 
@@ -3605,7 +3605,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if versionName:
                     self._vro[0:0] = ["commandLine"]
             else:
-                raise RuntimeError, ("Unable to find entry for %s in VRO dictionary for tag %s" %
+                raise RuntimeError("Unable to find entry for %s in VRO dictionary for tag %s" %
                                      (dbz, vroTag))
         else:
             self._vro = vro

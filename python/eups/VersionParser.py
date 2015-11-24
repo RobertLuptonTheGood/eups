@@ -53,7 +53,7 @@ names are declared using VersionParser.define()
             elif modifier:
                 return value
             else:
-                raise RuntimeError, ("Environment variable $%s is not defined" % envVar)
+                raise RuntimeError("Environment variable $%s is not defined" % envVar)
         except TypeError:
             pass
         except AttributeError:
@@ -175,7 +175,7 @@ names are declared using VersionParser.define()
             elif next == "(":
                 next = self._next()
                 if next != ")":
-                    raise RuntimeError, ("Saw next = \"%s\" in prim" % next)
+                    raise RuntimeError("Saw next = \"%s\" in prim" % next)
 
             return term
 

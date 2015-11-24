@@ -1694,7 +1694,7 @@ class Manifest(object):
         line = fd.readline()
         mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
         if not mat:
-            raise RuntimeError, ("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
+            raise RuntimeError("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
         manifest_product, manifest_product_version, version = mat.groups()
 
         version = mat.groups()[2]

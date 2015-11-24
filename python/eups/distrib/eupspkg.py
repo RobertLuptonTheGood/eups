@@ -835,7 +835,7 @@ TAGLIST_DIR = tags
                 try:
                     os.makedirs(productsDir)
                 except:
-                    raise RuntimeError, ("Failed to create %s" % (productsDir))
+                    raise RuntimeError("Failed to create %s" % (productsDir))
 
             tfn = os.path.join(productsDir, "%s-%s.eupspkg" % (product, version))
             if os.path.exists(tfn) and not (overwrite or self.Eups.force):

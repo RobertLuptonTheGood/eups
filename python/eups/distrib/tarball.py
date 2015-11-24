@@ -138,7 +138,7 @@ DIST_URL = %(base)s/%(path)s
             except:
                 pass
 
-            raise OSError, "Failed to write %s: %s" % (tarball, str(e))
+            raise OSError("Failed to write %s: %s" % (tarball, str(e)))
 
         try:
             os.unlink(pwdFile)
@@ -186,7 +186,7 @@ DIST_URL = %(base)s/%(path)s
         """
         tarball = location
         if not tarball:
-            raise RuntimeError, ("Expected a tarball name; saw \"%s\"" % distID)
+            raise RuntimeError("Expected a tarball name; saw \"%s\"" % distID)
 
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
@@ -202,7 +202,7 @@ DIST_URL = %(base)s/%(path)s
                                                       ftype="dist",
                                                       filename=tfile)
             if not os.access(tfile, os.R_OK):
-                raise RuntimeError, ("Unable to read %s" % (tfile))
+                raise RuntimeError("Unable to read %s" % (tfile))
 
         unpackDir = os.path.join(productRoot, self.Eups.flavor)
         if installDir and installDir != "none":
@@ -223,7 +223,7 @@ DIST_URL = %(base)s/%(path)s
             eupsServer.system("cd %s && tar -zxmf %s" % (unpackDir, tfile), 
                               self.Eups.noaction, verbosity=self.verbose-1)
         except Exception as e:
-            raise RuntimeError, ("Failed to read %s: %s" % (tfile, e))
+            raise RuntimeError("Failed to read %s: %s" % (tfile, e))
 
         if installDir and installDir == "none":
             installDir = None

@@ -213,8 +213,7 @@ CHAIN = %s
             elif ChainFile.REGEX_GROUPEND.search(line):
                 continue
             else:
-                raise RuntimeError, \
-                      ("Unexpected line \"%s\" at %s:%d" % \
+                raise RuntimeError("Unexpected line \"%s\" at %s:%d" % \
                          (line, self.file, at+1))
 
             #
@@ -222,8 +221,7 @@ CHAIN = %s
             #
             if key == "file":
                 if value.lower() not in ["chain", "version"]:
-                    raise RuntimeError, \
-                          ("Expected \"File = Version\"; saw \"%s\" at %s:%d" \
+                    raise RuntimeError("Expected \"File = Version\"; saw \"%s\" at %s:%d" \
                              % (line, self.file, at+1))
 
             elif key == "product":

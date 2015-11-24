@@ -52,12 +52,12 @@ def _svnRevision(file=None, lastChanged=False):
             return info["Revision"]
 
     if lastChanged:
-        raise RuntimeError, "lastChanged makes no sense if file is None"
+        raise RuntimeError("lastChanged makes no sense if file is None")
 
     res = os.popen("svnversion . 2>&1").readline()
 
     if res == "exported\n":
-        raise RuntimeError, "No svn revision information is available"
+        raise RuntimeError("No svn revision information is available")
 
     mat = re.search(r"^(?P<oldest>\d+)(:(?P<youngest>\d+))?(?P<flags>[MS]*)", res)
     if mat:
@@ -66,7 +66,7 @@ def _svnRevision(file=None, lastChanged=False):
             matches["youngest"] = matches["oldest"]
         return matches["oldest"], matches["youngest"], tuple(matches["flags"])
 
-    raise RuntimeError, ("svnversion returned unexpected result \"%s\"" % res[:-1])
+    raise RuntimeError("svnversion returned unexpected result \"%s\"" % res[:-1])
 
 import os, re
 
@@ -271,9 +271,9 @@ def determineFlavor():
         if mach == "i686":
             flav = "Cygwin"
         else:
-            raise RuntimeError, ("Unknown Cygwin flavor: (%s, %s)" % (uname, mach))
+            raise RuntimeError("Unknown Cygwin flavor: (%s, %s)" % (uname, mach))
     else:
-        raise RuntimeError, ("Unknown flavor: (%s, %s)" % (uname, mach))
+        raise RuntimeError("Unknown flavor: (%s, %s)" % (uname, mach))
 
     return flav    
     
@@ -291,9 +291,9 @@ def guessProduct(dir, productName=None):
             dir = root
 
         if os.path.exists(dir):
-            raise RuntimeError, ("%s isn't a directory" % dir)
+            raise RuntimeError("%s isn't a directory" % dir)
         else:
-            raise RuntimeError, ("%s doesn't seem to exist" % dir)
+            raise RuntimeError("%s doesn't seem to exist" % dir)
             
     productNames = map(lambda t: re.sub(r".*/([^/]+)\.table$", r"\1", t), glob.glob(os.path.join(dir, "*.table")))
 
@@ -301,18 +301,17 @@ def guessProduct(dir, productName=None):
         if productName:
             # trust the suggestion
             return productName
-        raise RuntimeError, ("I can't find any table files in %s" % dir)
+        raise RuntimeError("I can't find any table files in %s" % dir)
 
     if productName:
         if productName in productNames:
             return productName
         else:
-            raise RuntimeError, ("You chose product %s, but I can't find its table file in %s" % (productName, dir))
+            raise RuntimeError("You chose product %s, but I can't find its table file in %s" % (productName, dir))
     elif len(productNames) == 1:
         return productNames[0]
     else:
-        raise RuntimeError, \
-              ("I can't guess which product you want; directory %s contains: %s" % (dir, " ".join(productNames)))
+        raise RuntimeError("I can't guess which product you want; directory %s contains: %s" % (dir, " ".join(productNames)))
 
 SPACE_TO_STRING = "-+-"
 def encodePath(path):
