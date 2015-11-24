@@ -63,7 +63,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
                     getLockPath(d, create=True)
 
                     os.mkdir(lockDir)
-                except OSError, e:
+                except OSError as e:
                     if lockType == LOCK_EX:
                         lockPids = listLockers(lockDir, getPids=True)
                         if len(lockPids) == 1 and lockPids[0] == os.environ.get("EUPS_LOCK_PID", "-1"):
@@ -143,7 +143,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
             try:
                 fd = os.open(os.path.join(lockDir, lockFile), os.O_EXCL | os.O_RDWR | os.O_CREAT)
                 os.close(fd)
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.EEXIST:
                     # should not occur
                     raise
@@ -205,7 +205,7 @@ def clearLocks(path, verbose=0, noaction=False):
 
             try:
                 shutil.rmtree(lockDir)
-            except OSError, e:
+            except OSError as e:
                 print >> utils.stderr, "Unable to remove %s: %s" % (lockDir, e)                    
 
 def listLocks(path, verbose=0, noaction=False):

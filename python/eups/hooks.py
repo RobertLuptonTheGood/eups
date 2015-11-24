@@ -220,7 +220,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
                         execute_file(startupFile)
 
                     customisationFiles.append(startupFile)
-                except Exception, e:
+                except Exception as e:
                     msg = "Processing %s: %s" % (startupFile, e)
                     if False:           # we have no recourse if we break this file; so proceed
                         raise eups.exceptions.CustomizationError(msg)
@@ -300,7 +300,7 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
                         val = getattr(attr, parts[0]) + " " + val
 
                 setattr(attr, parts[0], val)
-            except AttributeError, e:
+            except AttributeError as e:
                 if verbose >= 0:
                    print >> log, "Skipping unknown property \"%s\" at %s:%d" % \
                          (parts[0], configFile, lineno)

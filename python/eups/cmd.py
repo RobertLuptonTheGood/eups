@@ -276,10 +276,10 @@ Common"""
 
         try:
             eups.commandCallbacks.apply(None, self.cmd, self.opts, self.args)
-        except eups.OperationForbidden, e:
+        except eups.OperationForbidden as e:
             e.status = 255
             raise
-        except Exception, e:
+        except Exception as e:
             e.status = 9
             raise
 
@@ -330,10 +330,10 @@ Common"""
 
         try:
             eups.commandCallbacks.apply(Eups, self.cmd, self.opts, self.args)
-        except eups.OperationForbidden, e:
+        except eups.OperationForbidden as e:
             e.status = 255
             raise
-        except Exception, e:
+        except Exception as e:
             e.status = 9
             raise
 
@@ -512,14 +512,14 @@ will also be printed.
                 msg = 'No products found'
                 self.err(msg)
 
-        except eups.ProductNotFound, e:
+        except eups.ProductNotFound as e:
             msg = e.getMessage()
             if product == "distrib":
                 msg += '; Maybe you meant "eups distrib list"?'
             self.err(msg)
             return 1
 
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 2
             raise
 
@@ -844,7 +844,7 @@ class UsesCmd(EupsCmd):
                            depth=self.opts.depth, 
                            showOptional=self.opts.optional,
                            tags=self.opts.tag, pickleFile=self.opts.pickleFile)
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 2
             raise
 
@@ -928,7 +928,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
                 return 6
             try:
                 ifd = open(inFile)
-            except IOError, e:
+            except IOError as e:
                 self.err('Failed to open file "%s" for read: %s' % 
                          (inFile, str(e)))
                 return 6
@@ -940,7 +940,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
 
             try:
                 ofd = open(outfile, "w")
-            except IOError, e:
+            except IOError as e:
                 self.err('Failed to open file "%s" for write: %s' % 
                          (outfile, str(e)))
                 return 6
@@ -950,7 +950,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
                                   "."+os.path.basename(inFile)+".tmp")
             try:
                 ofd = open(tmpout, "w")
-            except IOError, e:
+            except IOError as e:
                 outfile = os.path.dirname(tmpout)
                 if not outfile:  outfile = "."
                 self.err('Failed to temporary file in "%s" for write: %s' % 
@@ -1046,7 +1046,7 @@ For example, the make target in a ups directory might contain the line:
 
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -1071,7 +1071,7 @@ For example, the make target in a ups directory might contain the line:
                 return 6
             try:
                 ifd = open(inFile)
-            except IOError, e:
+            except IOError as e:
                 self.err('Failed to open file "%s" for read: %s' % 
                          (inFile, str(e)))
                 return 6
@@ -1083,7 +1083,7 @@ For example, the make target in a ups directory might contain the line:
 
             try:
                 ofd = open(outfile, "w")
-            except IOError, e:
+            except IOError as e:
                 self.err('Failed to open file "%s" for write: %s' % 
                          (outfile, str(e)))
                 return 6
@@ -1093,7 +1093,7 @@ For example, the make target in a ups directory might contain the line:
                                   "."+os.path.basename(inFile)+".tmp")
             try:
                 ofd = open(tmpout, "w")
-            except IOError, e:
+            except IOError as e:
                 outfile = os.path.dirname(tmpout)
                 if not outfile:  outfile = "."
                 self.err('Failed to temporary file in "%s" for write: %s' % 
@@ -1121,7 +1121,7 @@ For example, the make target in a ups directory might contain the line:
                                          expandVersions=self.opts.expandVersions,
                                          addExactBlock=self.opts.addExactBlock,
                                          toplevelName=toplevelName)
-                except Exception, e:
+                except Exception as e:
                     e.args = ["Processing %s: %s" % (inFile, e)]
                     raise
 
@@ -1184,7 +1184,7 @@ only wish to assign a tag, you should use the -t option but not include
     def execute(self):
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -1228,7 +1228,7 @@ only wish to assign a tag, you should use the -t option but not include
                     self.err("Unable to guess product name as product has no ups directory")
                     return 2
                 product = utils.guessProduct(ups_dir)
-            except RuntimeError, msg:
+            except RuntimeError as msg:
                 self.err(msg)
                 return 2
             base, v = os.path.split(os.path.abspath(self.opts.productDir))
@@ -1263,7 +1263,7 @@ only wish to assign a tag, you should use the -t option but not include
             else:
                 try:
                     tablefile = open(self.opts.externalTablefile, "r")
-                except IOError, e:
+                except IOError as e:
                     self.err("Error opening %s: %s" % (self.opts.externalTablefile, e))
                     return 4
 
@@ -1314,7 +1314,7 @@ only wish to assign a tag, you should use the -t option but not include
             except eups.TagNotRecognized:
                 self.err("%s: Unsupported tag name" % self.opts.tag)
                 return 1
-            except eups.EupsException, e:
+            except eups.EupsException as e:
                 e.status = 9
                 raise
 
@@ -1322,7 +1322,7 @@ only wish to assign a tag, you should use the -t option but not include
             eups.declare(product, version, self.opts.productDir, 
                          tablefile=tablefile, externalFileList=externalFileList,
                          tag=self.opts.tag, eupsenv=myeups)
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 2
             raise
 
@@ -1372,7 +1372,7 @@ version currently declared.
 
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -1392,7 +1392,7 @@ version currently declared.
 
         try:
             eups.undeclare(product, version, tag=self.opts.tag, eupsenv=myeups)
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 2
             raise
 
@@ -1433,7 +1433,7 @@ where it is installed.
     def execute(self):
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -1490,7 +1490,7 @@ where it is installed.
             myeups.remove(product, version, self.opts.recursive,
                           checkRecursive=not self.opts.noCheck, 
                           interactive=self.opts.interactive)
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 1
             raise
 
@@ -1733,7 +1733,7 @@ class AdminInfoCmd(EupsCmd):
 
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -2083,7 +2083,7 @@ class DistribListCmd(EupsCmd):
 
             data = repos.listPackages(product, version, self.opts.flavor,
                                       tag=myeups.tags.getTag(self.opts.tag))
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 1
             raise
 
@@ -2189,7 +2189,7 @@ tag will be installed.
             _opts = copy.deepcopy(self.opts)
             _opts.tag = None
             myeups = self.createEups(_opts)
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -2241,7 +2241,7 @@ tag will be installed.
             try:
                 prefs = myeups.getPreferredTags()
                 myeups.setPreferredTags([self.opts.tag] + prefs)
-            except eups.TagNotRecognized, e:
+            except eups.TagNotRecognized as e:
                 self.err(str(e))
                 return 4
             if not versionName:  versionName = tag
@@ -2254,7 +2254,7 @@ tag will be installed.
                     tag = myeups.tags.getTag(tag)
                     if not tag.isUser():
                         nonuser.append(tag.name)
-                except eups.TagNotRecognized, e:
+                except eups.TagNotRecognized as e:
                     unrecognized.append(tag)
 
             if nonuser:
@@ -2308,7 +2308,7 @@ tag will be installed.
                           self.opts.alsoTag, self.opts.depends,
                           self.opts.noclean, self.opts.noeups, dopts, 
                           self.opts.manifest, self.opts.searchDep)
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 1
             if log:
                 log.close()
@@ -2317,7 +2317,7 @@ tag will be installed.
         if self.opts.tag:               # just the top-level product
             try: 
                 myeups.assignTag(self.opts.tag, productName, versionName)
-            except eups.ProductNotFound, ex:
+            except eups.ProductNotFound as ex:
                 # this may have been a "pseudo"-package, one that just
                 # ensures the installation of other packages.
                 # It may alternatively have been that the version of the 
@@ -2411,7 +2411,7 @@ product will be fully removed, even if its installation was successful.
 
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -2422,7 +2422,7 @@ product will be fully removed, even if its installation was successful.
             repos.clean(product, version, self.opts.flavor, dopts, 
                         self.opts.pdir, self.opts.remove)
 
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 1
             if log:
                 log.close()
@@ -2493,7 +2493,7 @@ class DistribCreateCmd(EupsCmd):
             oldVersions.append(outVersion)
             try:
                 outVersion = hooks.config.Eups.versionIncrementer(productName, outVersion)
-            except Exception, e:
+            except Exception as e:
                 raise RuntimeError("Unable to call hooks.Eups.config.versionIncrementer for %s %s (%s)" % 
                                    (productName, outVersion, e))
             if outVersion in oldVersions:
@@ -2512,7 +2512,7 @@ class DistribCreateCmd(EupsCmd):
 
         try:
             myeups = self.createEups()
-        except eups.EupsException, e:
+        except eups.EupsException as e:
             e.status = 9
             raise
 
@@ -2611,7 +2611,7 @@ class DistribCreateCmd(EupsCmd):
             for rebuildProductVersion in self.opts.rebuildProductVersion:
                 try:
                     rebuildName, rebuildVersion = re.split(r"[:,]|\s+", rebuildProductVersion, maxsplit=1)
-                except ValueError, e:
+                except ValueError as e:
                     raise RuntimeError("Please specify product:version, not \"%s\"" % rebuildProductVersion)
 
                 if rebuildName in rebuildProducts:
@@ -2710,7 +2710,7 @@ class DistribCreateCmd(EupsCmd):
                               manifest=self.opts.manifest, 
                               packageId=self.opts.packageId, repositories=repos)
 
-            except eups.EupsException, e:
+            except eups.EupsException as e:
                 e.status = 1
                 raise
 

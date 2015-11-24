@@ -259,7 +259,7 @@ but no other interpretation is applied
 
         try:
             fd = file(tableFile)
-        except IOError, e:
+        except IOError as e:
             raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
@@ -622,7 +622,7 @@ but no other interpretation is applied
                                                           recursionDepth + 1, followExact, productDictionary,
                                                           addDefaultProduct, requiredVersions=requiredVersions)
                         
-                except (ProductNotFound, TableFileNotFound), e:
+                except (ProductNotFound, TableFileNotFound) as e:
                     product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra["optional"]]
@@ -902,7 +902,7 @@ class Action(object):
                 try:
                     Eups.tags.getTag(tag)
                     tags.append(tag)
-                except TagNotRecognized, e:
+                except TagNotRecognized as e:
                     print >> utils.stdwarn, "%s in \"%s(%s)\"" % (e, self.cmdName, " ".join(_args))
 
             requestedTags = tags
@@ -974,7 +974,7 @@ class Action(object):
                        Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
                                   versionExpr=versExpr, productRoot=productDir, optional=optional,
                                   implicitProduct=implicitProduct)
-        except Exception, e:
+        except Exception as e:
             productOK, reason = False, e
 
         del q
@@ -1023,7 +1023,7 @@ class Action(object):
             productOK, vers, reason = Eups.unsetup(productName, vers, recursionDepth,
                                                    noRecursion=noRecursion, optional=optional)
                                                    
-        except Exception, e:
+        except Exception as e:
             productOK, reason = False, e
 
         Eups.popStack("verbose")

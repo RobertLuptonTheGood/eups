@@ -159,10 +159,10 @@ product and all its dependencies into the environment so that it can be used.
         if not self.opts.noCallbacks:
             try:
                 eups.commandCallbacks.apply(None, cmdName, self.opts, self.args)
-            except eups.OperationForbidden, e:
+            except eups.OperationForbidden as e:
                 e.status = 255
                 raise
-            except Exception, e:
+            except Exception as e:
                 e.status = 9
                 raise
 
@@ -197,10 +197,10 @@ product and all its dependencies into the environment so that it can be used.
 
             try:
                 productName = eups.utils.guessProduct(os.path.join(self.opts.productDir, "ups"), productName)
-            except EupsException, e:
+            except EupsException as e:
                 e.status = 4
                 raise
-            except RuntimeError, e:
+            except RuntimeError as e:
                 if self.opts.tablefile:
                     pass                # They explicitly listed the table file to use, so trust them
                 else:
@@ -241,10 +241,10 @@ product and all its dependencies into the environment so that it can be used.
                 if not self.opts.noCallbacks:
                     try:
                         eups.commandCallbacks.apply(Eups, cmdName, self.opts, self.args)
-                    except eups.OperationForbidden, e:
+                    except eups.OperationForbidden as e:
                         e.status = 255
                         raise
-                    except Exception, e:
+                    except Exception as e:
                         e.status = 9
                         raise
 
@@ -279,10 +279,10 @@ product and all its dependencies into the environment so that it can be used.
                                   Eups, fwd=not self.opts.unsetup, tablefile=tablefile,
                                   postTags=self.opts.postTag)
 
-            except EupsException, e:
+            except EupsException as e:
                 e.status = 1
                 raise
-            except Exception, e:
+            except Exception as e:
                 e.status = -1
                 raise
         finally:

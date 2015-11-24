@@ -564,7 +564,7 @@ class Repository(object):
                                                  mapping=mapping.inverse())
                 man.remapEntries(mode="create", mapping=mapping)
                 distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=mapping.inverse())
-            except eups.EupsException, e:
+            except eups.EupsException as e:
                 raise RuntimeError("Creating manifest for %s:%s, dependency of %s %s: %s" %
                                    (dp.product, dp.version, manifest.product, manifest.version, e))
 

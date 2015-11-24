@@ -117,7 +117,7 @@ DIST_URL = %(base)s/%(path)s
             fd = open(pwdFile, "w")
             print >> fd, os.path.join(baseDir, productDir)
             del fd
-        except Exception, e:
+        except Exception as e:
             if self.verbose > 0:
                 print >> self.log, \
                     "Unable to write %s; installation will be unable to check paths: %s" % (pwdFile, e)
@@ -127,7 +127,7 @@ DIST_URL = %(base)s/%(path)s
             eupsServer.system("(cd %s && tar -cf - %s) | gzip > %s" % 
                               (baseDir, productDir, fullTarball),
                               self.Eups.noaction, self.verbose-1, self.log)
-        except Exception, e:
+        except Exception as e:
             try:
                 os.unlink(pwdFile)
             except:
@@ -210,7 +210,7 @@ DIST_URL = %(base)s/%(path)s
                 (baseDir, pdir, vdir) = re.search(r"^(\S+)/([^/]+)/([^/]+)$", 
                                                   installDir).groups()
                 unpackDir = os.path.join(unpackDir,baseDir)
-            except AttributeError, e:
+            except AttributeError as e:
                 pass
                     
         if not os.path.exists(unpackDir):
@@ -222,7 +222,7 @@ DIST_URL = %(base)s/%(path)s
         try:
             eupsServer.system("cd %s && tar -zxmf %s" % (unpackDir, tfile), 
                               self.Eups.noaction, verbosity=self.verbose-1)
-        except Exception, e:
+        except Exception as e:
             raise RuntimeError, ("Failed to read %s: %s" % (tfile, e))
 
         if installDir and installDir == "none":

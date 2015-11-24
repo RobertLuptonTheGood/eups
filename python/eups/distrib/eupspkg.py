@@ -850,7 +850,7 @@ TAGLIST_DIR = tags
                 try:
                     cmd = 'cd %s && tar czf %s %s' % (q(pkgdir0), q(tfn), q(prodSubdir))
                     eupsServer.system(cmd)
-                except OSError, e:
+                except OSError as e:
                     try:
                         os.unlink(tfn)
                     except OSError:
@@ -1046,7 +1046,7 @@ setup --type=build -k -r .
                         self.log.write("             %s" % line)
                     fp.close()
 
-        except OSError, e:
+        except OSError as e:
             if self.verbose >= 0 and os.path.exists(logfile):
                 try: 
                     print >> self.log, "\n\n***** error: from %s:" % logfile

@@ -301,7 +301,7 @@ class Tags(object):
                     print >> utils.stdinfo, "Reading tags from", file
                 try:
                     loaded = self.load(group, file)
-                except IOError, e:
+                except IOError as e:
                     if verbosity >= 0:
                         print >> utils.stdwarn, \
                             "Skipping troublesome tag file (%s): %s" % \
@@ -460,7 +460,7 @@ class Tag(object):
         if len(parts) > 2:
             try:
                 parts = ":".join(parts[:-1], parts[-1])
-            except Exception, e:
+            except Exception as e:
                 import eups; eups.debug(e)
 
         if len(parts) == 1:
@@ -570,7 +570,7 @@ def getUserDefinedTags(user):
 
     try:
         execfile(startupFile, myGlobals, myLocals)
-    except Exception, e:
+    except Exception as e:
         print >> utils.stderr, "Error processing %s's startup file: %s" % (user, e)
         return []
 
@@ -598,7 +598,7 @@ def cloneTag(eupsenv, newTag, oldTag, productList=[]):
             eupsenv.declare(p.name, p.version, tag=newTag)
             if productsToTag:
                 productsToTag.remove(p.name)
-        except EupsException, e:
+        except EupsException as e:
             print >> utils.stderr, e
 
     return productsToTag                # only ones that we failed to tag will still be in list

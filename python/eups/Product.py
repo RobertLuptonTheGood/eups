@@ -425,7 +425,7 @@ class Product(object):
                     return config.getint(section, option)
                 else:
                     return config.get(section, option)
-            except Exception, e:
+            except Exception as e:
                 raise RuntimeError("Processing %s: %s" % (cfgFile, e))
 
         return config

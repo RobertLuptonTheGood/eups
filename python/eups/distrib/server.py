@@ -92,10 +92,10 @@ class DistribServer(object):
                                               "manifest", noaction=noaction)
                 return Manifest.fromFile(file, self.getConfigProperty("RECURSE_OVER_MANIFEST"),
                                          verbosity=self.verbose)
-            except RuntimeError, e:
+            except RuntimeError as e:
                 raise RuntimeError("Trouble reading manifest for %s %s (%s): %s"
                                    % (product, version, flavor, e))
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 msg = "Product %s %s for %s not found on server" % \
                     (product, version, flavor)
                 raise RemoteFileNotFound(msg, e)
@@ -173,7 +173,7 @@ class DistribServer(object):
                                                log=self.log)
                 return self.tagged[tag]
 
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 if flavor is None:
                     flavor = "a generic platform"
                 
@@ -250,7 +250,7 @@ class DistribServer(object):
                         continue
                     if flavor == val[1]:
                         out += [(val[0], val[2], val[1])]
-            except ServerNotResponding, e:
+            except ServerNotResponding as e:
                 print >> self.log, e
         else:
             files = self.listFiles("manifests", flavor, tag)
@@ -634,7 +634,7 @@ class ConfigurableDistribServer(DistribServer):
                 print >> self.log, "Trying retrieve using", param, "to", filename
             try:
                 src = tmpl % data
-            except KeyError, e:
+            except KeyError as e:
                 if not ignoreMissingData:
                     msg = 'Server configuration error: bad template, %s: Key, %s, not available for %s' % (param, str(e), tmpl)
                     raise RuntimeError(msg)
@@ -648,10 +648,10 @@ class ConfigurableDistribServer(DistribServer):
                 print >> self.log, "Looking on server for", src
             try:
                 return self.cacheFile(filename, src, noaction)
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 if self.verbose > 1:
                     print >> self.log, "Not found; checking next alternative"
-            except Exception, e:
+            except Exception as e:
                 if self.verbose >= 0:
                     print >> self.log, "Warning: trouble retrieving", \
                         "%s: %s" % (os.path.basename(src), str(e))
@@ -663,11 +663,11 @@ class ConfigurableDistribServer(DistribServer):
             if self.verbose > 0:
                 print >> self.log, "Failed to find %s in %s; looking on server" % (src, locations)
             return self.cacheFile(filename, src, noaction)
-        except RemoteFileNotFound, e:
+        except RemoteFileNotFound as e:
             if self.verbose > 0:
                 print >> self.log, "no appropriate template found for %s, checking path directly" % ftype
             return False
-        except KeyError, e:
+        except KeyError as e:
             if self.verbose > 0:
                 print >> self.log, "no appropriate template found for %s, checking path directly" % ftype
             return False
@@ -726,10 +726,10 @@ class ConfigurableDistribServer(DistribServer):
 
         try:
             files = self.listFiles(src, None, None, noaction)
-        except RemoteFileNotFound, e:
+        except RemoteFileNotFound as e:
             print >> self.log, e
             files = []
-        except ServerNotResponding, e:
+        except ServerNotResponding as e:
             print >> self.log, e
             files = []
 
@@ -820,10 +820,10 @@ class ConfigurableDistribServer(DistribServer):
 
             try:
                 files = self.listFiles(src, flavor, tag, noaction)
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 print >> self.log, e
                 files = []
-            except ServerNotResponding, e:
+            except ServerNotResponding as e:
                 print >> self.log, e
                 files = []
 
@@ -1086,13 +1086,13 @@ class SshTransporter(Transporter):
         try:
             system("scp -q %s %s 2>/dev/null" % (self.remfile, filename), 
                    noaction, self.verbose)
-        except IOError, e:
+        except IOError as e:
             if e.errno == 2:
                 raise RemoteFileNotFound("%s: file not found" % self.loc)
             else:
                 raise TransporterError("Failed to copy %s: %s" % 
                                        (self.loc, str(e)))
-        except OSError, e:
+        except OSError as e:
             raise TransporterError("Failed to retrieve %s" % self.loc)
 
         if noaction:
@@ -1170,14 +1170,14 @@ class LocalTransporter(Transporter):
                 copyfile(self.loc, filename)
                 if self.verbose > 0:
                     print >> self.log, "cp from", self.loc
-            except IOError, e:
+            except IOError as e:
                 if e.errno == 2:
                     dir = os.path.dirname(filename)
                     if dir and not os.path.exists(dir):
                         raise RemoteFileNotFound("%s: destination directory not found" % dir)
                 raise TransporterError("Failed to copy %s: %s" % 
                                        (self.loc, str(e)))
-            except OSError, e:
+            except OSError as e:
                 raise TransporterError("Failed to retrieve %s: %s" % 
                                        (self.loc, str(e)))
 
@@ -1747,7 +1747,7 @@ class Manifest(object):
 
                 self.addDependency(info[0], info[2], info[1], info[3], 
                                    info[4], info[5], info[6], info[7], info[8:])
-            except Exception, e:
+            except Exception as e:
                 raise RuntimeError("Failed to parse line: (%s): %s" % 
                                    (str(e), line))
 
@@ -1893,7 +1893,7 @@ Additional mappings can be provided.
                         try:
                             eups.declare(productName, versionName,
                                          productDir="none", tablefile="none")
-                        except Exception, e:
+                        except Exception as e:
                             print >> self.log, e
 
             products.append(p)
@@ -2058,7 +2058,7 @@ class ServerConf(object):
 
                 self.data = self.readConfFile(configFile);
 
-        except RemoteFileNotFound, e:
+        except RemoteFileNotFound as e:
             if self.base != "/dev/null" and self.verbose > 0:
                 print >> self.log, \
                     "Warning: No configuration available from server;", \
@@ -2112,7 +2112,7 @@ class ServerConf(object):
 
         try:
             fd = open(file);
-        except IOError, e:
+        except IOError as e:
             raise RuntimeError("%s: %s" % (file, str(e)))
         if self.verbose > 1:
             print >> self.log, "Reading configuration data from", file
@@ -2130,7 +2130,7 @@ class ServerConf(object):
                     out[name] = []
                 out[name].append(value.strip())
 
-          except ValueError, e:
+          except ValueError as e:
             raise RuntimeError("format error in config file (%s:%d): %s" %
                                (file, lineno, line))
         finally:
@@ -2180,7 +2180,7 @@ class ServerConf(object):
                 try:
                     system("rm -rf " + cache, 
                            verbosity=verbosity-1, log=log)
-                except OSError, e:
+                except OSError as e:
                     if verbosity >= 0:
                         print >> log, "Warning: failed to clear cache in", \
                             "%s: %s" % (stack, str(e))
@@ -2197,7 +2197,7 @@ class ServerConf(object):
                                 "data for", pkgroot, "in", stack
                         try:
                             os.unlink(file)
-                        except OSError, e:
+                        except OSError as e:
                             if verbosity >= 0:
                                 print >> log, \
                                     "Warning: failed to clear cache for", \

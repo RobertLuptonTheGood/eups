@@ -392,7 +392,7 @@ class Distrib(object):
                 if not tablefile and self.distServer:
                     try:
                         tablefile = self.distServer.getTableFile(product, version, self.flavor)
-                    except RemoteFileNotFound, e:
+                    except RemoteFileNotFound as e:
                         pass
                 return tablefile
 
@@ -885,7 +885,7 @@ class DefaultDistrib(Distrib):
                 except KeyboardInterrupt:
                     raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
                                          (product, version))
-                except eups.ProductNotFound, e:
+                except eups.ProductNotFound as e:
                     return self.findTableFile(prod.product, prod.version, prod.flavor)
                 except Exception:
                     return None

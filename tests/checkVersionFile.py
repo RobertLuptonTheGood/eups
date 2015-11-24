@@ -133,7 +133,7 @@ if __name__ == "__main__":
     for file in cli.args:
         try:
             handlefile(file, result, cli.opts.root, cli.opts.testexist)
-        except RuntimeError, e:
+        except RuntimeError as e:
             print >> sys.stderr, str(e)
 
     result.stream.writeln()

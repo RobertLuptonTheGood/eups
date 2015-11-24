@@ -112,7 +112,7 @@ class Repositories(object):
                 self.pkgroots += [pkgroot]
                 self.repos[pkgroot] = dist
 
-            except ImportError, e:
+            except ImportError as e:
                 msg =  "Unable to use server %s: \"%s\"" % (pkgroot, e)
                 if self.eups.force:
                     print >> self.log, msg + "; continuing"
@@ -141,11 +141,11 @@ class Repositories(object):
             repos = self.repos[pkgroot]
             try:
                 pkgs = repos.listPackages(productName, versionName, flavor, tag)
-            except TagNotRecognized, e:
+            except TagNotRecognized as e:
                 if self.verbose:
                     print >> self.log, "%s for %s" % (e, pkgroot)
                 continue
-            except ServerError, e:
+            except ServerError as e:
                 if self.quiet <= 0:
                     print >> self.log, "Warning: Trouble contacting", pkgroot
                     print >> self.log, str(e)
@@ -565,7 +565,7 @@ class Repositories(object):
                 for tag in alsoTag:
                     try:
                         self.eups.assignTag(tag, prod.product, prod.version, productRoot)
-                    except Exception, e:
+                    except Exception as e:
                         msg = str(e)
                         if not self._msgs.has_key(msg):
                             print >> self.log, msg
@@ -601,7 +601,7 @@ class Repositories(object):
 
         try:
             distrib = self.repos[pkgroot].getDistribFor(prod.distId, opts, instflavor, tag)
-        except RuntimeError, e:
+        except RuntimeError as e:
             raise RuntimeError("Installing %s %s: %s" % (prod.product, prod.version, e))
 
         if self.verbose > 1 and 'NAME' in dir(distrib):
@@ -612,12 +612,12 @@ class Repositories(object):
                                    prod.product, prod.version,
                                    productRoot, prod.instDir, setups,
                                    builddir)
-        except server.RemoteFileNotFound, e:
+        except server.RemoteFileNotFound as e:
             if self.verbose >= 0:
                 print >> self.log, "Failed to install %s %s: %s" % \
                     (prod.product, prod.version, str(e))
             raise e
-        except RuntimeError, e:
+        except RuntimeError as e:
             raise e
 
         # declare the newly installed package, if necessary
@@ -634,7 +634,7 @@ class Repositories(object):
         if not self.eups.noaction:
             try:
                 self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
-            except RuntimeError, e:
+            except RuntimeError as e:
                 print >> sys.stderr, e
                 return
         
@@ -691,12 +691,12 @@ class Repositories(object):
 
                  self.eups.assignTag(tag, prod.product, prod.version, stackRoot)
 
-              except TagNotRecognized, e:
+              except TagNotRecognized as e:
                  msg = str(e)
                  if not self.eups.quiet and not self._msgs.has_key(msg):
                      print >> self.log, msg
                  self._msgs[msg] = 1
-              except ProductNotFound, e:
+              except ProductNotFound as e:
                  msg = "Can't find %s %s" % (dprod.name, dprod.version)
                  if not self.eups.quiet and not self._msgs.has_key(msg):
                      print >> self.log, msg
@@ -734,7 +734,7 @@ class Repositories(object):
                         break
           finally:
             idf.close()
-        except Exception, e:
+        except Exception as e:
             if self.verbose >= 0:
                 print >> self.log, "Warning: trouble reading %s, skipping" % file
 
@@ -772,7 +772,7 @@ class Repositories(object):
             cmd = "\n".join(setups + ["eups expandtable -i --force %s" % tablefile])
             try:
                 server.system(cmd)
-            except OSError, e:
+            except OSError as e:
                 print >> self.log, e
 
 
@@ -876,11 +876,11 @@ class Repositories(object):
                 rmCmd = "rm -rf %s" % buildDir
                 try:
                     server.system(rmCmd, verbosity=-1, log=self.log)
-                except OSError, e:
+                except OSError as e:
                     rmCmd = r"find %s -exec chmod 775 {} \; && %s" % (buildDir, rmCmd)
                     try:
                         server.system(rmCmd, verbosity=self.verbose-1, log=self.log)
-                    except OSError, e:
+                    except OSError as e:
                         print >> self.log, "Error removing %s; Continuing" % (buildDir)
 
             elif self.verbose > 0:
@@ -967,7 +967,7 @@ class Repositories(object):
                     if utils.isDbWritable(installDir):
                         try:
                             server.system("/bin/rm -rf %s" % installDir)
-                        except OSError, e:
+                        except OSError as e:
                             print >> self.log, "Error removing %s; Continuing" % (installDir)
 
                     elif self.verbose >= 0:

@@ -427,7 +427,7 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
     try:
         table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force,
                               expandVersions, addExactBlock, toplevelName)
-    except ProductNotFound, e:
+    except ProductNotFound as e:
         raise
 
 def declare(productName, versionName, productDir=None, eupsPathDir=None, 

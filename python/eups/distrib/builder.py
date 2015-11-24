@@ -91,7 +91,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         try:
             type(self.buildDir)
-        except AttributeError, e:
+        except AttributeError as e:
             self.buildDir = None
             print >> self.log, "Incorrectly initialised eupsDistribBuilder: %s" % e
             okay = False
@@ -99,7 +99,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         if forserver:
             try:
                 type(self.buildFilePath)
-            except AttributeError, e:
+            except AttributeError as e:
                 self.buildFilePath = None
                 print >> self.log, "Incorrectly initialised eupsDistribBuilder: %s" % e
                 okay = False
@@ -233,11 +233,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 else:
                     try:
                         ifd = open(buildFile)
-                    except IOError, e:
+                    except IOError as e:
                         raise RuntimeError, ("Failed to open file \"%s\" for read" % buildFile)
                     try:
                         ofd = open(full_builder, "w")
-                    except IOError, e:
+                    except IOError as e:
                         raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
 
                     builderVars = eups.hooks.config.distrib["builder"]["variables"]
@@ -250,11 +250,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
                     try:
                         expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars)
-                    except RuntimeError, e:
+                    except RuntimeError as e:
                         raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
                     del ifd; del ofd
-        except IOError, param:
+        except IOError as param:
             try:
                 os.unlink(full_builder)
             except OSError:
@@ -352,7 +352,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         else:
             try:
                 fd = open(tfile)
-            except IOError, e:
+            except IOError as e:
                 raise RuntimeError, ("Failed to open %s: %s" % (tfile, e))
 
             for line in fd:
@@ -387,7 +387,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 for line in cmd:
                     print >> bfd, line
                 del bfd
-            except Exception, e:
+            except Exception as e:
                 os.unlink(bfile)
                 raise RuntimeError, ("Failed to write %s" % bfile)
 
@@ -405,7 +405,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         if not self.nobuild:
             try:
                 eupsServer.system(cmd, self.Eups.noaction)
-            except OSError, e:
+            except OSError as e:
                 if self.verbose >= 0 and os.path.exists(logfile):
                     try: 
                         print >> self.log, "BUILD ERROR!  From build log:"
@@ -550,7 +550,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                 rfd = open("CVS/Root")
                 cvsroot = re.sub(r"\n$", "", rfd.readline())
                 del rfd
-            except IOError, e:
+            except IOError as e:
                 print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
 
         return cvsroot    
@@ -580,7 +580,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                             break
 
                 del rfd
-            except IOError, e:
+            except IOError as e:
                 print >> sys.stderr, "Tried to read \".svn\" but failed: %s" % e
 
         return svnroot
@@ -591,7 +591,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     def guess_repoversion(productName, versionName):
         try:
             repoVersion = eups.hooks.config.Eups.repoVersioner(productName, versionName)
-        except Exception, e:
+        except Exception as e:
             raise RuntimeError("Unable to call hooks.Eups.config.repoVersioner for %s %s (%s)" % 
                                (productName, inVersion, e))
 
@@ -702,7 +702,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
 
         try:
             line = buildfilePatchCallbacks.apply(line)
-        except RuntimeError, e:
+        except RuntimeError as e:
             print >> sys.stderr, ("Warning: %s" % e)
 
         print >> ofd, line

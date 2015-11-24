@@ -358,7 +358,7 @@ class Eups(object):
             for tag in tags:
                 try:
                     self.tags.registerTag(tag, group)
-                except RuntimeError, e:
+                except RuntimeError as e:
                     raise RuntimeError("Unable to process tag %s: %s" % (tag, e))
 
         self._loadServerTags()
@@ -1011,7 +1011,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                       (13*" ", ovroTag, vroTag0, oproduct.name, oproduct.version)
                                 
                             product, vroReason, vroTag = oproduct, ovroReason, ovroTag
-                    except Exception, e:
+                    except Exception as e:
                         utils.debug("RHL", name, vroTag, vro, vroReason, e)
                         pass
                 else:                   # setup by previous setup command
@@ -1526,7 +1526,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             try:
                 try:
                     product = self.findSetupProduct(productName)
-                except Exception, e:
+                except Exception as e:
                     if self.quiet <= 0:
                         print >> utils.stdwarn, "Problem with product \"%s\" found in the environment: %s" % \
                             (productName, e)
@@ -1539,7 +1539,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                               (productName, versionName)
                     continue
 
-            except EupsException, e:
+            except EupsException as e:
                 if self.quiet <= 0:
                     print >> utils.stdwarn, e
                 continue
@@ -1662,7 +1662,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if prod is not None:
             try:
                 self.setup(prod.name, fwd=False, noRecursion=noRecursion)
-            except EupsException, e:
+            except EupsException as e:
                 print >> utils.stderr, \
                     "Unable to unsetup %s %s: %s" % (prod.name, prod.version, e)
 
@@ -1728,7 +1728,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             return vname
 
                         value = False
-                except ValueError, e:           # no sort order is defined
+                except ValueError as e:           # no sort order is defined
                     return None
 
         if value:
@@ -1745,7 +1745,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         try:
             cmp = self.version_cmp(v1, v2, mustReturnInt=False)
-        except ValueError, e:           # no sort order is defined
+        except ValueError as e:           # no sort order is defined
             if self.verbose > 2:
                 print >> utils.stdwarn, e
             raise
@@ -1951,7 +1951,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         try:
             table = product.getTable(quiet=not fwd, verbose=self.verbose)
-        except TableFileNotFound, e:
+        except TableFileNotFound as e:
             if fwd:
                 raise
 
@@ -1967,7 +1967,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if not fwd:
                     verbose -= 1
                 actions = table.actions(setupFlavor, setupType=self.setupType, verbose=verbose)
-            except TableError, e:
+            except TableError as e:
                 print >> utils.stdwarn, "product %s %s: %s" % (product.name, product.version, e)
                 return False, product.version, e
         else:
@@ -2152,7 +2152,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             self.versions[root].assignTag(tag, productName, versionName, self.flavor)
             try:
                 self.versions[root].save(self.flavor)
-            except CacheOutOfSync, e:
+            except CacheOutOfSync as e:
                 if self.quiet <= 0:
                     print >> utils.stdwarn, "Warning: " + str(e)
                     print >> utils.stdwarn, "Correcting..."
@@ -2243,7 +2243,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if self.versions[eupsPathDir].unassignTag(str(tag), productName, self.flavor):
                 try:
                     self.versions[eupsPathDir].save(self.flavor)
-                except CacheOutOfSync, e:
+                except CacheOutOfSync as e:
                     if self.quiet <= 0:
                         print >> utils.stdwarn, "Warning: " + str(e)
                         print >> utils.stdwarn, "Correcting..."
@@ -2478,7 +2478,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     else:
                         try:
                             full_tablefile = os.path.join(ups_dir, tablefile)
-                        except Exception, e:
+                        except Exception as e:
                             raise EupsException("Unable to generate full tablefilename: %s" % e)
                     
                     if not os.path.isabs(full_tablefile):
@@ -2633,7 +2633,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                     try:
                         self.versions[eupsPathDir].save(self.flavor)
-                    except CacheOutOfSync, e:
+                    except CacheOutOfSync as e:
                         if self.quiet <= 0:
                             print >> utils.stdwarn, "Note: " + str(e)
                             print >> utils.stdwarn, "Correcting..."
@@ -2789,7 +2789,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             try:
                 self.versions[eupsPathDir].save(product.flavor)
-            except CacheOutOfSync, e:
+            except CacheOutOfSync as e:
                 if self.quiet <= 0:
                     print >> utils.stdwarn, "Warning: " + str(e)
                     print >> utils.stdwarn, "Correcting..."
@@ -3034,7 +3034,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         try:
             prodtbl = topProduct.getTable()
-        except TableFileNotFound, e:
+        except TableFileNotFound as e:
             print >> utils.stdwarn, e
             prodtbl = None
 
@@ -3253,7 +3253,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 else:
                     try:
                         shutil.rmtree(dir)
-                    except OSError, e:
+                    except OSError as e:
                         raise RuntimeError, e
 
             removedDirs[dir] = 1
@@ -3343,14 +3343,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                         depsO = tbl.dependencies(self, followExact=True) # lookup top-level dependencies
 
                         del q
-                    except Exception, e:
+                    except Exception as e:
                         if not self.quiet:
                             print >> utils.stdwarn, ("Warning: %s" % (e))
                         continue
 
                 try:
                     deps = self.getDependentProducts(pi, shouldRaise=False, followExact=None, topological=True)
-                except TableError, e:
+                except TableError as e:
                     if not self.quiet:
                         print >> utils.stdwarn, ("Warning: %s" % (e))
                     continue
@@ -3487,7 +3487,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             out = self.findProduct(productName, versionName, eupsPathDir, flavor)
             if not out:
                 raise ProductNotFound(productName, versionName, flavor, eupsPathDir)
-        except ProductNotFound, e:
+        except ProductNotFound as e:
             raise RuntimeError(e.getMessage())
 
     def declareCurrent(self, productName, versionName, eupsPathDir=None, local=False):

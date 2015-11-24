@@ -569,7 +569,7 @@ class Color(object):
                         try:
                             Color("foo", val[k]) # check if colour's valid
                             Color.classes[k] = val[k]
-                        except RuntimeError, e:
+                        except RuntimeError as e:
                             print >> stderr, "Setting colour for %s: %s" % (k, e)
                     else:
                         unknown.append(k)

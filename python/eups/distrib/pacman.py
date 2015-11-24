@@ -196,7 +196,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
             eupsServer.system("""cd %s && pacman -allow urllib2 -install "%s" """ % \
                                   (pacmanDir, location), 
                               self.Eups.noaction, self.verbose, self.log)
-        except OSError, e:
+        except OSError as e:
             raise RuntimeError("Pacman failed to install " + location)
 
     def createPacmanDir(self, pacmanDir):
