@@ -2436,13 +2436,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print(line, end=' ', file=tmpFd)
 
                 # Copy permissions as well, since tempfile.mkstemp explicitly sets -rw-------
-                umask = os.umask(002); os.umask(umask)
+                umask = os.umask(0o02); os.umask(umask)
                 try:
                     perms = os.fstat(tfd.fileno()).st_mode
                 except:
                     perms = 0
 
-                perms |= (0666 & ~umask) # set read/write for everyone (modulu umask)
+                perms |= (0o666 & ~umask) # set read/write for everyone (modulu umask)
                 os.chmod(full_tablefile, perms)
 
                 del tmpFd; del tfd; del perms
