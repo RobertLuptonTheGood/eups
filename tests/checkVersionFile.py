@@ -3,6 +3,7 @@
 Check a Version file for parsability and macro substitution
 """
 
+from __future__ import print_function
 import os
 import sys
 import shutil
@@ -134,7 +135,7 @@ if __name__ == "__main__":
         try:
             handlefile(file, result, cli.opts.root, cli.opts.testexist)
         except RuntimeError as e:
-            print >> sys.stderr, str(e)
+            print(str(e), file=sys.stderr)
 
     result.stream.writeln()
     plural = ["", "s"]

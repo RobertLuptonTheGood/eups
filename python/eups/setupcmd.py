@@ -13,6 +13,7 @@ To run an eups command from Python, try:
 
 The output of run() is a status code appropriate for passing to sys.exit().
 """
+from __future__ import print_function
 import os, sys, glob, re
 from cmd import EupsOptionParser
 from exceptions import EupsException
@@ -178,7 +179,7 @@ product and all its dependencies into the environment so that it can be used.
             else:
                 if not os.path.exists(self.opts.tablefile) and self.opts.tablefile != "none":
                     self.err("%s does not exist" % self.opts.tablefile)
-                    print >> utils.stderr, self.clo.get_usage()
+                    print(self.clo.get_usage(), file=utils.stderr)
                     return 3
                     
                 self.opts.tablefile = os.path.abspath(self.opts.tablefile)
@@ -189,7 +190,7 @@ product and all its dependencies into the environment so that it can be used.
 
         if not self.opts.productDir and not productName:
             self.err("please specify at least a product name or use -r")
-            print >> utils.stderr, self.clo.get_usage()
+            print(self.clo.get_usage(), file=utils.stderr)
             return 3
 
         if self.opts.productDir:
@@ -209,7 +210,7 @@ product and all its dependencies into the environment so that it can be used.
 
         if not productName:
             self.err("Please specify a product")
-            print >> utils.stderr, self.clo.get_usage()
+            print(self.clo.get_usage(), file=utils.stderr)
             return 3
 
         if self.opts.nodepend:
@@ -289,9 +290,9 @@ product and all its dependencies into the environment so that it can be used.
             lock.giveLocks(locks, self.opts.verbose)
 
         if Eups.verbose > 3:
-            print >> sys.stderr, "\n\t".join(["Issuing commands:"] + cmds)
+            print("\n\t".join(["Issuing commands:"] + cmds), file=sys.stderr)
 
-        print ";\n".join(cmds)
+        print(";\n".join(cmds))
 
         return status
 
@@ -302,5 +303,5 @@ product and all its dependencies into the environment so that it can be used.
         arguments provided. 
         """
         if not self.opts.quiet and self.opts.verbose >= volume:
-            print >> utils.stdwarn, "%s: %s" % (self.prog, msg)
+            print("%s: %s" % (self.prog, msg), file=utils.stdwarn)
 

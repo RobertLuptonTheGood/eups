@@ -670,6 +670,7 @@ r"""
 
 """
 
+from __future__ import print_function
 import sys, os, shutil, tarfile, tempfile, pipes, stat
 import eups
 import Distrib as eupsDistrib
@@ -840,12 +841,12 @@ TAGLIST_DIR = tags
             tfn = os.path.join(productsDir, "%s-%s.eupspkg" % (product, version))
             if os.path.exists(tfn) and not (overwrite or self.Eups.force):
                 if self.Eups.verbose > 1:
-                    print >> self.log, "Not recreating", tfn
+                    print("Not recreating", tfn, file=self.log)
                 return distid
 
             if not self.Eups.noaction:
                 if self.verbose > 1:
-                    print >> self.log, "Writing", tfn
+                    print("Writing", tfn, file=self.log)
 
                 try:
                     cmd = 'cd %s && tar czf %s %s' % (q(pkgdir0), q(tfn), q(prodSubdir))
@@ -910,7 +911,7 @@ TAGLIST_DIR = tags
 
         pkg = location
         if self.Eups.verbose >= 1:
-            print >> self.log, "[dl]",; self.log.flush()
+            print("[dl]", end=' ', file=self.log); self.log.flush()
         tfname = self.distServer.getFileForProduct(pkg, product, version,
                                                    self.Eups.flavor,
                                                    ftype="eupspkg", 
@@ -923,12 +924,12 @@ TAGLIST_DIR = tags
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
         if self.verbose > 0:
-            print >> self.log, "Building package: %s" % pkg
-            print >> self.log, "Building in directory:", buildDir
-            print >> self.log, "Writing log to: %s" % (logfile)
+            print("Building package: %s" % pkg, file=self.log)
+            print("Building in directory:", buildDir, file=self.log)
+            print("Writing log to: %s" % (logfile), file=self.log)
 
         if self.Eups.noaction:
-            print >> self.log, "skipping [noaction]"
+            print("skipping [noaction]", file=self.log)
             return
 
         # Make sure the buildDir is empty (to avoid interference from failed builds)
@@ -1025,7 +1026,7 @@ setup --type=build -k -r .
             cmd = "(%s) >> %s 2>&1 4>%s" % (q(buildscript), q(logfile), q(uimsgfile))
             if not self.nobuild:
                 if self.Eups.verbose >= 1:
-                    print >> self.log, "[build]",; self.log.flush()
+                    print("[build]", end=' ', file=self.log); self.log.flush()
                 eupsServer.system(cmd, self.Eups.noaction)
 
                 # Copy the build log into the product install directory. It's useful to keep around.
@@ -1033,14 +1034,14 @@ setup --type=build -k -r .
                 if os.path.isdir(installDirUps):
                     shutil.copy2(logfile, installDirUps)
                     if self.verbose > 0:
-                        print >> self.log, "Build log file copied to %s/%s" % (installDirUps, os.path.basename(logfile))
+                        print("Build log file copied to %s/%s" % (installDirUps, os.path.basename(logfile)), file=self.log)
                 else:
-                    print >> self.log, "Build log file not copied as %s does not exist (this shouldn't happen)." % installDirUps
+                    print("Build log file not copied as %s does not exist (this shouldn't happen)." % installDirUps, file=self.log)
 
                 # Echo any lines from "messages" file
                 # TODO: This should be piped in real time, not written out to a file and echoed.
                 if os.path.getsize(uimsgfile) > 0:
-                    print >> self.log, ""
+                    print("", file=self.log)
                     fp = open(uimsgfile)
                     for line in fp:
                         self.log.write("             %s" % line)
@@ -1049,11 +1050,11 @@ setup --type=build -k -r .
         except OSError as e:
             if self.verbose >= 0 and os.path.exists(logfile):
                 try: 
-                    print >> self.log, "\n\n***** error: from %s:" % logfile
+                    print("\n\n***** error: from %s:" % logfile, file=self.log)
                     eupsServer.system("tail -20 %s 1>&2" % q(logfile))
                 except:
                     pass
             raise RuntimeError("Failed to build %s: %s" % (pkg, str(e)))
 
         if self.verbose > 0:
-            print >> self.log, "Install for %s successfully completed" % pkg
+            print("Install for %s successfully completed" % pkg, file=self.log)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import re, os, cPickle, sys
 from eups import utils
 from eups import Product
@@ -332,8 +333,7 @@ class ProductStack(object):
         """
         if not self.cacheIsInSync(flavors):
             if verbose > 0:
-                print >> sys.stderr, \
-                    "Note: cache appears out-of-sync; updating..."
+                print("Note: cache appears out-of-sync; updating...", file=sys.stderr)
             self.reload(flavors, persistDir)
 
     def addFlavor(self, flavor): 
@@ -654,7 +654,7 @@ class ProductStack(object):
             fileName = self._persistPath(flavor, cachedir)
             if os.path.exists(fileName):
                 if verbose > 0:
-                    print >> sys.stderr, "Deleting %s" % (fileName)
+                    print("Deleting %s" % (fileName), file=sys.stderr)
                 os.remove(fileName)
 
     def reload(self, flavors=None, persistDir=None, verbose=0):
@@ -814,8 +814,7 @@ class ProductStack(object):
             if not self.cacheIsUpToDate(flav, cacheDir):
                 cacheOkay = False
                 if verbose > 1:
-                    print >> sys.stderr, \
-                          "Regenerating missing or out-of-date cache for %s in %s" % (flav, dbpath)
+                    print("Regenerating missing or out-of-date cache for %s in %s" % (flav, dbpath), file=sys.stderr)
                 break
 
         if cacheOkay:
@@ -834,8 +833,7 @@ class ProductStack(object):
                 cacheOkay = False
                 self.lookup = {}   # forget loaded data
                 if verbose:
-                  print >> sys.stderr, \
-                   "Regenerating out-of-date cache for %s in %s" % (flav, dbpath)
+                  print("Regenerating out-of-date cache for %s in %s" % (flav, dbpath), file=sys.stderr)
 
         return cacheOkay
 

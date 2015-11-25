@@ -1,6 +1,7 @@
 """
 The Eups class 
 """
+from __future__ import print_function
 import glob, re, os, shutil, sys, time
 import filecmp
 import fnmatch
@@ -55,8 +56,7 @@ class Eups(object):
         eups_path = []
         for p in path:
             if not os.path.isdir(p):
-                print >> utils.stdwarn, \
-                      "%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p
+                print("%s in $EUPS_PATH does not contain a ups_db directory, and is being ignored" % p, file=utils.stdwarn)
                 continue
 
             p = os.path.normpath(p)
@@ -80,8 +80,7 @@ class Eups(object):
 
         for k in hooks.config.Eups.defaultTags.keys():
             if k not in ("pre", "post",):
-                print >> utils.stdwarn, \
-                    "Ignoring unexpected key \"%s\" in hooks.config.Eups.defaultTags" % k       
+                print("Ignoring unexpected key \"%s\" in hooks.config.Eups.defaultTags" % k, file=utils.stdwarn)       
 
         if not hasattr(opts, "postTag"):
             opts.postTag = []
@@ -98,7 +97,7 @@ class Eups(object):
                     tagMsg.append("%s" % (", ".join(opts.postTag)))
 
                 if not (hasattr(opts, "unsetup") and opts.unsetup):
-                    print >> utils.stdinfo, msg, "; ".join(tagMsg)
+                    print(msg, "; ".join(tagMsg), file=utils.stdinfo)
 
     _processDefaultTags = staticmethod(_processDefaultTags)
 
@@ -286,12 +285,11 @@ class Eups(object):
         if not userDataDir:
             userDataDir = utils.defaultUserDataDir()
             if not userDataDir and self.quiet <= 0:
-                print >> utils.stdwarn, "Warning: Unable to find home directory!"
+                print("Warning: Unable to find home directory!", file=utils.stdwarn)
 
         if userDataDir and not self.getUpsDB(userDataDir, noRaise=True):
             if self.quiet <= 0:
-                print >> utils.stdwarn, \
-                    "Creating user data directory: " + userDataDir
+                print("Creating user data directory: " + userDataDir, file=utils.stdwarn)
             self.getUpsDB(userDataDir, create=True)
 
         if userDataDir and not utils.isDbWritable(userDataDir):
@@ -439,8 +437,8 @@ class Eups(object):
             if defaultProduct == "implicitProducts" and self.findProduct("toolchain"):
                 # Changing the name was being nice, but wasn't a good idea.
                 if self.verbose > 2:
-                    print >> utils.stdwarn, "Using name \"toolchain\" for default product, not \"%s\"" % \
-                        defaultProduct
+                    print("Using name \"toolchain\" for default product, not \"%s\"" % \
+                        defaultProduct, file=utils.stdwarn)
                 hooks.config.Eups.defaultProduct["name"] = "toolchain"
 
     def pushStack(self, what, value=None):
@@ -531,7 +529,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             try:
                 readme = open(os.path.join(cachedir,"README"), "w")
                 try:
-                    print >> readme, "User cache directory for", eupsPathDir
+                    print("User cache directory for", eupsPathDir, file=readme)
                 finally:
                     readme.close()
             except:
@@ -577,11 +575,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                             msg += " (in [%s])" % (", ".join(sorted(tagUsedInProducts[t.name])))
 
                     if True or self.force:
-                        print >> utils.stdwarn, "%s; defining" % (msg)
+                        print("%s; defining" % (msg), file=utils.stdwarn)
 
                         tags[path].registerTag(t.name, t.group)
                     else:
-                        print >> utils.stdwarn, "%s (consider --force)" % (msg)
+                        print("%s (consider --force)" % (msg), file=utils.stdwarn)
                         sys.exit(1)
 
             if self.asAdmin and utils.isDbWritable(p):
@@ -698,13 +696,12 @@ The what argument tells us what sort of state is expected (allowed values are de
             if strict:
                 raise TagNotRecognized(str(notokay), msg="Unsupported tag(s): " + ", ".join(notokay))
             elif self.quiet <= 0:
-                print >> utils.stdwarn, "Ignoring unsupported tags in VRO:", ", ".join(notokay)
+                print("Ignoring unsupported tags in VRO:", ", ".join(notokay), file=utils.stdwarn)
                 tags = filter(self.tags.isRecognized, tags)
 
         if len(tags) == 0:
             if self.quiet <= 0 or self.verbose > 1:
-                print >> utils.stdwarn, \
-                      "Warning: No recognized tags; not updating preferred list"
+                print("Warning: No recognized tags; not updating preferred list", file=utils.stdwarn)
         else:
             self.preferredTags = tags
 
@@ -742,8 +739,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             
         if sproductName != productName:
             if self.verbose > 1:
-                print >> utils.stdwarn, \
-                      "Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName)
+                print("Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName), file=utils.stdwarn)
 
         if productName == "eups" and not args: # you can get here if you initialised eups by sourcing setups.c?sh
             args = ["%s%s" % (Product.LocalVersionPrefix, environ["EUPS_DIR"]), "-Z", "(none)"]
@@ -873,8 +869,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if "versionExpr" in postVro:
                             continue
                         else:
-                            print >> utils.stdwarn, "Failed to find %s %s for flavor %s" % \
-                                  (name, version, flavor)
+                            print("Failed to find %s %s for flavor %s" % \
+                                  (name, version, flavor), file=utils.stdwarn)
                             break
                     
                     versionExpr = version
@@ -898,7 +894,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # go directly to the EUPS database
                         if not os.path.exists(self.getUpsDB(root)):
                             if self.verbose:
-                                print >> utils.stdwarn, "Skipping missing EUPS stack:", dbpath
+                                print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
                             continue
 
                         try:
@@ -933,8 +929,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 else:
                     if not ("version" in postVro or "version!" in postVro or "versionExpr" in postVro):
                         if self.verbose > self.quiet:
-                            print >> utils.stdwarn, "Failed to find %s %s for flavor %s" % \
-                                  (name, version, flavor)
+                            print("Failed to find %s %s for flavor %s" % \
+                                  (name, version, flavor), file=utils.stdwarn)
                         break
 
             elif re.search(r"^warn(:\d+)?$", vroTag):
@@ -965,7 +961,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if flavor:
                         msg += " (Flavor: %s)" % flavor
 
-                    print >> sys.stderr, msg
+                    print(msg, file=sys.stderr)
 
             elif self.tags.isRecognized(vroTag) or os.path.isfile(vroTag):
                 # search for a tagged version
@@ -989,7 +985,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     self.makeVroExact()
 
             else:
-                print >> utils.stderr, "Impossible entry on the VRO %s (%s)" % (vroTag, vro)
+                print("Impossible entry on the VRO %s (%s)" % (vroTag, vro), file=utils.stderr)
                 if False:
                     product = self.findProduct(name, version=Tag(vroTag), eupsPathDirs=eupsPathDirs,
                                                flavor=flavor, noCache=noCache)
@@ -1007,8 +1003,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if vro.count(ovroTag) and \
                                vro.index(vroTag0) > vro.index(ovroTag): # old vro tag takes priority
                             if self.verbose > 1:
-                                print >> utils.stdinfo, "%s%s has higher priority than %s in your VRO; keeping %s %s" % \
-                                      (13*" ", ovroTag, vroTag0, oproduct.name, oproduct.version)
+                                print("%s%s has higher priority than %s in your VRO; keeping %s %s" % \
+                                      (13*" ", ovroTag, vroTag0, oproduct.name, oproduct.version), file=utils.stdinfo)
                                 
                             product, vroReason, vroTag = oproduct, ovroReason, ovroTag
                     except Exception as e:
@@ -1017,14 +1013,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 else:                   # setup by previous setup command
                     if oproduct.version != product.version:
                         if self.verbose > 1:
-                            print >> sys.stderr, "%s%s %s replaces previously setup %s %s" % (13*" ",
+                            print("%s%s %s replaces previously setup %s %s" % (13*" ",
                                                                              product.name, product.version,
-                                                                             oproduct.name, oproduct.version)
+                                                                             oproduct.name, oproduct.version), file=sys.stderr)
 
             if self.verbose > 3 or (self.cmdName in ("setup", "uses") and self.verbose > 2):
-                print >> sys.stderr, ("VRO used %-20s " % (vroTag)),
+                print(("VRO used %-20s " % (vroTag)), end=' ', file=sys.stderr)
                 if self.cmdName != "setup":
-                    print >> sys.stderr, "%-15s %s" % (product.name, product.version)
+                    print("%-15s %s" % (product.name, product.version), file=sys.stderr)
 
         # Hack around Product.getTable() slowness, by internally caching Product instances
         # FIXME: Should be removed once the Product.getTable() bottleneck is resolved
@@ -1089,7 +1085,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print >> utils.stdwarn, "Skipping missing EUPS stack:", self.getUpsDB(root)
+                        print("Skipping missing EUPS stack:", self.getUpsDB(root), file=utils.stdwarn)
                     continue
 
                 try:
@@ -1177,7 +1173,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print >> utils.stdwarn, "Skipping missing EUPS stack:", dbpath
+                        print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
                     continue
 
                 db = self._databaseFor(root)
@@ -1189,9 +1185,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                             return prod
                         else:
                             if self.verbose > 0:
-                                print >> utils.stdwarn, \
-                                    "Product %s's tag %s points to version %s in %s, which can't be found" % \
-                                    (name, tag, version, root)
+                                print("Product %s's tag %s points to version %s in %s, which can't be found" % \
+                                    (name, tag, version, root), file=utils.stdwarn)
 
                 except ProductNotFound:
                     # product by this name not found in this database
@@ -1286,13 +1281,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not product and version.startswith(Product.LocalVersionPrefix):
             product = Product.createLocal(name, version)
             if not product and self.verbose:
-                print >> utils.stdwarn, "Unable to find version %s specified in tag file %s" % \
-                    (version, fileName)                
+                print("Unable to find version %s specified in tag file %s" % \
+                    (version, fileName), file=utils.stdwarn)                
 
         if not product:
             msg = "Unable to find product %s %s specified in %s" % (name, version, fileName)
             if self.force:
-                print >> utils.stdwarn, msg + "; ignoring version specification"
+                print(msg + "; ignoring version specification", file=utils.stdwarn)
                 return None
 
             msg += " (specify --force to continue)"
@@ -1311,7 +1306,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print >> utils.stdwarn, "Skipping missing EUPS stack:", dbpath
+                        print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
@@ -1364,7 +1359,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print >> utils.stdwarn, "Skipping missing EUPS stack:", dbpath
+                        print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
@@ -1458,7 +1453,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if preferred is None:
             preferred = self.preferredTags
         if not preferred and self.quiet <= 0:
-            print >> utils.stdwarn, "Warning: no preferred tags are set"
+            print("Warning: no preferred tags are set", file=utils.stdwarn)
 
         found = None
         for vers in preferred:
@@ -1528,20 +1523,20 @@ The what argument tells us what sort of state is expected (allowed values are de
                     product = self.findSetupProduct(productName)
                 except Exception as e:
                     if self.quiet <= 0:
-                        print >> utils.stdwarn, "Problem with product \"%s\" found in the environment: %s" % \
-                            (productName, e)
+                        print("Problem with product \"%s\" found in the environment: %s" % \
+                            (productName, e), file=utils.stdwarn)
 
                     continue
 
                 if not product:
                     if self.quiet <= 0:
-                        print >> utils.stdwarn, "Unable to find %s %s although it is seen in the environment" % \
-                              (productName, versionName)
+                        print("Unable to find %s %s although it is seen in the environment" % \
+                              (productName, versionName), file=utils.stdwarn)
                     continue
 
             except EupsException as e:
                 if self.quiet <= 0:
-                    print >> utils.stdwarn, e
+                    print(e, file=utils.stdwarn)
                 continue
 
             productList += [product]
@@ -1663,8 +1658,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             try:
                 self.setup(prod.name, fwd=False, noRecursion=noRecursion)
             except EupsException as e:
-                print >> utils.stderr, \
-                    "Unable to unsetup %s %s: %s" % (prod.name, prod.version, e)
+                print("Unable to unsetup %s %s: %s" % (prod.name, prod.version, e), file=utils.stderr)
 
     # Permitted relational operators
     _relop_re = re.compile(r"<=?|>=?|==")
@@ -1708,11 +1702,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                 logop = "and"
                 continue
             else:
-                print >> utils.stdwarn, "Unexpected operator %s in \"%s\"" % (expr[i], expr0)
+                print("Unexpected operator %s in \"%s\"" % (expr[i], expr0), file=utils.stdwarn)
                 break
 
             if not logop and value is not None:
-                print >> utils.stdwarn, "Expected logical operator || or && in \"%s\" at %s" % (expr0, v)
+                print("Expected logical operator || or && in \"%s\" at %s" % (expr0, v), file=utils.stdwarn)
             else:
                 try:
                     rhs = self.version_match_prim(relop, vname, v)
@@ -1747,7 +1741,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             cmp = self.version_cmp(v1, v2, mustReturnInt=False)
         except ValueError as e:           # no sort order is defined
             if self.verbose > 2:
-                print >> utils.stdwarn, e
+                print(e, file=utils.stdwarn)
             raise
 
         if op == "<":
@@ -1761,7 +1755,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif (op == ">="):
             return cmp >= 0
         else:
-            print >> utils.stdwarn, "Unknown operator %s used with %s, %s", (op, v1, v2)
+            print("Unknown operator %s used with %s, %s", (op, v1, v2), file=utils.stdwarn)
 
     def _isValidSetupType(self, setupType):
         return setupType in self._validSetupTypes
@@ -1829,7 +1823,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if not product:
                 msg = "I can't unsetup %s as it isn't setup" % productName
                 if self.verbose > 1 and self.quiet <= 0:
-                    print >> utils.stdwarn, msg
+                    print(msg, file=utils.stdwarn)
 
                 if not self.force:
                     return False, versionName, ProductNotFound(productName, versionName) # msg
@@ -1850,9 +1844,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 product.version = versionName
             elif versionName and not self.version_match(product.version, versionName):
                 if self.quiet <= 0:
-                    print >> utils.stdwarn, \
-                        "You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
-                        (product.name, versionName, product.version, product.version)
+                    print("You asked to unsetup %s %s but version %s is currently setup; unsetting up %s" % \
+                        (product.name, versionName, product.version, product.version), file=utils.stdwarn)
 
         else:  # on setup (fwd = True)
             # Don't allow --force to resetup products required by the defaultProduct; loops can result
@@ -1874,12 +1867,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                 vro = self.getPreferredTags()
                 if len(vro) > 0 and vro.count("commandLine") == 0:
                     if self.verbose:
-                        print >> utils.stdwarn, "Using %s, although \"commandLine\" is not specified in VRO %s" % \
-                              (productRoot, vro)
+                        print("Using %s, although \"commandLine\" is not specified in VRO %s" % \
+                              (productRoot, vro), file=utils.stdwarn)
 
                 vroReason = ["commandLine", productRoot]
                 if self.verbose > 2:
-                    print >> utils.stdwarn, ("VRO used %-12s " % vroReason[0]),
+                    print(("VRO used %-12s " % vroReason[0]), end=' ', file=utils.stdwarn)
 
                 product = localProduct
             else:
@@ -1913,7 +1906,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                           (productName, versionName, product.version, vroReason[0])
                                     if vro:
                                         msg += "; proceeding"
-                                    print >> utils.stdwarn, msg
+                                    print(msg, file=utils.stdwarn)
                                 product = None
                                 continue
 
@@ -1924,8 +1917,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                             if setupFlavor != fallbackFlavor:
                                 setupFlavor = fallbackFlavor
                                 if self.verbose > 2:
-                                    print >> utils.stdwarn, "Using flavor %s for %s %s" % \
-                                          (setupFlavor, productName, versionName)
+                                    print("Using flavor %s for %s %s" % \
+                                          (setupFlavor, productName, versionName), file=utils.stdwarn)
                         else:
                             break       # no product, and we've searched the vro already.  Try next flavour
                         
@@ -1959,7 +1952,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 raise
 
             table = None
-            print >> utils.stdwarn, "Warning: %s" % e
+            print("Warning: %s" % e, file=utils.stdwarn)
         
         if table:
             try:
@@ -1968,7 +1961,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     verbose -= 1
                 actions = table.actions(setupFlavor, setupType=self.setupType, verbose=verbose)
             except TableError as e:
-                print >> utils.stdwarn, "product %s %s: %s" % (product.name, product.version, e)
+                print("product %s %s: %s" % (product.name, product.version, e), file=utils.stdwarn)
                 return False, product.version, e
         else:
             actions = []
@@ -1993,13 +1986,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                         vroReason[0] == "keep" and self.alreadySetupProducts.get(product.name):
                     pass
                 else:
-                    print >> sys.stderr, "Setting up: %-30s  Flavor: %-10s Version: %s" % \
-                        (indent + product.name, setupFlavor, product.version)
+                    print("Setting up: %-30s  Flavor: %-10s Version: %s" % \
+                        (indent + product.name, setupFlavor, product.version), file=sys.stderr)
                 setup_msgs[key] = 1
 
         if not fwd and self.verboseUnsetup:
-            print >> sys.stderr, "UnsettingUp:%-30s  Flavor: %-10s Version: %s" % \
-                (indent + product.name, setupFlavor, product.version)
+            print("UnsettingUp:%-30s  Flavor: %-10s Version: %s" % \
+                (indent + product.name, setupFlavor, product.version), file=sys.stderr)
 
         if fwd and recursionDepth == 0:
             pass
@@ -2020,8 +2013,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     else:
                         # already setup and no need to go further
                         if self.verbose > 1:
-                            print >> utils.stdinfo, "            %s %s is already setup; skipping" % \
-                                  (len(indent)*" " + product.name, product.version)
+                            print("            %s %s is already setup; skipping" % \
+                                  (len(indent)*" " + product.name, product.version), file=utils.stdinfo)
                             
                         return True, product.version, None
                 else:
@@ -2034,7 +2027,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                               (product.name, sprod.version, product.version)
 
                         if self.quiet <= 0 and self.verbose > 0 and not (self.keep and setup_msgs.has_key(msg)):
-                            print >> utils.stdwarn, "            %s%s" % (recursionDepth*" ", msg)
+                            print("            %s%s" % (recursionDepth*" ", msg), file=utils.stdwarn)
                         setup_msgs[msg] = 1
 
             q = utils.Quiet(self)
@@ -2154,8 +2147,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self.versions[root].save(self.flavor)
             except CacheOutOfSync as e:
                 if self.quiet <= 0:
-                    print >> utils.stdwarn, "Warning: " + str(e)
-                    print >> utils.stdwarn, "Correcting..."
+                    print("Warning: " + str(e), file=utils.stdwarn)
+                    print("Correcting...", file=utils.stdwarn)
                 self.versions[root].refreshFromDatabase()
 
     def unassignTag(self, tag, productName, versionName=None, eupsPathDir=None, eupsPathDirForRead=None):
@@ -2212,7 +2205,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if msg is not None:
             if self.quiet <= 0:
-                print >> utils.stdwarn, msg
+                print(msg, file=utils.stdwarn)
             return
 
         if tag.isGlobal():
@@ -2228,14 +2221,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 raise EupsException("You don't have permission to unassign %s's tag %s" % (userId, tag.name))
 
         if self.noaction:
-            print >> sys.stderr, "eups undeclare --tag %s %s" % (tag.name, productName)
+            print("eups undeclare --tag %s %s" % (tag.name, productName), file=sys.stderr)
             return
 
         # update the database
         if not self._databaseFor(eupsPathDir,dbpath).unassignTag(str(tag), productName, self.flavor):
             if self.verbose:
-                print >> utils.stdwarn, "Tag %s is not assigned to %s %s" % \
-                    (tag, productName, versionName)
+                print("Tag %s is not assigned to %s %s" % \
+                    (tag, productName, versionName), file=utils.stdwarn)
 
         # update the cache
         if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
@@ -2245,13 +2238,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                     self.versions[eupsPathDir].save(self.flavor)
                 except CacheOutOfSync as e:
                     if self.quiet <= 0:
-                        print >> utils.stdwarn, "Warning: " + str(e)
-                        print >> utils.stdwarn, "Correcting..."
+                        print("Warning: " + str(e), file=utils.stdwarn)
+                        print("Correcting...", file=utils.stdwarn)
                     self.versions[eupsPathDir].refreshFromDatabase()
 
             elif self.verbose:
-                print >> utils.stdwarn, "Tag %s not assigned to %s %s" % \
-                    (productName, versionName)
+                print("Tag %s not assigned to %s %s" % \
+                    (productName, versionName), file=utils.stdwarn)
                 
 
     def declare(self, productName, versionName, productDir=None, eupsPathDir=None, tablefile=None, 
@@ -2352,8 +2345,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if productDir == "/dev/null":   # Oh dear, we failed to find it
             productDir = "none"
-            print >> utils.stdwarn, "Failed to find productDir for %s %s; assuming \"%s\"" % \
-                  (productName, versionName, productDir)
+            print("Failed to find productDir for %s %s; assuming \"%s\"" % \
+                  (productName, versionName, productDir), file=utils.stdwarn)
 
         if utils.isRealFilename(productDir):
             productDir = os.path.expanduser(productDir)
@@ -2440,7 +2433,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     signal.signal(s, cleanup)
 
                 for line in tfd:
-                    print >> tmpFd, line,
+                    print(line, end=' ', file=tmpFd)
 
                 # Copy permissions as well, since tempfile.mkstemp explicitly sets -rw-------
                 umask = os.umask(002); os.umask(umask)
@@ -2576,8 +2569,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     info = " (%s)" % "; ".join(differences)
 
                 if tag:
-                    print >> utils.stdinfo, "You asked me to redeclare %s %s%s; I'll only declare the tag" % \
-                        (productName, versionName, info)
+                    print("You asked me to redeclare %s %s%s; I'll only declare the tag" % \
+                        (productName, versionName, info), file=utils.stdinfo)
                         
                     versionName = "tag:%s" % tag # Declare a tag:XXX version with those differences
                 else:
@@ -2612,7 +2605,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     info += " %s" % tag
                 info += " in %s" % (eupsPathDir)
 
-                print >> utils.stdinfo, info
+                print(info, file=utils.stdinfo)
             if not self.noaction:  
                 #
                 # now really declare the product.  This will also update the tags
@@ -2635,8 +2628,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                         self.versions[eupsPathDir].save(self.flavor)
                     except CacheOutOfSync as e:
                         if self.quiet <= 0:
-                            print >> utils.stdwarn, "Note: " + str(e)
-                            print >> utils.stdwarn, "Correcting..."
+                            print("Note: " + str(e), file=utils.stdwarn)
+                            print("Correcting...", file=utils.stdwarn)
                         self.versions[eupsPathDir].refreshFromDatabase()
                 
         if tag:
@@ -2646,7 +2639,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if verbose:
                 info = "Assigning tag \"%s\" to %s %s" % (tag[0].name, productName, versionName)
-                print >> utils.stdinfo, info
+                print(info, file=utils.stdinfo)
 
             if not self.noaction:
                 eupsDirs = [eupsPathDirForRead, eupsPathDir]
@@ -2674,18 +2667,18 @@ The what argument tells us what sort of state is expected (allowed values are de
             dirName = os.path.split(pathOut)[0]
             if not os.path.exists(dirName):
                 if self.noaction:
-                    print "mkdir -p %s" % (dirName)
+                    print("mkdir -p %s" % (dirName))
                 else:
                     if self.verbose > 1:
-                        print >> utils.stdinfo, "mkdir -p %s" % (dirName)
+                        print("mkdir -p %s" % (dirName), file=utils.stdinfo)
                     os.makedirs(dirName)
 
             if self.noaction:
-                print "cp %s %s" % (fileNameIn, pathOut)
+                print("cp %s %s" % (fileNameIn, pathOut))
             else:
                 utils.copyfile(fileNameIn, pathOut)
             if self.verbose > 1:
-                print >> utils.stdinfo, "Copying %s to %s" % (fileNameIn, pathOut)
+                print("Copying %s to %s" % (fileNameIn, pathOut), file=utils.stdinfo)
         
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
                   undeclareCurrent=None):
@@ -2763,7 +2756,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             
         if self.isSetup(product):
             if self.force:
-                print >> utils.stdwarn, "Product %s %s is currently setup; proceeding" % (productName, versionName)
+                print("Product %s %s is currently setup; proceeding" % (productName, versionName), file=utils.stdwarn)
             else:
                 raise EupsException("Product %s %s is already setup; specify force to proceed" % (productName, versionName))
 
@@ -2771,8 +2764,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             self.unassignTag(tag, productName, versionName, eupsPathDir)
 
         if self.verbose or self.noaction:
-            print "Removing %s %s from version list for %s" % \
-                (product.name, product.version, product.stackRoot())
+            print("Removing %s %s from version list for %s" % \
+                (product.name, product.version, product.stackRoot()))
         if self.noaction:
             return True
 
@@ -2791,8 +2784,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self.versions[eupsPathDir].save(product.flavor)
             except CacheOutOfSync as e:
                 if self.quiet <= 0:
-                    print >> utils.stdwarn, "Warning: " + str(e)
-                    print >> utils.stdwarn, "Correcting..."
+                    print("Warning: " + str(e), file=utils.stdwarn)
+                    print("Correcting...", file=utils.stdwarn)
                 self.versions[eupsPathDir].refreshFromDatabase()
 
         return True
@@ -3035,7 +3028,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         try:
             prodtbl = topProduct.getTable()
         except TableFileNotFound as e:
-            print >> utils.stdwarn, e
+            print(e, file=utils.stdwarn)
             prodtbl = None
 
         if not prodtbl:
@@ -3059,7 +3052,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if shouldRaise:
                             raise RuntimeError(msg)
                         else:
-                            print >> utils.stdwarn, "%s; skipping" % msg
+                            print("%s; skipping" % msg, file=utils.stdwarn)
 
                     continue
 
@@ -3188,7 +3181,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         if checkRecursive and not userInfo:
             if self.verbose:
-                print >> utils.stdwarn, "Calculating product dependencies recursively..."
+                print("Calculating product dependencies recursively...", file=utils.stdwarn)
             userInfo = self.uses(None)
         else:
             userInfo = None
@@ -3236,7 +3229,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     elif yn == "q":
                         return
                     else:
-                        print >> utils.stderr, "Please answer y, n, q, or !, not %s" % yn
+                        print("Please answer y, n, q, or !, not %s" % yn, file=utils.stderr)
 
                 if yn == "n":
                     continue
@@ -3249,7 +3242,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if utils.isRealFilename(dir):
                 if self.noaction:
-                    print "rm -rf %s" % dir
+                    print("rm -rf %s" % dir)
                 else:
                     try:
                         shutil.rmtree(dir)
@@ -3289,7 +3282,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     msg = "%s %s is required by product%s %s" % (product.name, product.version, plural, tmp)
 
                     if self.force:
-                        print >> utils.stdwarn, "%s; removing anyway" % (msg)
+                        print("%s; removing anyway" % (msg), file=utils.stdwarn)
                     else:
                         raise EupsException("%s; specify force to remove" % (msg))
 
@@ -3345,14 +3338,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                         del q
                     except Exception as e:
                         if not self.quiet:
-                            print >> utils.stdwarn, ("Warning: %s" % (e))
+                            print(("Warning: %s" % (e)), file=utils.stdwarn)
                         continue
 
                 try:
                     deps = self.getDependentProducts(pi, shouldRaise=False, followExact=None, topological=True)
                 except TableError as e:
                     if not self.quiet:
-                        print >> utils.stdwarn, ("Warning: %s" % (e))
+                        print(("Warning: %s" % (e)), file=utils.stdwarn)
                     continue
 
                 for dep_product, dep_optional, dep_depth in deps:
@@ -3443,8 +3436,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not prod and allowNewer:
             # an explicit version given; try to find a newer one
             if self.quiet <= 0:
-                print >> utils.stdwarn, msg % (productName, versionName, flavor), \
-                    ' Trying ">= %s"' % versionName
+                print(msg % (productName, versionName, flavor), \
+                    ' Trying ">= %s"' % versionName, file=utils.stdwarn)
 
             if self.tags.isRecognized(versionName):
                 versionName = None
@@ -3671,7 +3664,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if inexact_version:             # this is a request to not process type:exact in the vro
                 self._vro = filter(lambda el: el != "type:exact", self._vro)
         if self.verbose > 1:
-            print >> utils.stdinfo, "Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro)
+            print("Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro), file=utils.stdinfo)
         #
         # The VRO used to be called the "preferredTags";  for now use the old name
         #
@@ -3767,8 +3760,8 @@ such sequences can be generated while rewriting the VRO"""
 
         if tagVroEntries:               # we moved tags to the end of the VRO
             if self.verbose > 1 and movedTags and vro0 != self._vro:
-                print >> utils.stdwarn, "Moved [%s] to end of VRO as exact versions are desired" % \
-                      ", ".join(tagVroEntries)
+                print("Moved [%s] to end of VRO as exact versions are desired" % \
+                      ", ".join(tagVroEntries), file=utils.stdwarn)
 
     def getVRO(self):
         """Return the VRO (as chosen by selectVRO)"""

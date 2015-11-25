@@ -2,6 +2,7 @@
 the Repositories class -- a set of distribution servers from which 
 distribution packages can be received and installed.
 """
+from __future__ import print_function
 import sys, os, re, atexit, shutil
 
 import eups.utils as utils
@@ -115,14 +116,14 @@ class Repositories(object):
             except ImportError as e:
                 msg =  "Unable to use server %s: \"%s\"" % (pkgroot, e)
                 if self.eups.force:
-                    print >> self.log, msg + "; continuing"
+                    print(msg + "; continuing", file=self.log)
                 else:
                     raise RuntimeError(msg + ". Remove server from PKGROOT or use force")
 
         if len(self.pkgroots) == 0:
             msg = "No usable package repositories are loaded"
             if allowEmptyPkgroot or self.eups.force:
-                print >> self.log, "WARNING: %s" % msg
+                print("WARNING: %s" % msg, file=self.log)
             else:
                 raise RuntimeError(msg)
 
@@ -143,12 +144,12 @@ class Repositories(object):
                 pkgs = repos.listPackages(productName, versionName, flavor, tag)
             except TagNotRecognized as e:
                 if self.verbose:
-                    print >> self.log, "%s for %s" % (e, pkgroot)
+                    print("%s for %s" % (e, pkgroot), file=self.log)
                 continue
             except ServerError as e:
                 if self.quiet <= 0:
-                    print >> self.log, "Warning: Trouble contacting", pkgroot
-                    print >> self.log, str(e)
+                    print("Warning: Trouble contacting", pkgroot, file=self.log)
+                    print(str(e), file=self.log)
                 pkgs = []
 
             out.append( (pkgroot, pkgs) )
@@ -386,20 +387,20 @@ class Repositories(object):
                 msg = ("Installing dependencies for {0} {1}, but not {0} itself"
                        .format(product, version))
 	    if msg is not None:
-                print  >> self.log, msg
+                print(msg, file=self.log)
 
         products = manifest.getProducts()
         if self.verbose >= 0 and len(products) == 0:
-            print >> self.log, "Warning: no installable packages associated", \
-                "with", idstring
+            print("Warning: no installable packages associated", \
+                "with", idstring, file=self.log)
 
         # check for circular dependencies:
         if idstring in ances:
             if self.verbose >= 0:
-                print >> self.log, "Detected circular dependencies", \
-                      "within manifest for %s; short-circuiting." % idstring.strip()
+                print("Detected circular dependencies", \
+                      "within manifest for %s; short-circuiting." % idstring.strip(), file=self.log)
                 if self.verbose > 2:
-                    print >> self.log, "Package installation already in progress:%s" % "".join(ances)
+                    print("Package installation already in progress:%s" % "".join(ances), file=self.log)
 
                 return True
         #
@@ -428,10 +429,10 @@ class Repositories(object):
             if False:
                 if pver in ances:
                     if self.verbose >= 0:
-                        print >> self.log, "Detected circular dependencies", \
-                              "within manifest for %s; short-circuiting." % idstring.strip()
+                        print("Detected circular dependencies", \
+                              "within manifest for %s; short-circuiting." % idstring.strip(), file=self.log)
                         if self.verbose > 2:
-                            print >> self.log, "Package installation already in progress:%s" % "".join(ances)
+                            print("Package installation already in progress:%s" % "".join(ances), file=self.log)
                         continue
                 ances.append(pver)
 
@@ -465,7 +466,7 @@ class Repositories(object):
                     if self.eups.force:
                         msg += " (ignoring --force)"
                     if self.verbose >= 0:
-                        print >> self.log, msg
+                        print(msg, file=self.log)
                     continue
 
                 if self.eups.force:
@@ -476,7 +477,7 @@ class Repositories(object):
                     msg += " (already installed)"
 
                 if self.verbose >= 0 and msg:
-                    print >> self.log, msg,
+                    print(msg, end=' ', file=self.log)
 
                 productRoot = thisinstalled.stackRoot() # now we know which root it's installed in
 
@@ -506,8 +507,7 @@ class Repositories(object):
                         if thisinstalled:
                             shouldInstall = False
                         elif self.verbose > 0:
-                            print >> self.log, \
-                                  "Warning: recursive install failed for", prod.product, prod.version
+                            print("Warning: recursive install failed for", prod.product, prod.version, file=self.log)
 
                     elif not prod.distId:
                         msg = "No source is available for package %s %s" % (prod.product, prod.version)
@@ -522,7 +522,7 @@ class Repositories(object):
                         else:
                             msg1 = "";
                         msg = "  [ %2d%s ]  %s %s%s" % (at+1, nprods, prod.product, prod.version, msg1)
-                        print >> self.log, msg, "...",
+                        print(msg, "...", end=' ', file=self.log)
                         self.log.flush()
 
                     pkg = self.findPackage(prod.product, prod.version, prod.flavor)
@@ -547,9 +547,9 @@ class Repositories(object):
 
             if self.verbose >= 0:
                 if self.log.isatty():
-                    print >> self.log, "\r", msg, " "*(70-len(msg)), "done. "
+                    print("\r", msg, " "*(70-len(msg)), "done. ", file=self.log)
                 else:
-                    print >> self.log, "done."
+                    print("done.", file=self.log)
 
             # Whether or not we just installed the product, we need to...
             # ...add the product to the setups
@@ -560,15 +560,15 @@ class Repositories(object):
                 self._updateServerTags(prod, productRoot, instflavor, installCurrent=opts["installCurrent"])
             if alsoTag:
                 if self.verbose > 1:
-                    print >> self.log, "Assigning Tags to %s %s: %s" % \
-                          (prod.product, prod.version, ", ".join([str(t) for t in alsoTag]))
+                    print("Assigning Tags to %s %s: %s" % \
+                          (prod.product, prod.version, ", ".join([str(t) for t in alsoTag])), file=self.log)
                 for tag in alsoTag:
                     try:
                         self.eups.assignTag(tag, prod.product, prod.version, productRoot)
                     except Exception as e:
                         msg = str(e)
                         if not self._msgs.has_key(msg):
-                            print >> self.log, msg
+                            print(msg, file=self.log)
                         self._msgs[msg] = 1
 
             # ...note that this package is now installed
@@ -584,13 +584,11 @@ class Repositories(object):
             if not os.path.isabs(installdir):
                 installdir = os.path.join(productRoot, installdir)
             if os.path.exists(installdir) and installdir != "/dev/null":
-                print >> self.log, \
-                    "WARNING: Target installation directory exists:", installdir
-                print >> self.log, "        Was --noeups used?  If so and", \
-                    "the installation fails,"
-                print >> self.log, \
-                    '         try "eups distrib clean %s %s" before retrying installation.' % \
-                    (prod.product, prod.version)
+                print("WARNING: Target installation directory exists:", installdir, file=self.log)
+                print("        Was --noeups used?  If so and", \
+                    "the installation fails,", file=self.log)
+                print('         try "eups distrib clean %s %s" before retrying installation.' % \
+                    (prod.product, prod.version), file=self.log)
 
         builddir = self.makeBuildDirFor(productRoot, prod.product,
                                         prod.version, opts, instflavor)
@@ -605,7 +603,7 @@ class Repositories(object):
             raise RuntimeError("Installing %s %s: %s" % (prod.product, prod.version, e))
 
         if self.verbose > 1 and 'NAME' in dir(distrib):
-            print >> self.log, "Using Distrib type:", distrib.NAME
+            print("Using Distrib type:", distrib.NAME, file=self.log)
 
         try:
             distrib.installPackage(distrib.parseDistID(prod.distId), 
@@ -614,8 +612,8 @@ class Repositories(object):
                                    builddir)
         except server.RemoteFileNotFound as e:
             if self.verbose >= 0:
-                print >> self.log, "Failed to install %s %s: %s" % \
-                    (prod.product, prod.version, str(e))
+                print("Failed to install %s %s: %s" % \
+                    (prod.product, prod.version, str(e)), file=self.log)
             raise e
         except RuntimeError as e:
             raise e
@@ -635,7 +633,7 @@ class Repositories(object):
             try:
                 self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
             except RuntimeError as e:
-                print >> sys.stderr, e
+                print(e, file=sys.stderr)
                 return
         
             # write the distID to the installdir/ups directory to aid 
@@ -645,7 +643,7 @@ class Repositories(object):
         # clean up the build directory
         if noclean:
             if self.verbose:
-                print >> sys.stderr, "Not removing the build directory %s; you can cleanup manually with \"eups distrib clean\"" % (self.getBuildDirFor(self.getInstallRoot(), prod.product, prod.version, opts))
+                print("Not removing the build directory %s; you can cleanup manually with \"eups distrib clean\"" % (self.getBuildDirFor(self.getInstallRoot(), prod.product, prod.version, opts)), file=sys.stderr)
         else:
             self.clean(prod.product, prod.version, options=opts)
 
@@ -667,9 +665,8 @@ class Repositories(object):
 	    processedTags += ptags
 
 	    if ptags and self.verbose > 1:
-		print >> self.log, \
-		    "Assigning Server Tags from %s to %s %s: %s" % (pkgroot,
-								    prod.product, prod.version, ", ".join(ptags))
+		print("Assigning Server Tags from %s to %s %s: %s" % (pkgroot,
+								    prod.product, prod.version, ", ".join(ptags)), file=self.log)
 	self.eups.supportServerTags(tags, stackRoot)
 
         if self.eups.noaction or not tags:
@@ -678,15 +675,14 @@ class Repositories(object):
         dprod = self.eups.findProduct(prod.product, prod.version, stackRoot, flavor)
         if dprod is None:
             if self.verbose >= 0 and not self.eups.quiet:
-                print >> self.log, \
-                  "Unable to assign server tags: Failed to find product %s %s" % (prod.product, prod.version)
+                print("Unable to assign server tags: Failed to find product %s %s" % (prod.product, prod.version), file=self.log)
             return
 
         for tag in tags:
            if tag not in dprod.tags:
               if self.verbose > 0:
-                 print >> self.log, "Assigning Server Tag %s to dependency %s %s" % \
-                     (tag, dprod.name, dprod.version)
+                 print("Assigning Server Tag %s to dependency %s %s" % \
+                     (tag, dprod.name, dprod.version), file=self.log)
               try:
 
                  self.eups.assignTag(tag, prod.product, prod.version, stackRoot)
@@ -694,12 +690,12 @@ class Repositories(object):
               except TagNotRecognized as e:
                  msg = str(e)
                  if not self.eups.quiet and not self._msgs.has_key(msg):
-                     print >> self.log, msg
+                     print(msg, file=self.log)
                  self._msgs[msg] = 1
               except ProductNotFound as e:
                  msg = "Can't find %s %s" % (dprod.name, dprod.version)
                  if not self.eups.quiet and not self._msgs.has_key(msg):
-                     print >> self.log, msg
+                     print(msg, file=self.log)
                  self._msgs[msg] = 1
 
     def _recordDistID(self, pkgroot, distId, installDir):
@@ -709,13 +705,13 @@ class Repositories(object):
             try:
                 fd = open(file, 'w')
                 try:
-                    print >> fd, distId
-                    print >> fd, pkgroot
+                    print(distId, file=fd)
+                    print(pkgroot, file=fd)
                 finally:
                     fd.close()
             except:
                 if self.verbose >= 0:
-                    print >> self.log, "Warning: Failed to write distID to %s: %s" (file, traceback.format_exc(0))
+                    print("Warning: Failed to write distID to %s: %s" (file, traceback.format_exc(0)), file=self.log)
 
     def _readDistIDFile(self, file):
         distId = None
@@ -736,7 +732,7 @@ class Repositories(object):
             idf.close()
         except Exception as e:
             if self.verbose >= 0:
-                print >> self.log, "Warning: trouble reading %s, skipping" % file
+                print("Warning: trouble reading %s, skipping" % file, file=self.log)
 
         return (distId, pkgroot)
             
@@ -773,7 +769,7 @@ class Repositories(object):
             try:
                 server.system(cmd)
             except OSError as e:
-                print >> self.log, e
+                print(e, file=self.log)
 
 
         if not os.path.exists(tablefile):
@@ -872,7 +868,7 @@ class Repositories(object):
         if os.path.exists(buildDir):
             if force or (productRoot and utils.commonpath([productRoot, buildDir]) == productRoot):
                 if self.verbose > 1: 
-                    print >> self.log, "removing", buildDir
+                    print("removing", buildDir, file=self.log)
                 rmCmd = "rm -rf %s" % buildDir
                 try:
                     server.system(rmCmd, verbosity=-1, log=self.log)
@@ -881,11 +877,11 @@ class Repositories(object):
                     try:
                         server.system(rmCmd, verbosity=self.verbose-1, log=self.log)
                     except OSError as e:
-                        print >> self.log, "Error removing %s; Continuing" % (buildDir)
+                        print("Error removing %s; Continuing" % (buildDir), file=self.log)
 
             elif self.verbose > 0:
-                print >> self.log, "%s: not under root (%s); won't delete unless forced (use --force)" % \
-                      (buildDir, productRoot)
+                print("%s: not under root (%s); won't delete unless forced (use --force)" % \
+                      (buildDir, productRoot), file=self.log)
 
 
     def clean(self, product, version, flavor=None, options=None, 
@@ -917,7 +913,7 @@ class Repositories(object):
             if not os.path.exists(buildDir):
                 msg += "; not found"
 
-            print >> self.log, msg
+            print(msg, file=self.log)
 
         if os.path.exists(buildDir):
             distidfile = os.path.join(buildDir, "distID.txt")
@@ -925,8 +921,8 @@ class Repositories(object):
                 (distId, pkgroot) = self._readDistIDFile(distidfile)
                 if distId and pkgroot:
                     if self.verbose > 1:
-                        print >> self.log, "Attempting distClean for", \
-                            "build directory via ", distId
+                        print("Attempting distClean for", \
+                            "build directory via ", distId, file=self.log)
                     self.distribClean(product, version, pkgroot, distId, flavor)
 
             self.cleanBuildDirFor(productRoot, product, version, options, 
@@ -938,8 +934,8 @@ class Repositories(object):
                 installDir = os.path.join(productRoot, flavor, product, version)
 
             if self.verbose > 1:
-                print >> self.log, "Looking for a partially installed package:",\
-                    product, version
+                print("Looking for a partially installed package:",\
+                    product, version, file=self.log)
 
             if os.path.isdir(installDir):
                 distidfile = os.path.join(installDir, "ups", "distID.txt")
@@ -947,8 +943,8 @@ class Repositories(object):
                     (pkgroot, distId) = self._readDistIDFile(distidfile)
                     if distId:
                         if self.verbose > 1:
-                            print >> self.log, "Attempting distClean for", \
-                                "installation directory via ", distId
+                            print("Attempting distClean for", \
+                                "installation directory via ", distId, file=self.log)
                         self.distribClean(product,version,pkgroot,distId,flavor)
                 
                 # make sure this directory is not declared for any product
@@ -957,21 +953,21 @@ class Repositories(object):
                   if not installDir.startswith(productRoot) and \
                      not self.eups.force:
                       if self.verbose >= 0:
-                          print >> self.log, "Too scared to delete product dir",\
-                              "that's not under the product root:", installDir
+                          print("Too scared to delete product dir",\
+                              "that's not under the product root:", installDir, file=self.log)
 
                   else:
                     if self.verbose > 0:
-                        print >> self.log, "Removing installation dir:", \
-                            installDir
+                        print("Removing installation dir:", \
+                            installDir, file=self.log)
                     if utils.isDbWritable(installDir):
                         try:
                             server.system("/bin/rm -rf %s" % installDir)
                         except OSError as e:
-                            print >> self.log, "Error removing %s; Continuing" % (installDir)
+                            print("Error removing %s; Continuing" % (installDir), file=self.log)
 
                     elif self.verbose >= 0:
-                        print >> self.log, "No permission on install dir %s" % (installDir)
+                        print("No permission on install dir %s" % (installDir), file=self.log)
                         
         # now see what's been installed
         if uninstall and flavor == self.eups.flavor:
@@ -989,7 +985,7 @@ class Repositories(object):
 
                 # now remove the package
                 if self.verbose >= 0:
-                    print >> self.log, "Uninstalling", product, version
+                    print("Uninstalling", product, version, file=self.log)
                 self.eups.remove(product, version, False)
 
 

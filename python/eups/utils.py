@@ -1,6 +1,7 @@
 """
 Utility functions used across EUPS classes.
 """
+from __future__ import print_function
 import time, os, sys, glob, re, shutil, tempfile, pwd
 from cStringIO import StringIO
 
@@ -20,15 +21,15 @@ def getUserName(full=False):
             True: re.sub(r",.*", "", pw[4])
             }
     except KeyError:
-        print >> stdwarn, "Warning: getpwuid failed, guessing username from LOGNAME or USER variable"
+        print("Warning: getpwuid failed, guessing username from LOGNAME or USER variable", file=stdwarn)
         key = None 
         if 'LOGNAME' in os.environ:
             key = 'LOGNAME'
         elif 'USER' in os.environ:
-            print >> stdwarn, "Warning: LOGNAME variable undefined, trying USER"
+            print("Warning: LOGNAME variable undefined, trying USER", file=stdwarn)
             key = 'USER'    
         if key is None:
-            print >> stdwarn, "Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'"
+            print("Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'", file=stdwarn)
             getUserName.who = dict(zip([False,True],['(unkwnown user)']*2))
         else:
             getUserName.who = dict(zip([False,True],[os.environ[key]]*2))
@@ -82,15 +83,14 @@ def version():
             version = open(dot_version).readline().strip()
         else:
             version = "unknown"
-            print >> stderr, \
-                "Cannot guess version without .git directory or git.version file; version will be set to \"%s\"" % version
+            print("Cannot guess version without .git directory or git.version file; version will be set to \"%s\"" % version, file=stderr)
         return version
 
     version = os.popen("(cd %s; git describe --tags --always)" % eups_dir).readline().strip()
 
     status = os.popen("(cd %s; git status --porcelain --untracked-files=no)" % eups_dir).readline()
     if status.strip():
-        print >> stdwarn, "Warning: EUPS source has uncommitted changes (you are using an undefined eups version)"
+        print("Warning: EUPS source has uncommitted changes (you are using an undefined eups version)", file=stdwarn)
         version += "M"
 
     return version
@@ -100,13 +100,13 @@ def debug(*args, **kwargs):
     Print args to stderr; useful while debugging as we source the stdout 
     when setting up.  Specify eol=False to suppress newline"""
 
-    print >> stdinfo, "Debug:", # make sure that this routine is only used for debugging
+    print("Debug:", end=' ', file=stdinfo) # make sure that this routine is only used for debugging
     
     for a in args:
-        print >> stdinfo, a,
+        print(a, end=' ', file=stdinfo)
 
     if kwargs.get("eol", True):
-        print >> stdinfo
+        print(file=stdinfo)
 
 def deprecated(msg, quiet=False, strm=None):
     """
@@ -119,7 +119,7 @@ def deprecated(msg, quiet=False, strm=None):
     # Note quiet as bool converts transparently to int (0 or 1)
     if quiet < 0:  quiet = 0
     if not quiet:
-        print >> stdinfo, "Warning:", msg
+        print("Warning:", msg, file=stdinfo)
 
 def dirEnvNameFor(productName):
     """
@@ -569,12 +569,12 @@ class Color(object):
                             Color("foo", val[k]) # check if colour's valid
                             Color.classes[k] = val[k]
                         except RuntimeError as e:
-                            print >> stderr, "Setting colour for %s: %s" % (k, e)
+                            print("Setting colour for %s: %s" % (k, e), file=stderr)
                     else:
                         unknown.append(k)
 
                 if unknown:
-                    print >> stderr, "Unknown colourizing class found in hooks: %s" % " ".join(unknown)
+                    print("Unknown colourizing class found in hooks: %s" % " ".join(unknown), file=stderr)
 
         return Color._colorize
 
@@ -749,7 +749,7 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
                 s = ""
             else:
                 s = "s"
-            print >> stdwarn, "Detected cycle%s: %s" % (s, msg)
+            print("Detected cycle%s: %s" % (s, msg), file=stdwarn)
             
         if checkCycles:
             raise RuntimeError("".join(msg))
@@ -892,4 +892,4 @@ if __name__ == "__main__":
         'synopsys':         set(),
         }
     data["dware"].add("dw03")
-    print "\n".join([str(e) for e in topologicalSort(data, True)])
+    print("\n".join([str(e) for e in topologicalSort(data, True)]))

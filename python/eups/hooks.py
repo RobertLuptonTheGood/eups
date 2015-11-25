@@ -1,6 +1,7 @@
 """
 Module that enables user configuration and hooks.  
 """
+from __future__ import print_function
 import os, sys, re
 import utils
 import eups
@@ -116,7 +117,7 @@ def loadCustomizationFromDir(customDir, verbose=0, log=utils.stdinfo, execute=Fa
     else:
         if execute:
             if verbose > 2:
-                print >> log, "sourcing", startup
+                print("sourcing", startup, file=log)
             execute_file(startup)
 
         configFiles.append(startup)
@@ -213,7 +214,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
         for startupFile in os.environ["EUPS_STARTUP"].split(':'):
             if not os.path.exists(startupFile):
                 if not quiet:
-                    print "Startup file %s doesn't exist" % (startupFile)
+                    print("Startup file %s doesn't exist" % (startupFile))
             else:
                 try:
                     if execute: 
@@ -225,7 +226,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
                     if False:           # we have no recourse if we break this file; so proceed
                         raise eups.exceptions.CustomizationError(msg)
                     else:
-                        print >> log, msg
+                        print(msg, file=log)
 
     return customisationFiles
 
@@ -253,7 +254,7 @@ def execute_file(startupFile):
         d, keys0 = v
         for k in d.keys():
             if k not in keys0:
-                print >> utils.stdwarn, "Found unknown key %s in dictionary %s in %s" % (k, dname, startupFile)
+                print("Found unknown key %s in dictionary %s in %s" % (k, dname, startupFile), file=utils.stdwarn)
 
 commre = re.compile(r'\s*#.*$')
 namevalre = re.compile(r'\s*([:=]|\+=)\s*')
@@ -273,7 +274,7 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
             parts = namevalre.split(line, 1)
             if len(parts) != 3:
                 if verbose >= 0 and maxerr > 0:
-                    print >> log, "Bad property syntax (ignoring):", line
+                    print("Bad property syntax (ignoring):", line, file=log)
                     maxerr -= 1
                 continue
             name, op, val = parts
@@ -289,8 +290,8 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
                 nxt = parts.pop(0)
                 if not hasattr(attr, nxt):
                     if verbose >= 0:
-                        print >> log, "Skipping unrecognised category \"%s\" at %s:%d" % \
-                              (name, configFile, lineno)
+                        print("Skipping unrecognised category \"%s\" at %s:%d" % \
+                              (name, configFile, lineno), file=log)
                     break
                 attr = getattr(attr, nxt)
 
@@ -302,8 +303,8 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
                 setattr(attr, parts[0], val)
             except AttributeError as e:
                 if verbose >= 0:
-                   print >> log, "Skipping unknown property \"%s\" at %s:%d" % \
-                         (parts[0], configFile, lineno)
+                   print("Skipping unknown property \"%s\" at %s:%d" % \
+                         (parts[0], configFile, lineno), file=log)
 
     finally:
         fd.close()

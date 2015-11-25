@@ -4,6 +4,7 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for Pacman
 #
+from __future__ import print_function
 import sys, os, re, atexit, shutil
 import eups
 import Distrib as eupsDistrib
@@ -67,17 +68,17 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         if forserver:
             if not self.options.has_key('pacmanCache'):
-                print >> self.log, "Option 'pacmanCache' not set"
+                print("Option 'pacmanCache' not set", file=self.log)
                 return False
 
             msg = "Illegal value for Option 'pacmanCache': "
             if not isinstance(self.options['pacmanCache'], str):
-                print >> self.log, msg + self.options['pacmanCache']
+                print(msg + self.options['pacmanCache'], file=self.log)
                 return False
 
             self.options['pacmanCache'] = self.options['pacmanCache'].strip()
             if len(self.options['pacmanCache']) == 0:
-                print >> self.log, msg + self.options['pacmanCache']
+                print(msg + self.options['pacmanCache'], file=self.log)
                 return False
 
         return True
@@ -189,8 +190,8 @@ class Distrib(eupsDistrib.DefaultDistrib):
                              setups=None):
         if not os.path.exists(os.path.join(pacmanDir, "o..pacman..o")) and \
                 self.verbose >= 0:
-            print >> self.log, "Warning: Pacman database directory,", \
-                "o..pacman..o, not found in", pacmanDir
+            print("Warning: Pacman database directory,", \
+                "o..pacman..o, not found in", pacmanDir, file=self.log)
 
         try:
             eupsServer.system("""cd %s && pacman -allow urllib2 -install "%s" """ % \
@@ -233,8 +234,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                               self.Eups.noaction, self.verbose, self.log)
         else:
             if self.verbose >= 0:
-                print >> self.log, \
-                    "Warning: pacman database not found under", pacmanDir
+                print("Warning: pacman database not found under", pacmanDir, file=self.log)
             return False
         
         return True

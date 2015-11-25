@@ -2,6 +2,7 @@
 the Repository class -- An interface into a distribution server for 
 installing and deploying distribution packages.
 """
+from __future__ import print_function
 import sys, os, re, atexit, shutil
 import eups
 import server 
@@ -217,8 +218,7 @@ class Repository(object):
             if isinstance(vers, Tag) and not vers.isPseudo() and \
                    vers.name not in supportedTags:
                 if self.verbose > 0:
-                    print >> self.log, \
-                        "Tag %s not supported at %s" % (vers.name, self.pkgroot)
+                    print("Tag %s not supported at %s" % (vers.name, self.pkgroot), file=self.log)
                 continue
 
             for flavor in prefFlavors:
@@ -531,13 +531,13 @@ class Repository(object):
                 if distrib.packageCreated(self.pkgroot, dp.product, dp.version, flavor):
                     if not self.eups.force:
                         if self.verbose > 0:
-                            print >> self.log, "Dependency %s %s is already deployed; skipping" % \
-                                  (dp.product, dp.version)
+                            print("Dependency %s %s is already deployed; skipping" % \
+                                  (dp.product, dp.version), file=self.log)
                         created[pver] = dp
                         continue
 
                     elif self.verbose > 0:
-                        print >> self.log, "Overwriting existing dependency,", dp.product, dp.version
+                        print("Overwriting existing dependency,", dp.product, dp.version, file=self.log)
                         
             #
             # Check if this product is available elsewhere
@@ -612,10 +612,9 @@ class Repository(object):
                 raise EupsException("Can't over-write existing tagged release "+
                                     "without --force")
             elif self.verbose > 0:
-                print >> self.log, \
-                    "Over-writing existing tagged release for", tag
+                print("Over-writing existing tagged release for", tag, file=self.log)
         elif self.verbose > 0:
-            print >> self.log, "Creating new tagged release for", tag
+            print("Creating new tagged release for", tag, file=self.log)
 
         if not flavor:  flavor = "generic"
 
@@ -674,7 +673,7 @@ class Repository(object):
         pl = distrib.getTaggedRelease(self.pkgroot, tag, flavor)
         if pl is None:
             if self.verbose > 0:
-                print >> self.log, "Creating new tagged release for", tag
+                print("Creating new tagged release for", tag, file=self.log)
             pl = TaggedProductList(tag, flavor)
 
         pl.addProduct(product, version, flavor)

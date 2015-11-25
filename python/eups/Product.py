@@ -1,4 +1,5 @@
 # from Table import *
+from __future__ import print_function
 import os, re, sys
 import cPickle
 import ConfigParser
@@ -51,7 +52,7 @@ class Product(object):
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
                  tags=None, db=None, noInit=None, ups_dir=None):
         if (name and not isinstance(name, str)) or isinstance(dir,bool) or noInit is not None:
-            print >> utils.stdwarn, "Note: detected use of deprecated API; use Eups.getProduct() instead."
+            print("Note: detected use of deprecated API; use Eups.getProduct() instead.", file=utils.stdwarn)
             name = version
             version = flavor
             if not version:

@@ -31,6 +31,7 @@ The output of run() is a status code appropriate for passing to sys.exit().
 #
 ########################################################################
 
+from __future__ import print_function
 import glob, re, os, shutil, sys, time, copy
 import optparse
 import eups, lock
@@ -240,7 +241,7 @@ Common"""
         return self.execute()
 
     def printVersion(self, strm=sys.stderr):
-        print >> strm, "EUPS Version:", eups.version()
+        print("EUPS Version:", eups.version(), file=strm)
         return 0
 
     def _issubclass(self):
@@ -256,7 +257,7 @@ Common"""
             self._errstrm.write(self.prog)
             if self.cmd:
                 self._errstrm.write(" %s" % self.cmd)
-            print >> self._errstrm, ": %s" % msg
+            print(": %s" % msg, file=self._errstrm)
 
     def deprecated(self, msg, volume=1):
         """
@@ -378,7 +379,7 @@ class CommandCallbacks(object):
 
     def list(self):
         for hook in CommandCallbacks.callbacks:
-            print >> sys.stderr, hook
+            print(hook, file=sys.stderr)
 
 try:
     type(commandCallbacks)
@@ -411,7 +412,7 @@ is specified, the given flavor will be returned.
         if not self.opts.quiet:
             if not self.opts.flavor:
                 self.opts.flavor = eups.flavor()
-            print self.opts.flavor
+            print(self.opts.flavor)
         return 0
 
 class ListCmd(EupsCmd):
@@ -492,7 +493,7 @@ will also be printed.
 
         if not self.opts.quiet and \
            self.opts.depth and not self.opts.depends:
-            print >> utils.stdwarn, "Ignoring --depth as it only makes sense with --dependencies"
+            print("Ignoring --depth as it only makes sense with --dependencies", file=utils.stdwarn)
 
         try:
             n = eups.printProducts(sys.stdout, product, version, 
@@ -540,9 +541,9 @@ class FlagsCmd(EupsCmd):
     def execute(self):
         if not self.opts.quiet:
             try: 
-                print "EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"])
+                print("EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"]))
             except KeyError:
-                print "You have no EUPS_FLAGS set" 
+                print("You have no EUPS_FLAGS set") 
         return 0
 
 class EnvListCmd(EupsCmd):
@@ -573,7 +574,7 @@ class EnvListCmd(EupsCmd):
                 return 2
 
         for e in elems:
-            print e
+            print(e)
         return 0
 
     def execute(self):
@@ -635,7 +636,7 @@ that would be loaded [in brackets].
             if not self.opts.verbose and os.stat(f).st_size == 0:
                 continue
 
-            print "%-40s" % f
+            print("%-40s" % f)
 
 class PkgrootCmd(EnvListCmd):
 
@@ -699,7 +700,7 @@ class PkgconfigCmd(EupsCmd):
 
         if len(self.args) < 1:
             self.err("please specify at least a product name")
-            print >> self._errstrm, self.clo.get_usage()
+            print(self.clo.get_usage(), file=self._errstrm)
             return 2
 
         productName = self.args[0]
@@ -751,7 +752,7 @@ class PkgconfigCmd(EupsCmd):
 
         if pcfile:
             if Eups.verbose:
-                print >> self._errstrm, "Reading %s" % pcfile
+                print("Reading %s" % pcfile, file=self._errstrm)
 
             # Time to actually read and process the file.
             symbols = {}
@@ -787,7 +788,7 @@ class PkgconfigCmd(EupsCmd):
 
                     value = re.sub(r"\$\$", r"$", value)
 
-                    print value
+                    print(value)
                     break
         else:
             self.err("I am unable to find a .pc file for %s" % productName)
@@ -936,7 +937,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
         if outdir:
             outfile = os.path.join(outdir, os.path.basename(inFile))
             if Eups.verbose:
-                print "Writing to %s" % outfile
+                print("Writing to %s" % outfile)
 
             try:
                 ofd = open(outfile, "w")
@@ -1079,7 +1080,7 @@ For example, the make target in a ups directory might contain the line:
         if outdir:
             outfile = os.path.join(outdir, os.path.basename(inFile))
             if myeups.verbose:
-                print "Writing to %s" % outfile
+                print("Writing to %s" % outfile)
 
             try:
                 ofd = open(outfile, "w")
@@ -1268,26 +1269,25 @@ only wish to assign a tag, you should use the -t option but not include
                     return 4
 
         if self.opts.verbose:
-            print >> utils.stdinfo, "Declaring %s %s" % (product, version)
+            print("Declaring %s %s" % (product, version), file=utils.stdinfo)
 
         for f0 in self.opts.externalFileList:
             if f0 == "-":
-                print >> _errstrm, \
-                    "eups declare --import-file does not interpret \"-\" as stdin; ask RHL nicely"
+                print("eups declare --import-file does not interpret \"-\" as stdin; ask RHL nicely", file=_errstrm)
                 return 4
 
             f = f0.split(":")
             fileNameIn = f.pop(0)
 
             if not os.path.exists(fileNameIn):
-                print >> _errstrm, "File %s does not exist" % fileNameIn
+                print("File %s does not exist" % fileNameIn, file=_errstrm)
                 return 4
 
             dirName, fileName = "", None
             if f:
                 arg = f.pop(0)
                 if f:
-                    print >> utils.stdwarn, "Unexpected trailing text on %s: %s" % (f, ":".join(f))
+                    print("Unexpected trailing text on %s: %s" % (f, ":".join(f)), file=utils.stdwarn)
 
                 if re.search("/", arg):
                     dirName, fileName = os.path.split(arg)
@@ -1481,7 +1481,7 @@ where it is installed.
 
             for prod in myeups.findProducts(None, None, [tag]):
                 if self.opts.verbose:
-                    print >> sys.stderr, "Untagging %s %s" % (prod.name, prod.version)
+                    print("Untagging %s %s" % (prod.name, prod.version), file=sys.stderr)
 
                 myeups.unassignTag(tag, prod.name, prod.version)
 
@@ -1528,7 +1528,7 @@ that are writable by the user.
     def execute(self):
         if len(self.args) < 1:
             self.err("Please specify an admin subcommand")
-            print >> self._errstrm, self.clo.get_usage()
+            print(self.clo.get_usage(), file=self._errstrm)
             return 2
         subcmd = self.args[0]
 
@@ -1778,7 +1778,7 @@ class AdminInfoCmd(EupsCmd):
                 vfile = db._findVersionFile(productName, versionName)
                 
             if vfile:
-                print vfile
+                print(vfile)
                 return 0
 
         if tag:
@@ -1824,7 +1824,7 @@ class AdminShowCmd(EupsCmd):
         what = self.args[0]
 
         if what == "python":
-            print sys.executable
+            print(sys.executable)
             return 0
         else:
             msg = "I don't know anything about \"%s\"" % (what)
@@ -1904,7 +1904,7 @@ Common """
     def execute(self):
         if len(self.args) < 1:
             self.err("Please specify a distrib subcommand")
-            print >> self._errstrm, self.clo.get_usage()
+            print(self.clo.get_usage(), file=self._errstrm)
             return 2
         subcmd = self.args[0]
 
@@ -2096,16 +2096,16 @@ class DistribListCmd(EupsCmd):
         for pkgroot, pkgs in data:
             if len(pkgs) > 0:
                 if len(data) > 1:
-                    print "Available products from %s server: %s" % \
-                        (primary, pkgroot)
+                    print("Available products from %s server: %s" % \
+                        (primary, pkgroot))
                 for (name, ver, flav) in pkgs:
-                    print "%s%-20s %-10s %s" % (indent, name, flav, ver)
+                    print("%s%-20s %-10s %s" % (indent, name, flav, ver))
                     if self.opts.verbose:
                         man = repos.repos[pkgroot].getManifest(name, ver, flav)
                         for dep in man.getProducts():
-                            print "%s  %-18s %-10s %s" % (indent, dep.product, dep.version, dep.flavor)
+                            print("%s  %-18s %-10s %s" % (indent, dep.product, dep.version, dep.flavor))
             else:
-                print "No matching products available from %s server (%s)" % (primary, pkgroot)
+                print("No matching products available from %s server (%s)" % (primary, pkgroot))
 
             primary = "secondary"
 
@@ -2198,7 +2198,7 @@ tag will be installed.
 
         if len(self.args) < 1:
            self.err("please specify at least a product name")
-           print >> self._errstrm, self.clo.get_usage()
+           print(self.clo.get_usage(), file=self._errstrm)
            return 5
 
         productName = self.args[0]
@@ -2501,7 +2501,7 @@ class DistribCreateCmd(EupsCmd):
                                    (productName, inVersion, oldVersions))
 
         if self.opts.verbose:
-            print "Incremented build version name for %s: %s --> %s" % (productName, inVersion, outVersion)
+            print("Incremented build version name for %s: %s --> %s" % (productName, inVersion, outVersion))
 
         return outVersion
 
@@ -2667,7 +2667,7 @@ class DistribCreateCmd(EupsCmd):
                     pass
                 if doRebuild:
                     if self.opts.verbose:
-                        print "Creating rebuild version %s %s" % (p.name, mapping.apply(p.name, p.version)[1])
+                        print("Creating rebuild version %s %s" % (p.name, mapping.apply(p.name, p.version)[1]))
                     mapping.add(inProduct=p.name, inVersion=p.version,
                                 outVersion=self.incrBuildVersion(myeups, p.name, p.version))
 
@@ -2683,13 +2683,13 @@ class DistribCreateCmd(EupsCmd):
             dopts["rebuildMapping"] = mapping
 
             if not self.opts.quiet:
-                print "Creating distribution for %s %s (not %s)" % (productName,
+                print("Creating distribution for %s %s (not %s)" % (productName,
                                                                     mapping.apply(productName, version)[1],
-                                                                    version)
-                print "Don't forget to install this distribution to pick up the rebuild versions!"
+                                                                    version))
+                print("Don't forget to install this distribution to pick up the rebuild versions!")
 
         if myeups.noaction:
-            print "Skipping repository and server creation."
+            print("Skipping repository and server creation.")
         else:
             log = None
             if self.opts.quiet:
@@ -2779,7 +2779,7 @@ class TagsCmd(EupsCmd):
             failedToTag = tags.cloneTag(myeups, newTag, oldTag, productList)
 
             if failedToTag:
-                print >> utils.stdwarn, "Failed to clone tag %s for %s" % (oldTag, ", ".join(failedToTag))
+                print("Failed to clone tag %s for %s" % (oldTag, ", ".join(failedToTag)), file=utils.stdwarn)
             return 0
         elif self.opts.delete:
             if self.args:
@@ -2825,7 +2825,7 @@ class TagsCmd(EupsCmd):
             sep = " "
         else:
             sep = "\n"
-        print sep.join(tagNames)
+        print(sep.join(tagNames))
 
         return 0
 
@@ -2903,7 +2903,7 @@ same arguments.
         if isUserTag:
             myeups.includeUserDataDirInPath()
             
-        print " ".join(myeups.getVRO())
+        print(" ".join(myeups.getVRO()))
 
         return 0
 

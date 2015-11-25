@@ -3,6 +3,7 @@
 Tests for eups
 """
 
+from __future__ import print_function
 import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
@@ -151,7 +152,7 @@ class versionOrdering(unittest.TestCase):
 
             if result != expected:
                 nbad += 1
-                print >> sys.stderr, "%-10s %2s %-10s (expected %2s)" % (vname, result, v, expected)
+                print("%-10s %2s %-10s (expected %2s)" % (vname, result, v, expected), file=sys.stderr)
 
         assert(nbad == 0)
 

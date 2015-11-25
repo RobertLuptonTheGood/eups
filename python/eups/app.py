@@ -2,6 +2,7 @@
 common high-level EUPS functions appropriate for calling from an application.
 """
 
+from __future__ import print_function
 import re, os, sys, time
 import cPickle
 from Eups           import Eups
@@ -144,7 +145,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 fmt = "%s|%s"
             else:
                 fmt = "%-40s %s"
-            print fmt % (product.name, product.version)
+            print(fmt % (product.name, product.version))
 
         for product, optional, recursionDepth in eupsenv.getDependentProducts(product, setup,
                                                                               topological=topological,
@@ -161,9 +162,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                         indent += "|" 
 
                 if raw:
-                    print "%s|%s" % (product.name, product.version)
+                    print("%s|%s" % (product.name, product.version))
                 else:
-                    print "%-40s %s" % (("%s%s" % (indent, product.name)), product.version)
+                    print("%-40s %s" % (("%s%s" % (indent, product.name)), product.version))
 
         return 1
     #
@@ -280,7 +281,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
         if info:
             if info != oinfo: 
-                print info 
+                print(info) 
                 oinfo = info
 
     return nprod
@@ -335,7 +336,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     else:
         fmt2 = " %-15s"
         str += fmt2 % ("%s version" % productName)
-    print >> outstrm, str
+    print(str, file=outstrm)
 
     for (p, pv, requestedInfo) in userList:
         if requestedInfo.optional and not showOptional:
@@ -349,7 +350,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
             if requestedInfo.optional:
                 str += "Optional"
 
-        print >> outstrm, str
+        print(str, file=outstrm)
 
 def getDependencies(productName, versionName=None, eupsenv=None, setup=False, shouldRaise=False,
                     followExact=None, topological=False):
@@ -563,7 +564,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
             persistDir = utils.userStackCacheFor(p, userDataDir)
 
         if not os.path.exists(persistDir):
-            print >> utils.stdwarn, "No cache yet for %s; skipping..." % p
+            print("No cache yet for %s; skipping..." % p, file=utils.stdwarn)
             continue
 
         flavs = flavors
@@ -600,8 +601,8 @@ def listCache(path=None, verbose=0, flavor=None):
         if verbose:
             colon = ":"
 
-        print "%-30s (%-3d products) [cache verison %s]%s" % \
-            (p, len(productNames), cacheVersion, colon)
+        print("%-30s (%-3d products) [cache verison %s]%s" % \
+            (p, len(productNames), cacheVersion, colon))
 
         if not verbose:
             continue
@@ -610,7 +611,7 @@ def listCache(path=None, verbose=0, flavor=None):
             versionNames = cache.getVersions(productName)
             versionNames.sort(hooks.version_cmp)
 
-            print "  %-20s %s" % (productName, " ".join(versionNames))
+            print("  %-20s %s" % (productName, " ".join(versionNames)))
 
 def Current():
     """
@@ -708,8 +709,8 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                 elif productRoot:       # they asked for a particular directory
                     pass
                 else:
-                    print >> utils.stderr, "Requested version tagged %s == \"%s\"; got version \"%s\"" % \
-                          (",".join(prefTags + postTags), taggedVersion.version, version)
+                    print("Requested version tagged %s == \"%s\"; got version \"%s\"" % \
+                          (",".join(prefTags + postTags), taggedVersion.version, version), file=utils.stderr)
             else:
                 if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
                     if (fwd and eupsenv.verbose >= 0) or (not fwd and eupsenv.verbose > 0):
@@ -717,8 +718,8 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                         if os.path.isfile((prefTags + postTags)[0]):
                             extra = " in"
 
-                        print >> utils.stdwarn, "No versions of %s are tagged%s %s; setup version is %s" % \
-                              (productName, extra, ",".join(prefTags + postTags), version)
+                        print("No versions of %s are tagged%s %s; setup version is %s" % \
+                              (productName, extra, ",".join(prefTags + postTags), version), file=utils.stdwarn)
 
         #
         # Set new variables
@@ -817,10 +818,9 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
             cmds += [cmd]
     elif fwd and version is None:
-        print >> utils.stderr, \
-            "Unable to find an acceptable version of", productName
+        print("Unable to find an acceptable version of", productName, file=utils.stderr)
         if eupsenv.verbose and os.path.exists(productName):
-            print >> utils.stderr, "(Did you mean setup -r %s?)" % productName
+            print("(Did you mean setup -r %s?)" % productName, file=utils.stderr)
         cmds += ["false"]               # as in /bin/false
     else:
         if fwd:
@@ -832,9 +832,9 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             if versionName:
                 versionName = " " + versionName
         
-            print >> utils.stderr, "Failed to setup %s%s: %s" % (productName, versionName, reason)
+            print("Failed to setup %s%s: %s" % (productName, versionName, reason), file=utils.stderr)
         else:
-            print >> utils.stderr, "Failed to unsetup %s: %s" % (productName, reason)
+            print("Failed to unsetup %s: %s" % (productName, reason), file=utils.stderr)
 
         cmds += ["false"]               # as in /bin/false
 

@@ -3,6 +3,7 @@
 Tests for eups.Eups
 """
 
+from __future__ import print_function
 import os
 import sys
 import shutil
@@ -206,7 +207,7 @@ class EupsTestCase(unittest.TestCase):
         prod = self.eups.getProduct("python", "2.6")
         self.assert_(prod is not None, "Failed to find python 2.6")
         if "beta" in prod.tags:
-            print >> sys.stderr, "Warning: python 2.6 is already tagged beta"
+            print("Warning: python 2.6 is already tagged beta", file=sys.stderr)
         self.eups.assignTag("beta", "python", "2.6")
 
         self.assert_(os.path.exists(self.betachain),
