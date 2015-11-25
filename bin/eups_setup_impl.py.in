@@ -2,6 +2,7 @@
 #
 # The EUPS setup programme
 #
+from __future__ import print_function
 import sys, os, re
 import eups.utils as utils
 
@@ -51,11 +52,10 @@ try:
             import profile
         profile.run("status = setup.run()", eups.Eups.profile)
         if verbosity > 0:
-            print >> utils.stdinfo, \
-                "You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile
+            print("You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile, file==utils.stdinfo)
     else:
         status = setup.run()
-except Exception, e:
+except Exception as e:
     if eups.Eups.allowRaise:
         raise
 
