@@ -944,6 +944,7 @@ class WebTransporter(Transporter):
         """return True if this source location is recognized as one that 
         can be handled by this Transporter class"""
         return bool(re.search(r'^http://', source)) or \
+               bool(re.search(r'^https://', source)) or \
                bool(re.search(r'^ftp://', source)) 
 
     canHandle = staticmethod(canHandle)  # should work as of python 2.2
