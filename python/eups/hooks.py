@@ -248,7 +248,7 @@ def execute_file(startupFile):
               ]:
         checkDictKeys[dname] = (d, d.keys())
 
-    execfile(startupFile, _globals, locals())
+    exec(compile(open(startupFile).read(), startupFile, 'exec'), _globals, locals())
 
     for dname, v  in checkDictKeys.items():
         d, keys0 = v

@@ -567,7 +567,7 @@ def getUserDefinedTags(user):
         setattr(myEups, c, [])
 
     try:
-        execfile(startupFile, myGlobals, myLocals)
+        exec(compile(open(startupFile).read(), startupFile, 'exec'), myGlobals, myLocals)
     except Exception as e:
         print("Error processing %s's startup file: %s" % (user, e), file=utils.stderr)
         return []
