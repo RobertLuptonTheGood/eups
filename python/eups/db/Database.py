@@ -1,6 +1,6 @@
 import os, sys, re
-from VersionFile import VersionFile
-from ChainFile import ChainFile
+from .VersionFile import VersionFile
+from .ChainFile import ChainFile
 from eups.utils import isRealFilename, isDbWritable
 import eups.tags
 from eups.Product import Product

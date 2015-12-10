@@ -5,13 +5,13 @@ installing and deploying distribution packages.
 from __future__ import print_function
 import sys, os, re, atexit, shutil
 import eups
-import server 
+from . import server 
 from eups.tags      import Tag, TagNotRecognized
 from eups.utils     import Flavor, Quiet, isDbWritable
-from server         import ServerConf, Manifest, Mapping, TaggedProductList
-from server         import RemoteFileNotFound, LocalTransporter
-from DistribFactory import DistribFactory
-from Distrib        import Distrib, DefaultDistrib, findInstallableRoot
+from .server         import ServerConf, Manifest, Mapping, TaggedProductList
+from .server         import RemoteFileNotFound, LocalTransporter
+from .DistribFactory import DistribFactory
+from .Distrib        import Distrib, DefaultDistrib, findInstallableRoot
 
 class Repository(object):
     """

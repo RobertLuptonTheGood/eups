@@ -1,8 +1,8 @@
 from __future__ import print_function
 import errno, glob, os, shutil, sys, time
 import re
-import hooks
-import utils
+from . import hooks
+from . import utils
 
 #
 # Types of locks

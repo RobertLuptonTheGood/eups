@@ -6,13 +6,13 @@
 #
 import sys, os, re, copy
 import eups
-import server as eupsServer
+from . import server as eupsServer
 
-from Distrib import Distrib
-import tarball
-import pacman
-import builder
-import eupspkg
+from .Distrib import Distrib
+from . import tarball
+from . import pacman
+from . import builder
+from . import eupspkg
 
 class DistribFactory:
     """a factory class for creating Distrib instances

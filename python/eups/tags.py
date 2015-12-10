@@ -1,7 +1,7 @@
 from __future__ import print_function
 import fnmatch, os, re, sys
-import hooks, utils
-from exceptions import EupsException
+from . import hooks, utils
+from .exceptions import EupsException
 
 who = utils.getUserName()
 

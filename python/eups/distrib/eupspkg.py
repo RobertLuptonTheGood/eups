@@ -673,8 +673,8 @@ r"""
 from __future__ import print_function
 import sys, os, shutil, tarfile, tempfile, pipes, stat
 import eups
-import Distrib as eupsDistrib
-import server as eupsServer
+from . import Distrib as eupsDistrib
+from . import server as eupsServer
 import eups.hooks
 
 

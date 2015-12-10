@@ -9,8 +9,8 @@ import sys, os, re, atexit, shutil
 import eups
 import eups.hooks as hooks
 import eups.table
-import server
-from server import RemoteFileNotFound, Manifest, TaggedProductList
+from . import server
+from .server import RemoteFileNotFound, Manifest, TaggedProductList
 from eups.VersionParser import VersionParser
 from eups.exceptions import EupsException
 

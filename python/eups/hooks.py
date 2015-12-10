@@ -3,10 +3,10 @@ Module that enables user configuration and hooks.
 """
 from __future__ import print_function
 import os, sys, re
-import utils
+from . import utils
 import eups
 import eups.exceptions
-from VersionCompare import VersionCompare
+from .VersionCompare import VersionCompare
 
 # the function to use to compare two version.  The user may reset this 
 # to provide a different algorithm.
@@ -233,7 +233,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
 def execute_file(startupFile):
     import eups
     from eups import hooks
-    from VersionCompare import VersionCompare    
+    from .VersionCompare import VersionCompare    
 
     _globals = {}
     for key in filter(lambda k: k.startswith('__'), globals().keys()):

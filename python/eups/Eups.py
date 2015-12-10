@@ -8,15 +8,15 @@ import fnmatch
 import tempfile
 import zlib
 
-import utils
-from stack      import ProductStack, CacheOutOfSync
-from db         import Database
-from tags       import Tags, Tag, TagNotRecognized
-from exceptions import ProductNotFound, EupsException, TableError, TableFileNotFound
-from table      import Table, Action
-from Product    import Product
-from Uses       import Uses
-import hooks
+from . import utils
+from .stack      import ProductStack, CacheOutOfSync
+from .db         import Database
+from .tags       import Tags, Tag, TagNotRecognized
+from .exceptions import ProductNotFound, EupsException, TableError, TableFileNotFound
+from .table      import Table, Action
+from .Product    import Product
+from .Uses       import Uses
+from . import hooks
 
 class Eups(object):
     """

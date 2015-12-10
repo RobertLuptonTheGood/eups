@@ -7,8 +7,8 @@
 from __future__ import print_function
 import sys, os, re, shutil
 import eups
-import Distrib as eupsDistrib
-import server as eupsServer
+from . import Distrib as eupsDistrib
+from . import server as eupsServer
 import eups.hooks
 
 class Distrib(eupsDistrib.DefaultDistrib):

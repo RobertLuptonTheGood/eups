@@ -34,12 +34,13 @@ The output of run() is a status code appropriate for passing to sys.exit().
 from __future__ import print_function
 import glob, re, os, shutil, sys, time, copy
 import optparse
-import eups, lock
-import tags
-import utils
-import distrib
-import hooks
-from distrib.server import ServerConf, Mapping, importClass
+import eups
+from . import lock
+from . import tags
+from . import utils
+from . import distrib
+from . import hooks
+from .distrib.server import ServerConf, Mapping, importClass
 
 _errstrm = utils.stderr
 

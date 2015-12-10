@@ -15,12 +15,12 @@ The output of run() is a status code appropriate for passing to sys.exit().
 """
 from __future__ import print_function
 import os, sys, glob, re
-from cmd import EupsOptionParser
-from exceptions import EupsException
+from .cmd import EupsOptionParser
+from .exceptions import EupsException
 import eups
-import lock
-import hooks
-import utils
+from . import lock
+from . import hooks
+from . import utils
 
 def append_current(option, opt_str, value, parser):
     """Add "current" to values.tag;  would use append_const but that's not in python 2.4"""

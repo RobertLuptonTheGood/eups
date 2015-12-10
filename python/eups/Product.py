@@ -3,9 +3,9 @@ from __future__ import print_function
 import os, re, sys
 import cPickle
 import ConfigParser
-import table as mod_table
-import utils
-from exceptions import ProductNotFound, TableFileNotFound
+from . import table as mod_table
+from . import utils
+from .exceptions import ProductNotFound, TableFileNotFound
 
 macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
             "PROD_DIR":  re.compile(r"^\$PROD_DIR\b"),

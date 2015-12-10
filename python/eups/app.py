@@ -5,15 +5,15 @@ common high-level EUPS functions appropriate for calling from an application.
 from __future__ import print_function
 import re, os, sys, time
 import cPickle
-from Eups           import Eups
-from exceptions     import ProductNotFound
-from tags           import Tags, Tag, TagNotRecognized, checkTagsList
-import Product
-from VersionParser  import VersionParser
-from stack          import ProductStack, persistVersionName as cacheVersion
-from distrib.server import ServerConf
-import utils, table, distrib.builder, hooks
-from exceptions import EupsException, TableFileNotFound
+from .Eups           import Eups
+from .exceptions     import ProductNotFound
+from .tags           import Tags, Tag, TagNotRecognized, checkTagsList
+from . import Product
+from .VersionParser  import VersionParser
+from .stack          import ProductStack, persistVersionName as cacheVersion
+from .distrib.server import ServerConf
+from . import utils, table, distrib.builder, hooks
+from .exceptions import EupsException, TableFileNotFound
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
@@ -935,6 +935,6 @@ def getSetupVersion(productName, eupsenv=None):
 
 def enableLocking(enableLocking=True):
     """Enable or disable the use of lock files"""
-    import lock
+    from . import lock
     lock.disableLocking = not enableLocking
     

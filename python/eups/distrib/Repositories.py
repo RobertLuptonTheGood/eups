@@ -6,15 +6,15 @@ from __future__ import print_function
 import sys, os, re, atexit, shutil
 
 import eups.utils as utils
-import server
+from . import server
 from eups           import Eups, Tag, Tags, TagNotRecognized
 from eups           import ProductNotFound, EupsException
-from Repository     import Repository 
+from .Repository     import Repository 
 from eups.utils     import Flavor, Quiet
-from Distrib        import findInstallableRoot
-from DistribFactory import DistribFactory
-from server         import ServerConf, Manifest, ServerError
-import server
+from .Distrib        import findInstallableRoot
+from .DistribFactory import DistribFactory
+from .server         import ServerConf, Manifest, ServerError
+from . import server
 import eups.hooks as hooks
 
 class Repositories(object):

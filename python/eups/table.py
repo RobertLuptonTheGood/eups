@@ -9,12 +9,12 @@ import os
 import re, sys
 
 import eups
-from exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
-import Product
-from tags       import TagNotRecognized
-from VersionParser import VersionParser
-import utils
-import hooks
+from .exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
+from . import Product
+from .tags       import TagNotRecognized
+from .VersionParser import VersionParser
+from . import utils
+from . import hooks
 
 class Table(object):
     """A class that represents a eups table file"""

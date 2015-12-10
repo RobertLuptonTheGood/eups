@@ -2,7 +2,7 @@ from __future__ import print_function
 import re, os, cPickle, sys
 from eups import utils
 from eups import Product
-from ProductFamily import ProductFamily
+from .ProductFamily import ProductFamily
 from eups.exceptions import EupsException,ProductNotFound, UnderSpecifiedProduct
 from eups.db import Database
 
