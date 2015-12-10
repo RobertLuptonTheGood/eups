@@ -4,7 +4,7 @@ common high-level EUPS functions appropriate for calling from an application.
 
 from __future__ import print_function
 import re, os, sys, time
-import cPickle
+import pickle
 from .Eups           import Eups
 from .exceptions     import ProductNotFound
 from .tags           import Tags, Tag, TagNotRecognized, checkTagsList
@@ -12,7 +12,8 @@ from . import Product
 from .VersionParser  import VersionParser
 from .stack          import ProductStack, persistVersionName as cacheVersion
 from .distrib.server import ServerConf
-from . import utils, table, distrib.builder, hooks
+from .distrib import builder
+from . import utils, table, hooks
 from .exceptions import EupsException, TableFileNotFound
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
