@@ -7,7 +7,11 @@ from __future__ import print_function
 import sys, os, re, atexit, shutil
 import fnmatch
 import tempfile
-import urllib2
+try:
+    from urllib2 import urlopen, HTTPError, URLError
+except ImportError:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError, URLError
 import eups
 import eups.hooks as hooks
 import eups.utils as utils
@@ -963,12 +967,12 @@ class WebTransporter(Transporter):
             out = None
             try:
                 try:                               # for python 2.4 compat
-                    url = urllib2.urlopen(self.loc)
+                    url = urllib.request.urlopen(self.loc)
                     out = open(filename, 'w')
                     out.write(url.read())
-                except urllib2.HTTPError:
+                except urllib.error.HTTPError:
                     raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-                except urllib2.URLError:
+                except urllib.error.URLError:
                     raise ServerNotResponding("Failed to contact URL %s" % self.loc)
                 except KeyboardInterrupt:
                     raise EupsException("^C")
@@ -1033,7 +1037,7 @@ class WebTransporter(Transporter):
         p = LinksParser()
         try:
           try:                               # for python 2.4 compat
-            url = urllib2.urlopen(self.loc)
+            url = urllib.request.urlopen(self.loc)
             for line in url:
                 p.feed(line)
 
@@ -1043,9 +1047,9 @@ class WebTransporter(Transporter):
 
             return p.files
 
-          except urllib2.HTTPError:
+          except urllib.error.HTTPError:
             raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-          except urllib2.URLError:
+          except urllib.error.URLError:
             raise ServerNotResponding("Failed to contact URL %s" % self.loc)
           except KeyboardInterrupt:
             raise EupsException("^C")
