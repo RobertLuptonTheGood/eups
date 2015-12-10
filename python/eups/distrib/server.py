@@ -1109,10 +1109,10 @@ class SshTransporter(Transporter):
             raise OSError("remote file has dangerous location name: " + self.loc)
 
         (remmach, dirName) = self.remfile.split(':', 1)
-	if dirName[-1] == "/":
-	    dirName = dirName[0:-1]
-	    
-	cmd = r"ssh %s '(cd %s; find * -prune -type f)'" % (remmach, dirName)
+        if dirName[-1] == "/":
+            dirName = dirName[0:-1]
+
+        cmd = r"ssh %s '(cd %s; find * -prune -type f)'" % (remmach, dirName)
 
         if self.verbose > 0:
             if noaction:
@@ -1125,7 +1125,7 @@ class SshTransporter(Transporter):
             pd = None
             try:
                 pd = os.popen(cmd)
-		pylist = [l.strip() for l in pd.readlines()]
+                pylist = [l.strip() for l in pd.readlines()]
             finally:
                 stat = pd.close()
             if stat is not None:

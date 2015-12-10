@@ -379,14 +379,14 @@ class Repositories(object):
         
         idstring = prodid(manifest.product, manifest.version, flavor)
 
-	if self.verbose >0:
+        if self.verbose >0:
             msg=None
             if depends == self.DEPS_NONE:
                 msg = "Skipping dependencies for {0} {1}".format(product, version)
             elif depends == self.DEPS_ONLY:
                 msg = ("Installing dependencies for {0} {1}, but not {0} itself"
                        .format(product, version))
-	    if msg is not None:
+            if msg is not None:
                 print(msg, file=self.log)
 
         products = manifest.getProducts()
@@ -648,26 +648,27 @@ class Repositories(object):
             self.clean(prod.product, prod.version, options=opts)
 
     def _updateServerTags(self, prod, stackRoot, flavor, installCurrent):
-	#
-	# We have to be careful.  If the first pkgroot doesn't choose to set a product current, we don't
-	# some later pkgroot to do it anyway
-	#
-	tags = []			# tags we want to set
-	processedTags = []		# tags we've already seen
-	if not installCurrent:
-	    processedTags.append("current") # pretend we've seen it, so we won't process it again
+        #
+        # We have to be careful.  If the first pkgroot doesn't choose to set a product current, we don't
+        # some later pkgroot to do it anyway
+        #
+        tags = []			# tags we want to set
+        processedTags = []		# tags we've already seen
+        if not installCurrent:
+            processedTags.append("current") # pretend we've seen it, so we won't process it again
 
-	for pkgroot in self.repos.keys():
-	    ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
-	    ptags = [t for t in ptags if t not in processedTags]
-	    tags += ptags
+        for pkgroot in self.repos.keys():
+            ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
+            ptags = [t for t in ptags if t not in processedTags]
+            tags += ptags
 
-	    processedTags += ptags
+            processedTags += ptags
 
-	    if ptags and self.verbose > 1:
-		print("Assigning Server Tags from %s to %s %s: %s" % (pkgroot,
-								    prod.product, prod.version, ", ".join(ptags)), file=self.log)
-	self.eups.supportServerTags(tags, stackRoot)
+            if ptags and self.verbose > 1:
+                print("Assigning Server Tags from %s to %s %s: %s" % (pkgroot,
+                        prod.product, prod.version, ", ".join(ptags)),
+                        file=self.log)
+        self.eups.supportServerTags(tags, stackRoot)
 
         if self.eups.noaction or not tags:
             return

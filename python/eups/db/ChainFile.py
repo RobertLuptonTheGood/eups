@@ -44,7 +44,7 @@ class ChainFile(object):
             except IOError as e:
                 # It's not an error if the file didn't exist
                 if e.errno != errno.ENOENT:
-	            raise
+                    raise
 
 
     def getFlavors(self):
@@ -146,7 +146,7 @@ class ChainFile(object):
         fd = open(file, "w")
 
         # Should really be "FILE = chain", but eups checks for version.  I've changed it to allow 
- 	# chain, but let's not break backward compatibility with old eups versions 
+        # chain, but let's not break backward compatibility with old eups versions 
         print("""FILE = version
 PRODUCT = %s
 CHAIN = %s
