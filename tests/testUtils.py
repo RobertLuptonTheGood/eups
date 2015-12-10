@@ -8,7 +8,7 @@ import os
 import sys
 import unittest
 import time
-import cStringIO
+import io
 from testCommon import testEupsStack
 
 from eups import utils
@@ -19,7 +19,7 @@ class UtilsTestCase(unittest.TestCase):
         pass
 
     def testConfigProperty(self):
-        err = cStringIO.StringIO()
+        err = io.StringIO()
 #        err = sys.stderr
         gen = utils.ConfigProperty("alpha beta gamma".split(), "gen", err)
         gen.beta = utils.ConfigProperty("delta epsilon".split(), "gen.beta",err)

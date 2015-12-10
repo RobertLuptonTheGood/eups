@@ -985,12 +985,15 @@ class WebTransporter(Transporter):
         if noaction:
             return []
 
-        import HTMLParser, urlparse
-        class LinksParser(HTMLParser.HTMLParser):
+        try:
+            from html.parser import HTMLParser
+        except ImportError:
+            from HTMLParser import HTMLParser
+        class LinksParser(HTMLParser):
             """Based on code in Martelli's "Python in a Nutshell" """
             def __init__(self):
 
-                HTMLParser.HTMLParser.__init__(self)
+                HTMLParser.__init__(self)
                 self.nrow = -1
                 # self.seen = set()
                 self.files = [] # files listed in table

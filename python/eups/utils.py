@@ -3,7 +3,7 @@ Utility functions used across EUPS classes.
 """
 from __future__ import print_function
 import time, os, sys, glob, re, shutil, tempfile, pwd
-from cStringIO import StringIO
+from io import StringIO
 
 def getUserName(full=False):
     """ Get the current username (or the full name)
@@ -454,8 +454,8 @@ def canPickle():
     cache product info.
     """
     try:
-        import cPickle
-        cPickle.dump(None, None, protocol=2)
+        import pickle
+        pickle.dump(None, None, protocol=2)
     except TypeError:
         return False
     except ImportError:

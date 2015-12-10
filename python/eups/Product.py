@@ -1,8 +1,11 @@
 # from Table import *
 from __future__ import print_function
 import os, re, sys
-import cPickle
-import ConfigParser
+import pickle
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser
 from . import table as mod_table
 from . import utils
 from .exceptions import ProductNotFound, TableFileNotFound
@@ -405,7 +408,7 @@ class Product(object):
         """Return the product's ConfigParser, which will be empty if the file doesn't exist"""
         
         cfgFile = os.path.join(self.dir, "ups", "%s.cfg" % self.name)
-        config = ConfigParser.ConfigParser({"filename" : cfgFile})
+        config = ConfigParser({"filename" : cfgFile})
         config.read(cfgFile)            # cfgFile need not exist
         #
         # Add default values
@@ -434,12 +437,12 @@ class Product(object):
     def persist(self, fd):
         out = (self.name, self.version, self.flavor, self.dir, self.tablefile,
                self.tags, self.db, self._table)
-        cPickle.dump(out, fd, protocol=2);
+        pickle.dump(out, fd, protocol=2);
 
     # @staticmethod   # requires python 2.4
     def unpersist(fd):
         """return a Product instance restored from a file persistence"""
-        p = cPickle.load(fd);
+        p = pickle.load(fd);
         out = Product(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
         out._table = p[7]
         return out

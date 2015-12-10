@@ -10,7 +10,7 @@ import time
 import unittest
 import testCommon
 from testCommon import testEupsStack
-from cStringIO import StringIO
+from io import StringIO
 
 # reroute the error stream defined in eups.util to newerr
 syserr = sys.stderr

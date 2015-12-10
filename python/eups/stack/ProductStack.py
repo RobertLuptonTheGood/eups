@@ -1,5 +1,5 @@
 from __future__ import print_function
-import re, os, cPickle, sys
+import re, os, pickle, sys
 from eups import utils
 from eups import Product
 from .ProductFamily import ProductFamily
@@ -296,7 +296,7 @@ class ProductStack(object):
         flavorData = self.lookup[flavor]
 
         fd = utils.AtomicFile(file, "w")
-        cPickle.dump(flavorData, fd)
+        pickle.dump(flavorData, fd)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
 
@@ -686,7 +686,7 @@ class ProductStack(object):
             fileName = self._persistPath(flavor,persistDir)
             self.modtimes[fileName] = os.stat(fileName).st_mtime
             fd = open(fileName)
-            lookup = cPickle.load(fd)
+            lookup = pickle.load(fd)
             fd.close()
 
             self.lookup[flavor] = lookup

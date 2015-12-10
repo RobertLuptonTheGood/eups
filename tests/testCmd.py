@@ -8,7 +8,7 @@ import sys
 import unittest
 import time
 import re, shutil
-import cStringIO as StringIO
+import io as StringIO
 import testCommon
 from testCommon import testEupsStack
 

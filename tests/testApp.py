@@ -10,7 +10,7 @@ import sys
 import shutil
 import unittest
 import time
-from cStringIO import StringIO
+from io import StringIO
 import testCommon
 from testCommon import testEupsStack
 
