@@ -80,7 +80,7 @@ class DistribFactory:
         """
         return True if a class is available by the given name
         """
-        return self.lookup.has_key(name)
+        return name in self.lookup
 
     def register(self, distribClass, name=None):
         """register a Distrib class.  An attempt to register an object that 

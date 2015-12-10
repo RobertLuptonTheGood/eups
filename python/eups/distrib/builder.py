@@ -46,22 +46,22 @@ class Distrib(eupsDistrib.DefaultDistrib):
         self._msgs = {}
 
         self.allowIncomplete = False
-        if self.options.has_key('allowIncomplete'):
+        if 'allowIncomplete' in self.options:
             self.allowIncomplete = self.options['allowIncomplete']
 
         self.buildFilePath = ""
-        if self.options.has_key('buildFilePath'):
+        if 'buildFilePath' in self.options:
             self.buildFilePath = self.options['buildFilePath']
 
         self.nobuild = self.options.get("nobuild", False)
         self.noclean = self.options.get("noclean", False)
 
         self.svnroot = ""
-        if self.options.has_key('svnroot'):
+        if 'svnroot' in self.options:
             self.svnroot = self.options['svnroot']
 
         self.cvsroot = ""
-        if self.options.has_key('cvsroot'):
+        if 'cvsroot' in self.options:
             self.cvsroot = self.options['cvsroot']
 
         
@@ -203,7 +203,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     msg += "\n" + "N.b. found %s.build in %s/ups; consider adding %s/ups to --build path" % \
                            (d, d, productName)
 
-            if self.verbose > 1 or not self._msgs.has_key(msg):
+            if self.verbose > 1 or msg not in self._msgs:
                 self._msgs[msg] = 1
                 print(msg, file=self.log)
             if self.allowIncomplete:
@@ -544,7 +544,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     def guess_cvsroot(cvsroot):
         if cvsroot:
             pass
-        elif os.environ.has_key("CVSROOT"):
+        elif "CVSROOT" in os.environ:
             cvsroot = os.environ["CVSROOT"]
         elif os.path.isdir("CVS"):
             try:
@@ -561,7 +561,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     def guess_svnroot(svnroot):
         if svnroot:
             pass
-        elif os.environ.has_key("SVNROOT"):
+        elif "SVNROOT" in os.environ:
             svnroot = os.environ["SVNROOT"]
         elif os.path.isdir(".svn"):
             try:
@@ -622,7 +622,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
 
         var = var.upper()
 
-        if builderVars.has_key(var):
+        if var in builderVars:
             if builderVars[var]:
                 value = builderVars[var]
             else:

@@ -579,7 +579,7 @@ class Distrib(object):
         return self.distServer.getTaggedProductInfo(product, self.flavor, tag)
 
     def getOption(self, name, defval=None):
-        if self.options.has_key(name):
+        if name in self.options:
             return self.options[name]
         return defval
 

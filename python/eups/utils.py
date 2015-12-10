@@ -153,7 +153,7 @@ def setupEnvNameFor(productName):
     """
     name = setupEnvPrefix() + productName.upper()
 
-    if os.environ.has_key(name):
+    if name in os.environ:
         return name                 # exact match
 
     envNames = [ k for k in os.environ if k.upper() == name ]
@@ -184,7 +184,7 @@ def defaultUserDataDir(user=""):
     $EUPS_USERDATA if set; otherwise, it is ~/.eups. 
     """
 
-    if not user and os.environ.has_key("EUPS_USERDATA"):
+    if not user and "EUPS_USERDATA" in os.environ:
         userDataDir = os.environ["EUPS_USERDATA"]
     else:
         home = os.path.expanduser("~%s" % user)
@@ -246,7 +246,7 @@ def findWritableDb(pathdirs, ups_db):
 def determineFlavor():
     """Return the current flavor"""
     
-    if os.environ.has_key("EUPS_FLAVOR"):
+    if "EUPS_FLAVOR" in os.environ:
         return os.environ["EUPS_FLAVOR"]
 
     uname = os.uname()[0]
@@ -404,7 +404,7 @@ class ConfigProperty(object):
             object.__setattr__(self, attr, None)
 
     def setType(self, name, typ):
-        if not self.__dict__.has_key(name):
+        if name not in self.__dict__:
             raise AttributeError(self._errmsg(name, 
                                               "No such property name defined"))
         if not callable(typ):
@@ -412,14 +412,14 @@ class ConfigProperty(object):
         object.__getattribute__(self,'_types')[name] = typ
 
     def __setattr__(self, name, value):
-        if not self.__dict__.has_key(name):
+        if name not in self.__dict__:
             raise AttributeError(self._errmsg(name, 
                                               "No such property name defined"))
         if isinstance(getattr(self, name), ConfigProperty):
             raise AttributeError(self._errmsg(name, 
                             "Cannot over-write property with sub-properties"))
         types = object.__getattribute__(self,'_types')
-        if types.has_key(name):
+        if name in types:
             value = types[name](value)
         object.__setattr__(self, name, value)
 
@@ -564,7 +564,7 @@ class Color(object):
             if isinstance(val, dict):
                 unknown = []
                 for k in val.keys():
-                    if Color.classes.has_key(k):
+                    if k in Color.classes:
                         try:
                             Color("foo", val[k]) # check if colour's valid
                             Color.classes[k] = val[k]

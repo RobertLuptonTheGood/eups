@@ -249,7 +249,7 @@ class Product(object):
             dosub = filter(lambda n: n not in skip, dosub)
 
         for name in dosub:
-            if macrore.has_key(name) and data[name]:
+            if name in macrore and data[name]:
                 value = macrore[name].sub(data[name], value)
 
         return value

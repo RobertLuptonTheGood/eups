@@ -164,7 +164,7 @@ class VersionFile(object):
                              None, the product.db field will not be set.
         @return Product : a Product instance representing the product data
         """
-        if not self.info.has_key(flavor):
+        if flavor not in self.info:
             raise ProductNotFound(self.name, self.version, flavor)
 
         if eupsPathDir and not dbpath:
@@ -188,7 +188,7 @@ class VersionFile(object):
             dosub = filter(lambda n: n not in skip, dosub)
 
         for name in dosub:
-            if macrore.has_key(name) and data[name]:
+            if name in macrore and data[name]:
                 value = macrore[name].sub(data[name], value)
 
         return value
@@ -212,7 +212,7 @@ class VersionFile(object):
         """
         return true if the product is declared for a given flavor 
         """
-        return self.info.has_key(flavor)
+        return flavor in self.info
 
     def addFlavor(self, flavor, installdir = None, tablefile = None, 
                   upsdir = None):
@@ -232,14 +232,14 @@ class VersionFile(object):
         @param upsdir :     the path to the ups directory for this product.  
                               If None, a value of  "ups" will be assumed.  
         """
-        if self.info.has_key(flavor):
+        if flavor in self.info:
             # if this flavor already exists, use it to set defaults.
             info = self.info[flavor]
-            if not installdir and info.has_key("productDir"):
+            if not installdir and "productDir" in info:
                 installdir = info["productDir"]
-            if not upsdir and info.has_key("ups_dir"):
+            if not upsdir and "ups_dir" in info:
                 upsdir = info["ups_dir"]
-            if not tablefile and info.has_key("table_file"):
+            if not tablefile and "table_file" in info:
                 tablefile = info["table_file"]
           
         info = {}
@@ -276,13 +276,13 @@ class VersionFile(object):
             upsdir = "none"
         info["ups_dir"] = upsdir
 
-        if self.info.has_key(flavor):
-            if self.info[flavor].has_key("declarer"):
+        if flavor in self.info:
+            if "declarer" in self.info[flavor]:
                 info["declarer"] = self.info[flavor]["declarer"]
-            if self.info[flavor].has_key("declared"):
+            if "declared" in self.info[flavor]:
                 info["declared"] = self.info[flavor]["declared"]
 
-        if info.has_key("declarer") or info.has_key("declared"):
+        if "declarer" in info or "declared" in info:
             # we're modifying
             info["modifier"] = who
             info["modified"] = ctimeTZ()
@@ -311,7 +311,7 @@ class VersionFile(object):
 
         updated = False
         for flavor in flavors:
-            if self.info.has_key(flavor):
+            if flavor in self.info:
                 del self.info[flavor]
                 updated = True
 
@@ -350,14 +350,14 @@ class VersionFile(object):
             #
             if re.search(r"^(End|Group)\s*:", line):
                 if flavor:
-                    if not self.info[flavor].has_key("productDir"):
+                    if "productDir" not in self.info[flavor]:
                       if verbosity >= 0:
                         print("Warning: Version file has no PROD_DIR for product %s %s %s\n  file=%s" % \
                             (self.name, self.version, flavor, file), file=eups.utils.stdwarn)
 
                       self.info[flavor]["productDir"] = None
 
-                    if not self.info[flavor].has_key("table_file"):
+                    if "table_file" not in self.info[flavor]:
                       if verbosity >= 0:
                         print("Warning: Version file has no TABLE_FILE for product %s %s %s\n  file=%s" % \
                             (self.name, self.version, flavor, file), file=eups.utils.stdwarn)
@@ -365,7 +365,7 @@ class VersionFile(object):
                       self.info[flavor]["table_file"] = "none"
 
                     tablefile = self.info[flavor]["table_file"]
-                    if not self.info[flavor].has_key("ups_dir") and \
+                    if "ups_dir" not in self.info[flavor] and \
                        isRealFilename(tablefile):
                         if verbosity >= 0 and \
                            tablefile != ("%s.table" % self.name) and \
@@ -413,7 +413,7 @@ class VersionFile(object):
 
             elif key == "flavor": # Now look for flavor-specific blocks
                 flavor = value
-                if not self.info.has_key(flavor):
+                if flavor not in self.info:
                     self.info[flavor] = {}
 
             else:
@@ -485,7 +485,7 @@ Group:
 
                             if k.lower() == "table_file":
                                 dirName = info.get("productDir")
-                                if dirName and info.has_key("ups_dir"):
+                                if dirName and "ups_dir" in info:
                                     dirName = os.path.join(dirName, info["ups_dir"])
 
                                 if dirName and eups.utils.commonpath([dirName, info[k]]) == dirName:
@@ -501,7 +501,7 @@ Group:
                 else:
                     k = field.lower()
 
-                if info.has_key(k):
+                if k in info:
                     value = info[k]
                             
                     if not value:

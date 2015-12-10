@@ -446,7 +446,7 @@ class Eups(object):
 
 The what argument tells us what sort of state is expected (allowed values are defined in __init__)
         """
-        if not self._stacks.has_key(what):
+        if what not in self._stacks:
             raise RuntimeError("Programming error: attempt to use stack \"%s\"" % what)
 
         if what == "env":
@@ -467,7 +467,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
 The what argument tells us what sort of state is expected (allowed values are defined in __init__)
         """
-        if not self._stacks.has_key(what):
+        if what not in self._stacks:
             raise RuntimeError("Programming error: attempt to use stack \"%s\"" % what)
 
         try:
@@ -489,7 +489,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
 The what argument tells us what sort of state is expected (allowed values are defined in __init__)
         """
-        if not self._stacks.has_key(what):
+        if what not in self._stacks:
             raise RuntimeError("Programming error: attempt to use stack \"%s\"" % what)
 
         try:
@@ -505,7 +505,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             values = self._stacks[what][:]
 
             if what == "env":
-                values = [e.has_key("BASE_DIR") for e in values + [os.environ]]
+                values = ["BASE_DIR" in e for e in values + [os.environ]]
 
             values.insert(-1, ":")
             utils.debug("%s %-5s" % (what, op), len(self._stacks[what]), values)
@@ -552,7 +552,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             tagNames = set()
             tagUsedInProducts = None    # used for better diagnostics
 
-            if self.versions.has_key(path):
+            if path in self.versions:
                 for t in self.versions[path].getTags():
                     tagNames.add(t)
 
@@ -567,11 +567,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                             for pname in db.findProductNames():
                                 for tag, v, f in db.getTagAssignments(pname):
                                     tagNames.add(tag)
-                                    if not tagUsedInProducts.has_key(tag):
+                                    if tag not in tagUsedInProducts:
                                         tagUsedInProducts[tag] = []
                                     tagUsedInProducts[tag].append(pname)
 
-                        if tagUsedInProducts.has_key(t.name):
+                        if t.name in tagUsedInProducts:
                             msg += " (in [%s])" % (", ".join(sorted(tagUsedInProducts[t.name])))
 
                     if True or self.force:
@@ -604,7 +604,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             # if no list cached, try asking the cached product stack
             tags = Tags()
-            if self.versions.has_key(path):
+            if path in self.versions:
                 for t in self.versions[path].getTags():
                     t = Tag.parse(t)
                     if t.isUser() and not self.tags.isRecognized(t.name):
@@ -638,7 +638,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 db.addUserTagDb(userCacheDir, p, userId=owner)
 
-                if not self.versions.has_key(p):
+                if p not in self.versions:
                     continue
 
                 for productName in extraDb.findProductNames():
@@ -853,7 +853,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     break
                     
             elif vroTag == "commandLine":
-                if self.alreadySetupProducts.has_key(name): # name is already setup
+                if name in self.alreadySetupProducts: # name is already setup
                     oproduct, ovroReason = self.alreadySetupProducts[name]
                     if ovroReason and ovroReason[0] == "commandLine":
                         product, vroReason = oproduct, ovroReason
@@ -890,7 +890,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 #
                 vroTag = "version"
                 for root in eupsPathDirs:
-                    if noCache or not self.versions.has_key(root) or not self.versions[root]:
+                    if noCache or root not in self.versions or not self.versions[root]:
                         # go directly to the EUPS database
                         if not os.path.exists(self.getUpsDB(root)):
                             if self.verbose:
@@ -994,7 +994,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 break
 
         if product:
-            if self.alreadySetupProducts.has_key(name): # name is already setup
+            if name in self.alreadySetupProducts: # name is already setup
                 oproduct, ovroReason = self.alreadySetupProducts[name]
                 if ovroReason:              # we setup this product
                     ovroTag = ovroReason[0] # tag used to select the product last time we saw it
@@ -1081,7 +1081,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         # search path for an explicit version 
         for root in eupsPathDirs:
-            if noCache or not self.versions.has_key(root) or not self.versions[root]:
+            if noCache or root not in self.versions or not self.versions[root]:
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
@@ -1169,7 +1169,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             return out
 
         for root in eupsPathDirs:
-            if noCache or not self.versions.has_key(root) or not self.versions[root]:
+            if noCache or root not in self.versions or not self.versions[root]:
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
@@ -1302,7 +1302,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         out = None
 
         for root in eupsPathDirs:
-            if noCache or not self.versions.has_key(root) or not self.versions[root]:
+            if noCache or root not in self.versions or not self.versions[root]:
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
@@ -1355,7 +1355,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         out = []
         outver = []
         for root in eupsPathDirs:
-            if noCache or not self.versions.has_key(root) or not self.versions[root]:
+            if noCache or root not in self.versions or not self.versions[root]:
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
@@ -1573,7 +1573,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def unsetEnv(self, key):
         """Unset an environmental variable"""
 
-        if os.environ.has_key(key):
+        if key in os.environ:
             del os.environ[key]
 
     def setAlias(self, key, val):
@@ -1584,7 +1584,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def unsetAlias(self, key):
         """Unset an alias"""
 
-        if self.aliases.has_key(key):
+        if key in self.aliases:
             del self.aliases[key]
         self.oldAliases[key] = None # so it'll be deleted if no new alias is defined
 
@@ -1633,7 +1633,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 eupsPathDir = product.stackRoot()
             product = product.name
 
-        if not os.environ.has_key(self._envarSetupName(product)):
+        if self._envarSetupName(product) not in os.environ:
             return False
         elif versionName is None and eupsPathDir is not None:
             return True
@@ -1884,7 +1884,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                                      flavor=fallbackFlavor, optional=optional,
                                                                      recursionDepth=recursionDepth, vro=vro)
 
-                        if not product and self.alreadySetupProducts.has_key(productName):
+                        if not product and productName in self.alreadySetupProducts:
                             # We couldn't find it, but maybe it's already setup 
                             # locally?   That'd be OK
                             product = self.alreadySetupProducts[productName][0]
@@ -1981,7 +1981,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if fwd and self.verbose and recursionDepth >= 0:
             key = "%s:%s:%s" % (product.name, self.flavor, product.version)
 
-            if self.verbose > 1 or not setup_msgs.has_key(key):
+            if self.verbose > 1 or key not in setup_msgs:
                 if self.verbose < 2 and \
                         vroReason[0] == "keep" and self.alreadySetupProducts.get(product.name):
                     pass
@@ -2026,7 +2026,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         msg = "%s %s is currently setup; overriding with %s" % \
                               (product.name, sprod.version, product.version)
 
-                        if self.quiet <= 0 and self.verbose > 0 and not (self.keep and setup_msgs.has_key(msg)):
+                        if self.quiet <= 0 and self.verbose > 0 and not (self.keep and msg in setup_msgs):
                             print("            %s%s" % (recursionDepth*" ", msg), file=utils.stdwarn)
                         setup_msgs[msg] = 1
 
@@ -2140,7 +2140,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         db.assignTag(tag, productName, versionName, self.flavor)
 
         # update the cache
-        if self.versions.has_key(root) and self.versions[root]:
+        if root in self.versions and self.versions[root]:
             self.versions[root].ensureInSync(verbose=self.verbose)
             self.versions[root].assignTag(tag, productName, versionName, self.flavor)
             try:
@@ -2231,7 +2231,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     (tag, productName, versionName), file=utils.stdwarn)
 
         # update the cache
-        if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
+        if eupsPathDir in self.versions and self.versions[eupsPathDir]:
             self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
             if self.versions[eupsPathDir].unassignTag(str(tag), productName, self.flavor):
                 try:
@@ -2619,7 +2619,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self._databaseFor(eupsPathDir, dbpath).declare(product)
 
                 # update the cache (if in use)
-                if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
+                if eupsPathDir in self.versions and self.versions[eupsPathDir]:
 
                     self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
                     self.versions[eupsPathDir].addProduct(product)
@@ -2773,7 +2773,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             # this should not happen
             raise ProductNotFound(product.name, product.version, product.flavor, product.db)
             
-        if self.versions.has_key(eupsPathDir) and self.versions[eupsPathDir]:
+        if eupsPathDir in self.versions and self.versions[eupsPathDir]:
 
             self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
             self.versions[eupsPathDir].removeProduct(product.name, 
@@ -2882,7 +2882,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         # start by iterating through each stack path
         for d in eupsPathDirs:
-            if not self.versions.has_key(d):
+            if d not in self.versions:
                 continue
             stack = self.versions[d]
             stack.ensureInSync(verbose=self.verbose)
@@ -2944,7 +2944,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # remove this product from the setup list if it is 
                         # setup:
                         key = prodkey(prod)
-                        if setup.has_key(key):  del setup[key]
+                        if key in setup:  del setup[key]
                     #
                     # add latest if we have/want it
                     #
@@ -2955,7 +2955,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if not out or d != self.userDataDir:
                             out.append(latest)
                             key = prodkey(latest)
-                            if setup.has_key(key):  del setup[key]
+                            if key in setup:  del setup[key]
                             latest = None
 
                     # append any matched setup products having current
@@ -3109,7 +3109,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if k == defaultProduct:   # don't modify pdir[defaultProduct]; especially don't add defaultProduct
                     continue
 
-                if not pdir.has_key(k):
+                if k not in pdir:
                     pdir[k] = set()
 
                 for v in values:
@@ -3140,7 +3140,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             for p in dependentProducts:
                 pname = p[0].name
-                if tsorted_depth.has_key(pname):
+                if pname in tsorted_depth:
                     p[2] = tsorted_depth[pname]
 
             dependentProducts.sort(lambda a, b: cmp((a[2], a[0].name),
@@ -3156,7 +3156,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             tmp = []
             entries = {}
             for p, opt, d in reversed(dependentProducts):
-                if entries.has_key(p):
+                if p in entries:
                     continue
                 entries[p] = 1
                 
@@ -3211,7 +3211,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             # Don't ask about the same product twice
             #
             pid = product.__str__()
-            if removedProducts.has_key(pid):
+            if pid in removedProducts:
                 continue
 
             removedProducts[pid] = 1
@@ -3237,7 +3237,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if not self.undeclare(product.name, product.version):
                 raise EupsException("Not removing %s %s" % (product.name, product.version))
 
-            if removedDirs.has_key(dir): # file is already removed
+            if dir in removedDirs: # file is already removed
                 continue
 
             if utils.isRealFilename(dir):
@@ -3565,7 +3565,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if tag:
             for t in tag:
                 self.isInternalTag(tag, True) # will abort if tag is internal
-                if not vroTag and self._vroDict.has_key(t):
+                if not vroTag and t in self._vroDict:
                     vroTag = t
 
             self.commandLineTagNames = tag
@@ -3581,9 +3581,9 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if self.userVRO:
             tag = None                  # no need to prepend it to VRO as they set this tag's VRO explicitly
-        elif self._vroDict.has_key(vroTag):            
+        elif vroTag in self._vroDict:            
             pass
-        elif self._vroDict.has_key("default"):
+        elif "default" in self._vroDict:
             vroTag = "default"
         else:
             raise RuntimeError("Unable to lookup vroTag == %s in %s" % (vroTag, self._vroDict))
@@ -3591,9 +3591,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         vro = self._vroDict[vroTag]
 
         if isinstance(vro, dict):
-            if vro.has_key(dbz):
+            if dbz in vro:
                 self._vro = vro[dbz]
-            elif vro.has_key("default"):
+            elif "default" in vro:
                 self._vro = vro["default"]
                 if versionName:
                     self._vro[0:0] = ["commandLine"]
@@ -3644,7 +3644,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         entries = {}
         uniqueVro = []
         for e in self._vro:
-            if not entries.has_key(e):
+            if e not in entries:
                 if re.search(r"^warn(:\d+)?$", e): # allow multiple warnings on VRO
                     if not re.search(r"^warn:\d+$", e): # change warn --> warn:1
                         e = "warn:1"
@@ -3787,7 +3787,7 @@ class _TagSet(object):
                 tag = str(self.eups.tags.getTag(tag)) # make sure that we have e.g. user: prefix
             except TagNotRecognized:
                 return False
-            if self.lu.has_key(tag):
+            if tag in self.lu:
                 return True
         return False
 

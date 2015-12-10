@@ -567,7 +567,7 @@ class Repositories(object):
                         self.eups.assignTag(tag, prod.product, prod.version, productRoot)
                     except Exception as e:
                         msg = str(e)
-                        if not self._msgs.has_key(msg):
+                        if msg not in self._msgs:
                             print(msg, file=self.log)
                         self._msgs[msg] = 1
 
@@ -690,12 +690,12 @@ class Repositories(object):
 
               except TagNotRecognized as e:
                  msg = str(e)
-                 if not self.eups.quiet and not self._msgs.has_key(msg):
+                 if not self.eups.quiet and msg not in self._msgs:
                      print(msg, file=self.log)
                  self._msgs[msg] = 1
               except ProductNotFound as e:
                  msg = "Can't find %s %s" % (dprod.name, dprod.version)
-                 if not self.eups.quiet and not self._msgs.has_key(msg):
+                 if not self.eups.quiet and msg not in self._msgs:
                      print(msg, file=self.log)
                  self._msgs[msg] = 1
 
@@ -824,7 +824,7 @@ class Repositories(object):
                                 default flavor
         """
         buildRoot = "EupsBuildDir"
-        if options and options.has_key('buildDir'):  
+        if options and 'buildDir' in options:  
             buildRoot = self.options['buildDir']
         if not flavor:  flavor = self.eups.flavor
 

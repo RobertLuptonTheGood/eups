@@ -185,16 +185,16 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
     customisationFilename = filename
 
     # a site-level directory can have configuration stuff in it
-    if os.environ.has_key("EUPS_SITEDATA"):
+    if "EUPS_SITEDATA" in os.environ:
         customisationDirs.append(os.environ["EUPS_SITEDATA"])
-    elif os.environ.has_key("EUPS_DIR"):
+    elif "EUPS_DIR" in os.environ:
         customisationDirs.append(os.path.join(os.environ["EUPS_DIR"], "site"))
 
     for d in path:
         customisationDirs.append(os.path.join(d, "site"))
         
     # ~/.eups can have user configuration stuff in it
-    if os.environ.has_key("EUPS_USERDATA"):
+    if "EUPS_USERDATA" in os.environ:
         customisationDirs.append(os.environ["EUPS_USERDATA"])
     else:
         customisationDirs.append(os.path.join(os.path.expanduser("~"), ".eups"))
@@ -210,7 +210,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
 
     # load any custom startup scripts via EUPS_STARTUP; this overrides
     # everything
-    if os.environ.has_key("EUPS_STARTUP"):
+    if "EUPS_STARTUP" in os.environ:
         for startupFile in os.environ["EUPS_STARTUP"].split(':'):
             if not os.path.exists(startupFile):
                 if not quiet:

@@ -1686,7 +1686,7 @@ class AdminClearServerCacheCmd(EupsCmd):
             return 1
 
         pkgroots = self.opts.root
-        if pkgroots is None and os.environ.has_key("EUPS_PKGROOT"):
+        if pkgroots is None and "EUPS_PKGROOT" in os.environ:
             pkgroots = os.environ["EUPS_PKGROOT"]
 
         myeups = eups.Eups(readCache=False)
@@ -2217,7 +2217,7 @@ tag will be installed.
 
             # place install root at front of the path given to Eups
             if self.opts.path is None:
-                if os.environ.has_key("EUPS_PATH"):
+                if "EUPS_PATH" in os.environ:
                     self.opts.path = os.environ["EUPS_PATH"]
             if self.opts.path is None:
                 self.opts.path = self.opts.installStack
@@ -2288,7 +2288,7 @@ tag will be installed.
         if self.opts.root:
             self.opts.root = "|".join(self.opts.root)
         else:
-            if not os.environ.has_key("EUPS_PKGROOT"):
+            if "EUPS_PKGROOT" not in os.environ:
                 self.err("No repositories specified; please set -r or $EUPS_PKGROOT")
                 return 3
             self.opts.root = os.environ["EUPS_PKGROOT"]
@@ -2391,7 +2391,7 @@ product will be fully removed, even if its installation was successful.
         version = self.args[1]
 
         if not self.opts.root:
-            if not os.environ.has_key("EUPS_PKGROOT"):
+            if "EUPS_PKGROOT" not in os.environ:
                 self.err("No repositories specified; please set -r or EUPS_PKGROOT")
                 return 4
             self.opts.root = os.environ["EUPS_PKGROOT"]
@@ -2532,7 +2532,7 @@ class DistribCreateCmd(EupsCmd):
             version = self.args[1]
 
         if not self.opts.repos:
-            if os.environ.has_key("EUPS_PKGROOT"):
+            if "EUPS_PKGROOT" in os.environ:
                 self.opts.repos = os.environ["EUPS_PKGROOT"].split("|")
             else:
                 self.opts.repos = []
@@ -2938,7 +2938,7 @@ class HelpCmd(EupsCmd):
 _cmdLookup = {}
 _noCmdOverride = True
 def register(cmd, clname, lockType=lock.LOCK_EX):
-    if _noCmdOverride and _cmdLookup.has_key(cmd):
+    if _noCmdOverride and cmd in _cmdLookup:
         raise RuntimeError("Attempt to over-ride command: %s" % cmd)
     _cmdLookup[cmd] = (clname, lockType)
 

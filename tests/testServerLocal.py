@@ -19,7 +19,7 @@ class LocalTransporterTestCase(unittest.TestCase):
 
     def setUp(self):
         self.base = "http://dev.lsstcorp.org/eupstest/"
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
 
     def testGenericTransporter(self):

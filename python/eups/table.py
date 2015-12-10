@@ -236,7 +236,7 @@ but no other interpretation is applied
                             ind = int(mat.group(1))
                             value = re.sub(r"\[(\d+)\]}$", "", value) + "}"
 
-                            if not os.environ.has_key("EUPS_PATH"):
+                            if "EUPS_PATH" not in os.environ:
                                 if not quiet:
                                     print("%s is not defined; not setting %s" % (value, a.args[0]), file=utils.stdwarn)
                                 continue
@@ -555,7 +555,7 @@ but no other interpretation is applied
         if productDictionary is None:
             productDictionary = {}
 
-        if not productDictionary.has_key(self.topProduct):
+        if self.topProduct not in productDictionary:
             productDictionary[self.topProduct] = []
             
         if addDefaultProduct is None and \
@@ -615,7 +615,7 @@ but no other interpretation is applied
                         val.append(None)
                     deps += [val]
 
-                    if recursive and not noRecursion and not recursiveDict.has_key(prodkey(product)):
+                    if recursive and not noRecursion and prodkey(product) not in recursiveDict:
                         recursiveDict[prodkey(product)] = 1
                         deptable = product.getTable(addDefaultProduct=addDefaultProduct)
                         if deptable:
@@ -932,7 +932,7 @@ class Action(object):
         
         optional, key, default = mat.groups()
 
-        if os.environ.has_key(key):
+        if key in os.environ:
             return re.sub(varRE, os.environ[key], value)
         elif default:
             return re.sub(varRE, default, value)
@@ -1104,7 +1104,7 @@ class Action(object):
         if append_delim and not re.search(r"%s$" % delim, npath):
             npath += delim
 
-        if Eups.force and Eups.oldEnviron.has_key(envVar):
+        if Eups.force and envVar in Eups.oldEnviron:
             del Eups.oldEnviron[envVar]
 
         Eups.setEnv(envVar, npath, interpolateEnv=True)
@@ -1117,7 +1117,7 @@ class Action(object):
         key = args[0]
         if fwd:
             value = " ".join(args[1:])
-        if Eups.force and Eups.oldAliases.has_key(key):
+        if Eups.force and key in Eups.oldAliases:
             del Eups.oldAliases[key]    # Does this actually work? 
 
         if fwd:
@@ -1134,7 +1134,7 @@ class Action(object):
         if fwd:
             value = args[1]
 
-        if Eups.force and Eups.oldEnviron.has_key(key):
+        if Eups.force and key in Eups.oldEnviron:
             del Eups.oldEnviron[key]
 
         if fwd:
@@ -1368,7 +1368,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
         NVOL = []
         version = None
-        if productList.has_key(productName):
+        if productName in productList:
             version = productList[productName]
         else:
             try:

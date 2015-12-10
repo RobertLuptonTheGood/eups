@@ -247,7 +247,7 @@ class ProductStack(object):
             raise CacheOutOfSync(outofsync)
 
     def _cacheFileIsInSync(self, file):
-        return (not self.modtimes.has_key(file) or 
+        return (file not in self.modtimes or 
                 os.stat(file).st_mtime <= self.modtimes[file])
 
     def cacheIsInSync(self, flavors=None):
@@ -291,7 +291,7 @@ class ProductStack(object):
                 dir = self.dbpath
             file = os.path.join(dir, persistFilename(flavor))
 
-        if not self.lookup.has_key(flavor):
+        if flavor not in self.lookup:
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
@@ -349,7 +349,7 @@ class ProductStack(object):
         have products for.  In particular, it allows info an empty flavor to be 
         cached just like normal flavor.  
         """
-        if not self.lookup.has_key(flavor):
+        if flavor not in self.lookup:
             self.lookup[flavor] = {}
 
     def addProduct(self, product):
@@ -372,9 +372,9 @@ class ProductStack(object):
         prod = product.clone().resolvePaths()
 
         flavor = prod.flavor
-        if not self.lookup.has_key(flavor):
+        if flavor not in self.lookup:
             self.lookup[flavor] = {}
-        if not self.lookup[flavor].has_key(prod.name):
+        if prod.name not in self.lookup[flavor]:
             self.lookup[flavor][prod.name] = ProductFamily(prod.name)
         self.lookup[flavor][prod.name].addVersion(prod.version,
                                                      prod.dir,
@@ -433,10 +433,10 @@ class ProductStack(object):
         """
         updated = False
         for flavor in products.keys():
-            if not self.lookup.has_key(flavor):
+            if flavor not in self.lookup:
                 self.lookup[flavor] = {}
             for product in products[flavor].keys():
-                if not self.lookup[flavor].has_key(product):
+                if product not in self.lookup[flavor]:
                     self.lookup[flavor][product] = ProductFamily(product)
                 self.lookup[flavor][product].import_(products[flavor][product])
                 updated = True
@@ -593,7 +593,7 @@ class ProductStack(object):
             flavors = flavors.split()
         
         for flavor in flavors:
-            if not self.lookup.has_key(flavor):
+            if flavor not in self.lookup:
                 continue
 
             names = productName

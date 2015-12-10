@@ -21,7 +21,7 @@ class SshTransporterTestCase(unittest.TestCase):
 
     def setUp(self):
         self.base = pkgroot + "/"
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
 
     def testGenericTransporter(self):
@@ -66,7 +66,7 @@ class SshConfigFileTestCase(unittest.TestCase):
     def setUp(self):
         self.base = pkgroot + "/s2"
         self.configFile = os.path.join(testEupsStack, "eups-config.txt")
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
 
     def tearDown(self):
@@ -87,7 +87,7 @@ class SshServerConfTestCase(unittest.TestCase):
     def setUp(self):
         os.environ["EUPS_PATH"] = testEupsStack
         self.pkgbase = pkgroot + "/s2"
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.servconf = ServerConf(self.pkgbase)
 
@@ -101,7 +101,7 @@ class SshDistribServerTestCase(unittest.TestCase):
 
     def setUp(self):
         self.pkgbase = pkgroot + "/s2"
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.ds = DistribServer(self.pkgbase)
 

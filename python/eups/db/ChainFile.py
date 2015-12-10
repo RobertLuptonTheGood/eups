@@ -59,7 +59,7 @@ class ChainFile(object):
         """
         return true if the product is declared for a given flavor 
         """
-        return self.info.has_key(flavor)
+        return flavor in self.info
 
     def getVersion(self, flavor):
         """
@@ -89,7 +89,7 @@ class ChainFile(object):
             flavors = [flavors]
 
         for flavor in flavors:
-            if self.info.has_key(flavor):
+            if flavor in self.info:
                 info = self.info[flavor].copy()
                 info["modifier"] = who
                 info["modified"] = ctimeTZ()
@@ -115,7 +115,7 @@ class ChainFile(object):
 
         updated = False
         for flavor in flavors:
-            if self.info.has_key(flavor):
+            if flavor in self.info:
                 del self.info[flavor]
                 updated = True
 
@@ -170,7 +170,7 @@ CHAIN = %s
             for field in self._fields:
                 k = field.lower()
 
-                if self.info[fq].has_key(k):
+                if k in self.info[fq]:
                     value = self.info[fq][k]
                     if not value:
                         continue

@@ -129,7 +129,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
             if not makeLock:
                 continue
             
-            if not os.environ.has_key("EUPS_LOCK_PID"): # remember the PID of the process taking the lock
+            if "EUPS_LOCK_PID" not in os.environ: # remember the PID of the process taking the lock
                 os.environ["EUPS_LOCK_PID"] = "%d" % os.getpid()
                 os.putenv("EUPS_LOCK_PID", os.environ["EUPS_LOCK_PID"])
             #

@@ -78,7 +78,7 @@ class Repository(object):
         self.pkgroot = pkgroot
         if pkgroot:
             override = None
-            if self.options.has_key('serverconf'):
+            if 'serverconf' in self.options:
                 override = options['serverconf']
             self.distServer = ServerConf.makeServer(pkgroot, eupsenv=eupsenv, override=override,
                                                     verbosity=self.verbose, log=self.log)
@@ -97,7 +97,7 @@ class Repository(object):
         # repository to get a package from.  If False, an internal cache
         # of available products will be used.
         self._alwaysQueryServer = False
-        if self.options.has_key("alwaysQueryServer"):
+        if "alwaysQueryServer" in self.options:
             if isinstance(self.options["alwaysQueryServer"], str):
                 self.options["alwaysQueryServer"] = \
                     self.options["alwaysQueryServer"].upper()
@@ -137,9 +137,9 @@ class Repository(object):
         #
         lookup = {}  # key is product == pkg[0]
         for pkg in pkgs:
-            if not lookup.has_key(pkg[0]):   
+            if pkg[0] not in lookup:   
                 lookup[pkg[0]] = {}                # key is flavor == pkg[2]
-            if not lookup[pkg[0]].has_key(pkg[2]):
+            if pkg[2] not in lookup[pkg[0]]:
                 lookup[pkg[0]][pkg[2]] = []        # list of versions == pkg[1]
             lookup[pkg[0]][pkg[2]].append(pkg[1])
 
@@ -304,14 +304,14 @@ class Repository(object):
 
             prods = self._pkgList["_sortOrder"]
             if product:
-                if not self._pkgList.has_key(product):
+                if product not in self._pkgList:
                     return []
                 prods = [product]
 
             for prod in prods:
                 flavs = self._pkgList[prod]["_sortOrder"]
                 if flavor:
-                    if not self._pkgList[prod].has_key(flavor):
+                    if flavor not in self._pkgList[prod]:
                         continue
                     flavs = [flavor]
 
@@ -514,7 +514,7 @@ class Repository(object):
 
         for pos, dp in enumerate(manifest.getProducts()):
             pver = "%s-%s" % (dp.product, dp.version)
-            if created.has_key(pver):
+            if pver in created:
                 if created[pver]:
                     manifest.getProducts()[pos] = created[pver]
                     continue

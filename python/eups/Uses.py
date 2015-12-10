@@ -33,7 +33,7 @@ class Uses(object):
     def remember(self, p, v, info):
         key = self._getKey(p, v)
 
-        if not self._depends_on.has_key(key):
+        if key not in self._depends_on:
             self._depends_on[key] = []
 
         self._depends_on[key] += [info]
@@ -46,7 +46,7 @@ class Uses(object):
             productName, versionName = self._splitKey(k)
             for dname, dver, doptional, ddepth in self._depends_on[k]:
                 key = self._getKey(dname, dver)
-                if not self._setup_by.has_key(key):
+                if key not in self._setup_by:
                     self._setup_by[key] = []
 
                 self._setup_by[key].append((productName, versionName, Props(dver, doptional, ddepth)))
@@ -63,7 +63,7 @@ class Uses(object):
                 p, pv, props = val
 
                 key = "%s-%s" % (p, pv)
-                if not dmin.has_key(key) or props.depth < dmin[key]:
+                if key not in dmin or props.depth < dmin[key]:
                     dmin[key] = props.depth
                     vmin[key] = val
 

@@ -159,7 +159,7 @@ class DistribServer(object):
                              be generated.
         @param noaction    if True, simulate the retrieval
         """
-        if self.tagged.has_key(tag) and self.tagged[tag]:
+        if tag in self.tagged and self.tagged[tag]:
             return self.tagged[tag]
 
         if noaction:
@@ -386,7 +386,7 @@ class DistribServer(object):
         @param deval  a default value to return if a value is not current
                         for this property name.
         """
-        if not self.config.has_key(name):
+        if name not in self.config:
             return defval
         out = self.config[name]
         if not isinstance(out, list):
@@ -412,7 +412,7 @@ class DistribServer(object):
                           have.  Any missing values with an index below this 
                           number will be provided as the value of defval.
         """
-        if not self.config.has_key(name):
+        if name not in self.config:
             if not isinstance(defval, list):
                 defval = [defval] * minlen
             return defval
@@ -434,7 +434,7 @@ class DistribServer(object):
         if isinstance(value, list):
             self.config[name] = value
         else:
-            if not self.config.has_key(name):
+            if name not in self.config:
                 self.config[name] = []
             self.config[name].append(value)
 
@@ -443,7 +443,7 @@ class DistribServer(object):
         configuration property name, revealing the previously set value.
         The removed value is returned.
         """
-        if not self.config.has_key(name):
+        if name not in self.config:
             return None
 
         out = self.config[name].pop(-1)
@@ -484,24 +484,24 @@ class ConfigurableDistribServer(DistribServer):
             if not (k in self.validConfigKeys):
                 print("Invalid config parameter %s ignored" % k, file=self.log)
 
-        if not self.config.has_key('MANIFEST_URL'):
+        if 'MANIFEST_URL' not in self.config:
             self.config['MANIFEST_URL'] = \
                 "%(base)s/manifests/%(product)s-%(version)s.manifest";
-        if not self.config.has_key('TABLE_URL'):
+        if 'TABLE_URL' not in self.config:
             self.config['TABLE_URL'] = \
                 "%(base)s/tables/%(product)s-%(version)s.table";
-        if not self.config.has_key('LIST_URL'):
+        if 'LIST_URL' not in self.config:
             self.config['LIST_URL'] = "%(base)s/%(tag)s.list";
-        if not self.config.has_key('PRODUCT_FILE_URL'):
+        if 'PRODUCT_FILE_URL' not in self.config:
             self.config['PRODUCT_FILE_URL'] = \
                 "%(base)s/%(product)s/%(version)s/%(path)s";
-        if not self.config.has_key('FILE_URL'):
+        if 'FILE_URL' not in self.config:
             self.config['FILE_URL'] = "%(base)s/%(path)s";
-        if not self.config.has_key('DIST_URL'):
+        if 'DIST_URL' not in self.config:
             self.config['DIST_URL'] = "%(base)s/%(path)s";
-        if not self.config.has_key('MANIFEST_DIR_URL'):
+        if 'MANIFEST_DIR_URL' not in self.config:
             self.config['MANIFEST_DIR_URL'] = "%(base)s/manifests";
-        if not self.config.has_key('MANIFEST_FILE_RE'):
+        if 'MANIFEST_FILE_RE' not in self.config:
             self.config['MANIFEST_FILE_RE'] = \
                 r"^(?P<product>[^\-\s]+)(-(?P<version>\S+))?" + \
                 r"(@(?P<flavor>[^\-\s]+))?.manifest$"
@@ -618,12 +618,12 @@ class ConfigurableDistribServer(DistribServer):
                 continue
 
             if locations[i] == "TAGGED" and \
-                    (not data.has_key('tag') or data['tag'] is None):
+                    ('tag' not in data or data['tag'] is None):
                 if self.verbose > 1:
                     print("tag not specified; skipping", param, "location", file=self.log)
                 continue
             if locations[i] == "FLAVOR" and \
-                    (not data.has_key('flavor') or data['flavor'] is None):
+                    ('flavor' not in data or data['flavor'] is None):
                 if self.verbose > 1:
                     print("flavor not specified; skipping", param, "location", file=self.log)
                 continue
@@ -734,7 +734,7 @@ class ConfigurableDistribServer(DistribServer):
             m = filere.search(file)
             if m is None: continue
             m = m.groupdict()
-            if m.has_key("tag") and m["tag"]:
+            if "tag" in m and m["tag"]:
                 out.append(m["tag"])
 
         return out
@@ -1402,7 +1402,7 @@ EUPS distribution %s version list. Version %s
         the version.  If the product is not recognized, a two-element list 
         will be return with both values set to None.
         """
-        if self.info.has_key(product):
+        if product in self.info:
             return self.info[product]
         else:
             return [None, None]
@@ -1415,7 +1415,7 @@ EUPS distribution %s version list. Version %s
         """remove the given product from the list"""
         while product in self.products:
             del self.products[self.products.index(product)]
-        if self.info.has_key(product):
+        if product in self.info:
             del self.info[product]
 
     def getProducts(self, sort=False):
@@ -1499,20 +1499,20 @@ class Mapping(object):
         else:
             mapping = self._mapping
 
-        if not mapping.has_key(flavor):
+        if flavor not in mapping:
             mapping[flavor] = {}
 
-        if not mapping[flavor].has_key(inProduct):
+        if inProduct not in mapping[flavor]:
             mapping[flavor][inProduct] = {}
 
-        if not overwrite and mapping[flavor][inProduct].has_key(inVersion):
+        if not overwrite and inVersion in mapping[flavor][inProduct]:
             return
 
         if outVersion:
             mapping[flavor][inProduct][inVersion] = (outProduct, outVersion)
         else:
             # Indicate product should be removed completely
-            if mapping[flavor][inProduct].has_key(inVersion):
+            if inVersion in mapping[flavor][inProduct]:
                 del mapping[flavor][inProduct][inVersion]
 
     def exists(self, product, version, flavor="generic"):
@@ -1521,8 +1521,8 @@ class Mapping(object):
                 (flavor != "generic" and self.exists(product, version, flavor="generic")))
 
     def _exists(self, product, version, flavor="generic"):
-        return (self._mapping.has_key(flavor) and self._mapping[flavor].has_key(product) and
-                self._mapping[flavor][product].has_key(version))
+        return (flavor in self._mapping and product in self._mapping[flavor] and
+                version in self._mapping[flavor][product])
     
     def apply(self, inProduct, inVersion, flavor="generic"):
         """apply the mapping"""
@@ -1533,14 +1533,14 @@ class Mapping(object):
 
     def _apply(self, inProduct, inVersion, flavor):
         """apply the mapping for a particular flavor"""
-        if (not self._mapping.has_key(flavor) or not self._mapping[flavor].has_key(inProduct)):
+        if (flavor not in self._mapping or inProduct not in self._mapping[flavor]):
             # No mapping specified
             return inProduct, inVersion
         if not len(self._mapping[flavor][inProduct]):
             # Indicate product should be removed completely
             return inProduct, None
         for versName in (inVersion, "any") or fnmatch.fnmatch(inVersion, versName):
-            if self._mapping[flavor][inProduct].has_key(versName):
+            if versName in self._mapping[flavor][inProduct]:
                 return self._mapping[flavor][inProduct][versName]
         # No mapping for this version
         return inProduct, inVersion
@@ -1552,9 +1552,9 @@ class Mapping(object):
                      (other._noReinstall, self._noReinstall)]:
             for p in o.iterkeys():
                 for v in o[p].iterkeys():
-                    if not s.has_key(p):
+                    if p not in s:
                         s[p] = {}
-                    if not overwrite and s[p].has_key(v):
+                    if not overwrite and v in s[p]:
                         continue
                     s[p][v] = o[p][v]
 
@@ -1578,7 +1578,7 @@ class Mapping(object):
         if not self._noReinstall.get(flavor):
             return False
 
-        if self._noReinstall[flavor].has_key(productName):
+        if productName in self._noReinstall[flavor]:
             return self._noReinstall[flavor][productName].get(versionName)
         else:
             return False        
@@ -2122,7 +2122,7 @@ class ServerConf(object):
                 if len(line) == 0:  continue
 
                 (name, value) = paramre.split(line, 1);
-                if not out.has_key(name):
+                if name not in out:
                     out[name] = []
                 out[name].append(value.strip())
 
@@ -2134,7 +2134,7 @@ class ServerConf(object):
 
         # check syntax of *CLASS
         for k in ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS",]:
-            if out.has_key(k):
+            if k in out:
                 if len(out[k][-1].split(".")) < 2:
                     print("Invalid config parameter %s: %s (expected module.class)" % (k, out[k][-1]), file=self.log)
 
@@ -2212,7 +2212,7 @@ class ServerConf(object):
                                 sys.stderr)
         """
         serverClass = None
-        if self.data.has_key('DISTRIB_SERVER_CLASS'):
+        if 'DISTRIB_SERVER_CLASS' in self.data:
             serverClass = self.data['DISTRIB_SERVER_CLASS']
         if isinstance(serverClass, list):
             serverClass = serverClass[-1]
@@ -2284,7 +2284,7 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
     @param log           a file object to send the messages to.
     @exception OSError   if a non-zero exit code is returned by the shell
     """
-    if not os.environ.has_key('EUPS_DIR'):
+    if 'EUPS_DIR' not in os.environ:
         raise RuntimeError("EUPS_DIR is not set; is EUPS setup?")
     if noaction or verbosity > 0:
         print(cmd, file=log)
@@ -2296,7 +2296,7 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         environ['SHELL'] = BASH
         setups_sh = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
 
-        if environ.has_key("EUPS_PATH"): # keep current path
+        if "EUPS_PATH" in environ: # keep current path
             cmd = "source %s; export EUPS_PATH=%s; %s " % (setups_sh, environ["EUPS_PATH"], cmd)
 
         if verbosity < 0:
@@ -2342,7 +2342,7 @@ def findInPath(file, path):
 
 # make sure we can find bash
 if not os.path.exists(BASH):
-    if not os.environ.has_key('PATH'):
+    if 'PATH' not in os.environ:
       raise RuntimeError("Can't find bash and PATH environement is not set!")
     BASH = findInPath("bash", os.environ['PATH'])
     if not BASH:

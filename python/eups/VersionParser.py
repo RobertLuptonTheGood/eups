@@ -48,7 +48,7 @@ names are declared using VersionParser.define()
             if not value or value == "false":
                 value = False
 
-            if os.environ.has_key(envVar):
+            if envVar in os.environ:
                 return os.environ[envVar]
             elif modifier:
                 return value

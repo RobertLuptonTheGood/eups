@@ -21,7 +21,7 @@ class WebTransporterTestCase(unittest.TestCase):
 
     def setUp(self):
         self.base = pkgroot + "/"
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
 
     def testWebTransporter(self):

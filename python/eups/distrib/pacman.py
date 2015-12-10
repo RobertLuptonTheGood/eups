@@ -39,7 +39,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         eupsDistrib.Distrib.__init__(self, Eups, distServ, flavor, tag, options,
                                      verbosity, log)
 
-        if not self.options.has_key('pacmanCache') and \
+        if 'pacmanCache' not in self.options and \
                 self.distServer is not None:
             self.options['pacmanCache'] = self.distServer.base + "/pm"
 
@@ -67,7 +67,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
             return False
 
         if forserver:
-            if not self.options.has_key('pacmanCache'):
+            if 'pacmanCache' not in self.options:
                 print("Option 'pacmanCache' not set", file=self.log)
                 return False
 
@@ -175,7 +175,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                                ignored by the pacman scripts.
         """
         pacmanDir = productRoot
-        if self.options.has_key('pacmanDBRoot'):
+        if 'pacmanDBRoot' in self.options:
             pacmanDir = os.join.path(pacmanDir, self.options['pacmanDBRoot'])
 
         self.createPacmanDir(pacmanDir)

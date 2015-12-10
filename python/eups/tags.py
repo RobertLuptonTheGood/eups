@@ -38,7 +38,7 @@ class Tags(object):
         self.owners = {}                # owners of the tags (e.g. rhl probably defined the "rhl" tags)
 
         for group in groups:
-            if not self.bygrp.has_key(group):
+            if group not in self.bygrp:
                 self.bygrp[group] = []
 
         if isinstance(globals, str):
@@ -218,7 +218,7 @@ class Tags(object):
 
         try:
             fd = open(file)
-            if not self.bygrp.has_key(group): 
+            if group not in self.bygrp: 
                 self.bygrp[group] = []
             for line in fd:
                 line.strip()
