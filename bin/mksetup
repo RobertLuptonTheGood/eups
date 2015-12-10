@@ -26,6 +26,7 @@ setup = os.path.join('$EUPS_DIR',"bin","eups_setup");
 
 # Keep only one copy of each directory in sys.argv[1], but make sure that sys.argv[2] is present
 unique_path="""
+from __future__ import print_function
 import sys
 pp = []
 for d in sys.argv[1].split(":"):
@@ -33,7 +34,7 @@ for d in sys.argv[1].split(":"):
         pp += [d]
 if not sys.argv[2] in pp:
     pp = [sys.argv[2]] + pp
-print ":".join(pp)"""
+print(":".join(pp))"""
 
 print("Writing a csh startup script");
 try:
