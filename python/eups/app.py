@@ -2,7 +2,7 @@
 common high-level EUPS functions appropriate for calling from an application.
 """
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import re, os, sys, time
 import pickle
 from .Eups           import Eups

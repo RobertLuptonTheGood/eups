@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import re, os, pickle, sys
 from eups import utils
 from eups import Product

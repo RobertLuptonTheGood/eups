@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from .exceptions import *
 from .tags       import Tags, Tag, TagNotRecognized
 from .Product    import Product

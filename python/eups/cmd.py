@@ -31,7 +31,7 @@ The output of run() is a status code appropriate for passing to sys.exit().
 #
 ########################################################################
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import glob, re, os, shutil, sys, time, copy
 import optparse
 import eups

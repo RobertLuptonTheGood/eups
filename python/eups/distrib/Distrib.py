@@ -4,7 +4,7 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package
 #
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import sys, os, re, atexit, shutil
 import eups
 import eups.hooks as hooks

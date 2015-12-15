@@ -4,6 +4,7 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for Pacman
 #
+from __future__ import absolute_import
 import sys, os, re, copy
 import eups
 from . import server as eupsServer

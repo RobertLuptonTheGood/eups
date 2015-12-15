@@ -1,7 +1,7 @@
 """
 The Eups class 
 """
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import glob, re, os, shutil, sys, time
 import filecmp
 import fnmatch

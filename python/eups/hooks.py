@@ -1,7 +1,7 @@
 """
 Module that enables user configuration and hooks.  
 """
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import os, sys, re
 from . import utils
 import eups
