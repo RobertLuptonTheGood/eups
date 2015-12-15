@@ -9,7 +9,7 @@ Release_Notes so you can add a short description of what's changed since the
 last release.
 
 It will record the new release number to git.version, commit everything, and
-tag the source with the version number (a signed tag).
+tag the source with the version number (an annotated tag).
 
 
                      Last released version: $(git describe --abbrev=0 --match "[0-9]*")
