@@ -10,7 +10,6 @@ import re, sys
 
 import eups
 from .exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
-from . import Product
 from .tags       import TagNotRecognized
 from .VersionParser import VersionParser
 from . import utils
@@ -535,6 +534,7 @@ but no other interpretation is applied
         @param addDefaultProduct If not False add the defaultProduct to any table file
         @param requiredVersions  Dict with version required for products
         """
+        from .Product import Product
 
         if Eups is None:
             Eups = eups.Eups()
@@ -624,7 +624,7 @@ but no other interpretation is applied
                                                           addDefaultProduct, requiredVersions=requiredVersions)
                         
                 except (ProductNotFound, TableFileNotFound) as e:
-                    product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.
+                    product = Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra["optional"]]
                     if recursive:
@@ -1204,6 +1204,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     """Expand a table file, reading from ifd and writing to ofd
     If force is true, missing required dependencies are converted to optional
     """
+    from .Product import Product
     #
     # Here's the function to do the substitutions
     #
@@ -1392,7 +1393,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 continue
 
         for name, version, opt, level in NVOL:
-            if re.search("^" + Product.Product.LocalVersionPrefix, version):
+            if re.search("^" + Product.LocalVersionPrefix, version):
                 print("Warning: exact product specification \"%s %s\" is local" % \
                       (name, version), file=utils.stdwarn)
 
