@@ -1,12 +1,9 @@
-2015-11-17 timj
-      Allow spaces in path names
-
-2015-10-26 rhl
-      Use a python2 compatible version of commonpath to replace commonprefix
-      The problem is paths such as "/foo/bar" and "/foo/bar_XXX" for which commonprefix returns "/foo/bar"
-
-2015-09-01 rhl
-      Allow user to specify a product name with "eups tags --clone"
+2015-12-24 mjuric (1.5.10)
+      jhoblitt: allow https:// URLs in EUPS_PKGROOT
+      timj: Allow spaces in path names
+      rhl: Use a python2 compatible version of commonpath to replace commonprefix
+           The problem is paths such as "/foo/bar" and "/foo/bar_XXX" for which commonprefix returns "/foo/bar"
+      rhl: Allow user to specify a product name with "eups tags --clone"
 
 2015-05-06 mjuric (1.5.9)
       rhl: Added "eups tags glob" and made "eups tags" write tags on separate lines when writing to a pipe
