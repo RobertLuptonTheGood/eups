@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, re, sys
 from eups.Product import Product
 from eups.exceptions import ProductNotFound
@@ -163,7 +164,7 @@ class VersionFile(object):
                              None, the product.db field will not be set.
         @return Product : a Product instance representing the product data
         """
-        if not self.info.has_key(flavor):
+        if flavor not in self.info:
             raise ProductNotFound(self.name, self.version, flavor)
 
         if eupsPathDir and not dbpath:
@@ -187,7 +188,7 @@ class VersionFile(object):
             dosub = filter(lambda n: n not in skip, dosub)
 
         for name in dosub:
-            if macrore.has_key(name) and data[name]:
+            if name in macrore and data[name]:
                 value = macrore[name].sub(data[name], value)
 
         return value
@@ -211,7 +212,7 @@ class VersionFile(object):
         """
         return true if the product is declared for a given flavor 
         """
-        return self.info.has_key(flavor)
+        return flavor in self.info
 
     def addFlavor(self, flavor, installdir = None, tablefile = None, 
                   upsdir = None):
@@ -231,14 +232,14 @@ class VersionFile(object):
         @param upsdir :     the path to the ups directory for this product.  
                               If None, a value of  "ups" will be assumed.  
         """
-        if self.info.has_key(flavor):
+        if flavor in self.info:
             # if this flavor already exists, use it to set defaults.
             info = self.info[flavor]
-            if not installdir and info.has_key("productDir"):
+            if not installdir and "productDir" in info:
                 installdir = info["productDir"]
-            if not upsdir and info.has_key("ups_dir"):
+            if not upsdir and "ups_dir" in info:
                 upsdir = info["ups_dir"]
-            if not tablefile and info.has_key("table_file"):
+            if not tablefile and "table_file" in info:
                 tablefile = info["table_file"]
           
         info = {}
@@ -275,13 +276,13 @@ class VersionFile(object):
             upsdir = "none"
         info["ups_dir"] = upsdir
 
-        if self.info.has_key(flavor):
-            if self.info[flavor].has_key("declarer"):
+        if flavor in self.info:
+            if "declarer" in self.info[flavor]:
                 info["declarer"] = self.info[flavor]["declarer"]
-            if self.info[flavor].has_key("declared"):
+            if "declared" in self.info[flavor]:
                 info["declared"] = self.info[flavor]["declared"]
 
-        if info.has_key("declarer") or info.has_key("declared"):
+        if "declarer" in info or "declared" in info:
             # we're modifying
             info["modifier"] = who
             info["modified"] = ctimeTZ()
@@ -310,7 +311,7 @@ class VersionFile(object):
 
         updated = False
         for flavor in flavors:
-            if self.info.has_key(flavor):
+            if flavor in self.info:
                 del self.info[flavor]
                 updated = True
 
@@ -349,31 +350,28 @@ class VersionFile(object):
             #
             if re.search(r"^(End|Group)\s*:", line):
                 if flavor:
-                    if not self.info[flavor].has_key("productDir"):
+                    if "productDir" not in self.info[flavor]:
                       if verbosity >= 0:
-                        print >> eups.utils.stdwarn, \
-                            "Warning: Version file has no PROD_DIR for product %s %s %s\n  file=%s" % \
-                            (self.name, self.version, flavor, file)
+                        print("Warning: Version file has no PROD_DIR for product %s %s %s\n  file=%s" % \
+                            (self.name, self.version, flavor, file), file=eups.utils.stdwarn)
 
                       self.info[flavor]["productDir"] = None
 
-                    if not self.info[flavor].has_key("table_file"):
+                    if "table_file" not in self.info[flavor]:
                       if verbosity >= 0:
-                        print >> eups.utils.stdwarn, \
-                            "Warning: Version file has no TABLE_FILE for product %s %s %s\n  file=%s" % \
-                            (self.name, self.version, flavor, file)
+                        print("Warning: Version file has no TABLE_FILE for product %s %s %s\n  file=%s" % \
+                            (self.name, self.version, flavor, file), file=eups.utils.stdwarn)
 
                       self.info[flavor]["table_file"] = "none"
 
                     tablefile = self.info[flavor]["table_file"]
-                    if not self.info[flavor].has_key("ups_dir") and \
+                    if "ups_dir" not in self.info[flavor] and \
                        isRealFilename(tablefile):
                         if verbosity >= 0 and \
                            tablefile != ("%s.table" % self.name) and \
                            not os.path.isabs(tablefile):
-                            print >> eups.utils.stdwarn, \
-                                "Warning: Version file has no UPS_DIR for product %s %s %s with TABLE_FILE=%s\n  file=%s" % \
-                            (self.name, self.version, flavor, tablefile, file)
+                            print("Warning: Version file has no UPS_DIR for product %s %s %s with TABLE_FILE=%s\n  file=%s" % \
+                            (self.name, self.version, flavor, tablefile, file), file=eups.utils.stdwarn)
 
                         self.info[flavor]["ups_dir"] = "none"
 
@@ -389,37 +387,33 @@ class VersionFile(object):
 
                 value = re.sub(r"^\"|\"$", "", mat.group(2))
             else:
-                raise RuntimeError, \
-                      ("Unexpected line \"%s\" at %s:%d" % (line, self.file, lineNo))
+                raise RuntimeError("Unexpected line \"%s\" at %s:%d" % (line, self.file, lineNo))
             #
             # Check for information about product
             #
             if key == "file":
                 if value.lower() != "version":
-                    raise RuntimeError, \
-                          ('Expected "File = Version"; saw "%s" at %s:%d' % (line, self.file, lineNo))
+                    raise RuntimeError('Expected "File = Version"; saw "%s" at %s:%d' % (line, self.file, lineNo))
 
             elif key == "product":
                 if not self.name:
                     self.name = value
                 elif self.name != value:
                   if verbosity >= 0:
-                    print >> eups.utils.stdwarn, \
-                        "Warning: Unexpected product name, %s, in version file; expected %s,\n  file=%s" % \
-                        (value, self.name, file)
+                    print("Warning: Unexpected product name, %s, in version file; expected %s,\n  file=%s" % \
+                        (value, self.name, file), file=eups.utils.stdwarn)
 
             elif key == "version":
                 if not self.version:
                     self.version = value
                 elif self.version != value:
                   if verbosity >= 0:
-                    print >> eups.utils.stdwarn, \
-                        "Warning: Unexpected version name, %s, for %s in version file; expected %s,\n  file=%s" % \
-                        (value, self.name, self.version, file)
+                    print("Warning: Unexpected version name, %s, for %s in version file; expected %s,\n  file=%s" % \
+                        (value, self.name, self.version, file), file=eups.utils.stdwarn)
 
             elif key == "flavor": # Now look for flavor-specific blocks
                 flavor = value
-                if not self.info.has_key(flavor):
+                if flavor not in self.info:
                     self.info[flavor] = {}
 
             else:
@@ -455,11 +449,11 @@ class VersionFile(object):
 
         fd = open(file, "w")
 
-        print >> fd, """FILE = version
+        print("""FILE = version
 PRODUCT = %s
 VERSION = %s
 #***************************************\
-""" % (self.name, self.version)
+""" % (self.name, self.version), file=fd)
 
         for fq in self.info.keys():
             mat = re.search(r"^([^:]+)(:?:(.*)$)?", fq)
@@ -468,11 +462,11 @@ VERSION = %s
             if not qualifier:
                 qualifier = ""
 
-            print >> fd, """
+            print("""
 Group:
    FLAVOR = %s
    QUALIFIERS = "%s"\
-""" % (flavor, qualifier)
+""" % (flavor, qualifier), file=fd)
         
             #
             # Strip trimDir from directory names
@@ -491,7 +485,7 @@ Group:
 
                             if k.lower() == "table_file":
                                 dirName = info.get("productDir")
-                                if dirName and info.has_key("ups_dir"):
+                                if dirName and "ups_dir" in info:
                                     dirName = os.path.join(dirName, info["ups_dir"])
 
                                 if dirName and eups.utils.commonpath([dirName, info[k]]) == dirName:
@@ -499,8 +493,7 @@ Group:
 
                     if os.path.isabs(info[k]):
                         if info[k] != trimDir:
-                            print >> eups.utils.stdwarn, \
-                                  "Warning: path %s is absolute, not relative to EUPS_PATH" % info[k]
+                            print("Warning: path %s is absolute, not relative to EUPS_PATH" % info[k], file=eups.utils.stdwarn)
 
             for field in self._fields:
                 if field == "PROD_DIR":
@@ -508,7 +501,7 @@ Group:
                 else:
                     k = field.lower()
 
-                if info.has_key(k):
+                if k in info:
                     value = info[k]
                             
                     if not value:
@@ -521,13 +514,12 @@ Group:
 
                     if field.upper() == "TABLE_FILE" and os.path.isabs(value):
                         if False:
-                            print >> eups.utils.stdwarn, \
-                                "Detected absolute table filename (tell RHL): %s" % value
+                            print("Detected absolute table filename (tell RHL): %s" % value, file=eups.utils.stdwarn)
                         pass
 
-                    print >> fd, "   %s = %s" % (field.upper(), value)
+                    print("   %s = %s" % (field.upper(), value), file=fd)
 
-        print >> fd, "End:"
+        print("End:", file=fd)
 
         fd.close()
 

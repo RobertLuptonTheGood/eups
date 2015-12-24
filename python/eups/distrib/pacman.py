@@ -4,10 +4,11 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for Pacman
 #
+from __future__ import print_function
 import sys, os, re, atexit, shutil
 import eups
-import Distrib as eupsDistrib
-import server as eupsServer
+from . import Distrib as eupsDistrib
+from . import server as eupsServer
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to encapsulate Pacman-based product distribution
@@ -38,7 +39,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         eupsDistrib.Distrib.__init__(self, Eups, distServ, flavor, tag, options,
                                      verbosity, log)
 
-        if not self.options.has_key('pacmanCache') and \
+        if 'pacmanCache' not in self.options and \
                 self.distServer is not None:
             self.options['pacmanCache'] = self.distServer.base + "/pm"
 
@@ -66,18 +67,18 @@ class Distrib(eupsDistrib.DefaultDistrib):
             return False
 
         if forserver:
-            if not self.options.has_key('pacmanCache'):
-                print >> self.log, "Option 'pacmanCache' not set"
+            if 'pacmanCache' not in self.options:
+                print("Option 'pacmanCache' not set", file=self.log)
                 return False
 
             msg = "Illegal value for Option 'pacmanCache': "
             if not isinstance(self.options['pacmanCache'], str):
-                print >> self.log, msg + self.options['pacmanCache']
+                print(msg + self.options['pacmanCache'], file=self.log)
                 return False
 
             self.options['pacmanCache'] = self.options['pacmanCache'].strip()
             if len(self.options['pacmanCache']) == 0:
-                print >> self.log, msg + self.options['pacmanCache']
+                print(msg + self.options['pacmanCache'], file=self.log)
                 return False
 
         return True
@@ -174,7 +175,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                                ignored by the pacman scripts.
         """
         pacmanDir = productRoot
-        if self.options.has_key('pacmanDBRoot'):
+        if 'pacmanDBRoot' in self.options:
             pacmanDir = os.join.path(pacmanDir, self.options['pacmanDBRoot'])
 
         self.createPacmanDir(pacmanDir)
@@ -189,14 +190,14 @@ class Distrib(eupsDistrib.DefaultDistrib):
                              setups=None):
         if not os.path.exists(os.path.join(pacmanDir, "o..pacman..o")) and \
                 self.verbose >= 0:
-            print >> self.log, "Warning: Pacman database directory,", \
-                "o..pacman..o, not found in", pacmanDir
+            print("Warning: Pacman database directory,", \
+                "o..pacman..o, not found in", pacmanDir, file=self.log)
 
         try:
             eupsServer.system("""cd %s && pacman -allow urllib2 -install "%s" """ % \
                                   (pacmanDir, location), 
                               self.Eups.noaction, self.verbose, self.log)
-        except OSError, e:
+        except OSError as e:
             raise RuntimeError("Pacman failed to install " + location)
 
     def createPacmanDir(self, pacmanDir):
@@ -233,8 +234,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                               self.Eups.noaction, self.verbose, self.log)
         else:
             if self.verbose >= 0:
-                print >> self.log, \
-                    "Warning: pacman database not found under", pacmanDir
+                print("Warning: pacman database not found under", pacmanDir, file=self.log)
             return False
         
         return True

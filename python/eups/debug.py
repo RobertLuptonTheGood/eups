@@ -3,6 +3,7 @@ Support for debugging
 
 N.b. can't go in utils.py as utils is imported be eups, and we need to import eups.Eups here
 """
+from __future__ import print_function
 import re, sys
 import eups.Eups    
 
@@ -13,8 +14,8 @@ def parseDebugOption(debugOpts):
     debugOptions = re.split("[:,]", debugOpts)
     for do in debugOptions:
         if not do in allowedDebugOptions and not re.search(r"^profile($|\[)", do):
-            print >> sys.stderr, "Unknown debug option: %s; exiting (valid options are: %s)" % \
-                (do, ", ".join([x for x in allowedDebugOptions if x]))
+            print("Unknown debug option: %s; exiting (valid options are: %s)" % \
+                (do, ", ".join([x for x in allowedDebugOptions if x])), file=sys.stderr)
             sys.exit(1)
     # n.b. these may be reset later in a cmdHook
     eups.Eups.debugFlag = "debug" in debugOptions

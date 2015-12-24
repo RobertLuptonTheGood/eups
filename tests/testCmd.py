@@ -8,7 +8,7 @@ import sys
 import unittest
 import time
 import re, shutil
-import cStringIO as StringIO
+import io as StringIO
 import testCommon
 from testCommon import testEupsStack
 
@@ -34,7 +34,7 @@ class CmdTestCase(unittest.TestCase):
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_PKGROOT"] = \
             os.path.join(testEupsStack,"testserver","s2")
-        if os.environ.has_key("EUPS_FLAGS"):
+        if "EUPS_FLAGS" in os.environ:
             del os.environ["EUPS_FLAGS"]
 
     def _resetOut(self):
@@ -376,7 +376,7 @@ class SetupCmdTestCase(unittest.TestCase):
         os.environ["EUPS_PATH"] = testEupsStack
         os.environ["EUPS_PKGROOT"] = \
             os.path.join(testEupsStack,"testserver","s2")
-        if os.environ.has_key("EUPS_FLAGS"):
+        if "EUPS_FLAGS" in os.environ:
             del os.environ["EUPS_FLAGS"]
 
     def _resetOut(self):

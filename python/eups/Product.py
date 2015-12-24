@@ -1,10 +1,14 @@
 # from Table import *
+from __future__ import absolute_import, print_function
 import os, re, sys
-import cPickle
-import ConfigParser
-import table as mod_table
-import utils
-from exceptions import ProductNotFound, TableFileNotFound
+import pickle
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser
+from . import table as mod_table
+from . import utils
+from .exceptions import ProductNotFound, TableFileNotFound
 
 macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
             "PROD_DIR":  re.compile(r"^\$PROD_DIR\b"),
@@ -51,7 +55,7 @@ class Product(object):
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
                  tags=None, db=None, noInit=None, ups_dir=None):
         if (name and not isinstance(name, str)) or isinstance(dir,bool) or noInit is not None:
-            print >> utils.stdwarn, "Note: detected use of deprecated API; use Eups.getProduct() instead."
+            print("Note: detected use of deprecated API; use Eups.getProduct() instead.", file=utils.stdwarn)
             name = version
             version = flavor
             if not version:
@@ -245,7 +249,7 @@ class Product(object):
             dosub = filter(lambda n: n not in skip, dosub)
 
         for name in dosub:
-            if macrore.has_key(name) and data[name]:
+            if name in macrore and data[name]:
                 value = macrore[name].sub(data[name], value)
 
         return value
@@ -404,7 +408,7 @@ class Product(object):
         """Return the product's ConfigParser, which will be empty if the file doesn't exist"""
         
         cfgFile = os.path.join(self.dir, "ups", "%s.cfg" % self.name)
-        config = ConfigParser.ConfigParser({"filename" : cfgFile})
+        config = ConfigParser({"filename" : cfgFile})
         config.read(cfgFile)            # cfgFile need not exist
         #
         # Add default values
@@ -425,7 +429,7 @@ class Product(object):
                     return config.getint(section, option)
                 else:
                     return config.get(section, option)
-            except Exception, e:
+            except Exception as e:
                 raise RuntimeError("Processing %s: %s" % (cfgFile, e))
 
         return config
@@ -433,12 +437,12 @@ class Product(object):
     def persist(self, fd):
         out = (self.name, self.version, self.flavor, self.dir, self.tablefile,
                self.tags, self.db, self._table)
-        cPickle.dump(out, fd, protocol=2);
+        pickle.dump(out, fd, protocol=2);
 
     # @staticmethod   # requires python 2.4
     def unpersist(fd):
         """return a Product instance restored from a file persistence"""
-        p = cPickle.load(fd);
+        p = pickle.load(fd);
         out = Product(p[0], p[1], p[2], p[3], p[4], p[5], p[6])
         out._table = p[7]
         return out

@@ -26,7 +26,7 @@ from eups.distrib.server import DistribServer
 class LsstConfigFileTestCase(unittest.TestCase):
 
     def setUp(self):
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.base = os.path.join(testEupsStack, "testserver", "s2")
         self.configFile = os.path.join(testEupsStack, "eups-config.txt")
@@ -47,7 +47,7 @@ from eups.distrib.server import ServerConf
 class LsstServerConfTestCase(unittest.TestCase):
 
     def setUp(self):
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.pkgroot = pkgroot
         self.servconf = ServerConf(self.pkgroot)
@@ -61,7 +61,7 @@ class LsstServerConfTestCase(unittest.TestCase):
 class LsstDistribServerTestCase(unittest.TestCase):
 
     def setUp(self):
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.pkgroot = pkgroot
 
@@ -129,7 +129,7 @@ from eups.tags import Tag
 class LsstRepositoryTestCase(unittest.TestCase):
 
     def setUp(self):
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.pkgroot = pkgroot
         self.eups = Eups()
@@ -201,7 +201,7 @@ from eups.distrib.Repositories import Repositories
 
 class LsstRepositoriesTestCase(unittest.TestCase):
     def setUp(self):
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.localroot = os.path.join(testEupsStack, "testserver", "s2")
         self.lsstroot = pkgroot
@@ -299,7 +299,7 @@ class LsstRepositoriesTestCase(unittest.TestCase):
 class LsstCmdTestCase(unittest.TestCase):
 
     def setUp(self):
-        if not os.environ.has_key("EUPS_DIR"):
+        if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.localroot = os.path.join(testEupsStack, "testserver", "s2")
         self.lsstroot = bootroot

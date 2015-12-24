@@ -53,37 +53,37 @@ class TableTestCase2(unittest.TestCase):
         actions = self.table.actions("Linux")
         for action in actions:
             action.execute(self.eups, 1, True, True)
-        self.assert_(os.environ.has_key("GOOBPATH"))
+        self.assert_("GOOBPATH" in os.environ)
         self.assertEquals(os.environ["GOOBPATH"], 
                           "/home/user/goob:/usr/goob:/usr/local/goob")
-        self.assert_(not os.environ.has_key("FOO"))
-        self.assert_(not os.environ.has_key("BAR"))
-        self.assert_(self.eups.aliases.has_key("longls"))
+        self.assert_("FOO" not in os.environ)
+        self.assert_("BAR" not in os.environ)
+        self.assert_("longls" in self.eups.aliases)
         self.assertEquals(self.eups.aliases["longls"], "ls -l")
 
         # undo
         for action in actions:
             action.execute(self.eups, 1, False, True)
-        self.assert_(not os.environ.has_key("FOO"))
-        self.assert_(not os.environ.has_key("BAR"))
-        self.assert_(os.environ.has_key("GOOBPATH"))
+        self.assert_("FOO" not in os.environ)
+        self.assert_("BAR" not in os.environ)
+        self.assert_("GOOBPATH" in os.environ)
         self.assertEquals(os.environ["GOOBPATH"], '')
 
     def testIfFlavor(self):
         actions = self.table.actions("DarwinX86")
         for action in actions:
             action.execute(self.eups, 1, True, True)
-        self.assert_(os.environ.has_key("GOOBPATH"))
-        self.assert_(os.environ.has_key("FOO"))
+        self.assert_("GOOBPATH" in os.environ)
+        self.assert_("FOO" in os.environ)
         self.assertEquals(os.environ["FOO"], "1")
-        self.assert_(not os.environ.has_key("BAR"))
+        self.assert_("BAR" not in os.environ)
 
         # undo
         for action in actions:
             action.execute(self.eups, 1, False, True)
-        self.assert_(not os.environ.has_key("FOO"))
-        self.assert_(not os.environ.has_key("BAR"))
-        self.assert_(os.environ.has_key("GOOBPATH"))
+        self.assert_("FOO" not in os.environ)
+        self.assert_("BAR" not in os.environ)
+        self.assert_("GOOBPATH" in os.environ)
         self.assertEquals(os.environ["GOOBPATH"], '')
         
 
@@ -91,17 +91,17 @@ class TableTestCase2(unittest.TestCase):
         actions = self.table.actions("DarwinX86", "build")
         for action in actions:
             action.execute(self.eups, 1, True, True)
-        self.assert_(os.environ.has_key("GOOBPATH"))
-        self.assert_(os.environ.has_key("FOO"))
+        self.assert_("GOOBPATH" in os.environ)
+        self.assert_("FOO" in os.environ)
         self.assertEquals(os.environ["FOO"], "1")
-        self.assert_(os.environ.has_key("BAR"))
+        self.assert_("BAR" in os.environ)
 
         # undo
         for action in actions:
             action.execute(self.eups, 1, False, True)
-        self.assert_(not os.environ.has_key("FOO"))
-        self.assert_(os.environ.has_key("GOOBPATH"))
-        self.assert_(os.environ.has_key("BAR"))
+        self.assert_("FOO" not in os.environ)
+        self.assert_("GOOBPATH" in os.environ)
+        self.assert_("BAR" in os.environ)
         self.assertEquals(os.environ["GOOBPATH"], '')
         self.assertEquals(os.environ["BAR"], '')
 
@@ -109,19 +109,19 @@ class TableTestCase2(unittest.TestCase):
         actions = self.table.actions("Linux")
         for action in actions:
             action.execute(self.eups, 1, True)
-        self.assert_(os.environ.has_key("GOOBPATH"))
-        self.assert_(os.environ.has_key("SETUP_PYTHON"))
-        self.assert_(os.environ.has_key("PYTHON_DIR"))
-        self.assert_(os.environ.has_key("CFITSIO_DIR"))
-        self.assert_(not os.environ.has_key("EIGEN_DIR"))
+        self.assert_("GOOBPATH" in os.environ)
+        self.assert_("SETUP_PYTHON" in os.environ)
+        self.assert_("PYTHON_DIR" in os.environ)
+        self.assert_("CFITSIO_DIR" in os.environ)
+        self.assert_("EIGEN_DIR" not in os.environ)
 
     def testEmptyBlock(self):
         actions = self.table.actions("Linux64")
         for action in actions:
             action.execute(self.eups, 1, True)
-        self.assert_(os.environ.has_key("GOOBPATH"))
-        self.assert_(not os.environ.has_key("FOO"))
-        self.assert_(not os.environ.has_key("BAR"))
+        self.assert_("GOOBPATH" in os.environ)
+        self.assert_("FOO" not in os.environ)
+        self.assert_("BAR" not in os.environ)
 
     def testEnvSetWithForce(self):
         """ensure use of force does not cause failure"""

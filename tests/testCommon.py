@@ -77,4 +77,4 @@ def findFileFromRoot(ifile):
 
         file = dirname
 
-    raise IOError, "Can't find %s" % ifile
+    raise IOError("Can't find %s" % ifile)

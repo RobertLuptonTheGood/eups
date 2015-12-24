@@ -3,12 +3,13 @@
 Tests for eups.Eups
 """
 
+from __future__ import print_function
 import os
 import sys
 import shutil
 import unittest
 import time
-from cStringIO import StringIO
+from io import StringIO
 import testCommon
 from testCommon import testEupsStack
 
@@ -69,7 +70,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(self.eups.path[1], os.environ["EUPS_USERDATA"])
         self.assertEquals(self.eups.getUpsDB(testEupsStack), self.dbpath)
         self.assertEquals(len(self.eups.versions), 2)
-        self.assert_(self.eups.versions.has_key(testEupsStack))
+        self.assert_(testEupsStack in self.eups.versions)
         self.assert_(self.eups.versions[testEupsStack] is not None)
 
         flavors = self.eups.versions[testEupsStack].getFlavors()
@@ -206,7 +207,7 @@ class EupsTestCase(unittest.TestCase):
         prod = self.eups.getProduct("python", "2.6")
         self.assert_(prod is not None, "Failed to find python 2.6")
         if "beta" in prod.tags:
-            print >> sys.stderr, "Warning: python 2.6 is already tagged beta"
+            print("Warning: python 2.6 is already tagged beta", file=sys.stderr)
         self.eups.assignTag("beta", "python", "2.6")
 
         self.assert_(os.path.exists(self.betachain),
@@ -468,16 +469,16 @@ class EupsTestCase(unittest.TestCase):
         self.environ0 = os.environ.copy()
 
         self.eups.setup("python")
-        self.assert_(os.environ.has_key("PYTHON_DIR"))
-        self.assert_(os.environ.has_key("SETUP_PYTHON"))
-        self.assert_(os.environ.has_key("TCLTK_DIR"))
-        self.assert_(os.environ.has_key("SETUP_TCLTK"))
+        self.assert_("PYTHON_DIR" in os.environ)
+        self.assert_("SETUP_PYTHON" in os.environ)
+        self.assert_("TCLTK_DIR" in os.environ)
+        self.assert_("SETUP_TCLTK" in os.environ)
 
         self.eups.unsetup("python")
-        self.assert_(not os.environ.has_key("PYTHON_DIR"))
-        self.assert_(not os.environ.has_key("SETUP_PYTHON"))
-        self.assert_(not os.environ.has_key("TCLTK_DIR"))
-        self.assert_(not os.environ.has_key("SETUP_TCLTK"))
+        self.assert_("PYTHON_DIR" not in os.environ)
+        self.assert_("SETUP_PYTHON" not in os.environ)
+        self.assert_("TCLTK_DIR" not in os.environ)
+        self.assert_("SETUP_TCLTK" not in os.environ)
 
     def testRemove(self):
         os.environ = self.environ0

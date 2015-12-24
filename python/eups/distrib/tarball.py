@@ -4,10 +4,11 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: : a specialization for binary tar-balls
 #
+from __future__ import absolute_import, print_function
 import sys, os, re
 import eups
-import Distrib as eupsDistrib
-import server as eupsServer
+from . import Distrib as eupsDistrib
+from . import server as eupsServer
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to encapsulate tarball-based product distribution
@@ -98,16 +99,16 @@ DIST_URL = %(base)s/%(path)s
 
             msg = "I don't know how to write a tarball for %s %s as it has no directory" % (product, version)
             if self.verbose > 1:
-                print >> self.log, msg
+                print(msg, file=self.log)
             return None
 
         if os.access("%s/%s" % (serverDir, tarball), os.R_OK) and not (self.Eups.force or overwrite):
             if self.verbose > 0:
-                print >> self.log, "Not recreating", tarball
+                print("Not recreating", tarball, file=self.log)
             return tarball
 
         if self.verbose > 0:
-            print >> self.log, "Writing", tarball
+            print("Writing", tarball, file=self.log)
         #
         # Record where the binary distro was installed originally (and presumably tested...)
         #
@@ -115,19 +116,18 @@ DIST_URL = %(base)s/%(path)s
         fd = None
         try:                            # "try ... except ... finally" and "with" are too new-fangled to use
             fd = open(pwdFile, "w")
-            print >> fd, os.path.join(baseDir, productDir)
+            print(os.path.join(baseDir, productDir), file=fd)
             del fd
-        except Exception, e:
+        except Exception as e:
             if self.verbose > 0:
-                print >> self.log, \
-                    "Unable to write %s; installation will be unable to check paths: %s" % (pwdFile, e)
+                print("Unable to write %s; installation will be unable to check paths: %s" % (pwdFile, e), file=self.log)
 
         fullTarball = os.path.join(serverDir, tarball)
         try:
             eupsServer.system("(cd %s && tar -cf - %s) | gzip > %s" % 
                               (baseDir, productDir, fullTarball),
                               self.Eups.noaction, self.verbose-1, self.log)
-        except Exception, e:
+        except Exception as e:
             try:
                 os.unlink(pwdFile)
             except:
@@ -138,7 +138,7 @@ DIST_URL = %(base)s/%(path)s
             except:
                 pass
 
-            raise OSError, "Failed to write %s: %s" % (tarball, str(e))
+            raise OSError("Failed to write %s: %s" % (tarball, str(e)))
 
         try:
             os.unlink(pwdFile)
@@ -186,12 +186,12 @@ DIST_URL = %(base)s/%(path)s
         """
         tarball = location
         if not tarball:
-            raise RuntimeError, ("Expected a tarball name; saw \"%s\"" % distID)
+            raise RuntimeError("Expected a tarball name; saw \"%s\"" % distID)
 
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
         if self.verbose > 0:
-            print >> self.log, "Building in", buildDir
+            print("Building in", buildDir, file=self.log)
 
         # we will download the tarball to the build directory
         tfile = "%s/%s" % (buildDir, tarball)
@@ -202,7 +202,7 @@ DIST_URL = %(base)s/%(path)s
                                                       ftype="dist",
                                                       filename=tfile)
             if not os.access(tfile, os.R_OK):
-                raise RuntimeError, ("Unable to read %s" % (tfile))
+                raise RuntimeError("Unable to read %s" % (tfile))
 
         unpackDir = os.path.join(productRoot, self.Eups.flavor)
         if installDir and installDir != "none":
@@ -210,20 +210,20 @@ DIST_URL = %(base)s/%(path)s
                 (baseDir, pdir, vdir) = re.search(r"^(\S+)/([^/]+)/([^/]+)$", 
                                                   installDir).groups()
                 unpackDir = os.path.join(unpackDir,baseDir)
-            except AttributeError, e:
+            except AttributeError as e:
                 pass
                     
         if not os.path.exists(unpackDir):
             os.makedirs(unpackDir)
 
         if self.verbose > 0:
-            print >> self.log, "installing %s into %s" % (tarball, unpackDir)
+            print("installing %s into %s" % (tarball, unpackDir), file=self.log)
 
         try:
             eupsServer.system("cd %s && tar -zxmf %s" % (unpackDir, tfile), 
                               self.Eups.noaction, verbosity=self.verbose-1)
-        except Exception, e:
-            raise RuntimeError, ("Failed to read %s: %s" % (tfile, e))
+        except Exception as e:
+            raise RuntimeError("Failed to read %s: %s" % (tfile, e))
 
         if installDir and installDir == "none":
             installDir = None
@@ -248,8 +248,8 @@ DIST_URL = %(base)s/%(path)s
 
             if originalDir and installDir != originalDir:
                 if self.verbose > 0:
-                    print >> self.log, "Installing binary product %s %s into %s (was built for %s)" % (
-                        product, version, installDir, originalDir)
+                    print("Installing binary product %s %s into %s (was built for %s)" % (
+                        product, version, installDir, originalDir), file=self.log)
 
     def getDistIdForPackage(self, product, version, flavor=None):
         """return the distribution ID that for a package distribution created

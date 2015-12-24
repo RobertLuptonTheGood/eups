@@ -27,7 +27,8 @@ information on the distribution server, accessed via HTTP.  All of the
 above concrete implementations use these assumptions and thus inherit from 
 DefaultDistrib.
 """
-from Repositories import Repositories
-from Repository import Repository
-from Distrib import Distrib, DefaultDistrib, findInstallableRoot
-from DistribFactory import DistribFactory
+from __future__ import absolute_import
+from .Repositories import Repositories
+from .Repository import Repository
+from .Distrib import Distrib, DefaultDistrib, findInstallableRoot
+from .DistribFactory import DistribFactory

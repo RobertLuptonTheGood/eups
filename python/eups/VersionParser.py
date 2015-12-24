@@ -48,12 +48,12 @@ names are declared using VersionParser.define()
             if not value or value == "false":
                 value = False
 
-            if os.environ.has_key(envVar):
+            if envVar in os.environ:
                 return os.environ[envVar]
             elif modifier:
                 return value
             else:
-                raise RuntimeError, ("Environment variable $%s is not defined" % envVar)
+                raise RuntimeError("Environment variable $%s is not defined" % envVar)
         except TypeError:
             pass
         except AttributeError:
@@ -175,7 +175,7 @@ names are declared using VersionParser.define()
             elif next == "(":
                 next = self._next()
                 if next != ")":
-                    raise RuntimeError, ("Saw next = \"%s\" in prim" % next)
+                    raise RuntimeError("Saw next = \"%s\" in prim" % next)
 
             return term
 

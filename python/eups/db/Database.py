@@ -1,6 +1,8 @@
+from __future__ import absolute_import
+
 import os, sys, re
-from VersionFile import VersionFile
-from ChainFile import ChainFile
+from .VersionFile import VersionFile
+from .ChainFile import ChainFile
 from eups.utils import isRealFilename, isDbWritable
 import eups.tags
 from eups.Product import Product
@@ -44,7 +46,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None, owner=None):
         defStackRoot = os.path.dirname(dbpath)
 
     key = (dbpath, defStackRoot)
-    if not _databases.has_key(key):
+    if key not in _databases:
         _databases[key] = _Database(dbpath, defStackRoot)
 
     if userTagRoot:
@@ -106,11 +108,11 @@ class _Database(object):
         except AttributeError:
             self._userTagDbs = {}
 
-        if not self._userTagDbs.has_key(upsdb):
+        if upsdb not in self._userTagDbs:
             self._userTagDbs[upsdb] = {}
             self._userTagDbs[upsdb]["__keys"] = [] # .keys() in the order they were inserted
             
-        if not self._userTagDbs[upsdb].has_key(userId):
+        if userId not in self._userTagDbs[upsdb]:
             self._userTagDbs[upsdb]["__keys"].append(userId) # keep keys in order
         self._userTagDbs[upsdb][userId] = userTagRoot
 

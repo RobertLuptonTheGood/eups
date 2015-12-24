@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import
 import re
 import os.path
 import eups
 import eups.hooks
 from eups.table import Table
-from server import DistribServer, Manifest
-from builder import expandBuildFile
+from .server import DistribServer, Manifest
+from .builder import expandBuildFile
 
 class DreamServer(DistribServer):
     """Package server that allows one to turn dreams into reality.

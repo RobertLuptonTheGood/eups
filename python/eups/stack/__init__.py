@@ -9,5 +9,5 @@ The major classes are:
    ProductFamily   a collection of different versions of product (installed 
                        for the same flavor).  
 """
-from ProductFamily import ProductFamily
-from ProductStack import ProductStack, persistVersionName, CacheOutOfSync
+from .ProductFamily import ProductFamily
+from .ProductStack import ProductStack, persistVersionName, CacheOutOfSync

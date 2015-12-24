@@ -1,6 +1,7 @@
+from __future__ import absolute_import, print_function
 import fnmatch, os, re, sys
-import hooks, utils
-from exceptions import EupsException
+from . import hooks, utils
+from .exceptions import EupsException
 
 who = utils.getUserName()
 
@@ -37,7 +38,7 @@ class Tags(object):
         self.owners = {}                # owners of the tags (e.g. rhl probably defined the "rhl" tags)
 
         for group in groups:
-            if not self.bygrp.has_key(group):
+            if group not in self.bygrp:
                 self.bygrp[group] = []
 
         if isinstance(globals, str):
@@ -217,7 +218,7 @@ class Tags(object):
 
         try:
             fd = open(file)
-            if not self.bygrp.has_key(group): 
+            if group not in self.bygrp: 
                 self.bygrp[group] = []
             for line in fd:
                 line.strip()
@@ -245,7 +246,7 @@ class Tags(object):
             file = self._persistPath(group)
         try:
             fd = open(file, "w")
-            print >> fd, " ".join(self.bygrp[group])
+            print(" ".join(self.bygrp[group]), file=fd)
         finally:
             try:
                 fd.close()
@@ -270,9 +271,8 @@ class Tags(object):
         for dir in eupsPath:
             if not os.path.exists(dir):
                 if verbosity > 1:
-                    print >> utils.stdinfo, \
-                        "%s: EUPS root directory does not exist; skipping..." \
-                        % dir
+                    print("%s: EUPS root directory does not exist; skipping..." \
+                        % dir, file=utils.stdinfo)
                 continue
             if not os.path.isdir(dir):
                 if versbose > 0:
@@ -290,22 +290,20 @@ class Tags(object):
                 file = os.path.join(dbdir, file)
                 if group == "user":
                     if verbosity > 0:
-                        print >> utils.stdwarn, \
-                            "Skipping apparent user tags in EUPS_PATH:", \
-                            file
+                        print("Skipping apparent user tags in EUPS_PATH:", \
+                            file, file=utils.stdwarn)
                     continue
                 if group == "global":
                     group = self.global_
 
                 if verbosity > 1:
-                    print >> utils.stdinfo, "Reading tags from", file
+                    print("Reading tags from", file, file=utils.stdinfo)
                 try:
                     loaded = self.load(group, file)
-                except IOError, e:
+                except IOError as e:
                     if verbosity >= 0:
-                        print >> utils.stdwarn, \
-                            "Skipping troublesome tag file (%s): %s" % \
-                            (str(e), file)
+                        print("Skipping troublesome tag file (%s): %s" % \
+                            (str(e), file), file=utils.stdwarn)
 
         return loaded
 
@@ -460,7 +458,7 @@ class Tag(object):
         if len(parts) > 2:
             try:
                 parts = ":".join(parts[:-1], parts[-1])
-            except Exception, e:
+            except Exception as e:
                 import eups; eups.debug(e)
 
         if len(parts) == 1:
@@ -537,7 +535,7 @@ def checkTagsList(eupsenv, tagList):
         fileName = re.sub(r"^file:", "", tag)
         if os.path.isfile(os.path.expanduser(fileName)):
             if eupsenv.verbose > 1:
-                print >> utils.stdinfo, "File %s defines a tag" % fileName
+                print("File %s defines a tag" % fileName, file=utils.stdinfo)
             badtags.remove(tag)
             
     if badtags:
@@ -569,9 +567,9 @@ def getUserDefinedTags(user):
         setattr(myEups, c, [])
 
     try:
-        execfile(startupFile, myGlobals, myLocals)
-    except Exception, e:
-        print >> utils.stderr, "Error processing %s's startup file: %s" % (user, e)
+        exec(compile(open(startupFile).read(), startupFile, 'exec'), myGlobals, myLocals)
+    except Exception as e:
+        print("Error processing %s's startup file: %s" % (user, e), file=utils.stderr)
         return []
 
     theirTags = []
@@ -598,8 +596,8 @@ def cloneTag(eupsenv, newTag, oldTag, productList=[]):
             eupsenv.declare(p.name, p.version, tag=newTag)
             if productsToTag:
                 productsToTag.remove(p.name)
-        except EupsException, e:
-            print >> utils.stderr, e
+        except EupsException as e:
+            print(e, file=utils.stderr)
 
     return productsToTag                # only ones that we failed to tag will still be in list
 
@@ -608,7 +606,7 @@ def deleteTag(eupsenv, tag):
 
     for p in eupsenv.findProducts(tags=[tag]):
         if eupsenv.verbose:
-            print >> utils.stdinfo, "Untagging %-40s %s" % (p.name, p.version)
+            print("Untagging %-40s %s" % (p.name, p.version), file=utils.stdinfo)
         eupsenv.undeclare(p.name, p.version, tag=tag)
 
 __all__ = "Tags Tag TagNotRecognized TagNameConflict cloneTag deleteTag".split()

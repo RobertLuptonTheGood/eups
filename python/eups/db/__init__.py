@@ -13,7 +13,7 @@ The main classes in this module are:
                  specific tag to a product, which is stored in a single 
                  file in the database.
 """
-from VersionFile import VersionFile 
-from ChainFile import ChainFile
-from Database import Database
+from .VersionFile import VersionFile 
+from .ChainFile import ChainFile
+from .Database import Database
 

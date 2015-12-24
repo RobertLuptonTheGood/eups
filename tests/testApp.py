@@ -10,7 +10,7 @@ import sys
 import shutil
 import unittest
 import time
-from cStringIO import StringIO
+from io import StringIO
 import testCommon
 from testCommon import testEupsStack
 
@@ -30,9 +30,9 @@ class AppTestCase(unittest.TestCase):
         os.environ = self.environ0
 
     def testProductDir(self):
-        if os.environ.has_key("PYTHON_DIR"):
+        if "PYTHON_DIR" in os.environ:
             del os.environ["PYTHON_DIR"]
-        if os.environ.has_key("SETUP_PYTHON"):
+        if "SETUP_PYTHON" in os.environ:
             del os.environ["SETUP_PYTHON"]
 
         self.assert_(eups.productDir("python") is None, 
@@ -106,61 +106,61 @@ class TagSetupTestCase(unittest.TestCase):
         # test some assumptions
         preftags = self.eups.getPreferredTags()
         self.assert_("current" in preftags, "no python marked current")
-        self.assert_(not os.environ.has_key("SETUP_PYTHON"), "python already set")
+        self.assert_("SETUP_PYTHON" not in os.environ, "python already set")
 
         # setup the preferred (tagged current) version
         eups.setup("python")
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
         self.assertEquals(prod.version, "2.5.2")
-        self.assert_(os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON not set")
-        self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
+        self.assert_("SETUP_PYTHON" in os.environ, "SETUP_PYTHON not set")
+        self.assert_("PYTHON_DIR" in os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
         # check for dependent product
         prod = self.eups.findSetupProduct("tcltk")
         self.assert_(prod is not None, "tcltk not setup")
         self.assertEquals(prod.version, "8.5a4")
-        self.assert_(os.environ.has_key("SETUP_TCLTK"), "SETUP_TCLTK not set")
-        self.assert_(os.environ.has_key("TCLTK_DIR"), "TCLTK_DIR not set")
+        self.assert_("SETUP_TCLTK" in os.environ, "SETUP_TCLTK not set")
+        self.assert_("TCLTK_DIR" in os.environ, "TCLTK_DIR not set")
         self.assertEquals(os.environ["TCLTK_DIR"], prod.dir)        
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is None, "python is still setup")
-        self.assert_(not os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON is still set")
-        self.assert_(not os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR is still set")
+        self.assert_("SETUP_PYTHON" not in os.environ, "SETUP_PYTHON is still set")
+        self.assert_("PYTHON_DIR" not in os.environ, "PYTHON_DIR is still set")
         prod = self.eups.findSetupProduct("tcltk")
         self.assert_(prod is None, "tcltk is still setup")
-        self.assert_(not os.environ.has_key("SETUP_TCLTK"), "SETUP_TCLTK is still set")
-        self.assert_(not os.environ.has_key("TCLTK_DIR"), "TCLTK_DIR is still set")
+        self.assert_("SETUP_TCLTK" not in os.environ, "SETUP_TCLTK is still set")
+        self.assert_("TCLTK_DIR" not in os.environ, "TCLTK_DIR is still set")
 
         # set up an explicit version
         eups.setup("python", "2.5.2")
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
         self.assertEquals(prod.version, "2.5.2")
-        self.assert_(os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON not set")
-        self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
+        self.assert_("SETUP_PYTHON" in os.environ, "SETUP_PYTHON not set")
+        self.assert_("PYTHON_DIR" in os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
         # check for dependent product
         prod = self.eups.findSetupProduct("tcltk")
         self.assert_(prod is not None, "tcltk not setup")
         self.assertEquals(prod.version, "8.5a4")
-        self.assert_(os.environ.has_key("SETUP_TCLTK"), "SETUP_TCLTK not set")
-        self.assert_(os.environ.has_key("TCLTK_DIR"), "TCLTK_DIR not set")
+        self.assert_("SETUP_TCLTK" in os.environ, "SETUP_TCLTK not set")
+        self.assert_("TCLTK_DIR" in os.environ, "TCLTK_DIR not set")
         self.assertEquals(os.environ["TCLTK_DIR"], prod.dir)        
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is None, "python is still setup")
-        self.assert_(not os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON is still set")
-        self.assert_(not os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR is still set")
+        self.assert_("SETUP_PYTHON" not in os.environ, "SETUP_PYTHON is still set")
+        self.assert_("PYTHON_DIR" not in os.environ, "PYTHON_DIR is still set")
         prod = self.eups.findSetupProduct("tcltk")
         self.assert_(prod is None, "tcltk is still setup")
-        self.assert_(not os.environ.has_key("SETUP_TCLTK"), "SETUP_TCLTK is still set")
-        self.assert_(not os.environ.has_key("TCLTK_DIR"), "TCLTK_DIR is still set")
+        self.assert_("SETUP_TCLTK" not in os.environ, "SETUP_TCLTK is still set")
+        self.assert_("TCLTK_DIR" not in os.environ, "TCLTK_DIR is still set")
 
 
     def testTaggedTarget(self):
@@ -199,26 +199,26 @@ setupRequired(python)
         prod = self.eups.findSetupProduct("newprod")
         self.assert_(prod is not None, "newprod not setup")
         self.assertEquals(prod.version, "2.0")
-        self.assert_(os.environ.has_key("SETUP_NEWPROD"), "SETUP_NEWPROD not set")
-        self.assert_(os.environ.has_key("NEWPROD_DIR"), "NEWPROD_DIR not set")
+        self.assert_("SETUP_NEWPROD" in os.environ, "SETUP_NEWPROD not set")
+        self.assert_("NEWPROD_DIR" in os.environ, "NEWPROD_DIR not set")
         self.assertEquals(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
         self.assertEquals(prod.version, "2.5.2")  # tagged current 
-        self.assert_(os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON not set")
-        self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
+        self.assert_("SETUP_PYTHON" in os.environ, "SETUP_PYTHON not set")
+        self.assert_("PYTHON_DIR" in os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
         eups.unsetup("newprod")
         prod = self.eups.findSetupProduct("newprod")
         self.assert_(prod is None, "newprod is still setup")
-        self.assert_(not os.environ.has_key("SETUP_NEWPROD"), "SETUP_NEWPROD not set")
-        self.assert_(not os.environ.has_key("NEWPROD_DIR"), "NEWPROD_DIR not set")
+        self.assert_("SETUP_NEWPROD" not in os.environ, "SETUP_NEWPROD not set")
+        self.assert_("NEWPROD_DIR" not in os.environ, "NEWPROD_DIR not set")
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is None, "python is still setup")
-        self.assert_(not os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON is still set")
-        self.assert_(not os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR is still set")
+        self.assert_("SETUP_PYTHON" not in os.environ, "SETUP_PYTHON is still set")
+        self.assert_("PYTHON_DIR" not in os.environ, "PYTHON_DIR is still set")
 
         # now test with dependent product with requested tag
         self.eups.assignTag("beta", "python", "2.6")
@@ -227,15 +227,15 @@ setupRequired(python)
         prod = self.eups.findSetupProduct("newprod")
         self.assert_(prod is not None, "newprod not setup")
         self.assertEquals(prod.version, "2.0")
-        self.assert_(os.environ.has_key("SETUP_NEWPROD"), "SETUP_NEWPROD not set")
-        self.assert_(os.environ.has_key("NEWPROD_DIR"), "NEWPROD_DIR not set")
+        self.assert_("SETUP_NEWPROD" in os.environ, "SETUP_NEWPROD not set")
+        self.assert_("NEWPROD_DIR" in os.environ, "NEWPROD_DIR not set")
         self.assertEquals(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
         self.assertEquals(prod.version, "2.6")  # tagged beta
-        self.assert_(os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON not set")
-        self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
+        self.assert_("SETUP_PYTHON" in os.environ, "SETUP_PYTHON not set")
+        self.assert_("PYTHON_DIR" in os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
         self.eups.unassignTag("beta", "python")
@@ -280,15 +280,15 @@ setupRequired(python)
         prod = self.eups.findSetupProduct("newprod")
         self.assert_(prod is not None, "newprod not setup")
         self.assertEquals(prod.version, "1.0")
-        self.assert_(os.environ.has_key("SETUP_NEWPROD"), "SETUP_NEWPROD not set")
-        self.assert_(os.environ.has_key("NEWPROD_DIR"), "NEWPROD_DIR not set")
+        self.assert_("SETUP_NEWPROD" in os.environ, "SETUP_NEWPROD not set")
+        self.assert_("NEWPROD_DIR" in os.environ, "NEWPROD_DIR not set")
         self.assertEquals(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
         self.assertEquals(prod.version, "2.6")  # tagged beta
-        self.assert_(os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON not set")
-        self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
+        self.assert_("SETUP_PYTHON" in os.environ, "SETUP_PYTHON not set")
+        self.assert_("PYTHON_DIR" in os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
     def testTaggedDeps2(self):
@@ -335,15 +335,15 @@ setupRequired(python 2.5.2 [>= 2.5])
         prod = self.eups.findSetupProduct("newprod")
         self.assert_(prod is not None, "newprod not setup")
         self.assertEquals(prod.version, "1.0")
-        self.assert_(os.environ.has_key("SETUP_NEWPROD"), "SETUP_NEWPROD not set")
-        self.assert_(os.environ.has_key("NEWPROD_DIR"), "NEWPROD_DIR not set")
+        self.assert_("SETUP_NEWPROD" in os.environ, "SETUP_NEWPROD not set")
+        self.assert_("NEWPROD_DIR" in os.environ, "NEWPROD_DIR not set")
         self.assertEquals(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
         self.assertEquals(prod.version, "test")  # tagged rhl
-        self.assert_(os.environ.has_key("SETUP_PYTHON"), "SETUP_PYTHON not set")
-        self.assert_(os.environ.has_key("PYTHON_DIR"), "PYTHON_DIR not set")
+        self.assert_("SETUP_PYTHON" in os.environ, "SETUP_PYTHON not set")
+        self.assert_("PYTHON_DIR" in os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

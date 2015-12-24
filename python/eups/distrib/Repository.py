@@ -2,15 +2,16 @@
 the Repository class -- An interface into a distribution server for 
 installing and deploying distribution packages.
 """
+from __future__ import absolute_import, print_function
 import sys, os, re, atexit, shutil
 import eups
-import server 
+from . import server 
 from eups.tags      import Tag, TagNotRecognized
 from eups.utils     import Flavor, Quiet, isDbWritable
-from server         import ServerConf, Manifest, Mapping, TaggedProductList
-from server         import RemoteFileNotFound, LocalTransporter
-from DistribFactory import DistribFactory
-from Distrib        import Distrib, DefaultDistrib, findInstallableRoot
+from .server         import ServerConf, Manifest, Mapping, TaggedProductList
+from .server         import RemoteFileNotFound, LocalTransporter
+from .DistribFactory import DistribFactory
+from .Distrib        import Distrib, DefaultDistrib, findInstallableRoot
 
 class Repository(object):
     """
@@ -77,7 +78,7 @@ class Repository(object):
         self.pkgroot = pkgroot
         if pkgroot:
             override = None
-            if self.options.has_key('serverconf'):
+            if 'serverconf' in self.options:
                 override = options['serverconf']
             self.distServer = ServerConf.makeServer(pkgroot, eupsenv=eupsenv, override=override,
                                                     verbosity=self.verbose, log=self.log)
@@ -96,7 +97,7 @@ class Repository(object):
         # repository to get a package from.  If False, an internal cache
         # of available products will be used.
         self._alwaysQueryServer = False
-        if self.options.has_key("alwaysQueryServer"):
+        if "alwaysQueryServer" in self.options:
             if isinstance(self.options["alwaysQueryServer"], str):
                 self.options["alwaysQueryServer"] = \
                     self.options["alwaysQueryServer"].upper()
@@ -136,9 +137,9 @@ class Repository(object):
         #
         lookup = {}  # key is product == pkg[0]
         for pkg in pkgs:
-            if not lookup.has_key(pkg[0]):   
+            if pkg[0] not in lookup:   
                 lookup[pkg[0]] = {}                # key is flavor == pkg[2]
-            if not lookup[pkg[0]].has_key(pkg[2]):
+            if pkg[2] not in lookup[pkg[0]]:
                 lookup[pkg[0]][pkg[2]] = []        # list of versions == pkg[1]
             lookup[pkg[0]][pkg[2]].append(pkg[1])
 
@@ -217,8 +218,7 @@ class Repository(object):
             if isinstance(vers, Tag) and not vers.isPseudo() and \
                    vers.name not in supportedTags:
                 if self.verbose > 0:
-                    print >> self.log, \
-                        "Tag %s not supported at %s" % (vers.name, self.pkgroot)
+                    print("Tag %s not supported at %s" % (vers.name, self.pkgroot), file=self.log)
                 continue
 
             for flavor in prefFlavors:
@@ -304,14 +304,14 @@ class Repository(object):
 
             prods = self._pkgList["_sortOrder"]
             if product:
-                if not self._pkgList.has_key(product):
+                if product not in self._pkgList:
                     return []
                 prods = [product]
 
             for prod in prods:
                 flavs = self._pkgList[prod]["_sortOrder"]
                 if flavor:
-                    if not self._pkgList[prod].has_key(flavor):
+                    if flavor not in self._pkgList[prod]:
                         continue
                     flavs = [flavor]
 
@@ -489,7 +489,7 @@ class Repository(object):
         if packageId:
             vals = packageId.split(":")
             if len(vals) != 2:
-                raise RuntimeError, ("Expected package Id of form name:version, saw \"%s\"" % packageId)
+                raise RuntimeError("Expected package Id of form name:version, saw \"%s\"" % packageId)
             if vals[0] == "":
                 vals[0] = product
             if vals[1] == "":
@@ -514,7 +514,7 @@ class Repository(object):
 
         for pos, dp in enumerate(manifest.getProducts()):
             pver = "%s-%s" % (dp.product, dp.version)
-            if created.has_key(pver):
+            if pver in created:
                 if created[pver]:
                     manifest.getProducts()[pos] = created[pver]
                     continue
@@ -531,13 +531,13 @@ class Repository(object):
                 if distrib.packageCreated(self.pkgroot, dp.product, dp.version, flavor):
                     if not self.eups.force:
                         if self.verbose > 0:
-                            print >> self.log, "Dependency %s %s is already deployed; skipping" % \
-                                  (dp.product, dp.version)
+                            print("Dependency %s %s is already deployed; skipping" % \
+                                  (dp.product, dp.version), file=self.log)
                         created[pver] = dp
                         continue
 
                     elif self.verbose > 0:
-                        print >> self.log, "Overwriting existing dependency,", dp.product, dp.version
+                        print("Overwriting existing dependency,", dp.product, dp.version, file=self.log)
                         
             #
             # Check if this product is available elsewhere
@@ -564,7 +564,7 @@ class Repository(object):
                                                  mapping=mapping.inverse())
                 man.remapEntries(mode="create", mapping=mapping)
                 distrib.updateDependencies(man.getProducts(), flavor=self.flavor, mapping=mapping.inverse())
-            except eups.EupsException, e:
+            except eups.EupsException as e:
                 raise RuntimeError("Creating manifest for %s:%s, dependency of %s %s: %s" %
                                    (dp.product, dp.version, manifest.product, manifest.version, e))
 
@@ -612,10 +612,9 @@ class Repository(object):
                 raise EupsException("Can't over-write existing tagged release "+
                                     "without --force")
             elif self.verbose > 0:
-                print >> self.log, \
-                    "Over-writing existing tagged release for", tag
+                print("Over-writing existing tagged release for", tag, file=self.log)
         elif self.verbose > 0:
-            print >> self.log, "Creating new tagged release for", tag
+            print("Creating new tagged release for", tag, file=self.log)
 
         if not flavor:  flavor = "generic"
 
@@ -674,7 +673,7 @@ class Repository(object):
         pl = distrib.getTaggedRelease(self.pkgroot, tag, flavor)
         if pl is None:
             if self.verbose > 0:
-                print >> self.log, "Creating new tagged release for", tag
+                print("Creating new tagged release for", tag, file=self.log)
             pl = TaggedProductList(tag, flavor)
 
         pl.addProduct(product, version, flavor)

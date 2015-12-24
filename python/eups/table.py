@@ -4,16 +4,16 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package
 #
+from __future__ import absolute_import, print_function
 import os
 import re, sys
 
 import eups
-from exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
-import Product
-from tags       import TagNotRecognized
-from VersionParser import VersionParser
-import utils
-import hooks
+from .exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
+from .tags       import TagNotRecognized
+from .VersionParser import VersionParser
+from . import utils
+from . import hooks
 
 class Table(object):
     """A class that represents a eups table file"""
@@ -101,7 +101,7 @@ but no other interpretation is applied
                         msg = "Unsupported qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo)
                         raise BadTableContent(self.file, msg=msg)
                     else:
-                        print >> utils.stdwarn, "Ignoring qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo)
+                        print("Ignoring qualifiers \"%s\" at %s:%d" % (mat.group(1), self.file, lineNo), file=utils.stdwarn)
                 continue
             #
             # Parse Group...Common...End, replacing by a proper If statement
@@ -178,7 +178,7 @@ but no other interpretation is applied
                             value = re.sub(r"\${PRODUCTS}", root, value)
                         elif re.search(r"\${PRODUCTS}", value):
                             if not quiet:
-                                print >> utils.stderr, "Unable to expand PRODUCTS in %s" % self.file
+                                print("Unable to expand PRODUCTS in %s" % self.file, file=utils.stderr)
 
                         mat = re.search(r"(\$(\?)?{PRODUCT_DIR(_EXTRA)?})", value)
                         if mat:
@@ -198,7 +198,7 @@ but no other interpretation is applied
                                 value = re.sub(re.sub(r"([$?.])", r"\\\1", var), newValue, value)
                             else:
                                 if not optional and not quiet:
-                                    print >> utils.stderr, "Unable to expand %s in %s" % (var, self.file)
+                                    print("Unable to expand %s in %s" % (var, self.file), file=utils.stderr)
                         #
                         # Be nice; they should say PRODUCT_DIR but sometimes PRODUCT is spelled out, e.g. EUPS_DIR
                         #
@@ -208,14 +208,14 @@ but no other interpretation is applied
                                 value = re.sub(regexp, product.dir, value)
                             else:
                                 if not quiet:
-                                    print >> utils.stdwarn, "Unable to expand %s in %s" % \
-                                          (self.file, utils.dirEnvNameFor(product.name))
+                                    print("Unable to expand %s in %s" % \
+                                          (self.file, utils.dirEnvNameFor(product.name)), file=utils.stdwarn)
 
                         if product.flavor:
                             value = re.sub(r"\${PRODUCT_FLAVOR}", product.flavor, value)
                         elif re.search(r"\${PRODUCT_FLAVOR}", value):
                             if not quiet:
-                                print >> utils.stdwarn, "Unable to expand PRODUCT_FLAVOR in %s" % self.file
+                                print("Unable to expand PRODUCT_FLAVOR in %s" % self.file, file=utils.stdwarn)
 
                         value = re.sub(r"\${PRODUCT_NAME}", product.name, value)
                         if re.search(r"\${PRODUCT_VERSION}", value):
@@ -223,7 +223,7 @@ but no other interpretation is applied
                                 value = re.sub(r"\${PRODUCT_VERSION}", product.version, value)
                             else:
                                 if not quiet:
-                                    print >> utils.stdwarn, "Unable to expand PRODUCT_VERSION in %s" % self.file
+                                    print("Unable to expand PRODUCT_VERSION in %s" % self.file, file=utils.stdwarn)
 
                         value = re.sub(r"\${UPS_DIR}", os.path.dirname(self.file), value)
                         #
@@ -235,17 +235,17 @@ but no other interpretation is applied
                             ind = int(mat.group(1))
                             value = re.sub(r"\[(\d+)\]}$", "", value) + "}"
 
-                            if not os.environ.has_key("EUPS_PATH"):
+                            if "EUPS_PATH" not in os.environ:
                                 if not quiet:
-                                    print >> utils.stdwarn, "%s is not defined; not setting %s" % (value, a.args[0])
+                                    print("%s is not defined; not setting %s" % (value, a.args[0]), file=utils.stdwarn)
                                 continue
 
                             try:
                                 value = os.environ["EUPS_PATH"].split(":")[ind]
                             except IndexError:
                                 if product.Eups.verbose > 0 and not quiet:
-                                    print >> utils.stderr, "Invalid index %d for \"%s\"; not setting %s" % \
-                                          (ind, os.environ["EUPS_PATH"], a.args[0])
+                                    print("Invalid index %d for \"%s\"; not setting %s" % \
+                                          (ind, os.environ["EUPS_PATH"], a.args[0]), file=utils.stderr)
 
                         a.args[i] = value
 
@@ -259,7 +259,7 @@ but no other interpretation is applied
 
         try:
             fd = file(tableFile)
-        except IOError, e:
+        except IOError as e:
             raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
@@ -372,7 +372,7 @@ but no other interpretation is applied
                         "unsetupoptional" : Action.unsetupOptional,
                         }[cmd]
                 except KeyError:
-                    print >> utils.stderr, "Unexpected line in %s:%d: %s" % (tableFile, lineNo, line)
+                    print("Unexpected line in %s:%d: %s" % (tableFile, lineNo, line), file=utils.stderr)
                     continue
             else:
                 cmd = line; args = []
@@ -432,15 +432,15 @@ but no other interpretation is applied
                     
                 if args[0] != pdirVar:  # only allow the unsetting of this one variable
                     if pdirVar and verbose > 0:
-                        print >> utils.stdwarn, "Attempt to unset $%s at %s:%d" % (args[0], self.file, lineNo)
+                        print("Attempt to unset $%s at %s:%d" % (args[0], self.file, lineNo), file=utils.stdwarn)
                     continue                
             elif cmd == Action.sourceRequired:
-                print >> utils.stderr, "Ignoring unsupported directive %s at %s:%d" % (line, self.file, lineNo)
+                print("Ignoring unsupported directive %s at %s:%d" % (line, self.file, lineNo), file=utils.stderr)
                 continue
             elif cmd == Action.doPrint:
                 pass
             else:
-                print >> utils.stderr, "Unrecognized line: %s at %s:%d" % (line, self.file, lineNo)
+                print("Unrecognized line: %s at %s:%d" % (line, self.file, lineNo), file=utils.stderr)
                 continue
 
             block += [Action(tableFile, cmd, args, extra, topProduct=topProduct)]
@@ -496,7 +496,7 @@ but no other interpretation is applied
             msg = "Table %s has no entry for flavor %s" % (self.file, flavor)
             if setupType:
                 msg += ", type " + ", ".join(setupType)
-            print >> utils.stdinfo, msg
+            print(msg, file=utils.stdinfo)
         return actions
 
     def __str__(self):
@@ -534,6 +534,7 @@ but no other interpretation is applied
         @param addDefaultProduct If not False add the defaultProduct to any table file
         @param requiredVersions  Dict with version required for products
         """
+        from .Product import Product
 
         if Eups is None:
             Eups = eups.Eups()
@@ -554,7 +555,7 @@ but no other interpretation is applied
         if productDictionary is None:
             productDictionary = {}
 
-        if not productDictionary.has_key(self.topProduct):
+        if self.topProduct not in productDictionary:
             productDictionary[self.topProduct] = []
             
         if addDefaultProduct is None and \
@@ -614,7 +615,7 @@ but no other interpretation is applied
                         val.append(None)
                     deps += [val]
 
-                    if recursive and not noRecursion and not recursiveDict.has_key(prodkey(product)):
+                    if recursive and not noRecursion and prodkey(product) not in recursiveDict:
                         recursiveDict[prodkey(product)] = 1
                         deptable = product.getTable(addDefaultProduct=addDefaultProduct)
                         if deptable:
@@ -622,8 +623,8 @@ but no other interpretation is applied
                                                           recursionDepth + 1, followExact, productDictionary,
                                                           addDefaultProduct, requiredVersions=requiredVersions)
                         
-                except (ProductNotFound, TableFileNotFound), e:
-                    product = Product.Product(productName, vers) # it doesn't exist, but it's still a dep.
+                except (ProductNotFound, TableFileNotFound) as e:
+                    product = Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra["optional"]]
                     if recursive:
@@ -652,7 +653,7 @@ but no other interpretation is applied
                 logical, ifBlock, elseBlock = LBB[0], LBB[1], LBB[2:]
 
                 if len(elseBlock) > 13:
-                    print "Oh dear. Please type w at the pdb prompt and notify rhl@astro.princeton.edu"
+                    print("Oh dear. Please type w at the pdb prompt and notify rhl@astro.princeton.edu")
                     import pdb; pdb.set_trace() 
 
                 parser = VersionParser(logical)
@@ -770,7 +771,7 @@ class Action(object):
         elif self.cmd == Action.doPrint: 
             self.execute_print(Eups, fwd)
         else:
-            print >> utils.stderr, "Unimplemented action", self.cmd
+            print("Unimplemented action", self.cmd, file=utils.stderr)
 
     def processArgs(self, Eups, fwd=True):
         """Process the arguments in a setup command found in a table file"""
@@ -823,8 +824,8 @@ class Action(object):
                 else:
                     toplevelDir = "."
                 if (fwd and Eups.verbose > 0) or Eups.verbose > 1:
-                    print >> utils.stdwarn, "Interpreting directory %s relative to %s in %s" % \
-                        (productDir, toplevelDir, self.tableFile)
+                    print("Interpreting directory %s relative to %s in %s" % \
+                        (productDir, toplevelDir, self.tableFile), file=utils.stdwarn)
 
                 productDir = os.path.join(toplevelDir, productDir)
 
@@ -843,11 +844,11 @@ class Action(object):
 
         if ignoredOpts:
             if fwd or Eups.verbose > 1: 
-                print >> utils.stdwarn, "Ignoring options %s for %s %s" % \
-                      (" ".join(ignoredOpts), productName, vers) 
+                print("Ignoring options %s for %s %s" % \
+                      (" ".join(ignoredOpts), productName, vers), file=utils.stdwarn) 
 
         if fwd and requestedFlavor and requestedFlavor != Eups.flavor:
-            print >> utils.stdwarn, "Ignoring --flavor option in \"%s(%s)\"" % (self.cmdName, " ".join(_args))
+            print("Ignoring --flavor option in \"%s(%s)\"" % (self.cmdName, " ".join(_args)), file=utils.stdwarn)
 
 
         versExpr = None                 # relational expression for version
@@ -870,9 +871,8 @@ class Action(object):
                     else:
                         extraText = ""
 
-                    print >> utils.stdwarn, \
-                        "You specified vro \"%s\" and --keep for %s%s; ignoring the latter" % \
-                        (requestedVRO, productName, extraText)
+                    print("You specified vro \"%s\" and --keep for %s%s; ignoring the latter" % \
+                        (requestedVRO, productName, extraText), file=utils.stdwarn)
                 keep = False
 
             if requestedVRO == "version!":
@@ -883,17 +883,16 @@ class Action(object):
                         else:
                             extraText = ""
 
-                        print >> utils.stdinfo, \
-                            "You are setting up --keep and specifying %s --vro \"%s\"%s. Ignoring --keep" % \
-                            (productName, requestedVRO, extraText)
+                        print("You are setting up --keep and specifying %s --vro \"%s\"%s. Ignoring --keep" % \
+                            (productName, requestedVRO, extraText), file=utils.stdinfo)
             else:
                 keep = "keep" in vro
         elif not keep:
             keep = "keep" in vro
 
         if requestedTags and requestedVRO:
-            print >> utils.stdinfo, "You specified vro \"%s\" and tag[s] \"%s\"; ignoring the latter" % \
-                  (requestedVRO, "\", \"".join(requestedTags))
+            print("You specified vro \"%s\" and tag[s] \"%s\"; ignoring the latter" % \
+                  (requestedVRO, "\", \"".join(requestedTags)), file=utils.stdinfo)
             requestedTags = []
 
         if requestedTags:
@@ -902,8 +901,8 @@ class Action(object):
                 try:
                     Eups.tags.getTag(tag)
                     tags.append(tag)
-                except TagNotRecognized, e:
-                    print >> utils.stdwarn, "%s in \"%s(%s)\"" % (e, self.cmdName, " ".join(_args))
+                except TagNotRecognized as e:
+                    print("%s in \"%s(%s)\"" % (e, self.cmdName, " ".join(_args)), file=utils.stdwarn)
 
             requestedTags = tags
 
@@ -933,14 +932,14 @@ class Action(object):
         
         optional, key, default = mat.groups()
 
-        if os.environ.has_key(key):
+        if key in os.environ:
             return re.sub(varRE, os.environ[key], value)
         elif default:
             return re.sub(varRE, default, value)
 
         if optional:
             if verbose > 0:
-                print >> utils.stdinfo, "$%s is not defined; skipping line containing %s" % (key, value)
+                print("$%s is not defined; skipping line containing %s" % (key, value), file=utils.stdinfo)
 
             return None
         else:
@@ -974,7 +973,7 @@ class Action(object):
                        Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
                                   versionExpr=versExpr, productRoot=productDir, optional=optional,
                                   implicitProduct=implicitProduct)
-        except Exception, e:
+        except Exception as e:
             productOK, reason = False, e
 
         del q
@@ -996,7 +995,7 @@ class Action(object):
                         msg += " failed"
                         if Eups.verbose > 1:
                             msg += ": %s" % reason
-                        print >> utils.stdinfo, "            %s%s" % (recursionDepth*" ", msg)
+                        print("            %s%s" % (recursionDepth*" ", msg), file=utils.stdinfo)
                 else:
                     if isinstance(reason, str):
                         utils.debug("reason is a str", reason)
@@ -1023,7 +1022,7 @@ class Action(object):
             productOK, vers, reason = Eups.unsetup(productName, vers, recursionDepth,
                                                    noRecursion=noRecursion, optional=optional)
                                                    
-        except Exception, e:
+        except Exception as e:
             productOK, reason = False, e
 
         Eups.popStack("verbose")
@@ -1043,7 +1042,7 @@ class Action(object):
                         msg += " failed"
                         if Eups.verbose > 1:
                             msg += ": %s" % reason
-                        print >> utils.stdinfo, "            %s%s" % (recursionDepth*" ", msg)
+                        print("            %s%s" % (recursionDepth*" ", msg), file=utils.stdinfo)
                 else:
                     if isinstance(reason, str):
                         utils.debug("reason is a str", reason)
@@ -1084,8 +1083,7 @@ class Action(object):
 
         if delim in value:
             if Eups.verbose > 1:
-                print >> utils.stdwarn, \
-                    "In %s value \"%s\" contains a delimiter '%s'" % (self.tableFile, value, delim)
+                print("In %s value \"%s\" contains a delimiter '%s'" % (self.tableFile, value, delim), file=utils.stdwarn)
 
         npath = opath
         for value in value.split(delim):
@@ -1106,7 +1104,7 @@ class Action(object):
         if append_delim and not re.search(r"%s$" % delim, npath):
             npath += delim
 
-        if Eups.force and Eups.oldEnviron.has_key(envVar):
+        if Eups.force and envVar in Eups.oldEnviron:
             del Eups.oldEnviron[envVar]
 
         Eups.setEnv(envVar, npath, interpolateEnv=True)
@@ -1119,7 +1117,7 @@ class Action(object):
         key = args[0]
         if fwd:
             value = " ".join(args[1:])
-        if Eups.force and Eups.oldAliases.has_key(key):
+        if Eups.force and key in Eups.oldAliases:
             del Eups.oldAliases[key]    # Does this actually work? 
 
         if fwd:
@@ -1136,7 +1134,7 @@ class Action(object):
         if fwd:
             value = args[1]
 
-        if Eups.force and Eups.oldEnviron.has_key(key):
+        if Eups.force and key in Eups.oldEnviron:
             del Eups.oldEnviron[key]
 
         if fwd:
@@ -1181,7 +1179,7 @@ class Action(object):
         else:
             raise RuntimeError("Impossible destination: %s" % dest)
 
-        print >> dest, " ".join(args)
+        print(" ".join(args), file=dest)
         
     def execute_envUnset(self, Eups, fwd=True):
         """Execute envUnset"""
@@ -1206,6 +1204,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     """Expand a table file, reading from ifd and writing to ofd
     If force is true, missing required dependencies are converted to optional
     """
+    from .Product import Product
     #
     # Here's the function to do the substitutions
     #
@@ -1231,15 +1230,15 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 i += 1
 
                 if i == len(args):
-                    raise RuntimeError, ("Flag %s expected an argument" % a)
+                    raise RuntimeError("Flag %s expected an argument" % a)
 
                 flags += ["%s %s" % (a, args[i])]
             elif re.search(r"^-[cdejknoPsvtV0-3]", a):
                 flags += [a]
             elif re.search(r"^-[BO]", a):
-                print >> utils.stderr, "I don't know how to process %s" % a
+                print("I don't know how to process %s" % a, file=utils.stderr)
             elif re.search(r"^-", a):
-                print >> utils.stderr, "Unknown setup flag %s" % a
+                print("Unknown setup flag %s" % a, file=utils.stderr)
             else:                       # split [expr] into separate words for later convenience
                 mat = re.search(r"^\[\s*(.*)\s*\]?$", a)
                 if mat:
@@ -1254,7 +1253,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         try:
             productName = words.pop(0)
         except IndexError:
-            print >> utils.stderr, "I cannot find a product in %s; passing through unchanged" % original
+            print("I cannot find a product in %s; passing through unchanged" % original, file=utils.stderr)
             return original
 
         try:
@@ -1277,7 +1276,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
         if version and Eups.isLegalRelativeVersion(version):
             if logical:                 # how did this happen? Version is logical and also a [logical]
-                print >> utils.stdwarn, "Two logical expressions are present in %s; using first" % original
+                print("Two logical expressions are present in %s; using first" % original, file=utils.stdwarn)
                 
             logical = " ".join([version] + words)
             version = None
@@ -1292,12 +1291,12 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 version = product.version
             if not version:
                 if cmd == "setupRequired":
-                    print >> utils.stdwarn, "Failed to find setup version of", productName
+                    print("Failed to find setup version of", productName, file=utils.stdwarn)
                 return original     # it must not have been setup
 
         if logical:
             if not Eups.version_match(version, logical):
-                print >> utils.stdwarn, "Warning: %s %s failed to match condition \"%s\"" % (productName, version, logical)
+                print("Warning: %s %s failed to match condition \"%s\"" % (productName, version, logical), file=utils.stdwarn)
         else:
             if product and version and not re.search("^" + product.LocalVersionPrefix, version):
                 logical = ">= %s" % version
@@ -1306,7 +1305,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         if version:
             args += [version]
             if versionRegexp and not re.search(versionRegexp, version):
-                print >> utils.stdwarn, "Suspicious version for %s: %s" % (productName, version)
+                print("Suspicious version for %s: %s" % (productName, version), file=utils.stdwarn)
         #
         # Here's where we record the logical expression, if provided
         #
@@ -1370,7 +1369,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
         NVOL = []
         version = None
-        if productList.has_key(productName):
+        if productName in productList:
             version = productList[productName]
         else:
             try:
@@ -1394,9 +1393,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 continue
 
         for name, version, opt, level in NVOL:
-            if re.search("^" + Product.Product.LocalVersionPrefix, version):
-                print >> utils.stdwarn, "Warning: exact product specification \"%s %s\" is local" % \
-                      (name, version)
+            if re.search("^" + Product.LocalVersionPrefix, version):
+                print("Warning: exact product specification \"%s %s\" is local" % \
+                      (name, version), file=utils.stdwarn)
 
             key = (name, version)
             if desiredProducts.count(key) == 0:
@@ -1408,7 +1407,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     # block;  actually we could do this line by line but that'd make an unreadable table file
     #
     def output(ofd, indentLevel, line):
-        print >> ofd, "%s%s" % (indentLevel*indent, line.strip())
+        print("%s%s" % (indentLevel*indent, line.strip()), file=ofd)
 
     indentLevel = 0
     indent = "   "

@@ -72,7 +72,7 @@ class ProductFamily(object):
         return true if the give tag is currently assigned to a version
         of this product.
         """
-        return self.tags.has_key(tag)
+        return tag in self.tags
 
     def getTaggedProduct(self, tag, dbpath=None, flavor=None):
         """
@@ -147,7 +147,7 @@ class ProductFamily(object):
         @param string version : the name of version of interest
         @return bool :   true if the version is registered
         """
-        return self.versions.has_key(version)
+        return version in self.versions
 
     def removeVersion(self, version):
         """
@@ -190,7 +190,7 @@ class ProductFamily(object):
         @param string file : the tagging file to update (i.e. remove)
         @return bool :  false if the tag was not previously assigned
         """
-        if self.tags.has_key(tag):
+        if tag in self.tags:
             del self.tags[tag]
             return True
         else:

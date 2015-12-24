@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, re, sys, errno
 from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName
 
@@ -40,10 +41,10 @@ class ChainFile(object):
         if readFile:
             try:
                 self._read(self.file, verbosity)
-            except IOError, e:
+            except IOError as e:
                 # It's not an error if the file didn't exist
                 if e.errno != errno.ENOENT:
-	            raise
+                    raise
 
 
     def getFlavors(self):
@@ -58,7 +59,7 @@ class ChainFile(object):
         """
         return true if the product is declared for a given flavor 
         """
-        return self.info.has_key(flavor)
+        return flavor in self.info
 
     def getVersion(self, flavor):
         """
@@ -88,7 +89,7 @@ class ChainFile(object):
             flavors = [flavors]
 
         for flavor in flavors:
-            if self.info.has_key(flavor):
+            if flavor in self.info:
                 info = self.info[flavor].copy()
                 info["modifier"] = who
                 info["modified"] = ctimeTZ()
@@ -114,7 +115,7 @@ class ChainFile(object):
 
         updated = False
         for flavor in flavors:
-            if self.info.has_key(flavor):
+            if flavor in self.info:
                 del self.info[flavor]
                 updated = True
 
@@ -145,12 +146,12 @@ class ChainFile(object):
         fd = open(file, "w")
 
         # Should really be "FILE = chain", but eups checks for version.  I've changed it to allow 
- 	# chain, but let's not break backward compatibility with old eups versions 
-        print >> fd, """FILE = version
+        # chain, but let's not break backward compatibility with old eups versions 
+        print("""FILE = version
 PRODUCT = %s
 CHAIN = %s
 #***************************************\
-""" % (self.name, self.tag)
+""" % (self.name, self.tag), file=fd)
 
         for fq in self.info.keys():
             mat = re.search(r"^([^:]+)(:?:(.*)$)?", fq)
@@ -159,24 +160,24 @@ CHAIN = %s
             if not qualifier:
                 qualifier = ""
 
-            print >> fd, """
+            print("""
 #Group:
    FLAVOR = %s
    VERSION = %s
    QUALIFIERS = "%s"\
-""" % (flavor, self.info[fq]["version"], qualifier)
+""" % (flavor, self.info[fq]["version"], qualifier), file=fd)
 
             for field in self._fields:
                 k = field.lower()
 
-                if self.info[fq].has_key(k):
+                if k in self.info[fq]:
                     value = self.info[fq][k]
                     if not value:
                         continue
 
-                    print >> fd, "   %s = %s" % (field.upper(), value)
+                    print("   %s = %s" % (field.upper(), value), file=fd)
 
-            print >> fd, "#End:"
+            print("#End:", file=fd)
 
         fd.close()
 
@@ -213,8 +214,7 @@ CHAIN = %s
             elif ChainFile.REGEX_GROUPEND.search(line):
                 continue
             else:
-                raise RuntimeError, \
-                      ("Unexpected line \"%s\" at %s:%d" % \
+                raise RuntimeError("Unexpected line \"%s\" at %s:%d" % \
                          (line, self.file, at+1))
 
             #
@@ -222,8 +222,7 @@ CHAIN = %s
             #
             if key == "file":
                 if value.lower() not in ["chain", "version"]:
-                    raise RuntimeError, \
-                          ("Expected \"File = Version\"; saw \"%s\" at %s:%d" \
+                    raise RuntimeError("Expected \"File = Version\"; saw \"%s\" at %s:%d" \
                              % (line, self.file, at+1))
 
             elif key == "product":
@@ -231,18 +230,16 @@ CHAIN = %s
                     self.name = value
                 elif self.name != value:
                   if verbosity >= 0:
-                    print >> stdwarn, \
-                        "Warning: Unexpected product name, %s, in chain file; expected %s,\n  file=%s" % \
-                        (value, self.name, file)
+                    print("Warning: Unexpected product name, %s, in chain file; expected %s,\n  file=%s" % \
+                        (value, self.name, file), file=stdwarn)
 
             elif key == "chain":
                 if not self.tag:
                     self.tag = value
                 elif self.tag != value:
                   if verbosity >= 0:
-                    print >> stdwarn, \
-                        "Warning: Unexpected tag/chain name, %s, in chain file; expected %s,\n  file=%s" % \
-                        (value, self.tag, file)
+                    print("Warning: Unexpected tag/chain name, %s, in chain file; expected %s,\n  file=%s" % \
+                        (value, self.tag, file), file=stdwarn)
 
             elif key == "flavor": # Now look for flavor-specific blocks
                 flavor = value

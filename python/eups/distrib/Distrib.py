@@ -4,12 +4,13 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package
 #
+from __future__ import absolute_import, print_function
 import sys, os, re, atexit, shutil
 import eups
 import eups.hooks as hooks
 import eups.table
-import server
-from server import RemoteFileNotFound, Manifest, TaggedProductList
+from . import server
+from .server import RemoteFileNotFound, Manifest, TaggedProductList
 from eups.VersionParser import VersionParser
 from eups.exceptions import EupsException
 
@@ -383,8 +384,8 @@ class Distrib(object):
         tablefile = None
         if self.noeups:
             if recursive and self.verbose > 0:
-                print >> self.log, "Warning dependencies are not guaranteed", \
-                    "to be recursive when using noeups option"
+                print("Warning dependencies are not guaranteed", \
+                    "to be recursive when using noeups option", file=self.log)
 
             def getTableFile(product, version, flavor):
                 tablefile = self.findTableFile(product, version, flavor)
@@ -392,7 +393,7 @@ class Distrib(object):
                 if not tablefile and self.distServer:
                     try:
                         tablefile = self.distServer.getTableFile(product, version, self.flavor)
-                    except RemoteFileNotFound, e:
+                    except RemoteFileNotFound as e:
                         pass
                 return tablefile
 
@@ -403,7 +404,7 @@ class Distrib(object):
                     tablefile = getTableFile(productName, buildVersion, self.flavor)
 
             if not tablefile and self.verbose > 0:
-                print >> self.log, "Failed to find %s's table file; trying eups" % productName
+                print("Failed to find %s's table file; trying eups" % productName, file=self.log)
 
         if tablefile:
             dependencies = self.Eups.dependencies_from_table(tablefile)
@@ -426,8 +427,8 @@ class Distrib(object):
             if dependencies is None:
                 if self.noeups:
                     if self.verbose > 0:
-                        print >> self.log, ("Unable to find dependencies for %s %s, assuming empty" %
-                                            (productName, versionName))
+                        print(("Unable to find dependencies for %s %s, assuming empty" %
+                                            (productName, versionName)), file=self.log)
                     dependencies = []
                 else:
                     raise EupsException("Unable to determine dependencies for %s %s" %
@@ -438,7 +439,7 @@ class Distrib(object):
         #
         if self.noeups and dependencies is None:
             if self.verbose > 0:
-                print >> self.log, "Unable to find a table file for %s; assuming no dependencies" % productName
+                print("Unable to find a table file for %s; assuming no dependencies" % productName, file=self.log)
 
             dependencies = self.Eups.dependencies_from_table("none")
         #
@@ -503,9 +504,8 @@ class Distrib(object):
                     buildVersion = hooks.config.Eups.versionIncrementer(product, buildVersion)
         if pinfo is None:
             if not self.noeups or self.Eups.verbose:
-                print >> self.log, \
-                      "WARNING: Failed to lookup directory for product %s %s (%s)" % \
-                      (product, version, flavor)
+                print("WARNING: Failed to lookup directory for product %s %s (%s)" % \
+                      (product, version, flavor), file=self.log)
             return (baseDir, product)
 
         if not pinfo.dir: 
@@ -513,9 +513,8 @@ class Distrib(object):
 
         if pinfo.version != version and (hooks.config.Eups.repoVersioner(product, version) != 
                                          hooks.config.Eups.repoVersioner(product, pinfo.version)):
-            print >> self.log, \
-                "Warning: Something's wrong with %s; %s != %s" % \
-                (product, version, pinfo.version)
+            print("Warning: Something's wrong with %s; %s != %s" % \
+                (product, version, pinfo.version), file=self.log)
 
         if pinfo.dir == "none":
             productDir = "none"
@@ -524,23 +523,20 @@ class Distrib(object):
                 (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo.dir).groups()
             except:
                 if self.verbose > 1:
-                    print >> self.log, \
-                        "Split of \"%s\" at \"%s\" failed; proceeding" \
-                        % (pinfo.dir, product)
+                    print("Split of \"%s\" at \"%s\" failed; proceeding" \
+                        % (pinfo.dir, product), file=self.log)
                 if False:
                     pass
                 else:
                     try:
                         (baseDir, productDir) = re.search(r"^(\S+)/([^/]+/[^/]+)$", pinfo.dir).groups()
                         if self.verbose > 1:
-                            print >> self.log, \
-                                "Guessing \"%s\" has productdir \"%s\"" \
-                                % (pinfo.dir, productDir)
+                            print("Guessing \"%s\" has productdir \"%s\"" \
+                                % (pinfo.dir, productDir), file=self.log)
                     except:
                         if self.verbose:
-                            print >> self.log, \
-                                "Again failed to split \"%s\" into baseDir and productdir" \
-                                % (pinfo.dir)
+                            print("Again failed to split \"%s\" into baseDir and productdir" \
+                                % (pinfo.dir), file=self.log)
                         productDir = pinfo.dir
 
         return (baseDir, productDir)
@@ -583,14 +579,14 @@ class Distrib(object):
         return self.distServer.getTaggedProductInfo(product, self.flavor, tag)
 
     def getOption(self, name, defval=None):
-        if self.options.has_key(name):
+        if name in self.options:
             return self.options[name]
         return defval
 
     def setGroupPerms(self, file, descend=False):
         if self.getOption("obeygroups", False):
             if self.verbose > 1:
-                print >> self.log, "Setting group access for", file
+                print("Setting group access for", file, file=self.log)
             group = self.Option("groupowner")
             recurse = ''
             if descend:  recurse = "-R "
@@ -670,7 +666,7 @@ class DefaultDistrib(Distrib):
                 msg = "Release is not yet available: " + tag
                 if flavor is not None:
                     msg += " (%s)" % flavor
-                print >> self.log,  msg
+                print(msg, file=self.log)
             return None
 
         return TaggedProductList.fromFile(file, tag)
@@ -708,7 +704,7 @@ class DefaultDistrib(Distrib):
             verb = "Creating"
             if exists:
                 verb = "Updating"
-            print >> self.log, verb, "tagged release,", tag, "to", out
+            print(verb, "tagged release,", tag, "to", out, file=self.log)
 
         products.write(out, flavor, self.Eups.noaction)
 
@@ -782,13 +778,13 @@ class DefaultDistrib(Distrib):
         def copyTableFile(fulltablename, tablefile_for_distrib):
             if os.access(tablefile_for_distrib, os.R_OK) and not force:
                 if self.Eups.verbose > 1:
-                    print >> sys.stderr, "Not recreating", tablefile_for_distrib
+                    print("Not recreating", tablefile_for_distrib, file=sys.stderr)
                 return True
             if not os.path.exists(fulltablename):
                 return False
-                print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
+                print("Tablefile %s doesn't exist; omitting" % (fulltablename), file=sys.stderr)
             if self.Eups.verbose > 1:
-                print >> sys.stderr, "Copying %s to %s" % (fulltablename, tablefile_for_distrib)
+                print("Copying %s to %s" % (fulltablename, tablefile_for_distrib), file=sys.stderr)
 
             # We need to update the versions in the table file after mapping.
             # We'll use this process to copy the file instead of "server.copyfile()"
@@ -819,7 +815,7 @@ class DefaultDistrib(Distrib):
                     if copyTableFile(fulltablename, tablefile_for_distrib):
                         haveTable = True
                 if not haveTable:
-                    print >> sys.stderr, "Tablefile %s doesn't exist; omitting" % (fulltablename)
+                    print("Tablefile %s doesn't exist; omitting" % (fulltablename), file=sys.stderr)
 
         #
         # Finally write the manifest file itself
@@ -883,9 +879,9 @@ class DefaultDistrib(Distrib):
                 try:
                     return self.Eups.getProduct(product, version).tablefile
                 except KeyboardInterrupt:
-                    raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
+                    raise RuntimeError("You hit ^C while looking for %s %s's table file" %
                                          (product, version))
-                except eups.ProductNotFound, e:
+                except eups.ProductNotFound as e:
                     return self.findTableFile(prod.product, prod.version, prod.flavor)
                 except Exception:
                     return None
@@ -898,8 +894,8 @@ class DefaultDistrib(Distrib):
                     prod.tablefile = searchForTableFile(prod.product, buildVersion, prod.flavor)
             if prod.tablefile is None:
                 if not self.noeups or self.Eups.verbose:
-                    print >> sys.stderr, "WARNING: Failed to lookup tablefile for %s %s" % \
-                        (prod.product, prod.version)
+                    print("WARNING: Failed to lookup tablefile for %s %s" % \
+                        (prod.product, prod.version), file=sys.stderr)
                 prod.tablefile = "none"
 
     def findTableFile(self, product, version, flavor):

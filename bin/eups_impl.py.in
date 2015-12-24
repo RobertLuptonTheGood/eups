@@ -2,6 +2,7 @@
 #
 # The main eups programme
 #
+from __future__ import print_function
 import sys, os, re
 
 sys.argv[0] = "eups"
@@ -51,11 +52,10 @@ try:
             import profile
         profile.run("status = cmd.run()", eups.Eups.profile)
         if verbosity > 0:
-            print >> utils.stdinfo, \
-                "You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile
+            print("You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile, file=utils.stdinfo)
     else:
         status = cmd.run() 
-except Exception, e:
+except Exception as e:
     if eups.Eups.allowRaise:
         raise
 

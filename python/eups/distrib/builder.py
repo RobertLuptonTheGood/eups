@@ -4,10 +4,11 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for the "Builder" mechanism
 #
+from __future__ import absolute_import, print_function
 import sys, os, re, shutil
 import eups
-import Distrib as eupsDistrib
-import server as eupsServer
+from . import Distrib as eupsDistrib
+from . import server as eupsServer
 import eups.hooks
 
 class Distrib(eupsDistrib.DefaultDistrib):
@@ -45,22 +46,22 @@ class Distrib(eupsDistrib.DefaultDistrib):
         self._msgs = {}
 
         self.allowIncomplete = False
-        if self.options.has_key('allowIncomplete'):
+        if 'allowIncomplete' in self.options:
             self.allowIncomplete = self.options['allowIncomplete']
 
         self.buildFilePath = ""
-        if self.options.has_key('buildFilePath'):
+        if 'buildFilePath' in self.options:
             self.buildFilePath = self.options['buildFilePath']
 
         self.nobuild = self.options.get("nobuild", False)
         self.noclean = self.options.get("noclean", False)
 
         self.svnroot = ""
-        if self.options.has_key('svnroot'):
+        if 'svnroot' in self.options:
             self.svnroot = self.options['svnroot']
 
         self.cvsroot = ""
-        if self.options.has_key('cvsroot'):
+        if 'cvsroot' in self.options:
             self.cvsroot = self.options['cvsroot']
 
         
@@ -91,17 +92,17 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         try:
             type(self.buildDir)
-        except AttributeError, e:
+        except AttributeError as e:
             self.buildDir = None
-            print >> self.log, "Incorrectly initialised eupsDistribBuilder: %s" % e
+            print("Incorrectly initialised eupsDistribBuilder: %s" % e, file=self.log)
             okay = False
 
         if forserver:
             try:
                 type(self.buildFilePath)
-            except AttributeError, e:
+            except AttributeError as e:
                 self.buildFilePath = None
-                print >> self.log, "Incorrectly initialised eupsDistribBuilder: %s" % e
+                print("Incorrectly initialised eupsDistribBuilder: %s" % e, file=self.log)
                 okay = False
 
         return okay
@@ -184,7 +185,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 buildFile = files[0]
 
                 if self.verbose:
-                    print >> self.log, "Using %s to build %s %s" % (buildFile, productName, versionName)
+                    print("Using %s to build %s %s" % (buildFile, productName, versionName), file=self.log)
 
         if not buildFile:
             msg = "I can't find a build file %s.build for version %s anywhere on builder path \"%s\"" % \
@@ -202,9 +203,9 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     msg += "\n" + "N.b. found %s.build in %s/ups; consider adding %s/ups to --build path" % \
                            (d, d, productName)
 
-            if self.verbose > 1 or not self._msgs.has_key(msg):
+            if self.verbose > 1 or msg not in self._msgs:
                 self._msgs[msg] = 1
-                print >> self.log, msg
+                print(msg, file=self.log)
             if self.allowIncomplete:
                 return None
 
@@ -215,16 +216,16 @@ DIST_URL = %%(base)s/builds/%%(path)s
             try:
                 os.makedirs(builderDir)
             except:
-                raise RuntimeError, ("Failed to create %s" % (builderDir))
+                raise RuntimeError("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
         if os.access(full_builder, os.R_OK) and not (overwrite or self.Eups.force):
             if self.Eups.verbose > 1:
-                print >> self.log, "Not recreating", full_builder
+                print("Not recreating", full_builder, file=self.log)
             return "build:" + builder
 
         if self.verbose > 1:
-            print >> self.log, "Writing", full_builder
+            print("Writing", full_builder, file=self.log)
 
         try:
             if not self.Eups.noaction:
@@ -233,12 +234,12 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 else:
                     try:
                         ifd = open(buildFile)
-                    except IOError, e:
-                        raise RuntimeError, ("Failed to open file \"%s\" for read" % buildFile)
+                    except IOError as e:
+                        raise RuntimeError("Failed to open file \"%s\" for read" % buildFile)
                     try:
                         ofd = open(full_builder, "w")
-                    except IOError, e:
-                        raise RuntimeError, ("Failed to open file \"%s\" for write" % full_builder)
+                    except IOError as e:
+                        raise RuntimeError("Failed to open file \"%s\" for write" % full_builder)
 
                     builderVars = eups.hooks.config.distrib["builder"]["variables"]
 
@@ -250,11 +251,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
                     try:
                         expandBuildFile(ofd, ifd, productName, versionName, self.verbose, builderVars)
-                    except RuntimeError, e:
-                        raise RuntimeError, ("Failed to expand build file \"%s\": %s" % (full_builder, e))
+                    except RuntimeError as e:
+                        raise RuntimeError("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
                     del ifd; del ofd
-        except IOError, param:
+        except IOError as param:
             try:
                 os.unlink(full_builder)
             except OSError:
@@ -319,18 +320,18 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
         if False:
             if not self.Eups.noaction and not os.access(tfile, os.R_OK):
-                raise RuntimeError, ("Unable to read %s" % (tfile))
+                raise RuntimeError("Unable to read %s" % (tfile))
 
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
         if self.verbose > 0:
-            print >> self.log, "Building in", buildDir
+            print("Building in", buildDir, file=self.log)
 
         logfile = os.path.join(buildDir, builder + ".log") # we'll log the build to this file
 
         if self.verbose > 0:
-            print >> self.log, "Executing %s in %s" % (builder, buildDir)
-            print >> self.log, "Writing log to %s" % (logfile)
+            print("Executing %s in %s" % (builder, buildDir), file=self.log)
+            print("Writing log to %s" % (logfile), file=self.log)
         #
         # Prepare to actually do some work
         #
@@ -352,8 +353,8 @@ DIST_URL = %%(base)s/builds/%%(path)s
         else:
             try:
                 fd = open(tfile)
-            except IOError, e:
-                raise RuntimeError, ("Failed to open %s: %s" % (tfile, e))
+            except IOError as e:
+                raise RuntimeError("Failed to open %s: %s" % (tfile, e))
 
             for line in fd:
                 line = re.sub(r"\n$", "", line) # strip newline
@@ -379,23 +380,23 @@ DIST_URL = %%(base)s/builds/%%(path)s
         #
         bfile = os.path.join(buildDir, builder)
         if eupsServer.issamefile(bfile, tfile):
-            print >> self.log, "%s and %s are the same; not adding setups to installed build file" % \
-                  (bfile, tfile)
+            print("%s and %s are the same; not adding setups to installed build file" % \
+                  (bfile, tfile), file=self.log)
         else:
             try:
                 bfd = open(bfile, "w")
                 for line in cmd:
-                    print >> bfd, line
+                    print(line, file=bfd)
                 del bfd
-            except Exception, e:
+            except Exception as e:
                 os.unlink(bfile)
-                raise RuntimeError, ("Failed to write %s" % bfile)
+                raise RuntimeError("Failed to write %s" % bfile)
 
         if self.verbose and not self.nobuild:
-            print "Issuing commands:"
-            print "\t", str.join("\n\t", cmd)
+            print("Issuing commands:")
+            print("\t", str.join("\n\t", cmd))
 
-        print >> file(logfile, "w"), str.join("\n\t", cmd)
+        print(str.join("\n\t", cmd), file=file(logfile, "w"))
 
         if False:
             cmd = "(%s) 2>&1 | tee >> %s" % (str.join("\n", cmd), logfile)
@@ -405,17 +406,17 @@ DIST_URL = %%(base)s/builds/%%(path)s
         if not self.nobuild:
             try:
                 eupsServer.system(cmd, self.Eups.noaction)
-            except OSError, e:
+            except OSError as e:
                 if self.verbose >= 0 and os.path.exists(logfile):
                     try: 
-                        print >> self.log, "BUILD ERROR!  From build log:"
+                        print("BUILD ERROR!  From build log:", file=self.log)
                         eupsServer.system("tail -20 %s 1>&2" % logfile)
                     except:
                         pass
                 raise RuntimeError("Failed to build %s: %s" % (builder, str(e)))
 
             if self.verbose > 0:
-                print >> self.log, "Builder %s successfully completed" % builder
+                print("Builder %s successfully completed" % builder, file=self.log)
 
     def findTableFile(self, productName, version, flavor):
         """Give the distrib a chance to produce a table file"""
@@ -440,7 +441,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
             if re.match(bd, r"\*%"):    # search recursively for desired file
                 bd = bd[0:-1]
                 if self.verbose > 2:
-                    print "Searching %s recursively for %s)" % (bd, fileName)
+                    print("Searching %s recursively for %s)" % (bd, fileName))
                 
                 for dir, subDirs, files in os.walk(bd):
                     if dir == ".svn":   # don't look in SVN private directories
@@ -451,14 +452,14 @@ DIST_URL = %%(base)s/builds/%%(path)s
                             full_fileName = os.path.join(dir, fileName)
 
                             if self.verbose > 1:
-                                print "Found %s (%s)" % (fileName, full_fileName)
+                                print("Found %s (%s)" % (fileName, full_fileName))
                             return full_fileName
 
             full_fileName = os.path.join(bd, fileName)
 
             if os.path.exists(full_fileName):
                 if self.verbose > 1:
-                    print "Found %s (%s)" % (fileName, full_fileName)
+                    print("Found %s (%s)" % (fileName, full_fileName))
                 return full_fileName
 
         return None
@@ -543,15 +544,15 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     def guess_cvsroot(cvsroot):
         if cvsroot:
             pass
-        elif os.environ.has_key("CVSROOT"):
+        elif "CVSROOT" in os.environ:
             cvsroot = os.environ["CVSROOT"]
         elif os.path.isdir("CVS"):
             try:
                 rfd = open("CVS/Root")
                 cvsroot = re.sub(r"\n$", "", rfd.readline())
                 del rfd
-            except IOError, e:
-                print >> sys.stderr, "Tried to read \"CVS/Root\" but failed: %s" % e
+            except IOError as e:
+                print("Tried to read \"CVS/Root\" but failed: %s" % e, file=sys.stderr)
 
         return cvsroot    
     #
@@ -560,7 +561,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     def guess_svnroot(svnroot):
         if svnroot:
             pass
-        elif os.environ.has_key("SVNROOT"):
+        elif "SVNROOT" in os.environ:
             svnroot = os.environ["SVNROOT"]
         elif os.path.isdir(".svn"):
             try:
@@ -580,8 +581,8 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                             break
 
                 del rfd
-            except IOError, e:
-                print >> sys.stderr, "Tried to read \".svn\" but failed: %s" % e
+            except IOError as e:
+                print("Tried to read \".svn\" but failed: %s" % e, file=sys.stderr)
 
         return svnroot
 
@@ -591,7 +592,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     def guess_repoversion(productName, versionName):
         try:
             repoVersion = eups.hooks.config.Eups.repoVersioner(productName, versionName)
-        except Exception, e:
+        except Exception as e:
             raise RuntimeError("Unable to call hooks.Eups.config.repoVersioner for %s %s (%s)" % 
                                (productName, inVersion, e))
 
@@ -621,11 +622,11 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
 
         var = var.upper()
 
-        if builderVars.has_key(var):
+        if var in builderVars:
             if builderVars[var]:
                 value = builderVars[var]
             else:
-                print >> sys.stderr, "I can't guess a %s for you -- please set hooks.config.distrib[\"builder\"][\"variables\"][\"%s\"] or $%s" % (var, var, var)
+                print("I can't guess a %s for you -- please set hooks.config.distrib[\"builder\"][\"variables\"][\"%s\"] or $%s" % (var, var, var), file=sys.stderr)
                 value = var
 
             while op:                      # a python operation to be applied to value.
@@ -655,7 +656,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                     op = op[len(op):]
                     value = value.upper()
                 else:
-                    print >> sys.stderr, "Unexpected modifier \"%s\"; ignoring" % op
+                    print("Unexpected modifier \"%s\"; ignoring" % op, file=sys.stderr)
 
                 if op and op[0] == ".": 
                     op = op[1:] 
@@ -702,7 +703,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
 
         try:
             line = buildfilePatchCallbacks.apply(line)
-        except RuntimeError, e:
-            print >> sys.stderr, ("Warning: %s" % e)
+        except RuntimeError as e:
+            print(("Warning: %s" % e), file=sys.stderr)
 
-        print >> ofd, line
+        print(line, file=ofd)

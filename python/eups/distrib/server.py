@@ -3,10 +3,15 @@
 """
 classes for communicating with a remote package server
 """
+from __future__ import print_function
 import sys, os, re, atexit, shutil
 import fnmatch
 import tempfile
-import urllib2
+try:
+    from urllib2 import urlopen, HTTPError, URLError
+except ImportError:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError, URLError
 import eups
 import eups.hooks as hooks
 import eups.utils as utils
@@ -92,10 +97,10 @@ class DistribServer(object):
                                               "manifest", noaction=noaction)
                 return Manifest.fromFile(file, self.getConfigProperty("RECURSE_OVER_MANIFEST"),
                                          verbosity=self.verbose)
-            except RuntimeError, e:
+            except RuntimeError as e:
                 raise RuntimeError("Trouble reading manifest for %s %s (%s): %s"
                                    % (product, version, flavor, e))
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 msg = "Product %s %s for %s not found on server" % \
                     (product, version, flavor)
                 raise RemoteFileNotFound(msg, e)
@@ -158,7 +163,7 @@ class DistribServer(object):
                              be generated.
         @param noaction    if True, simulate the retrieval
         """
-        if self.tagged.has_key(tag) and self.tagged[tag]:
+        if tag in self.tagged and self.tagged[tag]:
             return self.tagged[tag]
 
         if noaction:
@@ -173,7 +178,7 @@ class DistribServer(object):
                                                log=self.log)
                 return self.tagged[tag]
 
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 if flavor is None:
                     flavor = "a generic platform"
                 
@@ -250,8 +255,8 @@ class DistribServer(object):
                         continue
                     if flavor == val[1]:
                         out += [(val[0], val[2], val[1])]
-            except ServerNotResponding, e:
-                print >> self.log, e
+            except ServerNotResponding as e:
+                print(e, file=self.log)
         else:
             files = self.listFiles("manifests", flavor, tag)
             for file in files:
@@ -385,7 +390,7 @@ class DistribServer(object):
         @param deval  a default value to return if a value is not current
                         for this property name.
         """
-        if not self.config.has_key(name):
+        if name not in self.config:
             return defval
         out = self.config[name]
         if not isinstance(out, list):
@@ -411,7 +416,7 @@ class DistribServer(object):
                           have.  Any missing values with an index below this 
                           number will be provided as the value of defval.
         """
-        if not self.config.has_key(name):
+        if name not in self.config:
             if not isinstance(defval, list):
                 defval = [defval] * minlen
             return defval
@@ -433,7 +438,7 @@ class DistribServer(object):
         if isinstance(value, list):
             self.config[name] = value
         else:
-            if not self.config.has_key(name):
+            if name not in self.config:
                 self.config[name] = []
             self.config[name].append(value)
 
@@ -442,7 +447,7 @@ class DistribServer(object):
         configuration property name, revealing the previously set value.
         The removed value is returned.
         """
-        if not self.config.has_key(name):
+        if name not in self.config:
             return None
 
         out = self.config[name].pop(-1)
@@ -481,26 +486,26 @@ class ConfigurableDistribServer(DistribServer):
         # check for unrecognized keys in config files
         for k in self.config.keys():
             if not (k in self.validConfigKeys):
-                print >> self.log, "Invalid config parameter %s ignored" % k
+                print("Invalid config parameter %s ignored" % k, file=self.log)
 
-        if not self.config.has_key('MANIFEST_URL'):
+        if 'MANIFEST_URL' not in self.config:
             self.config['MANIFEST_URL'] = \
                 "%(base)s/manifests/%(product)s-%(version)s.manifest";
-        if not self.config.has_key('TABLE_URL'):
+        if 'TABLE_URL' not in self.config:
             self.config['TABLE_URL'] = \
                 "%(base)s/tables/%(product)s-%(version)s.table";
-        if not self.config.has_key('LIST_URL'):
+        if 'LIST_URL' not in self.config:
             self.config['LIST_URL'] = "%(base)s/%(tag)s.list";
-        if not self.config.has_key('PRODUCT_FILE_URL'):
+        if 'PRODUCT_FILE_URL' not in self.config:
             self.config['PRODUCT_FILE_URL'] = \
                 "%(base)s/%(product)s/%(version)s/%(path)s";
-        if not self.config.has_key('FILE_URL'):
+        if 'FILE_URL' not in self.config:
             self.config['FILE_URL'] = "%(base)s/%(path)s";
-        if not self.config.has_key('DIST_URL'):
+        if 'DIST_URL' not in self.config:
             self.config['DIST_URL'] = "%(base)s/%(path)s";
-        if not self.config.has_key('MANIFEST_DIR_URL'):
+        if 'MANIFEST_DIR_URL' not in self.config:
             self.config['MANIFEST_DIR_URL'] = "%(base)s/manifests";
-        if not self.config.has_key('MANIFEST_FILE_RE'):
+        if 'MANIFEST_FILE_RE' not in self.config:
             self.config['MANIFEST_FILE_RE'] = \
                 r"^(?P<product>[^\-\s]+)(-(?P<version>\S+))?" + \
                 r"(@(?P<flavor>[^\-\s]+))?.manifest$"
@@ -613,63 +618,59 @@ class ConfigurableDistribServer(DistribServer):
 
             if tmpl is None:
                 if self.verbose > 2:
-                    print >> self.log, \
-                        "Config parameter, %s, not set; skipping" % param
+                    print("Config parameter, %s, not set; skipping" % param, file=self.log)
                 continue
 
             if locations[i] == "TAGGED" and \
-                    (not data.has_key('tag') or data['tag'] is None):
+                    ('tag' not in data or data['tag'] is None):
                 if self.verbose > 1:
-                    print >> self.log, \
-                        "tag not specified; skipping", param, "location"
+                    print("tag not specified; skipping", param, "location", file=self.log)
                 continue
             if locations[i] == "FLAVOR" and \
-                    (not data.has_key('flavor') or data['flavor'] is None):
+                    ('flavor' not in data or data['flavor'] is None):
                 if self.verbose > 1:
-                    print >> self.log, \
-                        "flavor not specified; skipping", param, "location"
+                    print("flavor not specified; skipping", param, "location", file=self.log)
                 continue
 
             if self.verbose > 2:
-                print >> self.log, "Trying retrieve using", param, "to", filename
+                print("Trying retrieve using", param, "to", filename, file=self.log)
             try:
                 src = tmpl % data
-            except KeyError, e:
+            except KeyError as e:
                 if not ignoreMissingData:
                     msg = 'Server configuration error: bad template, %s: Key, %s, not available for %s' % (param, str(e), tmpl)
                     raise RuntimeError(msg)
                 if self.verbose > 1:
-                    print >> self.log, \
-                        "template %s not applicable (missing key, %s); skipping"\
-                         % (param, str(e))
+                    print("template %s not applicable (missing key, %s); skipping"\
+                         % (param, str(e)), file=self.log)
                 continue
 
             if self.verbose > 0:
-                print >> self.log, "Looking on server for", src
+                print("Looking on server for", src, file=self.log)
             try:
                 return self.cacheFile(filename, src, noaction)
-            except RemoteFileNotFound, e:
+            except RemoteFileNotFound as e:
                 if self.verbose > 1:
-                    print >> self.log, "Not found; checking next alternative"
-            except Exception, e:
+                    print("Not found; checking next alternative", file=self.log)
+            except Exception as e:
                 if self.verbose >= 0:
-                    print >> self.log, "Warning: trouble retrieving", \
-                        "%s: %s" % (os.path.basename(src), str(e))
-                    print >> self.log, "   (Trying alternate location)"
+                    print("Warning: trouble retrieving", \
+                        "%s: %s" % (os.path.basename(src), str(e)), file=self.log)
+                    print("   (Trying alternate location)", file=self.log)
 
         # final try
         try:
             src = self.getConfigProperty("%s_URL" % ftype) % data
             if self.verbose > 0:
-                print >> self.log, "Failed to find %s in %s; looking on server" % (src, locations)
+                print("Failed to find %s in %s; looking on server" % (src, locations), file=self.log)
             return self.cacheFile(filename, src, noaction)
-        except RemoteFileNotFound, e:
+        except RemoteFileNotFound as e:
             if self.verbose > 0:
-                print >> self.log, "no appropriate template found for %s, checking path directly" % ftype
+                print("no appropriate template found for %s, checking path directly" % ftype, file=self.log)
             return False
-        except KeyError, e:
+        except KeyError as e:
             if self.verbose > 0:
-                print >> self.log, "no appropriate template found for %s, checking path directly" % ftype
+                print("no appropriate template found for %s, checking path directly" % ftype, file=self.log)
             return False
 
     def getTagNames(self, flavor=None, noaction=False):
@@ -726,18 +727,18 @@ class ConfigurableDistribServer(DistribServer):
 
         try:
             files = self.listFiles(src, None, None, noaction)
-        except RemoteFileNotFound, e:
-            print >> self.log, e
+        except RemoteFileNotFound as e:
+            print(e, file=self.log)
             files = []
-        except ServerNotResponding, e:
-            print >> self.log, e
+        except ServerNotResponding as e:
+            print(e, file=self.log)
             files = []
 
         for file in files:
             m = filere.search(file)
             if m is None: continue
             m = m.groupdict()
-            if m.has_key("tag") and m["tag"]:
+            if "tag" in m and m["tag"]:
                 out.append(m["tag"])
 
         return out
@@ -820,11 +821,11 @@ class ConfigurableDistribServer(DistribServer):
 
             try:
                 files = self.listFiles(src, flavor, tag, noaction)
-            except RemoteFileNotFound, e:
-                print >> self.log, e
+            except RemoteFileNotFound as e:
+                print(e, file=self.log)
                 files = []
-            except ServerNotResponding, e:
-                print >> self.log, e
+            except ServerNotResponding as e:
+                print(e, file=self.log)
                 files = []
 
             out = []
@@ -960,18 +961,18 @@ class WebTransporter(Transporter):
         if noaction:
             if self.verbose > 0:
                 system("touch " + filename)
-                print >> self.log, "Simulated web retrieval from", self.loc
+                print("Simulated web retrieval from", self.loc, file=self.log)
         else:
             url = None
             out = None
             try:
                 try:                               # for python 2.4 compat
-                    url = urllib2.urlopen(self.loc)
+                    url = urllib.request.urlopen(self.loc)
                     out = open(filename, 'w')
                     out.write(url.read())
-                except urllib2.HTTPError:
+                except urllib.error.HTTPError:
                     raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-                except urllib2.URLError:
+                except urllib.error.URLError:
                     raise ServerNotResponding("Failed to contact URL %s" % self.loc)
                 except KeyboardInterrupt:
                     raise EupsException("^C")
@@ -988,12 +989,15 @@ class WebTransporter(Transporter):
         if noaction:
             return []
 
-        import HTMLParser, urlparse
-        class LinksParser(HTMLParser.HTMLParser):
+        try:
+            from html.parser import HTMLParser
+        except ImportError:
+            from HTMLParser import HTMLParser
+        class LinksParser(HTMLParser):
             """Based on code in Martelli's "Python in a Nutshell" """
             def __init__(self):
 
-                HTMLParser.HTMLParser.__init__(self)
+                HTMLParser.__init__(self)
                 self.nrow = -1
                 # self.seen = set()
                 self.files = [] # files listed in table
@@ -1033,20 +1037,19 @@ class WebTransporter(Transporter):
         p = LinksParser()
         try:
           try:                               # for python 2.4 compat
-            url = urllib2.urlopen(self.loc)
+            url = urllib.request.urlopen(self.loc)
             for line in url:
                 p.feed(line)
 
             url.close()
             if not p.is_apache and self.verbose >= 0:
-                print >> self.log, \
-                    "Warning: URL does not look like a directory listing from an Apache web server"
+                print("Warning: URL does not look like a directory listing from an Apache web server", file=self.log)
 
             return p.files
 
-          except urllib2.HTTPError:
+          except urllib.error.HTTPError:
             raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-          except urllib2.URLError:
+          except urllib.error.URLError:
             raise ServerNotResponding("Failed to contact URL %s" % self.loc)
           except KeyboardInterrupt:
             raise EupsException("^C")
@@ -1086,13 +1089,13 @@ class SshTransporter(Transporter):
         try:
             system("scp -q %s %s 2>/dev/null" % (self.remfile, filename), 
                    noaction, self.verbose)
-        except IOError, e:
+        except IOError as e:
             if e.errno == 2:
                 raise RemoteFileNotFound("%s: file not found" % self.loc)
             else:
                 raise TransporterError("Failed to copy %s: %s" % 
                                        (self.loc, str(e)))
-        except OSError, e:
+        except OSError as e:
             raise TransporterError("Failed to retrieve %s" % self.loc)
 
         if noaction:
@@ -1100,9 +1103,9 @@ class SshTransporter(Transporter):
 
         if self.verbose > 0:
             if noaction:
-                print >> self.log, "Simulated scp from", self.remfile
+                print("Simulated scp from", self.remfile, file=self.log)
             else:
-                print >> self.log, "scp from", self.remfile
+                print("scp from", self.remfile, file=self.log)
 
     def listDir(self, noaction=False):
         """interpret the source as a directory and return a list of files
@@ -1113,15 +1116,15 @@ class SshTransporter(Transporter):
             raise OSError("remote file has dangerous location name: " + self.loc)
 
         (remmach, dirName) = self.remfile.split(':', 1)
-	if dirName[-1] == "/":
-	    dirName = dirName[0:-1]
-	    
-	cmd = r"ssh %s '(cd %s; find * -prune -type f)'" % (remmach, dirName)
+        if dirName[-1] == "/":
+            dirName = dirName[0:-1]
+
+        cmd = r"ssh %s '(cd %s; find * -prune -type f)'" % (remmach, dirName)
 
         if self.verbose > 0:
             if noaction:
-                print >> self.log, "simulated ssh listing of", self.loc
-            print >> self.log, cmd
+                print("simulated ssh listing of", self.loc, file=self.log)
+            print(cmd, file=self.log)
 
         if noaction:
             return []
@@ -1129,7 +1132,7 @@ class SshTransporter(Transporter):
             pd = None
             try:
                 pd = os.popen(cmd)
-		pylist = [l.strip() for l in pd.readlines()]
+                pylist = [l.strip() for l in pd.readlines()]
             finally:
                 stat = pd.close()
             if stat is not None:
@@ -1161,7 +1164,7 @@ class LocalTransporter(Transporter):
         if noaction:
             system("touch %s" % filename)
             if self.verbose > 0:
-                print >> self.log, "Simulated cp from", self.loc
+                print("Simulated cp from", self.loc, file=self.log)
         else:
             if not os.path.exists(self.loc):
                 raise RemoteFileNotFound("%s: file not found" % self.loc)
@@ -1169,15 +1172,15 @@ class LocalTransporter(Transporter):
             try:
                 copyfile(self.loc, filename)
                 if self.verbose > 0:
-                    print >> self.log, "cp from", self.loc
-            except IOError, e:
+                    print("cp from", self.loc, file=self.log)
+            except IOError as e:
                 if e.errno == 2:
                     dir = os.path.dirname(filename)
                     if dir and not os.path.exists(dir):
                         raise RemoteFileNotFound("%s: destination directory not found" % dir)
                 raise TransporterError("Failed to copy %s: %s" % 
                                        (self.loc, str(e)))
-            except OSError, e:
+            except OSError as e:
                 raise TransporterError("Failed to retrieve %s: %s" % 
                                        (self.loc, str(e)))
 
@@ -1188,7 +1191,7 @@ class LocalTransporter(Transporter):
         """
         if noaction:
             if self.verbose > 0:
-                print >> self.log, "simulated listing of", self.loc
+                print("simulated listing of", self.loc, file=self.log)
             return []
         else:
             if os.path.isdir(self.loc):
@@ -1196,7 +1199,7 @@ class LocalTransporter(Transporter):
                               os.listdir(self.loc))
             else:
                 if self.verbose > 0:
-                    print >> self.log, "%s does not exist" % self.loc
+                    print("%s does not exist" % self.loc, file=self.log)
                 return []
 
 class DreamTransporter(Transporter):
@@ -1338,8 +1341,7 @@ class TaggedProductList(object):
                                (self.tag, filename, line))
         version = mat.groups()[0]
         if version != self.fmtversion:
-           print >> self.log, \
-              "WARNING. Saw version %s; expected %s" % (version, self.fmtversion)
+           print("WARNING. Saw version %s; expected %s" % (version, self.fmtversion), file=self.log)
 
         commre = re.compile(r"^\s*#")
         wordsre = re.compile(r"\S+")
@@ -1369,14 +1371,14 @@ class TaggedProductList(object):
             ofd = open(filename, "w")
 
         if self.verbose > 0:
-            print >> self.log, "Writing %s product list to %s" % (self.tag, filename)
+            print("Writing %s product list to %s" % (self.tag, filename), file=self.log)
 
         if not noaction:
-            print >> ofd, """\
+            print("""\
 EUPS distribution %s version list. Version %s
 #product             flavor     version
 #--------------------------------------\
-""" % (self.tag, self.fmtversion)
+""" % (self.tag, self.fmtversion), file=ofd)
 
         try:
             for product in sorted(self.products):
@@ -1392,7 +1394,7 @@ EUPS distribution %s version list. Version %s
                         if not noaction:
                             ofd.write("  %s" % i)
                 if not noaction:
-                    print >> ofd
+                    print(file=ofd)
 
         finally:
             if ofd is not None:
@@ -1404,7 +1406,7 @@ EUPS distribution %s version list. Version %s
         the version.  If the product is not recognized, a two-element list 
         will be return with both values set to None.
         """
-        if self.info.has_key(product):
+        if product in self.info:
             return self.info[product]
         else:
             return [None, None]
@@ -1417,7 +1419,7 @@ EUPS distribution %s version list. Version %s
         """remove the given product from the list"""
         while product in self.products:
             del self.products[self.products.index(product)]
-        if self.info.has_key(product):
+        if product in self.info:
             del self.info[product]
 
     def getProducts(self, sort=False):
@@ -1501,20 +1503,20 @@ class Mapping(object):
         else:
             mapping = self._mapping
 
-        if not mapping.has_key(flavor):
+        if flavor not in mapping:
             mapping[flavor] = {}
 
-        if not mapping[flavor].has_key(inProduct):
+        if inProduct not in mapping[flavor]:
             mapping[flavor][inProduct] = {}
 
-        if not overwrite and mapping[flavor][inProduct].has_key(inVersion):
+        if not overwrite and inVersion in mapping[flavor][inProduct]:
             return
 
         if outVersion:
             mapping[flavor][inProduct][inVersion] = (outProduct, outVersion)
         else:
             # Indicate product should be removed completely
-            if mapping[flavor][inProduct].has_key(inVersion):
+            if inVersion in mapping[flavor][inProduct]:
                 del mapping[flavor][inProduct][inVersion]
 
     def exists(self, product, version, flavor="generic"):
@@ -1523,8 +1525,8 @@ class Mapping(object):
                 (flavor != "generic" and self.exists(product, version, flavor="generic")))
 
     def _exists(self, product, version, flavor="generic"):
-        return (self._mapping.has_key(flavor) and self._mapping[flavor].has_key(product) and
-                self._mapping[flavor][product].has_key(version))
+        return (flavor in self._mapping and product in self._mapping[flavor] and
+                version in self._mapping[flavor][product])
     
     def apply(self, inProduct, inVersion, flavor="generic"):
         """apply the mapping"""
@@ -1535,14 +1537,14 @@ class Mapping(object):
 
     def _apply(self, inProduct, inVersion, flavor):
         """apply the mapping for a particular flavor"""
-        if (not self._mapping.has_key(flavor) or not self._mapping[flavor].has_key(inProduct)):
+        if (flavor not in self._mapping or inProduct not in self._mapping[flavor]):
             # No mapping specified
             return inProduct, inVersion
         if not len(self._mapping[flavor][inProduct]):
             # Indicate product should be removed completely
             return inProduct, None
         for versName in (inVersion, "any") or fnmatch.fnmatch(inVersion, versName):
-            if self._mapping[flavor][inProduct].has_key(versName):
+            if versName in self._mapping[flavor][inProduct]:
                 return self._mapping[flavor][inProduct][versName]
         # No mapping for this version
         return inProduct, inVersion
@@ -1554,9 +1556,9 @@ class Mapping(object):
                      (other._noReinstall, self._noReinstall)]:
             for p in o.iterkeys():
                 for v in o[p].iterkeys():
-                    if not s.has_key(p):
+                    if p not in s:
                         s[p] = {}
-                    if not overwrite and s[p].has_key(v):
+                    if not overwrite and v in s[p]:
                         continue
                     s[p][v] = o[p][v]
 
@@ -1580,7 +1582,7 @@ class Mapping(object):
         if not self._noReinstall.get(flavor):
             return False
 
-        if self._noReinstall[flavor].has_key(productName):
+        if productName in self._noReinstall[flavor]:
             return self._noReinstall[flavor][productName].get(versionName)
         else:
             return False        
@@ -1694,13 +1696,13 @@ class Manifest(object):
         line = fd.readline()
         mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
         if not mat:
-            raise RuntimeError, ("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
+            raise RuntimeError("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
         manifest_product, manifest_product_version, version = mat.groups()
 
         version = mat.groups()[2]
         if version != self.fmtversion and self.verbose >= 0:
-            print >> self.log, "WARNING. Saw version %s; expected %s" % \
-                (version, self.fmtversion)
+            print("WARNING. Saw version %s; expected %s" % \
+                (version, self.fmtversion), file=self.log)
 
         if setproduct or self.product is None:
             self.product = manifest_product
@@ -1747,7 +1749,7 @@ class Manifest(object):
 
                 self.addDependency(info[0], info[2], info[1], info[3], 
                                    info[4], info[5], info[6], info[7], info[8:])
-            except Exception, e:
+            except Exception as e:
                 raise RuntimeError("Failed to parse line: (%s): %s" % 
                                    (str(e), line))
 
@@ -1770,7 +1772,7 @@ class Manifest(object):
             ofd = open(filename, 'w')
         try:
             if not noaction:
-                print >> ofd, """\
+                print("""\
 EUPS distribution manifest for %s (%s). Version %s
 #
 # Creator:      %s
@@ -1780,7 +1782,7 @@ EUPS distribution manifest for %s (%s). Version %s
 # pkg           flavor       version    tablefile                 installation_directory         installID
 #---------------------------------------------------------------------------------------------------------""" % \
                     (product, version, self.fmtversion, self.eups.who,
-                     utils.ctimeTZ(), utils.version())
+                     utils.ctimeTZ(), utils.version()), file=ofd)
 
             for p in self.products:
                 if p.isOpt and noOptional:
@@ -1797,9 +1799,9 @@ EUPS distribution manifest for %s (%s). Version %s
                     p.tablefile = "none"
 
                 if not noaction:
-                    print >> ofd, "%-15s %-12s %-10s %-25s %-30s %s" % \
+                    print("%-15s %-12s %-10s %-25s %-30s %s" % \
                         (p.product, p.flavor, p.version, p.tablefile, 
-                         p.instDir, p.distId)
+                         p.instDir, p.distId), file=ofd)
         finally:
             if not noaction:
                 ofd.close()
@@ -1870,16 +1872,16 @@ Additional mappings can be provided.
         products = []
         for p in self.products:
             if self.verbose > 1:
-                print >> self.log, "Looking for mapping for %s %s %s" % (p.product, p.version, flavor)
+                print("Looking for mapping for %s %s %s" % (p.product, p.version, flavor), file=self.log)
             productName, versionName = mapping.apply(p.product, p.version, flavor)
             if versionName is None:
                 if self.verbose > 0:
-                    print >> self.log, "Deleting [%s, %s] from manifest" % (p.product, p.version)
+                    print("Deleting [%s, %s] from manifest" % (p.product, p.version), file=self.log)
                 continue
             if (productName, versionName) != (p.product, p.version):
                 if self.verbose > 0:
-                    print >> self.log, "Mapping manifest's [%s, %s] to [%s, %s]" % \
-                          (p.product, p.version, productName, versionName)
+                    print("Mapping manifest's [%s, %s] to [%s, %s]" % \
+                          (p.product, p.version, productName, versionName), file=self.log)
 
                 p = Dependency(productName, versionName, None, None, None, None)
 
@@ -1889,12 +1891,12 @@ Additional mappings can be provided.
                 if versionName == "dummy":
                     if not self.eups.findProduct(productName, versionName):
                         if self.verbose > 0:
-                            print >> self.log, "Declaring %s %s" % (productName, versionName)
+                            print("Declaring %s %s" % (productName, versionName), file=self.log)
                         try:
                             eups.declare(productName, versionName,
                                          productDir="none", tablefile="none")
-                        except Exception, e:
-                            print >> self.log, e
+                        except Exception as e:
+                            print(e, file=self.log)
 
             products.append(p)
 
@@ -1957,7 +1959,7 @@ Additional mappings can be provided.
                 flavor = vals[2]
                 
             if len(vals) > 3:
-                print >> sys.stderr, "Expected 3 fields in \"%s\" (%s:%d)" % (line, mapFile, lineNo)
+                print("Expected 3 fields in \"%s\" (%s:%d)" % (line, mapFile, lineNo), file=sys.stderr)
                 
             if not flavor:
                 flavor = "generic"
@@ -2004,7 +2006,7 @@ class ServerConf(object):
         # cached is the location of the cached configuration file under ups_db
         if not self.base:
             if self.verbose > 0:
-                print >> self.log, "Warning: no pkgroot is available"
+                print("Warning: no pkgroot is available", file=self.log)
             cached = None
         else:
             cached = self.cachedConfigFile(self.base);
@@ -2017,7 +2019,7 @@ class ServerConf(object):
                 if not os.path.exists(pdir):
                     os.makedirs(pdir)
                 if self.verbose > 1 and self.base != "/dev/null" and not os.path.exists(cached):
-                    print >> self.log, "Caching configuration for %s as %s" % (self.base, cached)
+                    print("Caching configuration for %s as %s" % (self.base, cached), file=self.log)
 
         if configFile is None:
             # we were not provided with a config file, so we'll try to get it from 
@@ -2031,7 +2033,7 @@ class ServerConf(object):
             if not configFile:
                 msg = "Unable to read configuration for server %s" % packageBase
                 if self.eups.force:
-                    print >> self.log, msg + "; continuing"
+                    print(msg + "; continuing", file=self.log)
                     self.data = {}
                 else:
                     raise RuntimeError(msg)
@@ -2042,8 +2044,7 @@ class ServerConf(object):
                     if not save:  configFile = None
 
                     if self.base != "/dev/null" and self.verbose > 0:
-                        print >> self.log, \
-                            "Pulling configuration for %s from server" % self.base
+                        print("Pulling configuration for %s from server" % self.base, file=self.log)
 
                     ds = DistribServer(packageBase, 
                                        verbosity=self.verbose, log=self.log);
@@ -2058,11 +2059,10 @@ class ServerConf(object):
 
                 self.data = self.readConfFile(configFile);
 
-        except RemoteFileNotFound, e:
+        except RemoteFileNotFound as e:
             if self.base != "/dev/null" and self.verbose > 0:
-                print >> self.log, \
-                    "Warning: No configuration available from server;", \
-                    'assuming "vanilla" server'
+                print("Warning: No configuration available from server;", \
+                    'assuming "vanilla" server', file=self.log)
         except TransporterError:
             # including failed to recognize transport type
             raise
@@ -2112,10 +2112,10 @@ class ServerConf(object):
 
         try:
             fd = open(file);
-        except IOError, e:
+        except IOError as e:
             raise RuntimeError("%s: %s" % (file, str(e)))
         if self.verbose > 1:
-            print >> self.log, "Reading configuration data from", file
+            print("Reading configuration data from", file, file=self.log)
 
         try:
           try:                               # for python 2.4 compat
@@ -2126,11 +2126,11 @@ class ServerConf(object):
                 if len(line) == 0:  continue
 
                 (name, value) = paramre.split(line, 1);
-                if not out.has_key(name):
+                if name not in out:
                     out[name] = []
                 out[name].append(value.strip())
 
-          except ValueError, e:
+          except ValueError as e:
             raise RuntimeError("format error in config file (%s:%d): %s" %
                                (file, lineno, line))
         finally:
@@ -2138,9 +2138,9 @@ class ServerConf(object):
 
         # check syntax of *CLASS
         for k in ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS",]:
-            if out.has_key(k):
+            if k in out:
                 if len(out[k][-1].split(".")) < 2:
-                    print >> self.log, "Invalid config parameter %s: %s (expected module.class)" % (k, out[k][-1])
+                    print("Invalid config parameter %s: %s (expected module.class)" % (k, out[k][-1]), file=self.log)
 
         return out;
 
@@ -2148,12 +2148,12 @@ class ServerConf(object):
         """write out the configuration paramters to a file"""
         fd = open(file, 'w')
         if self.verbose > 1:
-            print >> self.log, "Writing configuration to", file
+            print("Writing configuration to", file, file=self.log)
 
         try:
             for key in self.data.keys():
                 for value in self.data[key]:
-                    print >> fd, key, "=", self.data[key]
+                    print(key, "=", self.data[key], file=fd)
         finally:
             fd.close()
 
@@ -2170,20 +2170,20 @@ class ServerConf(object):
                 continue
             if not os.access(stack, os.W_OK) or not os.access(cache, os.W_OK):
                 if verbosity > 0:
-                    print >> log, "Insufficient permissions to clear", \
-                        "cache in %s; skipping" % stack
+                    print("Insufficient permissions to clear", \
+                        "cache in %s; skipping" % stack, file=log)
 
             if servers is None:
                 if verbosity > 0:
-                    print >> log, "Clearing all server config data in", \
-                        stack
+                    print("Clearing all server config data in", \
+                        stack, file=log)
                 try:
                     system("rm -rf " + cache, 
                            verbosity=verbosity-1, log=log)
-                except OSError, e:
+                except OSError as e:
                     if verbosity >= 0:
-                        print >> log, "Warning: failed to clear cache in", \
-                            "%s: %s" % (stack, str(e))
+                        print("Warning: failed to clear cache in", \
+                            "%s: %s" % (stack, str(e)), file=log)
                     pass
 
             else:
@@ -2193,15 +2193,14 @@ class ServerConf(object):
                     file = os.path.join(cache, pkgroot, serverConfigFilename)
                     if os.path.exists(file):
                         if verbosity > 0:
-                            print >> log, "Clearing all server config", \
-                                "data for", pkgroot, "in", stack
+                            print("Clearing all server config", \
+                                "data for", pkgroot, "in", stack, file=log)
                         try:
                             os.unlink(file)
-                        except OSError, e:
+                        except OSError as e:
                             if verbosity >= 0:
-                                print >> log, \
-                                    "Warning: failed to clear cache for", \
-                                    pkgroot, "in %s: %s" % (stack, str(e))
+                                print("Warning: failed to clear cache for", \
+                                    pkgroot, "in %s: %s" % (stack, str(e)), file=log)
                             pass
 
     clearConfigCache = staticmethod(clearConfigCache)
@@ -2217,7 +2216,7 @@ class ServerConf(object):
                                 sys.stderr)
         """
         serverClass = None
-        if self.data.has_key('DISTRIB_SERVER_CLASS'):
+        if 'DISTRIB_SERVER_CLASS' in self.data:
             serverClass = self.data['DISTRIB_SERVER_CLASS']
         if isinstance(serverClass, list):
             serverClass = serverClass[-1]
@@ -2289,10 +2288,10 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
     @param log           a file object to send the messages to.
     @exception OSError   if a non-zero exit code is returned by the shell
     """
-    if not os.environ.has_key('EUPS_DIR'):
+    if 'EUPS_DIR' not in os.environ:
         raise RuntimeError("EUPS_DIR is not set; is EUPS setup?")
     if noaction or verbosity > 0:
-        print >> log, cmd
+        print(cmd, file=log)
     if not noaction:
 
         # we don't use system() `cause we need to update the environment
@@ -2301,7 +2300,7 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         environ['SHELL'] = BASH
         setups_sh = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
 
-        if environ.has_key("EUPS_PATH"): # keep current path
+        if "EUPS_PATH" in environ: # keep current path
             cmd = "source %s; export EUPS_PATH=%s; %s " % (setups_sh, environ["EUPS_PATH"], cmd)
 
         if verbosity < 0:
@@ -2347,7 +2346,7 @@ def findInPath(file, path):
 
 # make sure we can find bash
 if not os.path.exists(BASH):
-    if not os.environ.has_key('PATH'):
+    if 'PATH' not in os.environ:
       raise RuntimeError("Can't find bash and PATH environement is not set!")
     BASH = findInPath("bash", os.environ['PATH'])
     if not BASH:

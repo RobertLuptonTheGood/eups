@@ -63,9 +63,9 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(info["table_file"], "fw.table")
         self.assertEquals(info["ups_dir"], "ups")
         self.assertEquals(info["productDir"], "/opt/sw/Linux/fw/1.2")
-        self.assert_(info.has_key("declarer"))
-        self.assert_(info.has_key("declared"))
-        self.assert_(not info.has_key("modifier"))
+        self.assert_("declarer" in info)
+        self.assert_("declared" in info)
+        self.assert_("modifier" not in info)
         declared = info["declared"]
         declarer = info["declarer"]
 
@@ -80,7 +80,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(info["declarer"], declarer)
         self.assertEquals(info["declared"], declared)
         self.assertEquals(info["modifier"], declarer)
-        self.assert_(info.has_key("modified"))
+        self.assert_("modified" in info)
 
         self.vf.removeFlavor("Linux:rhel")
         flavors = self.vf.getFlavors()
@@ -404,8 +404,8 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEquals(flavor['version'], '2.0')
         self.assert_(bool(flavor['declarer']))
         self.assert_(bool(flavor['declared']))
-        self.assert_(not flavor.has_key('modifier'))
-        self.assert_(not flavor.has_key('modified'))
+        self.assert_('modifier' not in flavor)
+        self.assert_('modified' not in flavor)
         who = flavor['declarer']
     
         self.cf.setVersion("2.1", "Linux64")
@@ -418,8 +418,8 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEquals(flavor['version'], '2.1')
         self.assertEquals(flavor['declarer'], who)
         self.assert_(bool(flavor['declared']))
-        self.assert_(not flavor.has_key('modifier'))
-        self.assert_(not flavor.has_key('modified'))
+        self.assert_('modifier' not in flavor)
+        self.assert_('modified' not in flavor)
 
         # an update to an existing flavor
         self.cf.setVersion("2.1", "DarwinX86")

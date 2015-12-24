@@ -1,7 +1,8 @@
-import re, os, cPickle, sys
+from __future__ import absolute_import, print_function
+import re, os, pickle, sys
 from eups import utils
 from eups import Product
-from ProductFamily import ProductFamily
+from .ProductFamily import ProductFamily
 from eups.exceptions import EupsException,ProductNotFound, UnderSpecifiedProduct
 from eups.db import Database
 
@@ -246,7 +247,7 @@ class ProductStack(object):
             raise CacheOutOfSync(outofsync)
 
     def _cacheFileIsInSync(self, file):
-        return (not self.modtimes.has_key(file) or 
+        return (file not in self.modtimes or 
                 os.stat(file).st_mtime <= self.modtimes[file])
 
     def cacheIsInSync(self, flavors=None):
@@ -290,12 +291,12 @@ class ProductStack(object):
                 dir = self.dbpath
             file = os.path.join(dir, persistFilename(flavor))
 
-        if not self.lookup.has_key(flavor):
+        if flavor not in self.lookup:
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
         fd = utils.AtomicFile(file, "w")
-        cPickle.dump(flavorData, fd)
+        pickle.dump(flavorData, fd)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
 
@@ -332,8 +333,7 @@ class ProductStack(object):
         """
         if not self.cacheIsInSync(flavors):
             if verbose > 0:
-                print >> sys.stderr, \
-                    "Note: cache appears out-of-sync; updating..."
+                print("Note: cache appears out-of-sync; updating...", file=sys.stderr)
             self.reload(flavors, persistDir)
 
     def addFlavor(self, flavor): 
@@ -349,7 +349,7 @@ class ProductStack(object):
         have products for.  In particular, it allows info an empty flavor to be 
         cached just like normal flavor.  
         """
-        if not self.lookup.has_key(flavor):
+        if flavor not in self.lookup:
             self.lookup[flavor] = {}
 
     def addProduct(self, product):
@@ -372,9 +372,9 @@ class ProductStack(object):
         prod = product.clone().resolvePaths()
 
         flavor = prod.flavor
-        if not self.lookup.has_key(flavor):
+        if flavor not in self.lookup:
             self.lookup[flavor] = {}
-        if not self.lookup[flavor].has_key(prod.name):
+        if prod.name not in self.lookup[flavor]:
             self.lookup[flavor][prod.name] = ProductFamily(prod.name)
         self.lookup[flavor][prod.name].addVersion(prod.version,
                                                      prod.dir,
@@ -433,10 +433,10 @@ class ProductStack(object):
         """
         updated = False
         for flavor in products.keys():
-            if not self.lookup.has_key(flavor):
+            if flavor not in self.lookup:
                 self.lookup[flavor] = {}
             for product in products[flavor].keys():
-                if not self.lookup[flavor].has_key(product):
+                if product not in self.lookup[flavor]:
                     self.lookup[flavor][product] = ProductFamily(product)
                 self.lookup[flavor][product].import_(products[flavor][product])
                 updated = True
@@ -593,7 +593,7 @@ class ProductStack(object):
             flavors = flavors.split()
         
         for flavor in flavors:
-            if not self.lookup.has_key(flavor):
+            if flavor not in self.lookup:
                 continue
 
             names = productName
@@ -654,7 +654,7 @@ class ProductStack(object):
             fileName = self._persistPath(flavor, cachedir)
             if os.path.exists(fileName):
                 if verbose > 0:
-                    print >> sys.stderr, "Deleting %s" % (fileName)
+                    print("Deleting %s" % (fileName), file=sys.stderr)
                 os.remove(fileName)
 
     def reload(self, flavors=None, persistDir=None, verbose=0):
@@ -686,7 +686,7 @@ class ProductStack(object):
             fileName = self._persistPath(flavor,persistDir)
             self.modtimes[fileName] = os.stat(fileName).st_mtime
             fd = open(fileName)
-            lookup = cPickle.load(fd)
+            lookup = pickle.load(fd)
             fd.close()
 
             self.lookup[flavor] = lookup
@@ -814,8 +814,7 @@ class ProductStack(object):
             if not self.cacheIsUpToDate(flav, cacheDir):
                 cacheOkay = False
                 if verbose > 1:
-                    print >> sys.stderr, \
-                          "Regenerating missing or out-of-date cache for %s in %s" % (flav, dbpath)
+                    print("Regenerating missing or out-of-date cache for %s in %s" % (flav, dbpath), file=sys.stderr)
                 break
 
         if cacheOkay:
@@ -834,8 +833,7 @@ class ProductStack(object):
                 cacheOkay = False
                 self.lookup = {}   # forget loaded data
                 if verbose:
-                  print >> sys.stderr, \
-                   "Regenerating out-of-date cache for %s in %s" % (flav, dbpath)
+                  print("Regenerating out-of-date cache for %s in %s" % (flav, dbpath), file=sys.stderr)
 
         return cacheOkay
 
