@@ -454,11 +454,12 @@ def canPickle():
     cache product info.
     """
     try:
-        import pickle
+        try:
+            import cPickle as pickle
+        except ImportError:
+            import pickle
         pickle.dump(None, None, protocol=2)
-    except TypeError:
-        return False
-    except ImportError:
+    except (TypeError, ImportError, AttributeError):
         return False
 
     return True
