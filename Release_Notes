@@ -1,3 +1,6 @@
+2015-12-24 migueldvb
+      Update code to support both python 2.6+ and 3.3+ (dropping 2.5 and older)
+
 2015-12-24 mjuric (1.5.10)
       jhoblitt: allow https:// URLs in EUPS_PKGROOT
       timj: Allow spaces in path names
