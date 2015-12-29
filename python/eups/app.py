@@ -812,7 +812,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
             if eupsenv.shell == "sh" or eupsenv.shell == "zsh":
                 cmd = "unset %s" % (key)
             elif eupsenv.shell == "csh":
-                cmd = "unalias %s" (key)
+                cmd = "unalias %s" % (key)
 
             if eupsenv.noaction:
                 cmd = "echo \"%s\"" % cmd
