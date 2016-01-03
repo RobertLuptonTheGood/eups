@@ -4,7 +4,6 @@
 #
 from __future__ import print_function
 import sys, os, re
-import eups.utils as utils
 
 sys.argv[0] = "eups"
 
@@ -26,6 +25,7 @@ except ImportError:
         raise
     import eups.setupcmd
 
+import eups.utils as utils
 from eups.utils import Color
     
 # parse the command line
