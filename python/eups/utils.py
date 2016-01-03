@@ -455,10 +455,8 @@ def canPickle():
     """
     try:
         import pickle
-        pickle.dump(None, None, protocol=2)
-    except TypeError:
-        return False
-    except ImportError:
+        return pickle.HIGHEST_PROTOCOL >= 2
+    except (ImportError, AttributeError):
         return False
 
     return True
