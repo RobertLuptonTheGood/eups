@@ -120,5 +120,5 @@ if [[ X$SETUP_ALIASES != X ]]; then
    echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup \$@)" >> ups/eups.table
 fi
 
-(export EUPS_DIR=$PWD; cd bin; $EUPS_PYTHON ./mksetup $EUPS_DIR $EUPS_PATH $SETUP_ALIASES) || exit $?
+(export EUPS_DIR=$PWD; cd bin; $EUPS_PYTHON ./mksetup $EUPS_PYTHON $EUPS_DIR $EUPS_PATH $SETUP_ALIASES) || exit $?
 make git.version

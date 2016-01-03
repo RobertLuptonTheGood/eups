@@ -11,7 +11,7 @@ install :
 	chmod u+w $(EUPS_DIR)/bin
 	@ find $(EUPS_DIR)/bin -type d -exec chmod u+w {} \;
 	@ find $(EUPS_DIR)/bin -name "*.pyc" -exec chmod u+w {} \;
-	@ ./mksetup $(EUPS_DIR) $(EUPS_PATH) $(SETUP_ALIASES)
+	@ ./mksetup $(EUPS_PYTHON) $(EUPS_DIR) $(EUPS_PATH) $(SETUP_ALIASES)
 	cp Makefile mksetup setups.*sh eups eups_impl.py eups_setup eups_setup_impl.py eupspkg pkgautoversion $(EUPS_DIR)/bin
 	@ echo Building .pyc files
 	@ $(EUPS_PYTHON) -c "import compileall; compileall.compile_dir('$(EUPS_DIR)/bin')"

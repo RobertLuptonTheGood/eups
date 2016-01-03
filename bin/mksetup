@@ -5,10 +5,11 @@ import os, re, sys
 
 sys.argv.pop(0)                         # remove script name
 try:
+    eupspython = sys.argv.pop(0)
     eupsdir = sys.argv.pop(0)
     prefix = sys.argv.pop(0)
 except IndexError:
-    print("Usage: mksetup EUPS_DIR EUPS_PATH [SETUP_ALIASES]", file=sys.stderr)
+    print("Usage: mksetup EUPS_PYTHON EUPS_DIR EUPS_PATH [SETUP_ALIASES]", file=sys.stderr)
 
     sys.exit(1)
 
