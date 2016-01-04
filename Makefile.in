@@ -27,25 +27,6 @@ all : show
 	@ echo Please use \"make install\" if you want to install eups
 
 install : show
-	@if [ "$(EUPS_PATH)" = "" ]; then \
-		echo You have not specified EUPS_PATH >&2; \
-		exit 1; \
-	fi 
-
-	@ for d in $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}'); do \
-		if [ ! -d $$d ]; then \
-			mkdir -p $$d; \
-		fi; \
-	done
-
-	@ for db in $(EUPS_DB); do \
-		if [ -d $$db ]; then \
-			echo "EUPS database $$db already exists"; \
-		else \
-			mkdir -p $$db; \
-		fi; \
-	done
-
 	@:
 	@: Check the inode number for . and $(EUPS_DIR) to find out if two
 	@: directories are the same\; they may have different names due to
@@ -60,12 +41,39 @@ install : show
 	   fi; \
 	fi
 
+	@:
+	@: Delete the contents of $EUPS_DIR, if exists, keeping only the 'site' subdirectory
+	@:
 	@ if [ -d $(EUPS_DIR) ]; then \
 	        chmod u+w -R $(EUPS_DIR)/* ; \
 		$(RM) -r `ls -d $(EUPS_DIR)/* | awk '{ if($$1 != "site") { print } }'`; \
 	else \
 		mkdir -p $(EUPS_DIR); \
 	fi
+
+	@:
+	@: Create EUPS database directories for each entry on EUPS_PATH
+	@:
+	@if [ "$(EUPS_PATH)" = "" ]; then \
+		echo You have not specified EUPS_PATH >&2; \
+		exit 1; \
+	fi 
+	@ for d in $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}'); do \
+		if [ ! -d $$d ]; then \
+			mkdir -p $$d; \
+		fi; \
+	done
+	@ for db in $(EUPS_DB); do \
+		if [ -d $$db ]; then \
+			echo "EUPS database $$db already exists"; \
+		else \
+			mkdir -p $$db; \
+		fi; \
+	done
+
+	@:
+	@: Run make in each subdirectory
+	@:
 	@ for f in $(SUBDIRS); do \
 		(\
 		   if [ ! -d $(EUPS_DIR)/$$f ]; then mkdir $(EUPS_DIR)/$$f; fi; \
