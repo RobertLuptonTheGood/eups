@@ -7,6 +7,22 @@ import sys, os, re
 
 sys.argv[0] = "eups"
 
+# Add any argument of the form a=b to the environment. This primarily a workaround
+# for OS X 10.11's clobbering of DYLD_LIBRARY_PATH (the System Integrity Protection
+# mechanism).
+argv = []
+for arg in sys.argv:
+    m = re.match(r'^(\w+)=(.*)$', arg)
+    if m:
+        key, val = m.groups()
+        if val:
+            os.environ[key] = val
+        else:
+            os.environ.pop(key, None)
+    else:
+        argv.append(arg)
+sys.argv = argv
+
 # try to recover from an incomplete PYTHONPATH
 try:
     import eups.setupcmd
