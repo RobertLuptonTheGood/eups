@@ -4,7 +4,10 @@ common high-level EUPS functions appropriate for calling from an application.
 
 from __future__ import absolute_import, print_function
 import re, os, sys, time
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 from .Eups           import Eups
 from .exceptions     import ProductNotFound
 from .tags           import Tags, Tag, TagNotRecognized, checkTagsList

@@ -1,5 +1,9 @@
 from __future__ import absolute_import, print_function
-import re, os, pickle, sys
+import re, os, sys
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 from eups import utils
 from eups import Product
 from .ProductFamily import ProductFamily
