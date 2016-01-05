@@ -9,7 +9,7 @@ import sys
 import shutil
 import unittest
 import time
-from io import StringIO
+from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack
 
@@ -373,7 +373,7 @@ class EupsTestCase(unittest.TestCase):
     def testDeclareStdinTable(self):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir11 = os.path.join(pdir, "1.1")
-        tableStrm = StringIO('setupRequired("python")\n')
+        tableStrm = StringIO.StringIO('setupRequired("python")\n')
         prod = self.eups.findProduct("newprod", "1.1")
         self.assert_(prod is None, "newprod is already declared")
 
