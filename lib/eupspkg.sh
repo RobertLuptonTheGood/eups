@@ -980,7 +980,7 @@ if [[ $DEVMODE == 1 ]]; then
 		# it in there. Note we can't just call 'setup', since it's an
 		# alias that won't propagate into this subshell
 		msg "re-running setup in ./_eupspkg/source"
-		eval $("$EUPS_DIR/bin/eups_setup" -j -r .)
+		eval $("$EUPS_DIR/bin/eups_setup" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" -j -r .)
 	fi
 fi
 

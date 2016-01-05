@@ -17,6 +17,7 @@ for t in [
     "testStack",
     "testTable",
     "testTags",
+    "testDyldLibraryPath",
     ]:
     tests += __import__(t).suite()
 
