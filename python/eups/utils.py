@@ -3,7 +3,17 @@ Utility functions used across EUPS classes.
 """
 from __future__ import print_function
 import time, os, sys, glob, re, shutil, tempfile, pwd
-from io import StringIO
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+# Python 2/3 compatibility layer
+
+# load the correct StringIO module (StringIO in 2, io in 3)
+if sys.version_info[0] == 2:
+    import cStringIO as StringIO
+else:
+    import io as StringIO
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def getUserName(full=False):
     """ Get the current username (or the full name)
@@ -428,7 +438,7 @@ class ConfigProperty(object):
 
     def _propName(self, name, strm=None):
         if strm is None:
-            strm = StringIO()
+            strm = StringIO.StringIO()
         if self._parent:
             strm.write(self._parent)
             strm.write('.')
