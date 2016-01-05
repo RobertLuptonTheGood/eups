@@ -45,7 +45,7 @@ install : show
 	@: Delete the contents of $EUPS_DIR, if exists, keeping only the 'site' subdirectory
 	@:
 	@ if [ -d $(EUPS_DIR) ]; then \
-	        chmod u+w -R $(EUPS_DIR)/* ; \
+	        chmod -R u+w $(EUPS_DIR)/* ; \
 		$(RM) -r `ls -d $(EUPS_DIR)/* | awk '{ if($$1 != "site") { print } }'`; \
 	else \
 		mkdir -p $(EUPS_DIR); \
