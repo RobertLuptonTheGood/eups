@@ -146,7 +146,7 @@ class Tags(object):
         if group is None:
             group = self.global_
 
-        if isinstance(name, basestring):
+        if isinstance(name, str):
             owner = None
         else:
             name, owner = name
