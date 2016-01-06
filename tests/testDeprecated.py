@@ -10,11 +10,11 @@ import time
 import unittest
 import testCommon
 from testCommon import testEupsStack
-from io import StringIO
+from eups.utils import StringIO
 
 # reroute the error stream defined in eups.util to newerr
 syserr = sys.stderr
-newerr = StringIO()
+newerr = StringIO.StringIO()
 sys.stderr = newerr
 import eups.utils
 reload(eups.utils)
