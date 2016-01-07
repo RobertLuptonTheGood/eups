@@ -1101,7 +1101,12 @@ fi
 
 SCRIPTS=${SCRIPTS:-"$EUPSPKG_SCRIPTS"}		# ':'-delimited list of scripts to source at the end of this script. Used to mass-customize package creation.
 
-NJOBS=${EUPSPKG_NJOBS:-$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)}   # number of cores on the machine (Darwin & Linux)
+if [[ -z ${EUPSPKG_NJOBS} ]]; then
+	NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)   # number of cores on the machine (Darwin & Linux)
+	[[ $NJOBS -gt 32 ]] && NJOBS=32		# limit the auto-detected number of jobs to 32 (otherwise we run into problems on massively multicore machines)
+else
+	NJOBS=${EUPSPKG_NJOBS}
+fi
 
 UPSTREAM_DIR=${UPSTREAM_DIR:-upstream}			# For "tarball-and-patch" packages (see default_prep()). Default location of source tarballs.
 PATCHES_DIR=${PATCHES_DIR:-patches}			# For "tarball-and-patch" packages (see default_prep()). Default location of patches.
@@ -1132,6 +1137,21 @@ export CC=${CC:-cc}				# Autoconf prefers to look for gcc first, and the proper 
 export CXX=${CXX:-c++}				# Autoconf prefers to look for gcc first, and the proper thing is to default to c++. This helps on Darwin.
 
 export SCONSFLAGS=${SCONSFLAGS:-"opt=3"}	# Default scons flags
+
+##################################################################
+#
+# In configurations with many cores, we can sometimes run into a
+# limit on the number of processes (ulimit -u). When this happens,
+# the build can terminate with hard-to-trace errors (e.g., see
+# https://github.com/RobertLuptonTheGood/eups/issues/58. We'll try
+# to defend agains this by pre-emptively raising the limit as far
+# as we can (to the hard limit). As changing ulimits may be
+# administratively prohibited, we won't treat failure as a fatal
+# error.
+#
+ulimit -Su hard >/dev/null 2>&1 \
+	&& info "maxproc limit (ulimit -Su) set to $(ulimit -Su)." \
+	|| warn "failed to raise the maxproc limit (ulimit -Su); continuing with $(ulimit -Su)."
 
 ##################### ------ Overrides ----- #####################
 #
