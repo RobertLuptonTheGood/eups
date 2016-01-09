@@ -1,5 +1,26 @@
-2015-12-24 migueldvb
-      Update code to support both python 2.6+ and 3.3+ (dropping 2.5 and older)
+2016-01-09 mjuric (2.0.0)
+    - Update code to support both python 2.6+ and 3.3+ (dropping 2.5 and older).
+      Due to the complexity involved in accomplishing this, this release
+      should be considered EXPERIMENTAL. Please let us know of any issues or
+      bugs. (patchset contributed by Miguel de Val-Borro)
+    - Ensure DYLD_LIBRARY_PATH survives setup/unsetup on OS X 10.11 El Capitan
+    - Rework setups.c?sh scripts to use maximally re-use eups.table file
+
+    bug fixes:
+      - make eupspkg more robust on machines with >= ~24 cores
+      - 'unsetup eups' didn't work under (t)csh
+      - don't depend on cPickle-specific behavion
+      - bin/eups_setup_impl.py.in: move imports so PYTHONPATH recovery works
+      - configure.ac: unescape ${prefix} so it gets expanded
+      - Makefile.in: create $EUPS_PATH after clearing $EUPS_DIR
+      - on non-GNU systems options must come before arguments
+      - cStringIO and io.StringIO are not interchangeable
+      - fix unit tests broken by Python 3 compatibility code
+
+    dev stats:
+      - 60 files changed, 1438 insertions(+), 1285 deletions(-)
+      - 20 commits by Miguel de Val-Borro
+      - 18 commits by Mario Juric
 
 2015-12-24 mjuric (1.5.10)
       jhoblitt: allow https:// URLs in EUPS_PKGROOT
