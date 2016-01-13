@@ -602,7 +602,7 @@ class Distrib(object):
                                   self.log)
                 except OSError:  pass
             try:
-                system("chmod %sg+rws%s %s" % (recurse, change, dir), 
+                server.system("chmod %sg+rws%s %s" % (recurse, change, dir), 
                        self.Eups.noaction, self.verbose-2, self.log)
             except OSError:  pass
 
