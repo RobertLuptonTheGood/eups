@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function
 import sys
 import os
 import re
+import traceback
 
 import eups.utils as utils
 from . import server
@@ -214,7 +215,7 @@ class Repositories(object):
         versions = [version]
         if version and isinstance(version, Tag):
             if not version.isGlobal():
-                raise TagNotRecognized(tag.name, "global", 
+                raise TagNotRecognized(version.name, "global", 
                                        msg="Non-global tag %s requested." % 
                                            version.name)
         if not version:
@@ -718,23 +719,20 @@ class Repositories(object):
     def _readDistIDFile(self, file):
         distId = None
         pkgroot = None
-        idf = open(file)
-        try:
-          try:
-            while line in idf:
-                line = line.strip()
-                if len(line) > 0:
-                    if not distId:
-                        distId = line
-                    elif not pkgroot:
-                        pkgroot = line
-                    else:
-                        break
-          finally:
-            idf.close()
-        except Exception:
-            if self.verbose >= 0:
-                print("Warning: trouble reading %s, skipping" % file, file=self.log)
+        with open(file) as idf:
+            try:
+                for line in idf:
+                    line = line.strip()
+                    if len(line) > 0:
+                        if not distId:
+                            distId = line
+                        elif not pkgroot:
+                            pkgroot = line
+                        else:
+                            break
+            except Exception:
+                if self.verbose >= 0:
+                    print("Warning: trouble reading %s, skipping" % file, file=self.log)
 
         return (distId, pkgroot)
             
