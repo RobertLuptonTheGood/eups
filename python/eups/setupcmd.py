@@ -253,11 +253,9 @@ product and all its dependencies into the environment so that it can be used.
                 Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
                                inexact_version=self.opts.inexact_version, postTag=self.opts.postTag)
 
-                isUserTag = False
                 if self.opts.tag:
                     for t in self.opts.tag:
                         if Eups.isUserTag(t):
-                            isUserTag = True
                             break
 
                 Eups.includeUserDataDirInPath()
