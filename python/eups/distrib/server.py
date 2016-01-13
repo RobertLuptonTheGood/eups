@@ -967,12 +967,12 @@ class WebTransporter(Transporter):
             out = None
             try:
                 try:                               # for python 2.4 compat
-                    url = urllib.request.urlopen(self.loc)
+                    url = urlopen(self.loc)
                     out = open(filename, 'w')
                     out.write(url.read())
-                except urllib.error.HTTPError:
+                except HTTPError:
                     raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-                except urllib.error.URLError:
+                except URLError:
                     raise ServerNotResponding("Failed to contact URL %s" % self.loc)
                 except KeyboardInterrupt:
                     raise EupsException("^C")
@@ -1037,7 +1037,7 @@ class WebTransporter(Transporter):
         p = LinksParser()
         try:
           try:                               # for python 2.4 compat
-            url = urllib.request.urlopen(self.loc)
+            url = urlopen(self.loc)
             for line in url:
                 p.feed(line)
 
@@ -1047,9 +1047,9 @@ class WebTransporter(Transporter):
 
             return p.files
 
-          except urllib.error.HTTPError:
+          except HTTPError:
             raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-          except urllib.error.URLError:
+          except URLError:
             raise ServerNotResponding("Failed to contact URL %s" % self.loc)
           except KeyboardInterrupt:
             raise EupsException("^C")
