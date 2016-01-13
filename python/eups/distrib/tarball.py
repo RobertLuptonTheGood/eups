@@ -185,7 +185,7 @@ DIST_URL = %(base)s/%(path)s
         """
         tarball = location
         if not tarball:
-            raise RuntimeError("Expected a tarball name; saw \"%s\"" % distID)
+            raise RuntimeError("Expected a tarball name; saw \"%s\"" % location)
 
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
