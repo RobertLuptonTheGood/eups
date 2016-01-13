@@ -28,7 +28,7 @@ try:
     import eups.setupcmd
 except ImportError:
     eupsdir = None
-    if os.environ.has_key("EUPS_DIR"):
+    if "EUPS_DIR" in os.environ:
         eupsdir = os.environ["EUPS_DIR"]
     else:
         # the first item on sys.path is the script directory (bin)
