@@ -5,8 +5,8 @@
 # product from a package: a specialization for the "Builder" mechanism
 #
 from __future__ import absolute_import, print_function
-import sys, os, re, shutil
-import eups
+import sys
+import os, re
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
 import eups.hooks

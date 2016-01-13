@@ -5,8 +5,9 @@
 # product from a package: a specialization for Pacman
 #
 from __future__ import absolute_import
-import sys, os, re, copy
-import eups
+import sys
+import re
+import copy
 from . import server as eupsServer
 
 from .Distrib import Distrib

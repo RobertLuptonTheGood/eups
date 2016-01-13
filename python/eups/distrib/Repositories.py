@@ -3,18 +3,19 @@ the Repositories class -- a set of distribution servers from which
 distribution packages can be received and installed.
 """
 from __future__ import absolute_import, print_function
-import sys, os, re, atexit, shutil
+import sys
+import os
+import re
 
 import eups.utils as utils
 from . import server
-from eups           import Eups, Tag, Tags, TagNotRecognized
+from eups           import Eups, Tag, TagNotRecognized
 from eups           import ProductNotFound, EupsException
 from .Repository     import Repository 
-from eups.utils     import Flavor, Quiet
+from eups.utils     import Flavor
 from .Distrib        import findInstallableRoot
 from .DistribFactory import DistribFactory
-from .server         import ServerConf, Manifest, ServerError
-from . import server
+from .server         import Manifest, ServerError
 import eups.hooks as hooks
 
 class Repositories(object):
@@ -731,7 +732,7 @@ class Repositories(object):
                         break
           finally:
             idf.close()
-        except Exception as e:
+        except Exception:
             if self.verbose >= 0:
                 print("Warning: trouble reading %s, skipping" % file, file=self.log)
 
@@ -873,11 +874,11 @@ class Repositories(object):
                 rmCmd = "rm -rf %s" % buildDir
                 try:
                     server.system(rmCmd, verbosity=-1, log=self.log)
-                except OSError as e:
+                except OSError:
                     rmCmd = r"find %s -exec chmod 775 {} \; && %s" % (buildDir, rmCmd)
                     try:
                         server.system(rmCmd, verbosity=self.verbose-1, log=self.log)
-                    except OSError as e:
+                    except OSError:
                         print("Error removing %s; Continuing" % (buildDir), file=self.log)
 
             elif self.verbose > 0:
@@ -964,7 +965,7 @@ class Repositories(object):
                     if utils.isDbWritable(installDir):
                         try:
                             server.system("/bin/rm -rf %s" % installDir)
-                        except OSError as e:
+                        except OSError:
                             print("Error removing %s; Continuing" % (installDir), file=self.log)
 
                     elif self.verbose >= 0:

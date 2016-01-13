@@ -6,7 +6,6 @@
 #
 from __future__ import absolute_import, print_function
 import sys, os, re
-import eups
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
 

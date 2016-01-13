@@ -1,13 +1,12 @@
 from __future__ import absolute_import
 
-import os, sys, re
+import os
+import re
 from .VersionFile import VersionFile
 from .ChainFile import ChainFile
-from eups.utils import isRealFilename, isDbWritable
 import eups.tags
 from eups.Product import Product
 from eups.exceptions import UnderSpecifiedProduct, ProductNotFound
-from eups.exceptions import TableError
 
 versionFileExt = "version"
 versionFileTmpl = "%s." + versionFileExt
