@@ -6,7 +6,7 @@
 #
 from __future__ import absolute_import, print_function
 import os
-import re, sys
+import re
 
 import eups
 from .exceptions import BadTableContent, TableError, TableFileNotFound, ProductNotFound
@@ -623,7 +623,7 @@ but no other interpretation is applied
                                                           recursionDepth + 1, followExact, productDictionary,
                                                           addDefaultProduct, requiredVersions=requiredVersions)
                         
-                except (ProductNotFound, TableFileNotFound) as e:
+                except (ProductNotFound, TableFileNotFound):
                     product = Product(productName, vers) # it doesn't exist, but it's still a dep.
 
                     val = [product, a.extra["optional"]]
@@ -1208,8 +1208,6 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     #
     # Here's the function to do the substitutions
     #
-    subs = {}                               # dictionary of substitutions
-
     def subSetup(match):
         cmd = match.group(1)
         args = match.group(2).split()

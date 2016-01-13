@@ -2,8 +2,6 @@
 exceptions raised by EUPS.  This includes EupsException, the base exception 
 for EUPS related failures.  
 """
-import sys, traceback
-
 class EupsException(Exception):
     """
     an exception indicating a failure during an EUPS operation.

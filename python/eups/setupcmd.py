@@ -14,7 +14,8 @@ To run an eups command from Python, try:
 The output of run() is a status code appropriate for passing to sys.exit().
 """
 from __future__ import absolute_import, print_function
-import os, sys, glob, re
+import os
+import sys
 from .cmd import EupsOptionParser
 from .exceptions import EupsException
 import eups

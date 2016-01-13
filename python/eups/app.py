@@ -3,21 +3,20 @@ common high-level EUPS functions appropriate for calling from an application.
 """
 
 from __future__ import absolute_import, print_function
-import re, os, sys, time
+import re
+import os
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 from .Eups           import Eups
 from .exceptions     import ProductNotFound
-from .tags           import Tags, Tag, TagNotRecognized, checkTagsList
+from .tags           import Tag, checkTagsList
 from .Product import Product
 from .VersionParser  import VersionParser
 from .stack          import ProductStack, persistVersionName as cacheVersion
-from .distrib.server import ServerConf
-from .distrib import builder
 from . import utils, table, hooks
-from .exceptions import EupsException, TableFileNotFound
+from .exceptions import EupsException
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
@@ -432,7 +431,7 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
     try:
         table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force,
                               expandVersions, addExactBlock, toplevelName)
-    except ProductNotFound as e:
+    except ProductNotFound:
         raise
 
 def declare(productName, versionName, productDir=None, eupsPathDir=None, 

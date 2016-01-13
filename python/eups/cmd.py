@@ -32,7 +32,10 @@ The output of run() is a status code appropriate for passing to sys.exit().
 ########################################################################
 
 from __future__ import absolute_import, print_function
-import glob, re, os, shutil, sys, time, copy
+import re
+import os
+import sys
+import copy
 import optparse
 import eups
 from . import lock
@@ -2318,7 +2321,7 @@ tag will be installed.
         if self.opts.tag:               # just the top-level product
             try: 
                 myeups.assignTag(self.opts.tag, productName, versionName)
-            except eups.ProductNotFound as ex:
+            except eups.ProductNotFound:
                 # this may have been a "pseudo"-package, one that just
                 # ensures the installation of other packages.
                 # It may alternatively have been that the version of the 
