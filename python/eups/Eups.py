@@ -2,7 +2,11 @@
 The Eups class 
 """
 from __future__ import absolute_import, print_function
-import glob, re, os, shutil, sys, time
+import glob
+import re
+import os
+import shutil
+import sys
 import filecmp
 import fnmatch
 import tempfile
@@ -1719,7 +1723,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             return vname
 
                         value = False
-                except ValueError as e:           # no sort order is defined
+                except ValueError:           # no sort order is defined
                     return None
 
         if value:

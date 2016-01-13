@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
-import fnmatch, os, re, sys
+import fnmatch
+import os
+import re
 from . import hooks, utils
 from .exceptions import EupsException
 

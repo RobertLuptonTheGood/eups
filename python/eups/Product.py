@@ -1,6 +1,7 @@
 # from Table import *
 from __future__ import absolute_import, print_function
-import os, re, sys
+import os
+import re
 try:
     import cPickle as pickle
 except ImportError:

@@ -2,7 +2,8 @@
 Module that enables user configuration and hooks.  
 """
 from __future__ import absolute_import, print_function
-import os, sys, re
+import os
+import re
 from . import utils
 import eups
 import eups.exceptions
@@ -301,7 +302,7 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
                         val = getattr(attr, parts[0]) + " " + val
 
                 setattr(attr, parts[0], val)
-            except AttributeError as e:
+            except AttributeError:
                 if verbose >= 0:
                    print("Skipping unknown property \"%s\" at %s:%d" % \
                          (parts[0], configFile, lineno), file=log)

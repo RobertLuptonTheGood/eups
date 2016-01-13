@@ -2,7 +2,14 @@
 Utility functions used across EUPS classes.
 """
 from __future__ import print_function
-import time, os, sys, glob, re, shutil, tempfile, pwd
+import time
+import os
+import sys
+import glob
+import re
+import shutil
+import tempfile
+import pwd
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Python 2/3 compatibility layer
@@ -78,8 +85,6 @@ def _svnRevision(file=None, lastChanged=False):
         return matches["oldest"], matches["youngest"], tuple(matches["flags"])
 
     raise RuntimeError("svnversion returned unexpected result \"%s\"" % res[:-1])
-
-import os, re
 
 def version():
     """Get the eups version from git; if this isn't available consult git.version in $EUPS_DIR"""
