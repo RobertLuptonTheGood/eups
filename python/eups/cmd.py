@@ -725,14 +725,14 @@ class PkgconfigCmd(EupsCmd):
         product = None
         if versionName:
             # prefer explicitly specified version
-            prod = Eups.findProduct(productName, versionName)
+            product = Eups.findProduct(productName, versionName)
 
         if not product:              # try setup version
             tag = eups.Tag("setup")
-            prod = Eups.findProduct(productName, tag)
+            product = Eups.findProduct(productName, tag)
 
         if not product:              # try most preferred tag
-            prod = Eups.findProduct(productName)
+            product = Eups.findProduct(productName)
 
         if product:
             PKG_CONFIG_PATH += [os.path.join(product.dir, "etc")]
@@ -1766,8 +1766,6 @@ class AdminInfoCmd(EupsCmd):
             self.err("Unexpected trailing arguments: %s" % self.args[2])
             return 2
 
-        import eups.db.VersionFile as VersionFile
-
         for eupsDb in myeups.versions.keys():
             db = myeups._databaseFor(eupsDb)
             if tag:
@@ -2080,7 +2078,7 @@ class DistribListCmd(EupsCmd):
                 except ValueError:
                     self.err("server option not of form NAME=VALUE: "+opt)
                     return 3
-                options[name] = value
+                options[name] = val
 
         try:
             repos = distrib.Repositories(pkgroots, options, myeups, verbosity=self.opts.verbose)
@@ -2213,7 +2211,7 @@ tag will be installed.
 
         if self.opts.installStack:
             if not utils.isDbWritable(self.opts.installStack) and \
-               not utils.isDbWritable(os.path.join(self.opts.installStack,Eups.ups_db)):
+               not utils.isDbWritable(os.path.join(self.opts.installStack, eups.Eups.ups_db)):
                 self.err("Requested install stack not writable: " +
                          self.opts.installStack)
                 return 2
@@ -2407,7 +2405,7 @@ product will be fully removed, even if its installation was successful.
                 except ValueError:
                     self.err("server option not of form NAME=VALUE: "+opt)
                     return 3
-                dopts[name] = value
+                dopts[name] = val
 
         log = None
         if self.opts.quiet:
