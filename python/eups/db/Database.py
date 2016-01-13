@@ -6,7 +6,7 @@ from .VersionFile import VersionFile
 from .ChainFile import ChainFile
 import eups.tags
 from eups.Product import Product
-from eups.exceptions import UnderSpecifiedProduct, ProductNotFound
+from eups.exceptions import UnderSpecifiedProduct, ProductNotFound, TableFileNotFound
 
 versionFileExt = "version"
 versionFileTmpl = "%s." + versionFileExt
@@ -407,7 +407,6 @@ class _Database(object):
             for file in vfiles:
                 if (versionFileRe.match(file)):
                     file = VersionFile(os.path.join(pdir,file))
-                    vers = file.version
                     if file.hasFlavor(flavor):
                         return True
 
