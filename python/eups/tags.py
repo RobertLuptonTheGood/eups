@@ -277,7 +277,7 @@ class Tags(object):
                         % dir, file=utils.stdinfo)
                 continue
             if not os.path.isdir(dir):
-                if versbose > 0:
+                if verbosity > 0:
                      "%s: EUPS root directory is not a directory; skipping..." \
                      % dir
                 continue
