@@ -310,7 +310,7 @@ Common"""
         else:
             force = None
 
-        Eups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz, 
+        myeups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz, 
                          readCache=readCache, force=force, 
                          ignore_versions=ignorever, setupType=setupType, cmdName=self.cmd,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
@@ -328,13 +328,13 @@ Common"""
         else:
             tag = None
         
-        Eups.selectVRO(tag, productDir, versionName, opts.dbz)
+        myeups.selectVRO(tag, productDir, versionName, opts.dbz)
         
-        if True or (tag and Eups.isUserTag(tag[0])): # we always need the local definitions
-            Eups.includeUserDataDirInPath()
+        if True or (tag and myeups.isUserTag(tag[0])): # we always need the local definitions
+            myeups.includeUserDataDirInPath()
 
         try:
-            eups.commandCallbacks.apply(Eups, self.cmd, self.opts, self.args)
+            eups.commandCallbacks.apply(myeups, self.cmd, self.opts, self.args)
         except eups.OperationForbidden as e:
             e.status = 255
             raise
@@ -342,7 +342,7 @@ Common"""
             e.status = 9
             raise
 
-        return Eups
+        return myeups
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -368,14 +368,14 @@ class CommandCallbacks(object):
         """
         CommandCallbacks.callbacks += [callback]
 
-    def apply(self, Eups, cmd, opts, args):
+    def apply(self, myeups, cmd, opts, args):
         """Call the command callbacks on cmd"""
 
         if opts.noCallbacks:
             return
 
         for hook in CommandCallbacks.callbacks:
-            hook(Eups, cmd, opts, args)
+            hook(myeups, cmd, opts, args)
 
     def clear(self):
         """Clear the list of command callbacks"""
@@ -631,8 +631,8 @@ that would be loaded [in brackets].
         self._init("EUPS_STARTUP")
 
     def execute(self):
-        Eups = eups.Eups(path=self.opts.path, dbz=self.opts.dbz)
-        path = Eups.path
+        myeups = eups.Eups(path=self.opts.path, dbz=self.opts.dbz)
+        path = myeups.path
 
         for f in hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
                                          quiet=self.opts.quiet, path=path, reset=True, includeAllFiles=True):
@@ -713,26 +713,26 @@ class PkgconfigCmd(EupsCmd):
         else:
             versionName = None
 
-        Eups = self.createEups()
+        myeups = self.createEups()
 
         #
         # Time to do some real work
         #
         PKG_CONFIG_PATH = os.environ.get("PKG_CONFIG_PATH", "").split(":")
-        #productList = Eups.findProduct(productName, versionName)
+        #productList = myeups.findProduct(productName, versionName)
         #
         # Look for the best match
         product = None
         if versionName:
             # prefer explicitly specified version
-            product = Eups.findProduct(productName, versionName)
+            product = myeups.findProduct(productName, versionName)
 
         if not product:              # try setup version
             tag = eups.Tag("setup")
-            product = Eups.findProduct(productName, tag)
+            product = myeups.findProduct(productName, tag)
 
         if not product:              # try most preferred tag
-            product = Eups.findProduct(productName)
+            product = myeups.findProduct(productName)
 
         if product:
             PKG_CONFIG_PATH += [os.path.join(product.dir, "etc")]
@@ -755,7 +755,7 @@ class PkgconfigCmd(EupsCmd):
                 break
 
         if pcfile:
-            if Eups.verbose:
+            if myeups.verbose:
                 print("Reading %s" % pcfile, file=self._errstrm)
 
             # Time to actually read and process the file.
@@ -911,7 +911,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
             self.err("You may not specify both --inplace and a target directory")
             return 4
 
-        Eups = self.createEups()
+        myeups = self.createEups()
 
         if not self.opts.version:
             self.err("Please specify a version with --version or -V")
@@ -940,7 +940,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
 
         if outdir:
             outfile = os.path.join(outdir, os.path.basename(inFile))
-            if Eups.verbose:
+            if myeups.verbose:
                 print("Writing to %s" % outfile)
 
             try:
