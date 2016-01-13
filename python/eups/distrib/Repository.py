@@ -7,6 +7,7 @@ import sys
 import eups
 from eups.tags      import Tag, TagNotRecognized
 from eups.utils     import Flavor, isDbWritable
+from eups.exceptions import EupsException, ProductNotFound
 from .server         import ServerConf, Manifest, Mapping, TaggedProductList
 from .server         import LocalTransporter
 from .DistribFactory import DistribFactory
@@ -582,7 +583,8 @@ class Repository(object):
                                                  self.options, self.verbose-2,
                                                  self.log)
         flavor = dp.flavor
-        if flavor == generic:  flavor = None
+        if flavor == "generic":
+            flavor = None
         return distrib.packageCreated(self.pkgroot, dp.product, dp.version, flavor)
 
     def createTaggedRelease(self, tag, product, version=None, flavor=None, 
