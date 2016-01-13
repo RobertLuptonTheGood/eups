@@ -78,11 +78,6 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             else:
                 productName = p  
 
-        if tags:
-            tag = tags[0]
-        else:
-            tag = None
-
         eupsenv.setup(productName, versionName, productRoot=os.path.abspath(productDir))
         setup = True                    # only list this version
 
@@ -111,13 +106,11 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 productList = eupsenv.getSetupProducts(productName)
             else:
                 raise EupsException("Please choose the version you want listed (%s)" %
-                                    (", ".join([p.version for p in productList])))
+                                    (", ".join(p.version for p in productList)))
     else:
         if topological:
             raise EupsException("--topological only makes sense with --dependencies")
         
-    productTags = {}             # list of tags indexed by product
-
     oinfo = None                 # previous value of "info"; used to suppress repetitions due to e.g. 
                                  # listing directories when there's a NULL and Linux declaration 
 
