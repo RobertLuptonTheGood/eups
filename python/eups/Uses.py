@@ -58,7 +58,6 @@ class Uses(object):
         for k in self._setup_by.keys():
             vmin = {}
             dmin = {}
-            #optional = {}
             for val in self._setup_by[k]:
                 p, pv, props = val
 
@@ -66,10 +65,6 @@ class Uses(object):
                 if key not in dmin or props.depth < dmin[key]:
                     dmin[key] = props.depth
                     vmin[key] = val
-
-                if False:
-                    optional[key] = props.optional and optional.get(key, True)
-                    props.optional = optional[key]
 
             self._setup_by[k] = list(set(vmin.values())) # Use set() to make values unique
 
