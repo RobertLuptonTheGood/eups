@@ -3323,23 +3323,6 @@ The what argument tells us what sort of state is expected (allowed values are de
             usesInfo = Uses()
 
             for pi in productList:          # for every known product
-                if False:
-                    try:
-                        q = utils.Quiet(self)
-                        tbl = pi.getTable()
-
-                        if not tbl:
-                            del q
-                            continue
-
-                        depsO = tbl.dependencies(self, followExact=True) # lookup top-level dependencies
-
-                        del q
-                    except Exception as e:
-                        if not self.quiet:
-                            print(("Warning: %s" % (e)), file=utils.stdwarn)
-                        continue
-
                 try:
                     deps = self.getDependentProducts(pi, shouldRaise=False, followExact=None, topological=True)
                 except TableError as e:
