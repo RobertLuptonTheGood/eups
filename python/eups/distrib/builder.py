@@ -594,10 +594,10 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
             repoVersion = eups.hooks.config.Eups.repoVersioner(productName, versionName)
         except Exception as e:
             raise RuntimeError("Unable to call hooks.Eups.config.repoVersioner for %s %s (%s)" % 
-                               (productName, inVersion, e))
+                               (productName, versionName, e))
 
         if repoVersion is None:
-            repoVersion = inVersion
+            repoVersion = versionName
 
         #print "Repository version name for %s: %s --> %s" % (productName, versionName, repoVersion)
 
@@ -670,8 +670,6 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     #
     # Actually do the work
     #
-    versionNameRe = re.escape(versionName)
-
     for line in ifd:
         line = line.rstrip()
 
