@@ -11,10 +11,9 @@ import re
 import eups
 import eups.hooks as hooks
 import eups.table
-from . import server
-from .server import RemoteFileNotFound, Manifest, TaggedProductList
 from eups.VersionParser import VersionParser
 from eups.exceptions import EupsException
+from . import server
 
 class Distrib(object):
     """A class to encapsulate product distribution
@@ -281,7 +280,7 @@ class Distrib(object):
         @param  flavor         the target platform for the release (default: 
                                  "generic")
         """
-        release = TaggedProductList(tag, flavor, self.verbose-1, sys.log)
+        release = server.TaggedProductList(tag, flavor, self.verbose-1, sys.log)
         self._recurseProdDeps(release, top_product, top_version, flavor)
 
 
@@ -376,7 +375,7 @@ class Distrib(object):
         """
         if flavor is None:  flavor = self.flavor
         if tag is None:  tag = self.tag
-        productList = Manifest(productName, versionName, self.Eups, self.verbose-1,
+        productList = server.Manifest(productName, versionName, self.Eups, self.verbose-1,
                                log=self.log)
 
         # add a record for the top product
@@ -395,7 +394,7 @@ class Distrib(object):
                 if not tablefile and self.distServer:
                     try:
                         tablefile = self.distServer.getTableFile(product, version, self.flavor)
-                    except RemoteFileNotFound:
+                    except server.RemoteFileNotFound:
                         pass
                 return tablefile
 
@@ -671,7 +670,7 @@ class DefaultDistrib(Distrib):
                 print(msg, file=self.log)
             return None
 
-        return TaggedProductList.fromFile(file, tag)
+        return server.TaggedProductList.fromFile(file, tag)
 
     def getTaggedReleasePath(self, tag, flavor=None):
         """get the file path relative to a server root that will be used 
@@ -688,7 +687,7 @@ class DefaultDistrib(Distrib):
         @param serverDir      a local directory representing the root of the 
                                   package distribution tree
         @param tag            the name to give to the release
-        @param products       a TaggedProductList instance containing the list
+        @param products       a server.TaggedProductList instance containing the list
                                   of products in the release
         @param flavor         the target flavor for this release.  An 
                                   implementation may ignore this variable.  
@@ -765,7 +764,7 @@ class DefaultDistrib(Distrib):
         if not os.path.exists(mandir):
 	        os.makedirs(mandir)
 
-        man = Manifest(product, version, self.Eups, 
+        man = server.Manifest(product, version, self.Eups, 
                        verbosity=self.verbose-1, log=self.log)
         for dep in productDeps:
             man.addDepInst(dep)
