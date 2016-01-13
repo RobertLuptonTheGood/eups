@@ -586,7 +586,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         print("%s (consider --force)" % (msg), file=utils.stdwarn)
                         sys.exit(1)
 
-            if self.asAdmin and utils.isDbWritable(p):
+            if self.asAdmin and utils.isDbWritable(path):
                 # cache the global tags
                 dbpath = self.getUpsDB(path)
                 for group in tags[path].bygrp.keys():
@@ -895,7 +895,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # go directly to the EUPS database
                         if not os.path.exists(self.getUpsDB(root)):
                             if self.verbose:
-                                print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
+                                print("Skipping missing EUPS stack:", self.getUpsDB(root), file=utils.stdwarn)
                             continue
 
                         try:
@@ -1174,7 +1174,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
+                        print("Skipping missing EUPS stack:", self.getUpsDB(root), file=utils.stdwarn)
                     continue
 
                 db = self._databaseFor(root)
@@ -1307,7 +1307,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
+                        print("Skipping missing EUPS stack:", self.getUpsDB(root), file=utils.stdwarn)
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
@@ -1360,7 +1360,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # go directly to the EUPS database
                 if not os.path.exists(self.getUpsDB(root)):
                     if self.verbose:
-                        print("Skipping missing EUPS stack:", dbpath, file=utils.stdwarn)
+                        print("Skipping missing EUPS stack:", self.getUpsDB(root), file=utils.stdwarn)
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
@@ -2002,8 +2002,6 @@ The what argument tells us what sort of state is expected (allowed values are de
             # Are we already setup?
             #
             sprod = self.findSetupProduct(product.name)
-            if sprod is None:
-                sversionName = None
 
             if sprod and sprod.version and product.version:
                 if product.version == sprod.version or product.dir == sprod.dir: # already setup
@@ -3094,7 +3092,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                  set([p[0] for p in ptable.dependencies(self, recursive=True)])
 
                     if topProduct in \
-                           [e[0] for e in defaultProduct.getTable().dependencies(self, recursive=True)]:
+                           (e[0] for e in defaultProduct.getTable().dependencies(self, recursive=True)):
                         del productDictionary[defaultProduct]
                         pdir[defaultProduct] = set()
                 else:
@@ -3410,7 +3408,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def setCurrentType(self, currentType):
         """Set type of "Current" we want (e.g. current, stable, ...)"""
         utils.deprecated("Deprecated function: Eups.setCurrentType(); use setPreferredTags()", self.quiet)
-        return setPreferredTag(currentType)
+        return self.setPreferredTag(currentType)
 
     def getCurrent(self):
         utils.deprecated("Deprecated function: Eups.getCurrent(); use getPreferredTags()", self.quiet)
@@ -3445,7 +3443,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             prod = self._findLatestVersion(productName, eupsPathDirs, flavor, 
                                            versionName)
         if not prod:
-            raise RuntimeError(msg %s (productName, versionName, flavor))
+            raise RuntimeError(msg % (productName, versionName, flavor))
 
     def findCurrentVersion(self, productName, path=None, currentType=None, currentTypesToTry=None):
         """
