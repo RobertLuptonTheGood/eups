@@ -671,11 +671,9 @@ r"""
 """
 
 from __future__ import absolute_import, print_function
-import sys, os, shutil, tarfile, tempfile, pipes, stat
-import eups
+import sys, os, shutil, tempfile, pipes, stat
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
-import eups.hooks
 
 
 class Distrib(eupsDistrib.DefaultDistrib):

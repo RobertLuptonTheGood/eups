@@ -4,7 +4,10 @@
 classes for communicating with a remote package server
 """
 from __future__ import print_function
-import sys, os, re, atexit, shutil
+import sys
+import os
+import re
+import atexit
 import fnmatch
 import tempfile
 try:
@@ -2059,7 +2062,7 @@ class ServerConf(object):
 
                 self.data = self.readConfFile(configFile);
 
-        except RemoteFileNotFound as e:
+        except RemoteFileNotFound:
             if self.base != "/dev/null" and self.verbose > 0:
                 print("Warning: No configuration available from server;", \
                     'assuming "vanilla" server', file=self.log)

@@ -1,6 +1,8 @@
 from __future__ import print_function
-import os, re, sys, errno
-from eups.utils import ctimeTZ, isRealFilename, stdwarn, stderr, getUserName
+import os
+import re
+import errno
+from eups.utils import ctimeTZ, stdwarn, getUserName
 
 who = getUserName(full=True)
 

@@ -5,7 +5,9 @@
 # product from a package
 #
 from __future__ import absolute_import, print_function
-import sys, os, re, atexit, shutil
+import sys
+import os
+import re
 import eups
 import eups.hooks as hooks
 import eups.table
@@ -393,7 +395,7 @@ class Distrib(object):
                 if not tablefile and self.distServer:
                     try:
                         tablefile = self.distServer.getTableFile(product, version, self.flavor)
-                    except RemoteFileNotFound as e:
+                    except RemoteFileNotFound:
                         pass
                 return tablefile
 
@@ -881,7 +883,7 @@ class DefaultDistrib(Distrib):
                 except KeyboardInterrupt:
                     raise RuntimeError("You hit ^C while looking for %s %s's table file" %
                                          (product, version))
-                except eups.ProductNotFound as e:
+                except eups.ProductNotFound:
                     return self.findTableFile(prod.product, prod.version, prod.flavor)
                 except Exception:
                     return None

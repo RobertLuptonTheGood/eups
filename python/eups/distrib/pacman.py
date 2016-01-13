@@ -5,8 +5,7 @@
 # product from a package: a specialization for Pacman
 #
 from __future__ import print_function
-import sys, os, re, atexit, shutil
-import eups
+import sys, os
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
 
@@ -197,7 +196,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
             eupsServer.system("""cd %s && pacman -allow urllib2 -install "%s" """ % \
                                   (pacmanDir, location), 
                               self.Eups.noaction, self.verbose, self.log)
-        except OSError as e:
+        except OSError:
             raise RuntimeError("Pacman failed to install " + location)
 
     def createPacmanDir(self, pacmanDir):
