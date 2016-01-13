@@ -11,7 +11,7 @@ except ImportError:
 from .Eups           import Eups
 from .exceptions     import ProductNotFound
 from .tags           import Tags, Tag, TagNotRecognized, checkTagsList
-from . import Product
+from .Product import Product
 from .VersionParser  import VersionParser
 from .stack          import ProductStack, persistVersionName as cacheVersion
 from .distrib.server import ServerConf
@@ -716,7 +716,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                     print("Requested version tagged %s == \"%s\"; got version \"%s\"" % \
                           (",".join(prefTags + postTags), taggedVersion.version, version), file=utils.stderr)
             else:
-                if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
+                if not re.search(r"^" + Product.LocalVersionPrefix, version):
                     if (fwd and eupsenv.verbose >= 0) or (not fwd and eupsenv.verbose > 0):
                         extra = ""
                         if os.path.isfile((prefTags + postTags)[0]):
