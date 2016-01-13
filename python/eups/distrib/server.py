@@ -1330,7 +1330,7 @@ class TaggedProductList(object):
                             be merged.
         """
         for p in products.getProducts():
-            addProduct(p[0], p[2], p[1], p[3:])
+            self.addProduct(p[0], p[2], p[1], p[3:])
 
     def read(self, filename):
         """read the products from a given file and add it to our list.  
@@ -1714,7 +1714,6 @@ class Manifest(object):
 
         FALSE = "FALSE"
         TRUE = "TRUE"
-        REQ = "REQUIRED"
         OPT = "OPTIONAL"
         for line in fd:
             line = line.split("\n")[0]
@@ -1935,7 +1934,6 @@ Additional mappings can be provided.
 
             mat = re.search(r"^\s*verbose\s*=\s*(True|False|0|1)\s*", line)
             if mat:
-                verboseMapping = bool(mat.group(1))
                 continue
 
             vals = line.split()
