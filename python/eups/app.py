@@ -9,6 +9,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+from .distrib import builder
 from .Eups           import Eups
 from .exceptions     import ProductNotFound
 from .tags           import Tag, checkTagsList
@@ -308,13 +309,13 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     #
     if pickleFile and pickleFile[0] == "<": # read it
         fd = open(pickleFile[1:])
-        usesInfo = cPickle.load(fd)
+        usesInfo = pickle.load(fd)
         fd.close()
     else:
         usesInfo = eupsenv.uses()
         if pickleFile:
             fd = open(pickleFile, "w")
-            cPickle.dump(usesInfo, fd)
+            pickle.dump(usesInfo, fd)
             fd.close()
 
     userList = eupsenv.uses(productName, versionName, depth, usesInfo=usesInfo)
@@ -396,7 +397,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None, repo
     if svnroot:
         builderVars["SVNROOT"] = svnroot
 
-    distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars,
+    builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars,
                                     repoVersionName=repoVersion)
 
 
@@ -419,7 +420,7 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
     @param force        convert missing required dependencies to optional
     """
     if not eupsenv:
-        eupsenv = eups.Eups()
+        eupsenv = Eups()
 
     try:
         table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force,
