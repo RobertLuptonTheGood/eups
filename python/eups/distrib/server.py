@@ -488,7 +488,7 @@ class ConfigurableDistribServer(DistribServer):
 
         # check for unrecognized keys in config files
         for k in self.config.keys():
-            if not (k in self.validConfigKeys):
+            if k not in self.validConfigKeys:
                 print("Invalid config parameter %s ignored" % k, file=self.log)
 
         if 'MANIFEST_URL' not in self.config:
