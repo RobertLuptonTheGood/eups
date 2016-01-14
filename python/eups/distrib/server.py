@@ -1546,7 +1546,7 @@ class Mapping(object):
         if not len(self._mapping[flavor][inProduct]):
             # Indicate product should be removed completely
             return inProduct, None
-        for versName in (inVersion, "any") or fnmatch.fnmatch(inVersion, versName):
+        for versName in (inVersion, "any"):
             if versName in self._mapping[flavor][inProduct]:
                 return self._mapping[flavor][inProduct][versName]
         # No mapping for this version
@@ -1837,7 +1837,10 @@ The mapping is defined by the file userDataDir/manifest.remap, which consists of
 productName[:version-in-manifest]    [[outProductName:]desired-version]    [flavor]
 
 Comments (starting with #) are skipped
-If version-in-manifest is "Any" or a matching glob (e.g. "*") the desired-version is used for all products
+If version-in-manifest is "Any" the desired-version is used for all products
+(Note: it was intended to also support glob expressions, but that has yet to be done;
+see the discussion of fnmatch in https://github.com/RobertLuptonTheGood/eups/issues/72
+for more details.)
 If oproductName is present, productName is replaced by outProductName
 If desired-version is "None" or omitted, the product is deleted from the Manifest.
 If flavor is supplied, the mapping is only applied for that flavor
