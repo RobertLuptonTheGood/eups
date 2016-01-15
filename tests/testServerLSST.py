@@ -85,14 +85,14 @@ class LsstDistribServerTestCase(unittest.TestCase):
         tags = DistribServer.getTagNames(self.ds)
 #        print "tags:", tags
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
         # test configurable implementation (method 3)
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
-        self.assert_("active" in tags)
-        self.assert_("alpha" in tags)
+        self.assertIn("current", tags)
+        self.assertIn("active", tags)
+        self.assertIn("alpha", tags)
 
     def testGetManifest(self):
         man = self.ds.getManifest("doxygen", "1.5.9", "generic")
@@ -156,9 +156,9 @@ class LsstRepositoryTestCase(unittest.TestCase):
     def testGetSupportedTags(self):
         tags = self.repos.getSupportedTags()
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
-        self.assert_("active" in tags)
-        self.assert_("alpha" in tags)
+        self.assertIn("current", tags)
+        self.assertIn("active", tags)
+        self.assertIn("alpha", tags)
 
     def testFindPackage(self):
         pkg = self.repos.findPackage("doxygen")

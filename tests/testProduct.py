@@ -33,8 +33,8 @@ class ProductTestCase(unittest.TestCase):
                     tags="stable mine".split(), db=db)
         self.assertEqual(p.db, db)
         self.assertEqual(len(p.tags), 2)
-        self.assert_("stable" in p.tags)
-        self.assert_("mine" in p.tags)
+        self.assertIn("stable", p.tags)
+        self.assertIn("mine", p.tags)
 
     def testPersist(self):
         fd = file("test_product.pickle", "w")

@@ -255,7 +255,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
         self.assertEquals(len(prod.tags), 1)   # current is tagged by default
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
         self.assert_(os.path.isdir(newprod))
 
         # make sure user cannot set a server tag
@@ -276,7 +276,7 @@ tcltk                 8.5a4      \tcurrent
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
         self.assert_(prod is not None, "product went missing after tagging")
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
         
         self._resetOut()
         cmd = "undeclare newprod 1.0"
@@ -303,7 +303,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
         self.assertEquals(len(prod.tags), 1)
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
         self.assert_(os.path.isdir(newprod))
         
         self._resetOut()
