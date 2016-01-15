@@ -298,7 +298,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertRaises(EupsException, self.eups.declare, "newprod", "1.1", pdir10, None, table)
         # we can move the tag but not the directory
         self.eups.declare("newprod", "1.0", pdir11, None, table, tag="beta")
-        self.assertEquals(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir10)
+        self.assertEquals(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir11)
         # ...unless we force it
         self.eups.force = True
         self.eups.declare("newprod", "1.1", pdir10, None, table, tag="beta")
@@ -401,6 +401,8 @@ class EupsTestCase(unittest.TestCase):
         # basic find
         prods = self.eups.findProducts("python")
         self.assertEquals(len(prods), 2)
+        if prods[0].version == "2.6":
+            prods.reverse()
         self.assertEquals(prods[0].name, "python")
         self.assertEquals(prods[0].version, "2.5.2")
         self.assertEquals(prods[1].name, "python")
