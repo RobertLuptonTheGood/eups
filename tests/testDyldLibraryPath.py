@@ -36,11 +36,16 @@ unsetup dyldtest
 echo $DYLD_LIBRARY_PATH
 """;
 
+TestDir = os.path.abspath(os.path.dirname(__file__))
+
 class DyldLibraryPath(unittest.TestCase):
 
     def setUp(self):
         # remove any SETUP_ variables from the environment
         # as well as EUPS_DIR
+        self.initialDir = os.path.abspath(".")
+        os.chdir(TestDir)
+
         self.env = os.environ.copy()
 
         for key in self.env.keys():
@@ -50,15 +55,14 @@ class DyldLibraryPath(unittest.TestCase):
         self.env.pop('EUPS_DIR', None)
 
     def tearDown(self):
-        pass
+        os.chdir(self.initialDir)
 
     def _run_script(self, shell, cmds, expect):
         # Run script in the cleaned-up environment
         try:
             output = subprocess.check_output([shell, '-c', cmds], stderr=subprocess.STDOUT, env=self.env)
         except subprocess.CalledProcessError as e:
-            args_str = ', '.join([ "%s=%s" % (k, v) for (k, v) in args.items()])
-            self.fail("Failed to run test for shell %s with args={%s}.\nretcode=%s\noutput: %s" % (shell, args_str, e.returncode, e.output))
+            self.fail("Failed to run test for shell %s with args={%s}.\nretcode=%s\noutput: %s" % (shell, cmds, e.returncode, e.output))
 
         self.assertEqual(output, expect)
 
