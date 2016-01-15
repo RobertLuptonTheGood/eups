@@ -3,16 +3,11 @@
 Tests for eups.server, focussing on local (cp) tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
-import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
 from eups.distrib.server import Transporter, LocalTransporter
-from eups.distrib.server import RemoteFileNotFound
 from eups.distrib.server import ConfigurableDistribServer
 
 class LocalTransporterTestCase(unittest.TestCase):

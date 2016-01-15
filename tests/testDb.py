@@ -4,11 +4,8 @@ Tests for eups.db
 """
 
 import os
-import sys
 import shutil
-import re
 import unittest
-import time
 import testCommon
 from testCommon import testEupsStack
 

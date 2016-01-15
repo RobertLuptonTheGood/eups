@@ -3,15 +3,12 @@
 Tests for eups.server, focussing on web tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
-from eups.distrib.server import Transporter, WebTransporter
+from eups.distrib.server import WebTransporter
 from eups.distrib.server import RemoteFileNotFound
 
 # the package server root:

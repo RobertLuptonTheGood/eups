@@ -13,7 +13,7 @@ from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack
 
-from eups import TagNotRecognized, Product, ProductNotFound, EupsException
+from eups import TagNotRecognized, ProductNotFound, EupsException
 from eups.Eups import Eups
 from eups.stack import ProductStack
 from eups.utils import Quiet

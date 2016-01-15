@@ -3,16 +3,12 @@
 Tests for eups.server, focussing on scp tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
 from eups.distrib.server import Transporter, SshTransporter
-from eups.distrib.server import RemoteFileNotFound
 
 # the package server root:
 pkgroot = "scp:dev.lsstcorp.org:/lsst/softstack/eupstest"

@@ -4,9 +4,7 @@ Tests for eups.product
 """
 
 import os
-import sys
 import unittest
-import time
 
 import testCommon
 from testCommon import testEupsStack

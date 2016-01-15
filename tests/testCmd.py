@@ -6,14 +6,12 @@ Tests for eups.cmd
 import os
 import sys
 import unittest
-import time
 import re, shutil
 from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack
 
 import eups.cmd
-import eups.lock as lock
 import eups.hooks as hooks
 from eups import Tag, TagNotRecognized
 
@@ -63,7 +61,7 @@ class CmdTestCase(unittest.TestCase):
             shutil.rmtree(pdir20)
 
     def testInit(self):
-        cmd = eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
+        eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
         
 
     def testQuiet(self):
@@ -242,7 +240,6 @@ tcltk                 8.5a4      \tcurrent
     def testDeclare(self):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir10 = os.path.join(pdir, "1.0")
-        pdir11 = os.path.join(pdir, "1.1")
         table = os.path.join(pdir10, "ups", "newprod.table")
         newprod = os.path.join(self.dbpath,"newprod")
 

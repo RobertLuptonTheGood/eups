@@ -3,16 +3,12 @@
 Tests for eups.product
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
-import sys
 import unittest
-import time
 import testCommon
 from testCommon import testEupsStack
 
-from eups.Product import Product, TableFileNotFound
-from eups.table import Table, BadTableContent
+from eups.table import Table
 from eups.Eups import Eups
 
 class TableTestCase1(unittest.TestCase):

@@ -6,10 +6,8 @@ functions are tested via testCmd.py
 """
 
 import os
-import sys
 import shutil
 import unittest
-import time
 from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack

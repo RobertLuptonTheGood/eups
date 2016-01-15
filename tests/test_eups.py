@@ -4,8 +4,6 @@ Tests for eups
 """
 
 from __future__ import print_function
-import pdb                              # we may want to say pdb.set_trace()
-import os
 import sys
 import unittest
 import eups

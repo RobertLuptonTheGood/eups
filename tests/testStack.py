@@ -4,7 +4,6 @@ Tests for eups.stack
 """
 
 import os
-import sys
 import unittest
 import time
 import testCommon
@@ -123,7 +122,7 @@ class ProductFamilyTestCase(unittest.TestCase):
         
 
 from eups.stack import ProductStack
-from eups import ProductNotFound, UnderSpecifiedProduct
+from eups import UnderSpecifiedProduct
 
 class ProductStackTestCase(unittest.TestCase):
 

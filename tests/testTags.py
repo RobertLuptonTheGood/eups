@@ -3,9 +3,7 @@
 Tests for eups.tags
 """
 import os
-import sys
 import unittest
-import time
 
 import testCommon
 from testCommon import testEupsStack

@@ -3,16 +3,11 @@
 Tests for eups.server, focussing on local (cp) tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
-from eups.distrib.server import Transporter, LocalTransporter
-from eups.distrib.server import RemoteFileNotFound
 from eups.distrib.server import ConfigurableDistribServer
 import eups, eups.cmd
 
@@ -105,7 +100,7 @@ class LsstDistribServerTestCase(unittest.TestCase):
         self.assertEquals(man.product, "doxygen")
         self.assertEquals(man.version, "1.5.9")
         self.assertEquals(len(man.getProducts()), 1)
-        prod = man.getDependency("doxygen", "1.5.9")
+        man.getDependency("doxygen", "1.5.9")
         self.assertEquals(man.product, "doxygen")
         self.assertEquals(man.version, "1.5.9")
 
