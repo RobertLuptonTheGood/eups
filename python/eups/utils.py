@@ -2,7 +2,14 @@
 Utility functions used across EUPS classes.
 """
 from __future__ import print_function
-import time, os, sys, glob, re, shutil, tempfile, pwd
+import time
+import os
+import sys
+import glob
+import re
+import shutil
+import tempfile
+import pwd
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 # Python 2/3 compatibility layer
@@ -78,8 +85,6 @@ def _svnRevision(file=None, lastChanged=False):
         return matches["oldest"], matches["youngest"], tuple(matches["flags"])
 
     raise RuntimeError("svnversion returned unexpected result \"%s\"" % res[:-1])
-
-import os, re
 
 def version():
     """Get the eups version from git; if this isn't available consult git.version in $EUPS_DIR"""
@@ -851,40 +856,22 @@ class AtomicFile(object):
         self._fp.close()
         os.rename(self._tmpfn, self._fn)
 
-def commonpath(paths):
-    """Given a sequence of path names, returns the longest common sub-path.
+def isSubpath(path, root):
+    """!Return True if path is root or in root
 
-    Taken from python3.5 implementation
+    @param[in] path  path to a directory or file
+    @param[in] root  path to a directory; "" is treated as the current directory
+
+    @note
+    - path and root are both expanded to absolute paths with symbolic links resolved
+    - does not check that root or path exist
     """
-
-    if not paths:
-        raise ValueError('commonpath() arg is an empty sequence')
-
-    if isinstance(paths[0], bytes):
-        sep = '/'
-        curdir = '.'
-    else:
-        sep = '/'
-        curdir = '.'
-
-    split_paths = [path.split(sep) for path in paths]
-
-    try:
-        isabs, = set(p[:1] == sep for p in paths)
-    except ValueError:
-        raise ValueError("Can't mix absolute and relative paths")
-
-    split_paths = [[c for c in s if c and c != curdir] for s in split_paths]
-    s1 = min(split_paths)
-    s2 = max(split_paths)
-    common = s1
-    for i, c in enumerate(s1):
-        if c != s2[i]:
-            common = s1[:i]
-            break
-
-    prefix = sep if isabs else sep[:0]
-    return prefix + sep.join(common)
+    path = os.path.realpath(path)
+    root = os.path.realpath(root)
+    if path == root:
+        return True
+    # append trailing slash to root to avoid "/a/bbb" being treated as a subpath of "a/b"
+    return path.startswith(os.path.join(root, ""))
 
 if __name__ == "__main__":
     data = {
