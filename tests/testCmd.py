@@ -111,7 +111,7 @@ class CmdTestCase(unittest.TestCase):
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), testEupsStack)
 
-    def testPath(self):
+    def testPath2(self):
         cmd = eups.cmd.EupsCmd(args="pkgroot".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
