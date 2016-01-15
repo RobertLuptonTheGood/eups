@@ -2365,7 +2365,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 eupsPathDir = None
         else:                           # look for proper home on self.path
             for d in self.path:
-                if utils.commonpath([productDir, d]) == d:
+                if utils.isSubpath(d, productDir):
                     eupsPathDir = d
                     eupsPathDirForRead = d
                     break
@@ -2446,7 +2446,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 externalFileList.append((full_tablefile, os.path.join("ups", "%s.table" % productName)))
             elif os.path.isabs(tablefile): # maybe we're redeclaring an interned filesystem?
-                if utils.commonpath([dbpath, tablefile]) == dbpath:
+                if utils.isSubpath(tablefile, dbpath):
                     ups_dir = os.path.join("$UPS_DB",
                                            utils.extraDirPath(self.flavor, productName, versionName), "ups")
 
