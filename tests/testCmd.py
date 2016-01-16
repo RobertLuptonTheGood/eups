@@ -157,7 +157,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEquals(self.out.getvalue(), outcurr)
 
         self._resetOut()
-        cmd = eups.cmd.EupsCmd(args="list -t newest python".split(), toolname=prog)
+        cmd = eups.cmd.EupsCmd(args="list -t latest python".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), outnews)
@@ -211,7 +211,7 @@ tcltk                 8.5a4      \tcurrent
         self.assert_(filter(lambda l: pyuser.match(l), lines))
 
         self._resetOut()
-        cmd = eups.cmd.EupsCmd(args="uses tcltk -t newest".split(), 
+        cmd = eups.cmd.EupsCmd(args="uses tcltk -t latest".split(), 
                                toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
@@ -260,7 +260,7 @@ tcltk                 8.5a4      \tcurrent
 
         # make sure user cannot set a server tag
         self._resetOut()
-        cmd = "declare newprod 1.0 -t newest"
+        cmd = "declare newprod 1.0 -t latest"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
         self.assertNotEqual(cmd.run(), 0)
         self.assertNotEqual(self.err.getvalue(), "")

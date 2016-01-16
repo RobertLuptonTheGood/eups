@@ -31,7 +31,7 @@ hooks.config.Eups.userTags = "mine exp"
 # Eups.preferredTags:  the ordered list of preferred tags.  When eups setup
 # needs to choose between several versions of a package, it will choose the 
 # first version tagged with name taken from this list.  
-hooks.config.Eups.preferredTags = "stable beta current newest"
+hooks.config.Eups.preferredTags = "stable beta current latest"
 
 # Eups.setupTypes:  the list of setup types supported by table files.  
 #

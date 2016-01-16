@@ -79,12 +79,12 @@ class EupsTestCase(unittest.TestCase):
             self.assertIn(flav, flavors)
 
         tags = self.eups.tags.getTagNames()
-        exptags = "newest setup stable current commandLine keep path type version versionExpr warn"
+        exptags = "latest setup stable current commandLine keep path type version versionExpr warn"
         for tag in exptags.split():
             self.assertIn(tag, tags)
 
         self.assertEquals(len(self.eups.preferredTags), 5)
-        for tag in "version versionExpr stable current newest".split():
+        for tag in "version versionExpr stable current latest".split():
             self.assertIn(tag, self.eups.preferredTags)
 
         # There should have been some cache files created
@@ -155,8 +155,8 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.flavor,  "Linux")
         self.assertIn("current", prod.tags)
 
-        # find by name, preferring newest version
-        tag = self.eups.tags.getTag("newest")
+        # find by name, preferring latest version
+        tag = self.eups.tags.getTag("latest")
         prod = self.eups.findProduct("python", tag)
         self.assert_(prod is not None, "Failed to find python product")
         self.assertEquals(prod.name,    "python")
@@ -180,7 +180,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "2.5.2")
         self.assertEquals(prod.flavor,  "Linux")
 
-        self.eups.setPreferredTags("newest")
+        self.eups.setPreferredTags("latest")
         prod = self.eups.findProduct("python", ">= 2.5.2")
         self.assertEquals(prod.name,    "python")
         self.assertEquals(prod.version, "2.6")
@@ -408,7 +408,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prods[1].name, "python")
         self.assertEquals(prods[1].version, "2.6")
         
-        prods = self.eups.findProducts("python", tags="newest")
+        prods = self.eups.findProducts("python", tags="latest")
         self.assertEquals(len(prods), 1)
         self.assertEquals(prods[0].name, "python")
         self.assertEquals(prods[0].version, "2.6")
@@ -422,16 +422,16 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 0)
 
         # version and tags conflict; mutually exclusive
-        prods = self.eups.findProducts("python", "2.5.2", tags="newest")
+        prods = self.eups.findProducts("python", "2.5.2", tags="latest")
         self.assertEquals(len(prods), 0)
 
         prods = self.eups.findProducts("python", ">= 2.5.2")
         self.assertEquals(len(prods), 2)
 
-        prods = self.eups.findProducts("python", ">= 2.5.2", tags="newest")
+        prods = self.eups.findProducts("python", ">= 2.5.2", tags="latest")
         self.assertEquals(len(prods), 1)
 
-        prods = self.eups.findProducts("python", "<= 2.5.2", tags="newest")
+        prods = self.eups.findProducts("python", "<= 2.5.2", tags="latest")
         self.assertEquals(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']
@@ -441,7 +441,7 @@ class EupsTestCase(unittest.TestCase):
         prods = self.eups.findProducts("python", tags="setup")
         self.assertEquals(len(prods), 0)
 
-        prods = self.eups.findProducts("python", tags="current newest".split())
+        prods = self.eups.findProducts("python", tags="current latest".split())
         self.assertEquals(len(prods), 2)
 
         prods = self.eups.findProducts("doxygen")

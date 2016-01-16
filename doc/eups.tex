@@ -318,7 +318,7 @@ As the VRO is processed, entries are interpreted as follows:
    Use the version explicitly specified on the command line
 \item[keep]
    If a version of the product is already setup, accept it as the new version
-\item[newest]
+\item[latest]
    Use the most recent version [not well tested; caveat usor]
 \item[path]
    Use the version specified by an explicit path on the command line (i.e. \code{-r ...})
@@ -377,7 +377,7 @@ automatically defined as a valid user tag.
 You can list all known tags with \code{eups tags}; user tags are prefixed \code{user:}.  For example,
 \begin{verbatim}
 $ eups tags
-current newest stable user:rhl
+current latest stable user:rhl
 \end{verbatim}
 
 When using a tag, the tag is automatically inserted near the front of the VRO;

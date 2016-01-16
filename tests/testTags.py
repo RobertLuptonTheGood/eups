@@ -72,10 +72,10 @@ class TagsTestCase(unittest.TestCase):
         self.assertEquals(tags[1], "user:rlp")
 
     def testInit(self):
-        t = Tags("setup newest")
+        t = Tags("setup latest")
         tags = t.getTagNames()
         self.assertEquals(len(tags), 2)
-        self.assertEquals(tags[0], "newest")
+        self.assertEquals(tags[0], "latest")
         self.assertEquals(tags[1], "setup")
 
     def testCmp(self):

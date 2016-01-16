@@ -213,7 +213,7 @@ class LocalRepositoryTestCase(unittest.TestCase):
         self.assertEquals(pkg[1], "1.5.8")
         self.assertEquals(pkg[2], "generic")
 
-        tag = Tag("newest")
+        tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
         self.assert_(pkg is not None)
         self.assertEquals(pkg[0], "doxygen")
@@ -267,7 +267,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
         self.assertEquals(len(pkgs[0][1]), 0)     # # of products per repos.
         self.assertEquals(len(pkgs[1][1]), 0)     # # of products per repos.
 
-        tag = Tag("newest")
+        tag = Tag("latest")
         pkgs = self.repos.listPackages("doxygen", tag)
         self.assert_(pkgs is not None)
         self.assert_(isinstance(pkgs, list))
@@ -306,7 +306,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
         self.assertEquals(pkg[2], "generic")
         self.assertEquals(pkg[3], self.pkgroot)
 
-        tag = Tag("newest")
+        tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
         self.assert_(pkg is not None)
         self.assertEquals(pkg[0], "doxygen")

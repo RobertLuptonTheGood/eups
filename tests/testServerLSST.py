@@ -185,7 +185,7 @@ class LsstRepositoryTestCase(unittest.TestCase):
         self.assertEquals(pkg[1], "1.5.9")
         self.assertEquals(pkg[2], "generic")
 
-        tag = Tag("newest")
+        tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
         self.assert_(pkg is not None)
         self.assertEquals(pkg[0], "doxygen")
@@ -248,7 +248,7 @@ class LsstRepositoriesTestCase(unittest.TestCase):
         self.assertEquals(pkg[2], "generic")
         self.assertEquals(pkg[3], self.lsstroot)
 
-        tag = Tag("newest")
+        tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
         self.assert_(pkg is not None)
         self.assertEquals(pkg[0], "doxygen")
