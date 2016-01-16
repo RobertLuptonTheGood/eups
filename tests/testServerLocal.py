@@ -3,16 +3,11 @@
 Tests for eups.server, focussing on local (cp) tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
-import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
 from eups.distrib.server import Transporter, LocalTransporter
-from eups.distrib.server import RemoteFileNotFound
 from eups.distrib.server import ConfigurableDistribServer
 
 class LocalTransporterTestCase(unittest.TestCase):
@@ -55,8 +50,8 @@ class LocalTransporterTestCase(unittest.TestCase):
         trx = LocalTransporter(loc)
         files = trx.listDir()
         self.assertEquals(len(files), 2)
-        self.assert_("config.txt" in files)
-        self.assert_("current.list" in files)
+        self.assertIn("config.txt", files)
+        self.assertIn("current.list", files)
 
 from eups.distrib.server import DistribServer 
 
@@ -118,28 +113,28 @@ class LocalDistribServerTestCase(unittest.TestCase):
         # test default implementation
         tags = DistribServer.getTagNames(self.ds)
         self.assertEquals(len(tags), 1)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
         # test configurable implementation (method 3)
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 1)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
         # test configurable impl. (method 2)
         self.ds.setConfigProperty("AVAILABLE_TAGS_URL", 
                                   "%(base)s/info/tagnames.txt")
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
-        self.assert_("beta" in tags)
-        self.assert_("stable" in tags)
+        self.assertIn("current", tags)
+        self.assertIn("beta", tags)
+        self.assertIn("stable", tags)
 
         # test configurable impl. (method 1)
         self.ds.setConfigProperty("AVAILABLE_TAGS", "current beta")
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 2)
-        self.assert_("current" in tags)
-        self.assert_("beta" in tags)
+        self.assertIn("current", tags)
+        self.assertIn("beta", tags)
 
 from eups.distrib.Repository import Repository
 from eups.Eups import Eups
@@ -191,7 +186,7 @@ class LocalRepositoryTestCase(unittest.TestCase):
     def testGetSupportedTags(self):
         tags = self.repos.getSupportedTags()
         self.assertEquals(len(tags), 1)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
     def testFindPackage(self):
         pkg = self.repos.findPackage("doxygen")

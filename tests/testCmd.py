@@ -6,14 +6,12 @@ Tests for eups.cmd
 import os
 import sys
 import unittest
-import time
 import re, shutil
 from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack
 
 import eups.cmd
-import eups.lock as lock
 import eups.hooks as hooks
 from eups import Tag, TagNotRecognized
 
@@ -63,7 +61,7 @@ class CmdTestCase(unittest.TestCase):
             shutil.rmtree(pdir20)
 
     def testInit(self):
-        cmd = eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
+        eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
         
 
     def testQuiet(self):
@@ -111,7 +109,7 @@ class CmdTestCase(unittest.TestCase):
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), testEupsStack)
 
-    def testPath(self):
+    def testPath2(self):
         cmd = eups.cmd.EupsCmd(args="pkgroot".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
@@ -242,7 +240,6 @@ tcltk                 8.5a4      \tcurrent
     def testDeclare(self):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir10 = os.path.join(pdir, "1.0")
-        pdir11 = os.path.join(pdir, "1.1")
         table = os.path.join(pdir10, "ups", "newprod.table")
         newprod = os.path.join(self.dbpath,"newprod")
 
@@ -258,7 +255,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
         self.assertEquals(len(prod.tags), 1)   # current is tagged by default
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
         self.assert_(os.path.isdir(newprod))
 
         # make sure user cannot set a server tag
@@ -279,7 +276,7 @@ tcltk                 8.5a4      \tcurrent
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
         self.assert_(prod is not None, "product went missing after tagging")
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
         
         self._resetOut()
         cmd = "undeclare newprod 1.0"
@@ -306,7 +303,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
         self.assertEquals(len(prod.tags), 1)
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
         self.assert_(os.path.isdir(newprod))
         
         self._resetOut()

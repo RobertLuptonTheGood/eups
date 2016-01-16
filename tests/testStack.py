@@ -4,7 +4,6 @@ Tests for eups.stack
 """
 
 import os
-import sys
 import unittest
 import time
 import testCommon
@@ -57,17 +56,17 @@ class ProductFamilyTestCase(unittest.TestCase):
         self.assert_(self.fam.isTagAssigned("current"))
         p = self.fam.getProduct("3.1")
         self.assertEquals(len(p.tags), 2)
-        self.assert_(tag in p.tags)
-        self.assert_("current" in p.tags)
+        self.assertIn(tag, p.tags)
+        self.assertIn("current", p.tags)
         p = self.fam.getTaggedProduct("beta")
         self.assertEquals(p.version, "3.2")
         self.assertEquals(len(p.tags), 1)
-        self.assert_("beta" in p.tags)
+        self.assertIn("beta", p.tags)
         p = self.fam.getTaggedProduct(tag)
         self.assertEquals(p.version, "3.1")
         self.assertEquals(len(p.tags), 2)
-        self.assert_(tag in p.tags)
-        self.assert_("current" in p.tags)
+        self.assertIn(tag, p.tags)
+        self.assertIn("current", p.tags)
 
         self.assert_(not self.fam.unassignTag("gurn"))
         self.assert_(self.fam.unassignTag("beta"))
@@ -88,7 +87,7 @@ class ProductFamilyTestCase(unittest.TestCase):
         self.assertEquals(p.flavor, "Linux")
         self.assert_(p.db is None)
         self.assertEquals(len(p.tags), 2)
-        self.assert_("current" in p.tags)
+        self.assertIn("current", p.tags)
         p.name = "helpful"
 
         fam = ProductFamily("helpful")
@@ -123,7 +122,7 @@ class ProductFamilyTestCase(unittest.TestCase):
         
 
 from eups.stack import ProductStack
-from eups import ProductNotFound, UnderSpecifiedProduct
+from eups import UnderSpecifiedProduct
 
 class ProductStackTestCase(unittest.TestCase):
 
@@ -150,7 +149,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 2)
         expected = "fw afw".split()
         for prod in expected:
-            self.assert_(prod in prods)
+            self.assertIn(prod, prods)
         prods = self.stack.getProductNames("Linux")
         self.assertEquals(len(prods), 1)
         self.assertEquals(prods[0], 'afw')
@@ -160,7 +159,7 @@ class ProductStackTestCase(unittest.TestCase):
         prods = self.stack.getProductNames()
         self.assertEquals(len(prods), 2)
         for prod in expected:
-            self.assert_(prod in prods)
+            self.assertIn(prod, prods)
 
     def testGetVersions(self):
         vers = self.stack.getVersions("afw")
@@ -176,7 +175,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(vers), 2)
         expected = "1.2 1.3".split()
         for ver in expected:
-            self.assert_(ver in vers)
+            self.assertIn(ver, vers)
 
         vers = self.stack.getVersions("fw", "Linux")
         self.assertEquals(len(vers), 1)
@@ -187,11 +186,11 @@ class ProductStackTestCase(unittest.TestCase):
         vers = self.stack.getVersions("fw")
         self.assertEquals(len(vers), 2)
         for ver in expected:
-            self.assert_(ver in vers)
+            self.assertIn(ver, vers)
         vers = self.stack.getVersions("fw", "Linux")
         self.assertEquals(len(vers), 2)
         for ver in expected:
-            self.assert_(ver in vers)
+            self.assertIn(ver, vers)
 
     def testAutoSave(self):
         self.assert_(self.stack.saveNeeded())
@@ -259,7 +258,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(flavors), 2)
         expected = "Darwin Linux".split()
         for flav in expected:
-            self.assert_(flav in flavors)
+            self.assertIn(flav, flavors)
 
     def testAddFlavor(self):
         flavors = self.stack.getFlavors()
@@ -277,7 +276,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(flavors), 2)
         expected = "Darwin Linux".split()
         for flav in expected:
-            self.assert_(flav in flavors)
+            self.assertIn(flav, flavors)
         self.assertEquals(len(self.stack.getProductNames("Linux")), 0)
         self.assert_(not self.stack.lookup["Linux"])
 
@@ -334,7 +333,7 @@ class ProductStackTestCase(unittest.TestCase):
             self.assertEquals(len(flavors), 2)
             expected = "Darwin Linux".split()
             for flav in expected:
-                self.assert_(flav in flavors)
+                self.assertIn(flav, flavors)
             self.assertEquals(len(self.stack.getProductNames("Linux")), 0)
 
         finally:

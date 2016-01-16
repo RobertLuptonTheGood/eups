@@ -3,9 +3,7 @@
 Tests for eups.tags
 """
 import os
-import sys
 import unittest
-import time
 
 import testCommon
 from testCommon import testEupsStack
@@ -39,8 +37,8 @@ class TagsTestCase(unittest.TestCase):
     def testTagNames(self):
         tags = self.tags.getTagNames()
         self.assertEquals(len(tags), 2)
-        self.assert_("stable" in tags)
-        self.assert_("user:rlp" in tags)
+        self.assertIn("stable", tags)
+        self.assertIn("user:rlp", tags)
 
     def testGetTag(self):
         tag = self.tags.getTag("stable")
@@ -106,7 +104,7 @@ class TagsTestCase(unittest.TestCase):
             names = tags.getTagNames()
             self.assertEquals(len(names), 3)
             for tag in "stable current beta".split():
-                self.assert_(tag in names, tag+" not found amoung loaded names")
+                self.assertIn(tag, names, tag+" not found amoung loaded names")
 
         finally:
             if os.path.exists(file):  os.remove(file)
@@ -130,7 +128,7 @@ class TagsTestCase(unittest.TestCase):
             names = tags.getTagNames()
             self.assertEquals(len(names), 1)
             for tag in "user:rlp".split():
-                self.assert_(tag in names, tag+" not found amoung loaded names")
+                self.assertIn(tag, names, tag+" not found amoung loaded names")
         finally:
             if os.path.exists(file):  os.remove(file)
 
@@ -149,7 +147,7 @@ class TagsTestCase(unittest.TestCase):
         names = tags.getTagNames()
         self.assertEquals(len(names), 3)
         for tag in "stable current beta".split():
-            self.assert_(tag in names, tag+" not found amoung loaded names")
+            self.assertIn(tag, names, tag+" not found amoung loaded names")
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 

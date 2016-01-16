@@ -13,7 +13,7 @@ from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack
 
-from eups import TagNotRecognized, Product, ProductNotFound, EupsException
+from eups import TagNotRecognized, ProductNotFound, EupsException
 from eups.Eups import Eups
 from eups.stack import ProductStack
 from eups.utils import Quiet
@@ -70,22 +70,22 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(self.eups.path[1], os.environ["EUPS_USERDATA"])
         self.assertEquals(self.eups.getUpsDB(testEupsStack), self.dbpath)
         self.assertEquals(len(self.eups.versions), 2)
-        self.assert_(testEupsStack in self.eups.versions)
+        self.assertIn(testEupsStack, self.eups.versions)
         self.assert_(self.eups.versions[testEupsStack] is not None)
 
         flavors = self.eups.versions[testEupsStack].getFlavors()
         self.assertEquals(len(flavors), 3)
         for flav in "Linux64 Linux generic".split():
-            self.assert_(flav in flavors)
+            self.assertIn(flav, flavors)
 
         tags = self.eups.tags.getTagNames()
         exptags = "newest setup stable current commandLine keep path type version versionExpr warn"
         for tag in exptags.split():
-            self.assert_(tag in tags)
+            self.assertIn(tag, tags)
 
         self.assertEquals(len(self.eups.preferredTags), 5)
         for tag in "version versionExpr stable current newest".split():
-            self.assert_(tag in self.eups.preferredTags)
+            self.assertIn(tag, self.eups.preferredTags)
 
         # There should have been some cache files created
         # flavors.append("generic")
@@ -145,7 +145,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.name,    "eigen")
         self.assertEquals(prod.version, "2.0.0")
         self.assertEquals(prod.flavor,  "Linux")
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
 
         # find by name, preferring tagged version
         prod = self.eups.findProduct("python")
@@ -153,7 +153,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.name,    "python")
         self.assertEquals(prod.version, "2.5.2")
         self.assertEquals(prod.flavor,  "Linux")
-        self.assert_("current" in prod.tags)
+        self.assertIn("current", prod.tags)
 
         # find by name, preferring newest version
         tag = self.eups.tags.getTag("newest")
@@ -213,9 +213,9 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(os.path.exists(self.betachain),
                      "Failed to create beta tag file for python")
         prod = self.eups.getProduct("python", "2.6", noCache=True)
-        self.assert_("beta" in prod.tags)
+        self.assertIn("beta", prod.tags)
         prod = self.eups.getProduct("python", "2.6")
-        self.assert_("beta" in prod.tags)
+        self.assertIn("beta", prod.tags)
 
         # test unassign of tag to non-existent product
         self.assertRaises(ProductNotFound, 
@@ -298,7 +298,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertRaises(EupsException, self.eups.declare, "newprod", "1.1", pdir10, None, table)
         # we can move the tag but not the directory
         self.eups.declare("newprod", "1.0", pdir11, None, table, tag="beta")
-        self.assertEquals(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir10)
+        self.assertEquals(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir11)
         # ...unless we force it
         self.eups.force = True
         self.eups.declare("newprod", "1.1", pdir10, None, table, tag="beta")
@@ -388,10 +388,10 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(self.eups.tags.isRecognized("mine"), 
                      "user:mine not recognized")
         prod = self.eups.getProduct("python", "2.5.2")
-        self.assert_("user:mine" not in prod.tags, "user:mine already assigned")
+        self.assertNotIn("user:mine", prod.tags, "user:mine already assigned")
         self.eups.assignTag("mine", "python", "2.5.2")
         prod = self.eups.getProduct("python", "2.5.2")
-        self.assert_("user:mine" in prod.tags, "user:mine not assigned")
+        self.assertIn("user:mine", prod.tags, "user:mine not assigned")
         prod = self.eups.findProducts("python", tags="mine")
         self.assertEquals(len(prod), 1, "failed to find user-tagged product")
         self.assertEquals(prod[0].version, "2.5.2")
@@ -401,6 +401,8 @@ class EupsTestCase(unittest.TestCase):
         # basic find
         prods = self.eups.findProducts("python")
         self.assertEquals(len(prods), 2)
+        if prods[0].version == "2.6":
+            prods.reverse()
         self.assertEquals(prods[0].name, "python")
         self.assertEquals(prods[0].version, "2.5.2")
         self.assertEquals(prods[1].name, "python")
@@ -469,16 +471,16 @@ class EupsTestCase(unittest.TestCase):
         self.environ0 = os.environ.copy()
 
         self.eups.setup("python")
-        self.assert_("PYTHON_DIR" in os.environ)
-        self.assert_("SETUP_PYTHON" in os.environ)
-        self.assert_("TCLTK_DIR" in os.environ)
-        self.assert_("SETUP_TCLTK" in os.environ)
+        self.assertIn("PYTHON_DIR", os.environ)
+        self.assertIn("SETUP_PYTHON", os.environ)
+        self.assertIn("TCLTK_DIR", os.environ)
+        self.assertIn("SETUP_TCLTK", os.environ)
 
         self.eups.unsetup("python")
-        self.assert_("PYTHON_DIR" not in os.environ)
-        self.assert_("SETUP_PYTHON" not in os.environ)
-        self.assert_("TCLTK_DIR" not in os.environ)
-        self.assert_("SETUP_TCLTK" not in os.environ)
+        self.assertNotIn("PYTHON_DIR", os.environ)
+        self.assertNotIn("SETUP_PYTHON", os.environ)
+        self.assertNotIn("TCLTK_DIR", os.environ)
+        self.assertNotIn("SETUP_TCLTK", os.environ)
 
     def testRemove(self):
         os.environ = self.environ0

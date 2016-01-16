@@ -3,15 +3,12 @@
 Tests for eups.server, focussing on web tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
-from eups.distrib.server import Transporter, WebTransporter
+from eups.distrib.server import WebTransporter
 from eups.distrib.server import RemoteFileNotFound
 
 # the package server root:
@@ -44,8 +41,8 @@ class WebTransporterTestCase(unittest.TestCase):
         trx = WebTransporter(loc)
         files = trx.listDir()
         self.assertEquals(len(files), 2)
-        self.assert_("config.txt" in files)
-        self.assert_("current.list" in files)
+        self.assertIn("config.txt", files)
+        self.assertIn("current.list", files)
         
 from eups.distrib.server import DistribServer 
 
@@ -97,12 +94,12 @@ class WebDistribServerTestCase(unittest.TestCase):
         # test default implementation
         tags = DistribServer.getTagNames(self.ds)
         self.assertEquals(len(tags), 1)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
         # test configurable implementation (method 3)
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 1)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
 
 __all__ = "WebTransporterTestCase WebConfigFileTestCase WebServerConfTestCase WebDistribServerTestCase".split()        

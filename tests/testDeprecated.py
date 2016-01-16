@@ -5,8 +5,6 @@ Tests for selected deprecated functions
 
 import os
 import sys
-import shutil
-import time
 import unittest
 import testCommon
 from testCommon import testEupsStack
@@ -20,11 +18,8 @@ import eups.utils
 reload(eups.utils)
 sys.stderr = syserr
 
-from eups import TagNotRecognized, EupsException
-from eups.Product import Product, ProductNotFound
+from eups.Product import Product
 from eups.Eups import Eups
-from eups.stack import ProductStack
-from eups.utils import Quiet
 
 
 class DeprecatedTestCase(unittest.TestCase):

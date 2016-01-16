@@ -3,16 +3,11 @@
 Tests for eups.server, focussing on local (cp) tranport mechanisms
 """
 
-import pdb                              # we may want to say pdb.set_trace()
 import os
 import sys
-import shutil
 import unittest
-import time
 from testCommon import testEupsStack
 
-from eups.distrib.server import Transporter, LocalTransporter
-from eups.distrib.server import RemoteFileNotFound
 from eups.distrib.server import ConfigurableDistribServer
 import eups, eups.cmd
 
@@ -90,14 +85,14 @@ class LsstDistribServerTestCase(unittest.TestCase):
         tags = DistribServer.getTagNames(self.ds)
 #        print "tags:", tags
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
+        self.assertIn("current", tags)
 
         # test configurable implementation (method 3)
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
-        self.assert_("active" in tags)
-        self.assert_("alpha" in tags)
+        self.assertIn("current", tags)
+        self.assertIn("active", tags)
+        self.assertIn("alpha", tags)
 
     def testGetManifest(self):
         man = self.ds.getManifest("doxygen", "1.5.9", "generic")
@@ -105,7 +100,7 @@ class LsstDistribServerTestCase(unittest.TestCase):
         self.assertEquals(man.product, "doxygen")
         self.assertEquals(man.version, "1.5.9")
         self.assertEquals(len(man.getProducts()), 1)
-        prod = man.getDependency("doxygen", "1.5.9")
+        man.getDependency("doxygen", "1.5.9")
         self.assertEquals(man.product, "doxygen")
         self.assertEquals(man.version, "1.5.9")
 
@@ -161,9 +156,9 @@ class LsstRepositoryTestCase(unittest.TestCase):
     def testGetSupportedTags(self):
         tags = self.repos.getSupportedTags()
         self.assertEquals(len(tags), 3)
-        self.assert_("current" in tags)
-        self.assert_("active" in tags)
-        self.assert_("alpha" in tags)
+        self.assertIn("current", tags)
+        self.assertIn("active", tags)
+        self.assertIn("alpha", tags)
 
     def testFindPackage(self):
         pkg = self.repos.findPackage("doxygen")

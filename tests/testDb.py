@@ -4,11 +4,8 @@ Tests for eups.db
 """
 
 import os
-import sys
 import shutil
-import re
 import unittest
-import time
 import testCommon
 from testCommon import testEupsStack
 
@@ -25,8 +22,8 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(self.vf.version, "1.2")
         flavors = self.vf.getFlavors()
         self.assertEquals(len(flavors), 2)
-        self.assert_("DarwinX86" in flavors)
-        self.assert_("Darwin" in flavors)
+        self.assertIn("DarwinX86", flavors)
+        self.assertIn("Darwin", flavors)
 
         flavor = self.vf.info["DarwinX86"]
         self.assertEquals(flavor['declarer'], 'rhl')
@@ -58,21 +55,21 @@ class VersionFileTestCase(unittest.TestCase):
                           "/opt/sw/Linux/fw/1.2/ups/fw.table")
         flavors = self.vf.getFlavors()
         self.assertEquals(len(flavors), 3)
-        self.assert_("Linux:rhel" in flavors)
+        self.assertIn("Linux:rhel", flavors)
         info = self.vf.info["Linux:rhel"]
         self.assertEquals(info["table_file"], "fw.table")
         self.assertEquals(info["ups_dir"], "ups")
         self.assertEquals(info["productDir"], "/opt/sw/Linux/fw/1.2")
-        self.assert_("declarer" in info)
-        self.assert_("declared" in info)
-        self.assert_("modifier" not in info)
+        self.assertIn("declarer", info)
+        self.assertIn("declared", info)
+        self.assertNotIn("modifier", info)
         declared = info["declared"]
         declarer = info["declarer"]
 
         self.vf.addFlavor("Linux:rhel", upsdir="ups")
         flavors = self.vf.getFlavors()
         self.assertEquals(len(flavors), 3)
-        self.assert_("Linux:rhel" in flavors)
+        self.assertIn("Linux:rhel", flavors)
         info = self.vf.info["Linux:rhel"]
         self.assertEquals(info["table_file"], "fw.table")
         self.assertEquals(info["ups_dir"], "ups")
@@ -80,7 +77,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(info["declarer"], declarer)
         self.assertEquals(info["declared"], declared)
         self.assertEquals(info["modifier"], declarer)
-        self.assert_("modified" in info)
+        self.assertIn("modified", info)
 
         self.vf.removeFlavor("Linux:rhel")
         flavors = self.vf.getFlavors()
@@ -130,9 +127,9 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(vf.version, "1.2")
         flavors = vf.getFlavors()
         self.assertEquals(len(flavors), 3)
-        self.assert_("DarwinX86" in flavors)
-        self.assert_("Darwin" in flavors)
-        self.assert_("Linux:rhel" in flavors)
+        self.assertIn("DarwinX86", flavors)
+        self.assertIn("Darwin", flavors)
+        self.assertIn("Linux:rhel", flavors)
 
 class MacroSubstitutionTestCase(unittest.TestCase):
 
@@ -375,7 +372,7 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEquals(self.cf.tag, "current")
         flavors = self.cf.getFlavors()
         self.assertEquals(len(flavors), 1)
-        self.assert_("DarwinX86" in flavors)
+        self.assertIn("DarwinX86", flavors)
 
         flavor = self.cf.info["DarwinX86"]
         self.assertEquals(flavor['declarer'], 'rhl')
@@ -398,35 +395,35 @@ class ChainFileTestCase(unittest.TestCase):
 
         flavors = self.cf.getFlavors()
         self.assertEquals(len(flavors), 2)
-        self.assert_("Linux" in flavors)
+        self.assertIn("Linux", flavors)
 
         flavor = self.cf.info["Linux"]
         self.assertEquals(flavor['version'], '2.0')
         self.assert_(bool(flavor['declarer']))
         self.assert_(bool(flavor['declared']))
-        self.assert_('modifier' not in flavor)
-        self.assert_('modified' not in flavor)
+        self.assertNotIn('modifier', flavor)
+        self.assertNotIn('modified', flavor)
         who = flavor['declarer']
     
         self.cf.setVersion("2.1", "Linux64")
 
         flavors = self.cf.getFlavors()
         self.assertEquals(len(flavors), 3)
-        self.assert_("Linux64" in flavors)
+        self.assertIn("Linux64", flavors)
 
         flavor = self.cf.info["Linux64"]
         self.assertEquals(flavor['version'], '2.1')
         self.assertEquals(flavor['declarer'], who)
         self.assert_(bool(flavor['declared']))
-        self.assert_('modifier' not in flavor)
-        self.assert_('modified' not in flavor)
+        self.assertNotIn('modifier', flavor)
+        self.assertNotIn('modified', flavor)
 
         # an update to an existing flavor
         self.cf.setVersion("2.1", "DarwinX86")
 
         flavors = self.cf.getFlavors()
         self.assertEquals(len(flavors), 3)
-        self.assert_("DarwinX86" in flavors)
+        self.assertIn("DarwinX86", flavors)
 
         flavor = self.cf.info["DarwinX86"]
         self.assertEquals(flavor['version'], '2.1')
@@ -438,8 +435,8 @@ class ChainFileTestCase(unittest.TestCase):
         self.cf.removeVersion("Linux64")
         flavors = self.cf.getFlavors()
         self.assertEquals(len(flavors), 2)
-        self.assert_("DarwinX86" in flavors)
-        self.assert_("Linux" in flavors)
+        self.assertIn("DarwinX86", flavors)
+        self.assertIn("Linux", flavors)
         
         self.cf.removeVersion()
         flavors = self.cf.getFlavors()
@@ -459,7 +456,7 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEquals(cf.tag, "current")
         flavors = cf.getFlavors()
         self.assertEquals(len(flavors), 2)
-        self.assert_("DarwinX86" in flavors)
+        self.assertIn("DarwinX86", flavors)
 
         flavor = cf.info["DarwinX86"]
         self.assertEquals(flavor['declarer'], 'rhl')
@@ -468,7 +465,7 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEquals(flavor['modified'], 'Thu Jan 24 23:43:35 2008')
         self.assertEquals(flavor['declared'], 'Thu Jan 24 23:43:35 2008')
 
-        self.assert_("Linux:rhel" in flavors)
+        self.assertIn("Linux:rhel", flavors)
 
 
 from eups.db import Database
@@ -500,7 +497,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 6)
         expected = "cfitsio tcltk eigen mpich2 python doxygen".split()
         for p in expected:
-            self.assert_(p in prods)
+            self.assertIn(p, prods)
 
     def testFindVersions(self):
         vers = self.db.findVersions("goober")
@@ -510,20 +507,20 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(len(vers), 2)
         expected = "1.5.7.1 1.5.9".split()
         for v in expected:
-            self.assert_(v in vers)
+            self.assertIn(v, vers)
 
     def testFindFlavors(self):
         flavs = self.db.findFlavors("doxygen")
         self.assertEquals(len(flavs), 2)
         expected = "Linux Linux64".split()
         for f in expected:
-            self.assert_(f in flavs)
+            self.assertIn(f, flavs)
 
         flavs = self.db.findFlavors("doxygen", "1.5.9")
         self.assertEquals(len(flavs), 1)
         expected = "Linux64".split()
         for f in expected:
-            self.assert_(f in flavs)
+            self.assertIn(f, flavs)
 
         flavs = self.db.findFlavors("doxygen", "1.5.10")
         self.assertEquals(len(flavs), 0)
