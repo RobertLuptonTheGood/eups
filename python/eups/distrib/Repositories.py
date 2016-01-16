@@ -3,18 +3,20 @@ the Repositories class -- a set of distribution servers from which
 distribution packages can be received and installed.
 """
 from __future__ import absolute_import, print_function
-import sys, os, re, atexit, shutil
+import sys
+import os
+import re
+import traceback
 
 import eups.utils as utils
 from . import server
-from eups           import Eups, Tag, Tags, TagNotRecognized
+from eups           import Eups, Tag, TagNotRecognized
 from eups           import ProductNotFound, EupsException
 from .Repository     import Repository 
-from eups.utils     import Flavor, Quiet
+from eups.utils     import Flavor
 from .Distrib        import findInstallableRoot
 from .DistribFactory import DistribFactory
-from .server         import ServerConf, Manifest, ServerError
-from . import server
+from .server         import Manifest, ServerError
 import eups.hooks as hooks
 
 class Repositories(object):
@@ -213,7 +215,7 @@ class Repositories(object):
         versions = [version]
         if version and isinstance(version, Tag):
             if not version.isGlobal():
-                raise TagNotRecognized(tag.name, "global", 
+                raise TagNotRecognized(version.name, "global", 
                                        msg="Non-global tag %s requested." % 
                                            version.name)
         if not version:
@@ -717,23 +719,20 @@ class Repositories(object):
     def _readDistIDFile(self, file):
         distId = None
         pkgroot = None
-        idf = open(file)
-        try:
-          try:
-            while line in idf:
-                line = line.strip()
-                if len(line) > 0:
-                    if not distId:
-                        distId = line
-                    elif not pkgroot:
-                        pkgroot = line
-                    else:
-                        break
-          finally:
-            idf.close()
-        except Exception as e:
-            if self.verbose >= 0:
-                print("Warning: trouble reading %s, skipping" % file, file=self.log)
+        with open(file) as idf:
+            try:
+                for line in idf:
+                    line = line.strip()
+                    if len(line) > 0:
+                        if not distId:
+                            distId = line
+                        elif not pkgroot:
+                            pkgroot = line
+                        else:
+                            break
+            except Exception:
+                if self.verbose >= 0:
+                    print("Warning: trouble reading %s, skipping" % file, file=self.log)
 
         return (distId, pkgroot)
             
@@ -873,11 +872,11 @@ class Repositories(object):
                 rmCmd = "rm -rf %s" % buildDir
                 try:
                     server.system(rmCmd, verbosity=-1, log=self.log)
-                except OSError as e:
+                except OSError:
                     rmCmd = r"find %s -exec chmod 775 {} \; && %s" % (buildDir, rmCmd)
                     try:
                         server.system(rmCmd, verbosity=self.verbose-1, log=self.log)
-                    except OSError as e:
+                    except OSError:
                         print("Error removing %s; Continuing" % (buildDir), file=self.log)
 
             elif self.verbose > 0:
@@ -964,7 +963,7 @@ class Repositories(object):
                     if utils.isDbWritable(installDir):
                         try:
                             server.system("/bin/rm -rf %s" % installDir)
-                        except OSError as e:
+                        except OSError:
                             print("Error removing %s; Continuing" % (installDir), file=self.log)
 
                     elif self.verbose >= 0:

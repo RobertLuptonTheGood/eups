@@ -4,7 +4,10 @@
 classes for communicating with a remote package server
 """
 from __future__ import print_function
-import sys, os, re, atexit, shutil
+import sys
+import os
+import re
+import atexit
 import fnmatch
 import tempfile
 try:
@@ -485,7 +488,7 @@ class ConfigurableDistribServer(DistribServer):
 
         # check for unrecognized keys in config files
         for k in self.config.keys():
-            if not (k in self.validConfigKeys):
+            if k not in self.validConfigKeys:
                 print("Invalid config parameter %s ignored" % k, file=self.log)
 
         if 'MANIFEST_URL' not in self.config:
@@ -1327,7 +1330,7 @@ class TaggedProductList(object):
                             be merged.
         """
         for p in products.getProducts():
-            addProduct(p[0], p[2], p[1], p[3:])
+            self.addProduct(p[0], p[2], p[1], p[3:])
 
     def read(self, filename):
         """read the products from a given file and add it to our list.  
@@ -1543,7 +1546,7 @@ class Mapping(object):
         if not len(self._mapping[flavor][inProduct]):
             # Indicate product should be removed completely
             return inProduct, None
-        for versName in (inVersion, "any") or fnmatch.fnmatch(inVersion, versName):
+        for versName in (inVersion, "any"):
             if versName in self._mapping[flavor][inProduct]:
                 return self._mapping[flavor][inProduct][versName]
         # No mapping for this version
@@ -1711,7 +1714,6 @@ class Manifest(object):
 
         FALSE = "FALSE"
         TRUE = "TRUE"
-        REQ = "REQUIRED"
         OPT = "OPTIONAL"
         for line in fd:
             line = line.split("\n")[0]
@@ -1835,7 +1837,10 @@ The mapping is defined by the file userDataDir/manifest.remap, which consists of
 productName[:version-in-manifest]    [[outProductName:]desired-version]    [flavor]
 
 Comments (starting with #) are skipped
-If version-in-manifest is "Any" or a matching glob (e.g. "*") the desired-version is used for all products
+If version-in-manifest is "Any" the desired-version is used for all products
+(Note: it was intended to also support glob expressions, but that has yet to be done;
+see the discussion of fnmatch in https://github.com/RobertLuptonTheGood/eups/issues/72
+for more details.)
 If oproductName is present, productName is replaced by outProductName
 If desired-version is "None" or omitted, the product is deleted from the Manifest.
 If flavor is supplied, the mapping is only applied for that flavor
@@ -1932,7 +1937,6 @@ Additional mappings can be provided.
 
             mat = re.search(r"^\s*verbose\s*=\s*(True|False|0|1)\s*", line)
             if mat:
-                verboseMapping = bool(mat.group(1))
                 continue
 
             vals = line.split()
@@ -2059,7 +2063,7 @@ class ServerConf(object):
 
                 self.data = self.readConfFile(configFile);
 
-        except RemoteFileNotFound as e:
+        except RemoteFileNotFound:
             if self.base != "/dev/null" and self.verbose > 0:
                 print("Warning: No configuration available from server;", \
                     'assuming "vanilla" server', file=self.log)

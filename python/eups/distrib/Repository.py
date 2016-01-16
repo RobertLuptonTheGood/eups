@@ -3,15 +3,15 @@ the Repository class -- An interface into a distribution server for
 installing and deploying distribution packages.
 """
 from __future__ import absolute_import, print_function
-import sys, os, re, atexit, shutil
+import sys
 import eups
-from . import server 
 from eups.tags      import Tag, TagNotRecognized
-from eups.utils     import Flavor, Quiet, isDbWritable
+from eups.utils     import Flavor, isDbWritable
+from eups.exceptions import EupsException, ProductNotFound
 from .server         import ServerConf, Manifest, Mapping, TaggedProductList
-from .server         import RemoteFileNotFound, LocalTransporter
+from .server         import LocalTransporter
 from .DistribFactory import DistribFactory
-from .Distrib        import Distrib, DefaultDistrib, findInstallableRoot
+from .Distrib        import Distrib, DefaultDistrib
 
 class Repository(object):
     """
@@ -583,7 +583,8 @@ class Repository(object):
                                                  self.options, self.verbose-2,
                                                  self.log)
         flavor = dp.flavor
-        if flavor == generic:  flavor = None
+        if flavor == "generic":
+            flavor = None
         return distrib.packageCreated(self.pkgroot, dp.product, dp.version, flavor)
 
     def createTaggedRelease(self, tag, product, version=None, flavor=None, 

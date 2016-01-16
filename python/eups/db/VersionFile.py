@@ -1,5 +1,6 @@
 from __future__ import print_function
-import os, re, sys
+import os
+import re
 from eups.Product import Product
 from eups.exceptions import ProductNotFound
 from eups.utils import ctimeTZ, isRealFilename

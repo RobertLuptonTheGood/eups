@@ -6,7 +6,6 @@
 #
 from __future__ import absolute_import, print_function
 import sys, os, re
-import eups
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
 
@@ -186,7 +185,7 @@ DIST_URL = %(base)s/%(path)s
         """
         tarball = location
         if not tarball:
-            raise RuntimeError("Expected a tarball name; saw \"%s\"" % distID)
+            raise RuntimeError("Expected a tarball name; saw \"%s\"" % location)
 
         if not buildDir:
             buildDir = self.getOption('buildDir', 'EupsBuildDir')
