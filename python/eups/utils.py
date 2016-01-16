@@ -873,6 +873,24 @@ def isSubpath(path, root):
     # append trailing slash to root to avoid "/a/bbb" being treated as a subpath of "a/b"
     return path.startswith(os.path.join(root, ""))
 
+def uniq(seq):
+    """
+        Returns only unique elements in a sequence, preserving the order. The input
+        sequence does not have to be sorted.
+
+        @param[in] seq  sequence to uniqify
+
+        Inspired by f10 from http://www.peterbe.com/plog/uniqifiers-benchmark
+    """
+    def _aux(seq):
+        seen = set()
+        for x in seq:
+            if x not in seen:
+                seen.add(x)
+                yield x
+
+    return list(_aux(seq))
+
 if __name__ == "__main__":
     data = {
         'des_system_lib':   set('std synopsys std_cell_lib des_system_lib dw02 dw01 ramlib ieee'.split()),

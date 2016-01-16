@@ -2988,7 +2988,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # Make productList entries uniq
         #
-        productList = list(set(out))
+        productList = utils.uniq(out)
 
         return productList                
 
