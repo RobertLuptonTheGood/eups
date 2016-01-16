@@ -14,7 +14,8 @@ To run an eups command from Python, try:
 The output of run() is a status code appropriate for passing to sys.exit().
 """
 from __future__ import absolute_import, print_function
-import os, sys, glob, re
+import os
+import sys
 from .cmd import EupsOptionParser
 from .exceptions import EupsException
 import eups
@@ -252,11 +253,9 @@ product and all its dependencies into the environment so that it can be used.
                 Eups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
                                inexact_version=self.opts.inexact_version, postTag=self.opts.postTag)
 
-                isUserTag = False
                 if self.opts.tag:
                     for t in self.opts.tag:
                         if Eups.isUserTag(t):
-                            isUserTag = True
                             break
 
                 Eups.includeUserDataDirInPath()

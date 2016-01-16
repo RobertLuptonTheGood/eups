@@ -4,7 +4,8 @@ Support for debugging
 N.b. can't go in utils.py as utils is imported be eups, and we need to import eups.Eups here
 """
 from __future__ import print_function
-import re, sys
+import re
+import sys
 import eups.Eups    
 
 def parseDebugOption(debugOpts):

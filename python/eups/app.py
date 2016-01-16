@@ -3,21 +3,21 @@ common high-level EUPS functions appropriate for calling from an application.
 """
 
 from __future__ import absolute_import, print_function
-import re, os, sys, time
+import re
+import os
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
+from .distrib import builder
 from .Eups           import Eups
 from .exceptions     import ProductNotFound
-from .tags           import Tags, Tag, TagNotRecognized, checkTagsList
-from . import Product
+from .tags           import Tag, checkTagsList
+from .Product import Product
 from .VersionParser  import VersionParser
 from .stack          import ProductStack, persistVersionName as cacheVersion
-from .distrib.server import ServerConf
-from .distrib import builder
 from . import utils, table, hooks
-from .exceptions import EupsException, TableFileNotFound
+from .exceptions import EupsException
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
@@ -79,11 +79,6 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             else:
                 productName = p  
 
-        if tags:
-            tag = tags[0]
-        else:
-            tag = None
-
         eupsenv.setup(productName, versionName, productRoot=os.path.abspath(productDir))
         setup = True                    # only list this version
 
@@ -112,13 +107,11 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 productList = eupsenv.getSetupProducts(productName)
             else:
                 raise EupsException("Please choose the version you want listed (%s)" %
-                                    (", ".join([p.version for p in productList])))
+                                    (", ".join(p.version for p in productList)))
     else:
         if topological:
             raise EupsException("--topological only makes sense with --dependencies")
         
-    productTags = {}             # list of tags indexed by product
-
     oinfo = None                 # previous value of "info"; used to suppress repetitions due to e.g. 
                                  # listing directories when there's a NULL and Linux declaration 
 
@@ -316,13 +309,13 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     #
     if pickleFile and pickleFile[0] == "<": # read it
         fd = open(pickleFile[1:])
-        usesInfo = cPickle.load(fd)
+        usesInfo = pickle.load(fd)
         fd.close()
     else:
         usesInfo = eupsenv.uses()
         if pickleFile:
             fd = open(pickleFile, "w")
-            cPickle.dump(usesInfo, fd)
+            pickle.dump(usesInfo, fd)
             fd.close()
 
     userList = eupsenv.uses(productName, versionName, depth, usesInfo=usesInfo)
@@ -404,7 +397,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None, repo
     if svnroot:
         builderVars["SVNROOT"] = svnroot
 
-    distrib.builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars,
+    builder.expandBuildFile(ofd, ifd, product, version, verbose, builderVars,
                                     repoVersionName=repoVersion)
 
 
@@ -427,12 +420,12 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
     @param force        convert missing required dependencies to optional
     """
     if not eupsenv:
-        eupsenv = eups.Eups()
+        eupsenv = Eups()
 
     try:
         table.expandTableFile(eupsenv, ofd, ifd, productList, versionRegexp, force,
                               expandVersions, addExactBlock, toplevelName)
-    except ProductNotFound as e:
+    except ProductNotFound:
         raise
 
 def declare(productName, versionName, productDir=None, eupsPathDir=None, 
@@ -716,7 +709,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                     print("Requested version tagged %s == \"%s\"; got version \"%s\"" % \
                           (",".join(prefTags + postTags), taggedVersion.version, version), file=utils.stderr)
             else:
-                if not re.search(r"^" + Product.Product.LocalVersionPrefix, version):
+                if not re.search(r"^" + Product.LocalVersionPrefix, version):
                     if (fwd and eupsenv.verbose >= 0) or (not fwd and eupsenv.verbose > 0):
                         extra = ""
                         if os.path.isfile((prefTags + postTags)[0]):

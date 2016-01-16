@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
-import fnmatch, os, re, sys
+import fnmatch
+import os
+import re
 from . import hooks, utils
 from .exceptions import EupsException
 
@@ -275,7 +277,7 @@ class Tags(object):
                         % dir, file=utils.stdinfo)
                 continue
             if not os.path.isdir(dir):
-                if versbose > 0:
+                if verbosity > 0:
                      "%s: EUPS root directory is not a directory; skipping..." \
                      % dir
                 continue

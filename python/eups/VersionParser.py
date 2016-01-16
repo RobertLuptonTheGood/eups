@@ -1,6 +1,7 @@
 """A simple recursive descent parser for logical expressions"""
 
-import os, re
+import os
+import re
 
 class VersionParser(object):
     """Evaluate a logical expression, returning a Bool.  The grammar is:

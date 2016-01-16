@@ -1,6 +1,7 @@
 # from Table import *
 from __future__ import absolute_import, print_function
-import os, re, sys
+import os
+import re
 try:
     import cPickle as pickle
 except ImportError:
@@ -306,7 +307,7 @@ class Product(object):
                 self.ups_dir = self.ups_dir[len(self.dir)+1:]
             elif utils.isRealFilename(self.dir) and self.ups_dir == self.dir:
                 self.ups_dir = "none"
-            elif utils.isRealFilename(self.db) and self.ups_dir(startswith(self.db+sl)):
+            elif utils.isRealFilename(self.db) and self.ups_dir.startswith(self.db+sl):
                 self.ups_dir = os.path.join("$UPS_DB", 
                                             self.ups_dir[len(self.db)+1:])
             elif utils.isRealFilename(self.db) and self.ups_dir == self.db:
