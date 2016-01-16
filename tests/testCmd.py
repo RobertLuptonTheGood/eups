@@ -73,29 +73,29 @@ class CmdTestCase(unittest.TestCase):
         cmd = eups.cmd.EupsCmd(args="-h".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.out.getvalue(), "")
-        self.assert_(re.match(r'^[Uu]sage: '+prog, self.err.getvalue()),
-                     "Output starts with: '%s....'" % self.err.getvalue()[:16])
+        self.assertTrue(re.match(r'^[Uu]sage: '+prog, self.err.getvalue()),
+                     msg="Output starts with: '%s....'" % self.err.getvalue()[:16])
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="flavor -h".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.out.getvalue(), "")
-        self.assert_(re.match(r'^[Uu]sage: '+prog+' flavor',
+        self.assertTrue(re.match(r'^[Uu]sage: '+prog+' flavor',
                               self.err.getvalue()),
-                     "Output starts with: '%s....'" % self.err.getvalue()[:16])
+                     msg="Output starts with: '%s....'" % self.err.getvalue()[:16])
 
     def testVersion(self):
         cmd = eups.cmd.EupsCmd(args="-V".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
-        self.assert_(self.out.getvalue().startswith("EUPS Version:"),
-                     "Output starts with: '%s....'" % self.out.getvalue()[:16])
+        self.assertTrue(self.out.getvalue().startswith("EUPS Version:"),
+                     msg="Output starts with: '%s....'" % self.out.getvalue()[:16])
 
     def testFlavor(self):
         cmd = eups.cmd.EupsCmd(args="flavor".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
-        self.assert_(len(self.out.getvalue()) > 0)
+        self.assertTrue(len(self.out.getvalue()) > 0)
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="flavor -f Linux".split(), toolname=prog)
@@ -208,7 +208,7 @@ tcltk                 8.5a4      \tcurrent
         pyuser = re.compile(r"python\s+2.5.2\s+8.5a4")
         lines = self.out.getvalue().split("\n")
         self.assertEquals(len(lines), 2)
-        self.assert_(filter(lambda l: pyuser.match(l), lines))
+        self.assertTrue(filter(lambda l: pyuser.match(l), lines))
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses tcltk -t latest".split(), 
@@ -218,7 +218,7 @@ tcltk                 8.5a4      \tcurrent
         pyuser = re.compile(r"python\s+2.5.2\s+8.5a4")
         lines = self.out.getvalue().split("\n")
         self.assertEquals(len(lines), 2)
-        self.assert_(filter(lambda l: pyuser.match(l), lines))
+        self.assertTrue(filter(lambda l: pyuser.match(l), lines))
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses python".split(), toolname=prog)
@@ -230,7 +230,7 @@ tcltk                 8.5a4      \tcurrent
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses".split(), toolname=prog)
         self.assertNotEqual(cmd.run(), 0)
-        self.assert_(self.err.getvalue().find("Please specify a product name"))
+        self.assertTrue(self.err.getvalue().find("Please specify a product name"))
 
     def testUsesBadTag(self):
         if False:                       # just puts out a warning
@@ -251,12 +251,12 @@ tcltk                 8.5a4      \tcurrent
         
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
-        self.assert_(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, msg="Failed to declare product")
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
         self.assertEquals(len(prod.tags), 1)   # current is tagged by default
         self.assertIn("current", prod.tags)
-        self.assert_(os.path.isdir(newprod))
+        self.assertTrue(os.path.isdir(newprod))
 
         # make sure user cannot set a server tag
         self._resetOut()
@@ -275,7 +275,7 @@ tcltk                 8.5a4      \tcurrent
         
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
-        self.assert_(prod is not None, "product went missing after tagging")
+        self.assertIsNotNone(prod, msg="product went missing after tagging")
         self.assertIn("current", prod.tags)
         
         self._resetOut()
@@ -287,8 +287,8 @@ tcltk                 8.5a4      \tcurrent
 
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
-        self.assert_(prod is None, "Failed to undeclare product")
-        self.assert_(not os.path.isdir(newprod))
+        self.assertIsNone(prod, "Failed to undeclare product")
+        self.assertFalse(os.path.isdir(newprod))
 
         self._resetOut()
         cmd = "declare newprod 1.0 -F -r %s -m %s -t current" % (pdir10, table)
@@ -299,12 +299,12 @@ tcltk                 8.5a4      \tcurrent
         
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
-        self.assert_(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, msg="Failed to declare product")
         self.assertEquals(prod.name,    "newprod")
         self.assertEquals(prod.version, "1.0")
         self.assertEquals(len(prod.tags), 1)
         self.assertIn("current", prod.tags)
-        self.assert_(os.path.isdir(newprod))
+        self.assertTrue(os.path.isdir(newprod))
         
         self._resetOut()
         cmd = "undeclare newprod 1.0"
@@ -315,34 +315,35 @@ tcltk                 8.5a4      \tcurrent
 
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod", Tag("current"))
-        self.assert_(prod is None, "Failed to undeclare product")
+        self.assertIsNone(prod, msg="Failed to undeclare product")
 
     def testRemove(self):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir10 = os.path.join(pdir, "1.0")
         pdir20 = os.path.join(pdir, "2.0")
         shutil.copytree(pdir10, pdir20)
-        self.assert_(os.path.isdir(pdir20))
+
+        self.assertTrue(os.path.isdir(pdir20))
 
         eups.Eups().declare("newprod", "2.0", pdir20)
-        self.assert_(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")))
+        self.assertTrue(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")))
         
         cmd = eups.cmd.EupsCmd(args="remove newprod 2.0".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
         prod = eups.Eups().findProduct("newprod", "2.0")
-        self.assert_(prod is None)
-        self.assert_(not os.path.isdir(pdir20))
+        self.assertIsNone(prod)
+        self.assertFalse(os.path.isdir(pdir20))
 
     def testDistribList(self):
         cmd = eups.cmd.EupsCmd(args="distrib list".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         out = self.out.getvalue()
-        self.assert_(len(out) > 0)
-        self.assert_(out.find("No matching products") < 0)
-        self.assert_(out.find("doxygen") >= 0)
+        self.assertTrue(len(out) > 0)
+        self.assertTrue(out.find("No matching products") < 0)
+        self.assertTrue(out.find("doxygen") >= 0)
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="distrib list -f Linux".split(), 
@@ -350,8 +351,8 @@ tcltk                 8.5a4      \tcurrent
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         out = self.out.getvalue()
-        self.assert_(len(out) > 0)
-        self.assert_(out.find("No matching products") >= 0)
+        self.assertTrue(len(out) > 0)
+        self.assertTrue(out.find("No matching products") >= 0)
 
     def testDistrib(self):
         cmd = eups.cmd.EupsCmd(args="distrib".split(), toolname=prog)
