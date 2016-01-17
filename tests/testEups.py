@@ -401,8 +401,6 @@ class EupsTestCase(unittest.TestCase):
         # basic find
         prods = self.eups.findProducts("python")
         self.assertEquals(len(prods), 2)
-        if prods[0].version == "2.6":
-            prods.reverse()
         self.assertEquals(prods[0].name, "python")
         self.assertEquals(prods[0].version, "2.5.2")
         self.assertEquals(prods[1].name, "python")
