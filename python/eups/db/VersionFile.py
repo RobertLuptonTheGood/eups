@@ -448,6 +448,10 @@ class VersionFile(object):
             if os.path.exists(file):  os.remove(file)
             return
 
+        # Make sure we correctly identify subpaths
+        if trimDir:
+            trimDir = os.path.realpath(trimDir)
+
         fd = open(file, "w")
 
         print("""FILE = version
@@ -479,6 +483,7 @@ Group:
 
                 if os.path.isfile(value) or os.path.isdir(value):
                     if trimDir and eups.utils.isSubpath(value, trimDir):
+                        value = os.path.realpath(value)
                         if trimDir == value:
                             pass        # special case: we are setting something to trimDir
                         else:
