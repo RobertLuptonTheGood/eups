@@ -683,8 +683,9 @@ default_prep()
 		fi
 
 		# verify that there are no files (other than .* or _*) in $pkgdir
-		# packagers: it's possible override this ckeck with TAP_PACKAGE=1
-		if [[ "$TAP_PACKAGE" != 1 && ! -z $(find . -maxdepth 1 -mindepth 1 ! -name ".*" ! -name "_*" -a -type f) ]]; then
+		# packagers: it's possible override this check by setting TAP_PACKAGE=1 in eupspkg.cfg.sh
+		# (deprecated) can also be overriden by touching a .tap_package file (mistakenly introduced in v1.5.8, will be removed at a later date)
+		if [[ "$TAP_PACKAGE" != 1 && ! -f ".tap_package" && ! -z $(find . -maxdepth 1 -mindepth 1 ! -name ".*" ! -name "_*" -a -type f) ]]; then
 			die "files found in root directory; guessing this is not a TaP package."
 		fi
 
