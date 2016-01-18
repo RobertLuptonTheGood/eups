@@ -823,19 +823,20 @@ class AtomicFile(object):
 
         Constructor arguments:
             fn:      filename (string)
-          mode:      the read/write mode (string), must be equal to "w" for now
+          mode:      the read/write mode (string), must be equal to 
+                     "w" or "wb", for now
 
         Return value:
             file object
     """
     def __init__(self, fn, mode):
-        assert(mode == "w")   # no other modes are currently implemented
+        assert(mode in ["w", "wb"])   # no other modes are currently implemented
 
         self._fn = fn
         dir = os.path.dirname(fn)
 
         (self._fh, self._tmpfn) = tempfile.mkstemp(suffix='.tmp', dir=dir)
-        self._fp = os.fdopen(self._fh, "w")
+        self._fp = os.fdopen(self._fh, mode)
 
     def __getattr__(self, name): 
         try:
