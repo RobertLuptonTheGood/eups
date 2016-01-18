@@ -33,9 +33,16 @@ def getUserName(full=False):
     euid = os.geteuid()
     try:
         pw = pwd.getpwuid(euid)
+
+        # If pw_gecos field is empty, default to username
+        if pw[4] != "":
+            fullName = re.sub(r",.*", "", pw[4])
+        else:
+            fullName = pw[0]
+
         getUserName.who = {
             False : pw[0],
-            True: re.sub(r",.*", "", pw[4])
+            True: fullName
             }
     except KeyError:
         print("Warning: getpwuid failed, guessing username from LOGNAME or USER variable", file=stdwarn)
