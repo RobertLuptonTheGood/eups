@@ -2568,10 +2568,25 @@ The what argument tells us what sort of state is expected (allowed values are de
                     info = " (%s)" % "; ".join(differences)
 
                 if tag:
-                    print("You asked me to redeclare %s %s%s; I'll only declare the tag" % \
-                        (productName, versionName, info), file=utils.stdinfo)
-                        
-                    versionName = "tag:%s" % tag # Declare a tag:XXX version with those differences
+                    # Allow re-declaration of a product's directory if it's been previously
+                    # declared with a 'tag:<tagname>' version. This allows for convenient
+                    # usage such as:
+                    #
+                    # setup -r . -t mytest
+                    # ... change to a different copy of the product
+                    # setup -r . -t mytest
+                    #
+                    # where now the second copy is the one that's declared.
+                    #
+                    # Otherwise, refuse to change anything other than the tag.
+                    #
+                    if versionName == "tag:%s" % tag:
+                        print("Redeclaring product %s %s in '%s' with tablefile '%s'" % (productName, versionName, productDir, tablefile),
+                            file=utils.stdinfo)
+                    else:
+                        dodeclare=False
+                        print("You asked me to redeclare %s %s%s; I'll only declare the tag" % \
+                            (productName, versionName, info), file=utils.stdinfo)
                 else:
                     raise EupsException("Redeclaring %s %s%s; specify force to proceed" %
                                         (productName, versionName, info))
