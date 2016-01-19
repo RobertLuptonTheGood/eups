@@ -598,7 +598,7 @@ class DatabaseTestCase(unittest.TestCase):
     def testFindProducts(self):
         prods = self.db.findProducts("doxygen")
         self.assertEquals(len(prods), 2)
-        prod = list(filter(lambda d: d.version == "1.5.7.1", prods))[0]
+        prod = [d for d in prods if d.version == "1.5.7.1"][0]
         self.assertEquals(len(prod.tags), 1)
         self.assertEquals(prod.tags[0], "current")
 
@@ -718,10 +718,11 @@ class DatabaseTestCase(unittest.TestCase):
 
     def testDeclare(self):
         pdir = self.db._productDir("base")
-        if os.path.isdir(pdir):  
-            list(map(lambda r: os.remove(r),
-                filter(lambda f: os.path.isfile(f), 
-                       map(lambda p: os.path.join(pdir,p), os.listdir(pdir)))))
+        if os.path.isdir(pdir):
+            for p in os.listdir(pdir):
+                f = os.path.join(pdir, p)
+                if os.path.isfile(f):
+                    os.remove(f)
             os.removedirs(pdir)
         try: 
             self.assert_(not os.path.exists(pdir))
@@ -779,12 +780,12 @@ class DatabaseTestCase(unittest.TestCase):
 
         except:
             if False:
-              if os.path.isdir(pdir): 
-                list(map(lambda r: os.remove(r),
-                    filter(lambda f: os.path.isfile(f), 
-                           map(lambda p: os.path.join(pdir,p), 
-                               os.listdir(pdir)))))
-                os.removedirs(pdir)
+              if os.path.isdir(pdir):
+                  for p in os.listdir(pdir):
+                      f = os.path.join(pdir, p)
+                      if os.path.isfile(f):
+                          os.remove(f)
+                  os.removedirs(pdir)
             raise
                            
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

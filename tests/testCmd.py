@@ -136,8 +136,8 @@ tcltk                 8.5a4      \tcurrent
    2.5.2      \tcurrent
    2.6        
 """.strip()
-        outcurr = "\n".join(filter(lambda l: l.find('current') >= 0, outpy.split("\n"))).strip()
-        outnews = "\n".join(filter(lambda l: l.find('2.6') >= 0, outpy.split("\n"))).strip()
+        outcurr = "\n".join(l for l in outpy.split("\n") if l.find('current') >= 0).strip()
+        outnews = "\n".join(l for l in outpy.split("\n") if l.find('2.6') >= 0).strip()
 
         cmd = eups.cmd.EupsCmd(args="list".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
@@ -208,7 +208,7 @@ tcltk                 8.5a4      \tcurrent
         pyuser = re.compile(r"python\s+2.5.2\s+8.5a4")
         lines = self.out.getvalue().split("\n")
         self.assertEquals(len(lines), 2)
-        self.assertTrue(filter(lambda l: pyuser.match(l), lines))
+        self.assertTrue([l for l in lines if pyuser.match(l)])
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses tcltk -t latest".split(), 
@@ -218,7 +218,7 @@ tcltk                 8.5a4      \tcurrent
         pyuser = re.compile(r"python\s+2.5.2\s+8.5a4")
         lines = self.out.getvalue().split("\n")
         self.assertEquals(len(lines), 2)
-        self.assertTrue(filter(lambda l: pyuser.match(l), lines))
+        self.assertTrue([l for l in lines if pyuser.match(l)])
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="uses python".split(), toolname=prog)

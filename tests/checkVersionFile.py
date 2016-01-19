@@ -99,8 +99,7 @@ class VersionFileTestResult(unittest._TextTestResult):
 def findVersionFiles(dir):
     out = []
     for subdir in os.walk(dir):
-        out.extend(map(lambda f: os.path.join(subdir[0], f), 
-                       filter(lambda f: f.endswith(".version"), subdir[2])))
+        out.extend([os.path.join(subdir[0], f) for f in [f for f in subdir[2] if f.endswith(".version")]])
     return out
 
 def handlefile(file, result, root=None, testExist=False):
