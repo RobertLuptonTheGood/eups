@@ -300,7 +300,7 @@ class ProductStack(object):
         flavorData = self.lookup[flavor]
 
         fd = utils.AtomicFile(file, "wb")
-        pickle.dump(flavorData, fd)
+        pickle.dump(flavorData, fd, protocol=2)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
 
