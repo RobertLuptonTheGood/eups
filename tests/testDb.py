@@ -598,7 +598,7 @@ class DatabaseTestCase(unittest.TestCase):
     def testFindProducts(self):
         prods = self.db.findProducts("doxygen")
         self.assertEquals(len(prods), 2)
-        prod = [d for d in prods if d.version == "1.5.7.1"][0]
+        prod = next(d for d in prods if d.version == "1.5.7.1") # this idiom efficiently returns the first element in a sequence
         self.assertEquals(len(prod.tags), 1)
         self.assertEquals(prod.tags[0], "current")
 
