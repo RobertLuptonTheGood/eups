@@ -116,9 +116,7 @@ class DistribServer(object):
         are available on the server, where * is a tag name.  The flavor 
         parameter is ignored.
         """
-        return list(map(lambda x: x[:-5], 
-                   filter(lambda f: f.endswith(".list"), 
-                          self.listFiles("", noaction))))
+        return [x[:-5] for x in [f for f in self.listFiles("", noaction) if f.endswith(".list")]]
 
     def getTagNamesFor(self, product, version, flavor="generic", tags=None, noaction=False):
         """
@@ -1198,8 +1196,7 @@ class LocalTransporter(Transporter):
             return []
         else:
             if os.path.isdir(self.loc):
-                return list(filter(lambda f: os.path.isfile(os.path.join(self.loc,f)), 
-                              os.listdir(self.loc)))
+                return [f for f in os.listdir(self.loc) if os.path.isfile(os.path.join(self.loc,f))]
             else:
                 if self.verbose > 0:
                     print("%s does not exist" % self.loc, file=self.log)
@@ -1557,8 +1554,8 @@ class Mapping(object):
 
         for o, s in [(other._mapping, self._mapping),
                      (other._noReinstall, self._noReinstall)]:
-            for p in o.iterkeys():
-                for v in o[p].iterkeys():
+            for p in o.keys():
+                for v in o[p].keys():
                     if p not in s:
                         s[p] = {}
                     if not overwrite and v in s[p]:
@@ -1570,9 +1567,9 @@ class Mapping(object):
         Beware that this is ill-defined if the original Mapping isn't one-to-one and onto!
         """
         inv = Mapping()
-        for f in self._mapping.iterkeys():
-            for inProduct in self._mapping[f].iterkeys():
-                for inVersion, (outProduct, outVersion) in self._mapping[f][inProduct].iteritems():
+        for f in self._mapping.keys():
+            for inProduct in self._mapping[f].keys():
+                for inVersion, (outProduct, outVersion) in self._mapping[f][inProduct].items():
                     if inv._exists(outProduct, outVersion, flavor=f):
                         raise RuntimeError("Mapping isn't one-to-one and onto, hence inverse is ill-defined")
                     inv.add(outProduct, inVersion=outVersion, outProduct=inProduct, outVersion=inVersion,
@@ -1592,9 +1589,9 @@ class Mapping(object):
 
     def __str__(self):
         s = ""
-        for f in self._mapping.iterkeys():
-            for pIn in self._mapping[f].iterkeys():
-                for vIn in self._mapping[f][pIn].iterkeys():
+        for f in self._mapping.keys():
+            for pIn in self._mapping[f].keys():
+                for vIn in self._mapping[f][pIn].keys():
                     pOut, vOut = self._mapping[f][pIn][vIn]
                     s += pIn + ':' + vIn + '    '
                     if vOut is None:
@@ -1644,11 +1641,11 @@ class Manifest(object):
                               matching products.  Default is the last matching
                               product.
         """
-        out = list(filter(lambda x: x.product == product, self.products))
+        out = [x for x in self.products if x.product == product]
         if version is not None:
-            out = list(filter(lambda x: x.version == version, out))
+            out = [x for x in out if x.version == version]
         if flavor is not None:
-            out = list(filter(lambda x: x.flavor == flavor, out))
+            out = [x for x in out if x.flavor == flavor]
         if len(out) == 0 or which >= len(out) or which < -len(out):
             return None
         return out[which]
@@ -2340,7 +2337,7 @@ def findInPath(file, path):
         path = [path]
 
     for dirs in path:
-        dirs = map(lambda x: x.strip(), dirs.split(":"))
+        dirs = [x.strip() for x in dirs.split(":")]
         for dir in dirs:
             filepath = os.path.join(dir, file)
             if os.path.exists(filepath):

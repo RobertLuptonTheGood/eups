@@ -104,7 +104,7 @@ class Tags(object):
         """
         out = []
         for group in self.bygrp.keys():
-            out.extend(map(lambda x: self.getTag(x), self.bygrp[group]))
+            out.extend([self.getTag(x) for x in self.bygrp[group]])
         return out
 
     def getTag(self, tag):
@@ -225,8 +225,7 @@ class Tags(object):
             for line in fd:
                 line.strip()
                 line = commRe.sub('', line)
-                line = filter(lambda t: t not in self.bygrp[group], 
-                              line.split())
+                line = [t for t in line.split() if t not in self.bygrp[group]]
                 self.bygrp[group].extend(line)
         finally:
             fd.close()
@@ -531,7 +530,7 @@ class TagNameConflict(EupsException):
             
 def checkTagsList(eupsenv, tagList):
     """Check that all tags in list are valid"""
-    badtags = list(filter(lambda t: not eupsenv.tags.isRecognized(t), tagList))
+    badtags = [t for t in tagList if not eupsenv.tags.isRecognized(t)]
 
     for tag in badtags[:]:
         fileName = re.sub(r"^file:", "", tag)
@@ -542,7 +541,7 @@ def checkTagsList(eupsenv, tagList):
             
     if badtags:
         raise TagNotRecognized(str(badtags), 
-                               msg="Unsupported tag(s): %s" % ", ".join(map(lambda t: str(t), badtags)))
+                               msg="Unsupported tag(s): %s" % ", ".join([str(t) for t in badtags]))
 
 def getUserDefinedTags(user):
     """Return all the tags that a given user defines

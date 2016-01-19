@@ -337,7 +337,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         #
         cmd = ["cd %s && " % buildDir]
         if setups is not None:
-            cmd += map(lambda x: x + " && ", setups)
+            cmd += [x + " && " for x in setups]
 
         if self.verbose > 2:
             cmd += ["set -x &&"]
@@ -534,7 +534,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
     if lcVars:
         raise RuntimeError('Only upper case keys are permitted in builder variable dictionaries; found "%s"' %
                            '", "'.join(lcVars))
-    builderVars = dict([(k, re.sub(r"\n+$", "", v)) for k,v in builderVars.items()]) # Remove trailing newlines
+    builderVars = dict([(k, re.sub(r"\n+$", "", v)) for k, v in builderVars.items()]) # Remove trailing newlines
     #
     # A couple of functions to set/guess the values that we'll be substituting
     # into the build file

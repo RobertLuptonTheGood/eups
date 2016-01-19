@@ -60,7 +60,7 @@ class Repositories(object):
                             sys.stderr)
         """
         if isinstance(pkgroots, str):
-            pkgroots = list(map(lambda p: p.strip(), pkgroots.split("|")))
+            pkgroots = [p.strip() for p in pkgroots.split("|")]
         if not allowEmptyPkgroot and len(pkgroots) == 0:
             raise EupsException("No package servers to query; set -r or $EUPS_PKGROOT")
 
@@ -948,7 +948,7 @@ class Repositories(object):
                         self.distribClean(product,version,pkgroot,distId,flavor)
                 
                 # make sure this directory is not declared for any product
-                installDirs = list(map(lambda x: x.dir, self.eups.findProducts()))
+                installDirs = [x.dir for x in self.eups.findProducts()]
                 if installDir not in installDirs:
                   if not installDir.startswith(productRoot) and \
                      not self.eups.force:

@@ -182,11 +182,11 @@ class VersionFile(object):
     def _resolve(self, value, data, skip=None):
         if not value: return value
 
-        dosub = data.keys()
+        dosub = list(data.keys())
         if skip:
             if isinstance(skip, str):
                 skip = skip.split()
-            dosub = filter(lambda n: n not in skip, dosub)
+            dosub = [n for n in dosub if n not in skip]
 
         for name in dosub:
             if name in macrore and data[name]:
@@ -199,7 +199,7 @@ class VersionFile(object):
         return Product instances for all of the flavors declared in the file.
         @return Product[] :
         """
-        return list(map(lambda x: self.makeProduct(x), self.info.keys()))
+        return [self.makeProduct(x) for x in self.info.keys()]
           
 
     def getFlavors(self):

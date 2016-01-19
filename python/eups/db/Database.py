@@ -201,16 +201,15 @@ class _Database(object):
         if self._getUserTagDb():
             udir = self._productDir(productName, self._getUserTagDb())
             if os.path.isdir(udir):
-                tags.extend(map(lambda t: "user:"+t, 
-                                self._findTagsInDir(udir, productName, 
-                                                    version, flavor)))
+                tags.extend(["user:"+t for t in self._findTagsInDir(udir, productName,
+                                                    version, flavor)])
 
         return tags
 
     def _findTagsInDir(self, dir, productName, version, flavor):
         # look tag assignments via chain files in a given directory
 
-        tagFiles = filter(lambda x: not x.startswith('.'), os.listdir(dir))
+        tagFiles = [x for x in os.listdir(dir) if not x.startswith('.')]
         
         tags = []
         for file in tagFiles:
@@ -229,8 +228,7 @@ class _Database(object):
         """
         return a list of the names of all products declared in this database
         """
-        dirs = filter(lambda z: os.path.isdir(os.path.join(self.dbpath,z)), 
-                      os.listdir(self.dbpath))
+        dirs = [z for z in os.listdir(self.dbpath) if os.path.isdir(os.path.join(self.dbpath,z))]
 
         out = []
         for dir in dirs:
@@ -345,7 +343,7 @@ class _Database(object):
 #
 #  replaced with moral equivalent:
 #                          
-        v = list(map(lambda z:  list(z.values()), list(out.values())))
+        v = [list(z.values()) for z in out.values()]
         x = v[0]
         for y in v[1:]:  x.extend(y)
         x.sort(**cmp_or_key(_cmp_by_verflav))
@@ -692,7 +690,7 @@ class _Database(object):
 
         if not dbrootdir:
             dbrootdir = self.dbpath
-        proddirs = list(map(lambda d: os.path.join(self.dbpath, d), self.findProductNames()))
+        proddirs = [os.path.join(self.dbpath, d) for d in self.findProductNames()]
 
         for prod in proddirs:
             # check the directory mod-time: this will catch recent removal

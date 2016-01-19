@@ -345,7 +345,7 @@ def guessProduct(dir, productName=None):
         else:
             raise RuntimeError("%s doesn't seem to exist" % dir)
             
-    productNames = map(lambda t: re.sub(r".*/([^/]+)\.table$", r"\1", t), glob.glob(os.path.join(dir, "*.table")))
+    productNames = [re.sub(r".*/([^/]+)\.table$", r"\1", t) for t in glob.glob(os.path.join(dir, "*.table"))]
 
     if not productNames:
         if productName:
@@ -486,8 +486,7 @@ class ConfigProperty(object):
         return strm.getvalue()
 
     def properties(self):
-        out = self.__dict__.fromkeys(filter(lambda a: not a.startswith('_'), 
-                                            self.__dict__.keys()))
+        out = self.__dict__.fromkeys([a for a in self.__dict__.keys() if not a.startswith('_')])
         for k in out.keys():
             if isinstance(self.__dict__[k], ConfigProperty):
                 out[k] = self.__dict__[k]._props()
@@ -533,7 +532,7 @@ def createTempDir(path):
     #
     if not os.path.isdir(path):
         dir = "/"
-        for d in filter(lambda el: el, path.split(os.path.sep)):
+        for d in [el for el in path.split(os.path.sep) if el]:
             dir = os.path.join(dir, d)
             
             if not os.path.isdir(dir):

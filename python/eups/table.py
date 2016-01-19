@@ -342,11 +342,11 @@ but no other interpretation is applied
                 #
                 args = re.sub(r"(\"[^\"]+\")", lambda s: re.sub(",", "%c" % 3, s.group(0)), args)
 
-                args = list(filter(lambda s: s, re.split("[, ]", args)))
-                args = list(map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args)) # remove quotes
-                args = list(map(lambda s: re.sub(r'%c' % 1, r' ', s), args)) # reinstate \001 as a space
-                args = list(map(lambda s: re.sub(r'%c' % 2, r'"', s), args)) # reinstate \002 as "
-                args = list(map(lambda s: re.sub(r'%c' % 3, r',', s), args)) # reinstate \003 as ,
+                args = [s for s in re.split("[, ]", args) if s]
+                args = [re.sub(r'^"(.*)"$', r'\1', s) for s in args] # remove quotes
+                args = [re.sub(r'%c' % 1, r' ', s) for s in args] # reinstate \001 as a space
+                args = [re.sub(r'%c' % 2, r'"', s) for s in args] # reinstate \002 as "
+                args = [re.sub(r'%c' % 3, r',', s) for s in args] # reinstate \003 as ,
 
                 try:
                     cmd = {
@@ -1074,7 +1074,7 @@ class Action(object):
         append_delim = re.search(pat, value)
         value = re.sub(pat, "", value)
 
-        opath = list(filter(lambda el: el, opath.split(delim))) # strip extra : at start or end
+        opath = [el for el in opath.split(delim) if el] # strip extra : at start or end
 
         if fwd:
             value = self.expandEnvironmentalVariable(value, Eups.verbose)
@@ -1093,7 +1093,7 @@ class Action(object):
                 else:
                     npath = [value] + npath
             else:
-                npath = list(filter(lambda d: d != value, npath))
+                npath = [d for d in npath if d != value]
 
         npath = self.pathUnique(npath) # remove duplicates
 

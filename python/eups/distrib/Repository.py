@@ -149,7 +149,7 @@ class Repository(object):
         lookup["_sortOrder"] = keys
 
         for prod in lookup["_sortOrder"]:
-            keys = list(filter(lambda f: f != "generic", lookup[prod].keys()))
+            keys = [f for f in lookup[prod].keys() if f != "generic"]
             keys.sort()
             if "generic" in lookup[prod].keys():
                 keys.insert(0, "generic")
@@ -317,8 +317,7 @@ class Repository(object):
 
                 for flav in flavs:
                     if version is None:
-                        out.extend( map(lambda v: (prod, v, flav), 
-                                    self._pkgList[prod][flav]) )
+                        out.extend( [(prod, v, flav) for v in self._pkgList[prod][flav]] )
                     elif version and isinstance(version, str):
                         if version not in self._pkgList[prod][flav]:
                             continue
@@ -339,13 +338,13 @@ class Repository(object):
             flavors[p[2]] = 1
         names = list(names.keys())
         names.sort()
-        flavors = list(filter(lambda f: f != "generic", flavors.keys()))
+        flavors = [f for f in flavors.keys() if f != "generic"]
         flavors.sort()
         flavors.insert(0, "generic")
         
         for name in names:
             for flav in flavors:
-                latest = list(filter(lambda p: p[0] == name and p[2] == flav, prods))
+                latest = [p for p in prods if p[0] == name and p[2] == flav]
                 latest.sort(**cmp_or_key(lambda a,b: self.eups.version_cmp(a[1],b[1])))
                 out.extend(latest)
 
