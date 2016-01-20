@@ -19,6 +19,7 @@ for t in [
     "testTable",
     "testTags",
     "testDyldLibraryPath",
+    "testEupspkg",
     ]:
     tests += __import__(t).suite()
 
