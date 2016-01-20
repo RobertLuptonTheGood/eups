@@ -116,7 +116,12 @@ class DistribServer(object):
         are available on the server, where * is a tag name.  The flavor 
         parameter is ignored.
         """
-        return [x[:-5] for x in [f for f in self.listFiles("", noaction) if f.endswith(".list")]]
+        tagNames = []
+        for f in self.listFiles("", noaction):
+            if f.endswith(".list"):
+                tagNames.append(x[:-5])
+
+        return tagNames
 
     def getTagNamesFor(self, product, version, flavor="generic", tags=None, noaction=False):
         """

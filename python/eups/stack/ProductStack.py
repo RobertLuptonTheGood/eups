@@ -694,13 +694,18 @@ class ProductStack(object):
 
             self.lookup[flavor] = lookup
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def findCachedFlavors(dir):
 
-        # read comments from bottom to top
-        return list([a.group(1) for a in [b for b in [ProductStack.persistFileRe.match(c) for c in os.listdir(dir)] if b]])
-
-    findCachedFlavors = staticmethod(findCachedFlavors) # works since python2.2
+        flavors = []
+        # list contents of directory
+        for c in os.listdir(dir):
+            # match file against cache file pattern
+            b = ProductStack.persistFileRe.match(c)
+            if b:
+                # grab only cache files
+                flavors.append(b.group(1))
+        return flavors
 
     def refreshFromDatabase(self, userTagDir=None):
         """

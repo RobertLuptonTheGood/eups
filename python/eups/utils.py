@@ -532,7 +532,10 @@ def createTempDir(path):
     #
     if not os.path.isdir(path):
         dir = "/"
-        for d in [el for el in path.split(os.path.sep) if el]:
+        for d in path.split(os.path.sep):
+            # Gracefuly handle mangled paths with double slashes, etc, such as '/fo//bar/x'
+            if not d: continue
+
             dir = os.path.join(dir, d)
             
             if not os.path.isdir(dir):

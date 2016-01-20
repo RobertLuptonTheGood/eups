@@ -237,10 +237,11 @@ def execute_file(startupFile):
     from .VersionCompare import VersionCompare    
 
     _globals = {}
-    for key in [k for k in globals().keys() if k.startswith('__')]:
-        _globals[key] = globals()[key]
+    for key in globals().keys():
+        if key.startswith('__'):
+            _globals[key] = globals()[key]
     del key
-        
+
     #
     # Dictionaries loaded from startup files should only have known keys
     #
