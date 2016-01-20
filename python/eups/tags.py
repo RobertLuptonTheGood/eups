@@ -104,7 +104,7 @@ class Tags(object):
         """
         out = []
         for group in self.bygrp.keys():
-            out.extend([self.getTag(x) for x in self.bygrp[group]])
+            out.extend(self.getTag(x) for x in self.bygrp[group])
         return out
 
     def getTag(self, tag):

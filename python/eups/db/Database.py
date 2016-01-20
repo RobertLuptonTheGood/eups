@@ -201,8 +201,8 @@ class _Database(object):
         if self._getUserTagDb():
             udir = self._productDir(productName, self._getUserTagDb())
             if os.path.isdir(udir):
-                tags.extend(["user:"+t for t in self._findTagsInDir(udir, productName,
-                                                    version, flavor)])
+                tags.extend("user:"+t for t in self._findTagsInDir(udir, productName,
+                                                    version, flavor))
 
         return tags
 

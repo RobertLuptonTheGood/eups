@@ -143,14 +143,14 @@ class ProductStack(object):
         else:
             prods = self.lookup[flavor].values()
 
-        return _uniquify(_lol2l([z.getTags() for z in prods]))
+        return _uniquify(_lol2l(z.getTags() for z in prods))
 
     def getProductNames(self, flavor=None):
         """
         return the names of all declared products
         """
         if flavor is None:
-            return _uniquify(_lol2l([list(z.keys()) for z in self.lookup.values()]))
+            return _uniquify(_lol2l(list(z.keys()) for z in self.lookup.values()))
         else:
             return list(self.lookup[flavor].keys())
 
@@ -163,7 +163,7 @@ class ProductStack(object):
         """
         try:
           if flavor is None:
-            return _uniquify(_lol2l([z[productName].getVersions() for z in self.lookup.values()]))
+            return _uniquify(_lol2l(z[productName].getVersions() for z in self.lookup.values()))
           else:
             return self.lookup[flavor][productName].getVersions()
         except KeyError:
@@ -396,7 +396,7 @@ class ProductStack(object):
         if flavors is None:
             self.updated = self.getFlavors()
         elif isinstance(flavors, list):
-            self.updated.extend([x for x in flavors if x not in self.updated])
+            self.updated.extend(x for x in flavors if x not in self.updated)
         elif flavors not in self.updated:
             self.updated.append(flavors)
 
@@ -848,7 +848,7 @@ def _uniquify(lis):
     return lis
 
 def _lol2l(lol, tolist=None):
-    # convert a list-of-lists to a single list
+    # convert a list-of-lists (iterable) to a single list
     # @param lol     the list of lists
     # @param tolist  a function to apply outer list item to transform it
     #                   into a list

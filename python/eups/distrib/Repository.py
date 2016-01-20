@@ -317,7 +317,7 @@ class Repository(object):
 
                 for flav in flavs:
                     if version is None:
-                        out.extend( [(prod, v, flav) for v in self._pkgList[prod][flav]] )
+                        out.extend( (prod, v, flav) for v in self._pkgList[prod][flav] )
                     elif version and isinstance(version, str):
                         if version not in self._pkgList[prod][flav]:
                             continue
