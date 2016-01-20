@@ -16,9 +16,37 @@ import pwd
 
 # load the correct StringIO module (StringIO in 2, io in 3)
 if sys.version_info[0] == 2:
+    # Python 2.x versions
     import cStringIO as StringIO
+
+    xrange = xrange
+
+    def cmp_or_key(cmp):
+        return { 'cmp': cmp }
+
+    reload = reload
+
+    cmp = cmp
+
+    reduce = reduce
 else:
+    # Python 3.x versions
     import io as StringIO
+
+    xrange = range
+
+    import functools
+    def cmp_or_key(cmp):
+        return { 'key': functools.cmp_to_key(cmp) }
+
+    import importlib
+    reload = importlib.reload
+
+    def cmp(a, b):
+        return (a > b) - (a < b)
+
+    import functools
+    reduce = functools.reduce
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -33,9 +61,16 @@ def getUserName(full=False):
     euid = os.geteuid()
     try:
         pw = pwd.getpwuid(euid)
+
+        # If pw_gecos field is empty, default to username
+        if pw[4] != "":
+            fullName = re.sub(r",.*", "", pw[4])
+        else:
+            fullName = pw[0]
+
         getUserName.who = {
             False : pw[0],
-            True: re.sub(r",.*", "", pw[4])
+            True: fullName
             }
     except KeyError:
         print("Warning: getpwuid failed, guessing username from LOGNAME or USER variable", file=stdwarn)
@@ -310,7 +345,7 @@ def guessProduct(dir, productName=None):
         else:
             raise RuntimeError("%s doesn't seem to exist" % dir)
             
-    productNames = map(lambda t: re.sub(r".*/([^/]+)\.table$", r"\1", t), glob.glob(os.path.join(dir, "*.table")))
+    productNames = [re.sub(r".*/([^/]+)\.table$", r"\1", t) for t in glob.glob(os.path.join(dir, "*.table"))]
 
     if not productNames:
         if productName:
@@ -451,8 +486,7 @@ class ConfigProperty(object):
         return strm.getvalue()
 
     def properties(self):
-        out = self.__dict__.fromkeys(filter(lambda a: not a.startswith('_'), 
-                                            self.__dict__.keys()))
+        out = self.__dict__.fromkeys([a for a in self.__dict__.keys() if not a.startswith('_')])
         for k in out.keys():
             if isinstance(self.__dict__[k], ConfigProperty):
                 out[k] = self.__dict__[k]._props()
@@ -498,7 +532,10 @@ def createTempDir(path):
     #
     if not os.path.isdir(path):
         dir = "/"
-        for d in filter(lambda el: el, path.split(os.path.sep)):
+        for d in path.split(os.path.sep):
+            # Gracefuly handle mangled paths with double slashes, etc, such as '/fo//bar/x'
+            if not d: continue
+
             dir = os.path.join(dir, d)
             
             if not os.path.isdir(dir):
@@ -790,13 +827,27 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
 
     graph = component_graph
 
+    def cmp_prods_and_none(a, b):
+        """ Compare a and b, allowing either to be None. None
+            compares less than anything else. This function is
+            needed for Python 3 compatibility, where Product
+            is not any more comparable to NoneType.
+        """
+        if a is None:
+            if b is None:
+                return 0
+            return -1
+        if b is None:
+            return 1
+        return cmp(a, b)
+
     while True:
         ordered = set(item for item, dep in graph.items() if not dep)
         if not ordered:
             break
         flattened_ordered = [p for comp in list(ordered)
                                for p    in comp]
-        yield sorted(flattened_ordered)
+        yield sorted(flattened_ordered, **cmp_or_key(cmp_prods_and_none))
         ngraph = {}
         for item, dep in graph.items():
             if item not in ordered:

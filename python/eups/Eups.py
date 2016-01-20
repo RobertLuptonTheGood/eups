@@ -20,6 +20,7 @@ from .exceptions import ProductNotFound, EupsException, TableError, TableFileNot
 from .table      import Table, Action
 from .Product    import Product
 from .Uses       import Uses
+from .utils      import cmp_or_key, xrange, cmp
 from . import hooks
 
 class Eups(object):
@@ -701,7 +702,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 raise TagNotRecognized(str(notokay), msg="Unsupported tag(s): " + ", ".join(notokay))
             elif self.quiet <= 0:
                 print("Ignoring unsupported tags in VRO:", ", ".join(notokay), file=utils.stdwarn)
-                tags = filter(self.tags.isRecognized, tags)
+                tags = list(filter(self.tags.isRecognized, tags))
 
         if len(tags) == 0:
             if self.quiet <= 0 or self.verbose > 1:
@@ -954,11 +955,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                         indent = ""
 
                     msg = "%sVRO [%s] failed to match for %s version %s" % \
-                          (indent, ", ".join(filter(lambda x: not re.search("^warn(:\d+)?$", x), preVro)),
+                          (indent, ", ".join([x for x in preVro if not re.search("^warn(:\d+)?$", x)]),
                            name, vname,)
                     if postVro:
                         msg += "; trying [%s]" % \
-                               (", ".join(filter(lambda x: not re.search("^warn(:\d+)?$", x), postVro)))
+                               (", ".join([x for x in postVro if not re.search("^warn(:\d+)?$", x)]))
                     if flavor:
                         msg += " (Flavor: %s)" % flavor
 
@@ -1328,7 +1329,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # consult the cache
                 try: 
                     vers = self.versions[root].getVersions(name, flavor)
-                    vers.sort(self.version_cmp)
+                    vers.sort(**cmp_or_key(self.version_cmp))
                     if len(vers) == 0:
                         continue
 
@@ -1367,7 +1368,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if len(products) == 0: 
                     continue
 
-                products = filter(lambda z: self.version_match(z.version, expr), products)
+                products = [z for z in products if self.version_match(z.version, expr)]
                 for prod in products:
                     if prod.version not in outver:
                         out.append(prod)
@@ -1377,7 +1378,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # consult the cache
                 try: 
                     vers = self.versions[root].getVersions(name, flavor)
-                    vers = filter(lambda z: self.version_match(z, expr), vers)
+                    vers = [z for z in vers if self.version_match(z, expr)]
                     if len(vers) == 0:
                         continue
                     for ver in vers:
@@ -1405,8 +1406,8 @@ The what argument tells us what sort of state is expected (allowed values are de
             tag = self.tags.getTag(tag)  # should not fail
             if tag.name == "latest":
                 # find the latest version; first order the versions
-                vers = map(lambda p: p.version, products)
-                vers.sort(self.version_cmp)
+                vers = [p.version for p in products]
+                vers.sort(**cmp_or_key(self.version_cmp))
 
                 # select the product with the latest version
                 if len(vers) > 0:
@@ -1504,7 +1505,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         productList = []
 
-        for key in filter(lambda k: re.search(re_setup, k), os.environ.keys()):
+        for key in [k for k in os.environ.keys() if re.search(re_setup, k)]:
             try:
                 productInfo = os.environ[key].split()
                 productName = productInfo[0]
@@ -1679,7 +1680,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         """Return vname if it matches the logical expression expr"""
 
         expr0 = expr
-        expr = filter(lambda x: not re.search(r"^\s*$", x), re.split(r"\s*(%s|\|\||\s)\s*" % self._relop_re.pattern, expr0))
+        expr = [x for x in re.split(r"\s*(%s|\|\||\s)\s*" % self._relop_re.pattern, expr0) if not re.search(r"^\s*$", x)]
 
         logop = None                    # the next logical operation to process
         value = None                    # the value of the current term (e.g. ">= 2.0.0")
@@ -1974,7 +1975,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if recursionDepth == 0:
             self._msgs["setup"] = {}
 
-        indent = "| " * (recursionDepth/2)
+        indent = "| " * (recursionDepth//2)
         if recursionDepth%2 == 1:
             indent += "|"
 
@@ -2409,7 +2410,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             #   if isinstance(tablefile, file):
             # look for file-like methods; this accepts StringIO objects
             #
-            if hasattr(tablefile,"readlines") and hasattr(tablefile,"next"):
+            if hasattr(tablefile,"readlines") and hasattr(tablefile,"read"):
                 ups_dir = os.path.join("$UPS_DB",
                                        utils.extraDirPath(self.flavor, productName, versionName), "ups")
                 #
@@ -2754,7 +2755,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 raise ProductNotFound(productName, stack=eupsPathDir)
 
             elif len(productList) > 1:
-                versionList = map(lambda el: el.version, productList)
+                versionList = [el.version for el in productList]
                 raise EupsException("Product %s has versions \"%s\"; please choose one and try again" %
                                      (productName, "\" \"".join(versionList)))
 
@@ -2910,7 +2911,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # match the product name
                 prodnames = stack.getProductNames(flavor)
                 if name:
-                    prodnames = fnmatch.filter(prodnames, name)
+                    prodnames = list(fnmatch.filter(prodnames, name))
                 prodnames.sort()
 
                 for pname in prodnames:
@@ -2929,8 +2930,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if self.isLegalRelativeVersion(version): # version is actually an expression
                             vers = [v for v in vers if self.version_match(v, version)]
                         else:
-                            vers = fnmatch.filter(vers, version)
-                    vers.sort(self.version_cmp)
+                            vers = list(fnmatch.filter(vers, version))
+                    vers.sort(**cmp_or_key(self.version_cmp))
 
                     # only include latest if it passes the version constraint
                     if latest is not None and latest.version not in vers:
@@ -2974,7 +2975,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                     # append any matched setup products having current
                     # name, flavor and stack directory
-                    for key in filter(lambda k: k.startswith("%s:%s:%s" % (pname, flavor, d)), setup.keys()):
+                    for key in [k for k in setup.keys() if k.startswith("%s:%s:%s" % (pname, flavor, d))]:
                         out.append(setup[key])
                         del setup[key]
 
@@ -2990,7 +2991,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             # Add in LOCAL: setups
             #
-            sunames = setup.keys()
+            sunames = list(setup.keys())
             sunames.sort()
             for pname in sunames:
                 prod = setup[pname]
@@ -3157,8 +3158,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if pname in tsorted_depth:
                     p[2] = tsorted_depth[pname]
 
-            dependentProducts.sort(lambda a, b: cmp((a[2], a[0].name),
-                                                    (b[2], b[0].name))) # sort by topological depth
+            dependentProducts.sort(**cmp_or_key(lambda a, b: cmp((a[2], a[0].name),
+                                                    (b[2], b[0].name)))) # sort by topological depth
             #
             # Make dependentProducts unique, but be careful to mark a product that is sometimes required and
             # sometimes optional as required
@@ -3278,8 +3279,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         productsToRemove = []
         for product, o, recursionDepth in deps:
             if checkRecursive:
-                usedBy = filter(lambda el: el[0] != topProduct or el[1] != topVersion,
-                                userInfo.users(product.name, product.version))
+                usedBy = [el for el in userInfo.users(product.name, product.version) if el[0] != topProduct or el[1] != topVersion]
 
                 if usedBy:
                     tmp = []
@@ -3659,7 +3659,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if self.exact_version:          # this is a property of self
                 self.makeVroExact()
             if inexact_version:             # this is a request to not process type:exact in the vro
-                self._vro = filter(lambda el: el != "type:exact", self._vro)
+                self._vro = [el for el in self._vro if el != "type:exact"]
         if self.verbose > 1:
             print("Using VRO for \"%s\"%s: %s" % (vroTag, extra, self._vro), file=utils.stdinfo)
         #
@@ -3737,7 +3737,7 @@ such sequences can be generated while rewriting the VRO"""
 
         if tagVroEntries:
             if movedTags:
-                if not filter(lambda x: re.search(r"^warn:[01]", x), vro):
+                if not [x for x in vro if re.search(r"^warn:[01]", x)]:
                     vro += ["warn:1"]
 
             vro += tagVroEntries

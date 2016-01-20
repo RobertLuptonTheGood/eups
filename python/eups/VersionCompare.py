@@ -1,5 +1,7 @@
 import re
 
+from .utils import cmp
+
 class VersionCompare(object):
     """
     A comparison function class that compares two product versions.

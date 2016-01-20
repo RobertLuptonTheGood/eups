@@ -246,11 +246,11 @@ class Product(object):
     def _resolve(self, value, data, skip=None):
         if not value: return value
 
-        dosub = data.keys()
+        dosub = list(data.keys())
         if skip:
             if isinstance(skip, str):
                 skip = skip.split()
-            dosub = filter(lambda n: n not in skip, dosub)
+            dosub = [n for n in dosub if n not in skip]
 
         for name in dosub:
             if name in macrore and data[name]:

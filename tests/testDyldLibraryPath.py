@@ -9,12 +9,13 @@ import os, os.path
 import unittest
 import subprocess
 import testCommon
+from testCommon import testEupsStack
 
 sh_test = """\
 export DYLD_LIBRARY_PATH=%s
 echo $DYLD_LIBRARY_PATH
 
-source ../bin/setups.sh
+. $EUPS_DIR/bin/setups.sh
 
 setup dyldtest -r . -m dyldtest.table
 echo $DYLD_LIBRARY_PATH
@@ -27,7 +28,7 @@ csh_test = """\
 setenv DYLD_LIBRARY_PATH %s
 echo $DYLD_LIBRARY_PATH
 
-source ../bin/setups.csh
+source $EUPS_DIR/bin/setups.csh
 
 setup dyldtest -r . -m dyldtest.table
 echo $DYLD_LIBRARY_PATH
@@ -41,18 +42,12 @@ TestDir = os.path.abspath(os.path.dirname(__file__))
 class DyldLibraryPath(unittest.TestCase):
 
     def setUp(self):
-        # remove any SETUP_ variables from the environment
-        # as well as EUPS_DIR
         self.initialDir = os.path.abspath(".")
         os.chdir(TestDir)
 
         self.env = os.environ.copy()
-
-        for key in self.env.keys():
-            if key.startswith('SETUP_'):
-                del self.env[key]
-
-        self.env.pop('EUPS_DIR', None)
+        if "EUPS_DIR" not in self.env:
+            self.env["EUPS_DIR"] = os.path.dirname(testEupsStack)
 
     def tearDown(self):
         os.chdir(self.initialDir)
@@ -60,7 +55,7 @@ class DyldLibraryPath(unittest.TestCase):
     def _run_script(self, shell, cmds, expect):
         # Run script in the cleaned-up environment
         try:
-            output = subprocess.check_output([shell, '-c', cmds], stderr=subprocess.STDOUT, env=self.env)
+            output = subprocess.check_output([shell, '-c', cmds], stderr=subprocess.STDOUT, env=self.env, universal_newlines=True)
         except subprocess.CalledProcessError as e:
             self.fail("Failed to run test for shell %s with args={%s}.\nretcode=%s\noutput: %s" % (shell, cmds, e.returncode, e.output))
 

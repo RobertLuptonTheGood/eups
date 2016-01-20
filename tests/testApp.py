@@ -188,7 +188,7 @@ setupRequired(python)
         self.assert_(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
         self.assert_(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
 
-        self.assertEquals(len(filter(lambda p: p[0] == "newprod", self.eups.uses("python"))), 2,
+        self.assertEquals(len(p for p in self.eups.uses("python") if p[0] == "newprod"), 2,
                           "newprod does not depend on python")
 
         # now we are ready to go: request the beta version of newprod
@@ -267,7 +267,7 @@ setupRequired(python)
         self.assert_(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
         self.assert_(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
 
-        self.assertEquals(len(filter(lambda p: p[0] == "newprod", self.eups.uses("python"))), 2,
+        self.assertEquals(len(p for p in self.eups.uses("python") if p[0] == "newprod"), 2,
                           "newprod does not depend on python")
 
         # now we are ready to go: request the beta version of newprod
@@ -322,7 +322,7 @@ setupRequired(python 2.5.2 [>= 2.5])
         self.assert_(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
         self.assert_(self.eups.findProduct("python", "test") is not None, "python test not declared")
 
-        self.assertEquals(len(filter(lambda p: p[0] == "newprod", self.eups.uses("python"))), 2,
+        self.assertEquals(len(p for p in self.eups.uses("python") if p[0] == "newprod"), 2,
                           "newprod does not depend on python")
 
         # now we are ready to go: request the beta version of newprod

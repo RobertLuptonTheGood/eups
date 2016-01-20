@@ -33,7 +33,7 @@ class ProductFamily(object):
         """
         return a list containing the verison names in this product family
         """
-        return self.versions.keys()
+        return list(self.versions.keys())
 
     def getProduct(self, version, dbpath=None, flavor=None):
         """
@@ -47,8 +47,7 @@ class ProductFamily(object):
         """
         try:
             versdata = self.versions[version]
-            tags = map(lambda item: item[0], 
-                       filter(lambda x: x[1]==version, self.tags.items()))
+            tags = [item[0] for item in [x for x in self.tags.items() if x[1] == version]]
             out = Product(self.name, version, flavor, 
                           versdata[0],    # the install directory
                           versdata[1],    # the table file
@@ -65,7 +64,7 @@ class ProductFamily(object):
         return a list of the tag names assigned to versions in this 
         product family
         """
-        return self.tags.keys()
+        return list(self.tags.keys())
 
     def isTagAssigned(self, tag):
         """
@@ -157,8 +156,7 @@ class ProductFamily(object):
         @return bool :
         """
         if self.hasVersion(version):
-            itsTags = map(lambda y: y[0], 
-                       filter(lambda x: x[1]==version, self.versions.items()))
+            itsTags = [y[0] for y in [x for x in self.versions.items() if x[1] == version]]
             for tag in itsTags:
                 self.unassignTag(tag)
             del self.versions[version]

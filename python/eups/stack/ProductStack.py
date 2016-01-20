@@ -9,6 +9,7 @@ from eups import Product
 from .ProductFamily import ProductFamily
 from eups.exceptions import EupsException,ProductNotFound, UnderSpecifiedProduct
 from eups.db import Database
+from ..utils import xrange
 
 # Issues:
 #  o  restoring from cache (when and how) 
@@ -131,7 +132,7 @@ class ProductStack(object):
         """
         return the platform flavors supported by this stack
         """
-        return self.lookup.keys()
+        return list(self.lookup.keys())
 
     def getTags(self, flavor=None):
         """
@@ -142,17 +143,16 @@ class ProductStack(object):
         else:
             prods = self.lookup[flavor].values()
 
-        return _uniquify(_lol2l(map(lambda z: z.getTags(), prods)))
+        return _uniquify(_lol2l(z.getTags() for z in prods))
 
     def getProductNames(self, flavor=None):
         """
         return the names of all declared products
         """
         if flavor is None:
-            return _uniquify(_lol2l(map(lambda z: z.keys(), 
-                                        self.lookup.values())))
+            return _uniquify(_lol2l(list(z.keys()) for z in self.lookup.values()))
         else:
-            return self.lookup[flavor].keys()
+            return list(self.lookup[flavor].keys())
 
     def getVersions(self, productName, flavor=None):
         """
@@ -163,8 +163,7 @@ class ProductStack(object):
         """
         try:
           if flavor is None:
-            return _uniquify(_lol2l(map(lambda z: z[productName].getVersions(),
-                                        self.lookup.values())))
+            return _uniquify(_lol2l(z[productName].getVersions() for z in self.lookup.values()))
           else:
             return self.lookup[flavor][productName].getVersions()
         except KeyError:
@@ -245,7 +244,7 @@ class ProductStack(object):
 
             self.persist(flavor, file)
             if dir is None:
-                self.updated = filter(lambda x: x != flavor, self.updated)
+                self.updated = [x for x in self.updated if x != flavor]
 
         if len(outofsync) > 0:
             raise CacheOutOfSync(outofsync)
@@ -300,7 +299,7 @@ class ProductStack(object):
         flavorData = self.lookup[flavor]
 
         fd = utils.AtomicFile(file, "wb")
-        pickle.dump(flavorData, fd)
+        pickle.dump(flavorData, fd, protocol=2)
         fd.close()
         self.modtimes[file] = os.stat(file).st_mtime
 
@@ -397,7 +396,7 @@ class ProductStack(object):
         if flavors is None:
             self.updated = self.getFlavors()
         elif isinstance(flavors, list):
-            self.updated.extend(filter(lambda x: x not in self.updated,flavors))
+            self.updated.extend(x for x in flavors if x not in self.updated)
         elif flavors not in self.updated:
             self.updated.append(flavors)
 
@@ -505,7 +504,7 @@ class ProductStack(object):
         @throws ProductNotFound   if the specified product is not found
         """
         if flavors is None:
-            return self.assignTag(tag, product, version, self.lookup.keys())
+            return self.assignTag(tag, product, version, list(self.lookup.keys()))
 
         notfound = True
         if not isinstance(flavors, list):
@@ -689,24 +688,24 @@ class ProductStack(object):
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
             self.modtimes[fileName] = os.stat(fileName).st_mtime
-            fd = open(fileName)
+            fd = open(fileName, "rb")
             lookup = pickle.load(fd)
             fd.close()
 
             self.lookup[flavor] = lookup
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def findCachedFlavors(dir):
 
-        # read comments from bottom to top
-        return map(lambda a: a.group(1),  # extra flavor name
-                   filter(lambda b: b,    # grab only cache files
-                          # match file against cache file pattern
-                          map(lambda c: ProductStack.persistFileRe.match(c),
-                              # list contents of directory
-                              os.listdir(dir))))
-
-    findCachedFlavors = staticmethod(findCachedFlavors) # works since python2.2
+        flavors = []
+        # list contents of directory
+        for c in os.listdir(dir):
+            # match file against cache file pattern
+            b = ProductStack.persistFileRe.match(c)
+            if b:
+                # grab only cache files
+                flavors.append(b.group(1))
+        return flavors
 
     def refreshFromDatabase(self, userTagDir=None):
         """
@@ -849,7 +848,7 @@ def _uniquify(lis):
     return lis
 
 def _lol2l(lol, tolist=None):
-    # convert a list-of-lists to a single list
+    # convert a list-of-lists (iterable) to a single list
     # @param lol     the list of lists
     # @param tolist  a function to apply outer list item to transform it
     #                   into a list

@@ -55,7 +55,7 @@ class ChainFile(object):
 
         @return string[] :  the supported flavor names
         """
-        return self.info.keys()
+        return list(self.info.keys())
 
     def hasFlavor(self, flavor):
         """

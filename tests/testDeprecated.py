@@ -15,7 +15,7 @@ syserr = sys.stderr
 newerr = StringIO.StringIO()
 sys.stderr = newerr
 import eups.utils
-reload(eups.utils)
+eups.utils.reload(eups.utils)
 sys.stderr = syserr
 
 from eups.Product import Product
@@ -35,7 +35,7 @@ class DeprecatedTestCase(unittest.TestCase):
         self._resetOut()
 
     def _resetOut(self):
-        newerr.reset()
+        newerr.seek(0)
         newerr.truncate()
         # sys.stderr = newerr
 

@@ -136,11 +136,11 @@ class VersionFile(object):
         s = ""
         s += "Product: %s  Version: %s" % (self.name, self.version)
 
-        flavors = self.info.keys(); flavors.sort()
+        flavors = sorted(self.info.keys());
         for flavor in flavors:
             s += "\n------------------"
             s += "\nFlavor: %s" % flavor
-            keys = self.info[flavor].keys(); keys.sort()
+            keys = sorted(self.info[flavor].keys())
             for key in keys:
                 s += "\n%-20s : %s" % (key, self.info[flavor][key])
 
@@ -182,11 +182,11 @@ class VersionFile(object):
     def _resolve(self, value, data, skip=None):
         if not value: return value
 
-        dosub = data.keys()
+        dosub = list(data.keys())
         if skip:
             if isinstance(skip, str):
                 skip = skip.split()
-            dosub = filter(lambda n: n not in skip, dosub)
+            dosub = [n for n in dosub if n not in skip]
 
         for name in dosub:
             if name in macrore and data[name]:
@@ -199,7 +199,7 @@ class VersionFile(object):
         return Product instances for all of the flavors declared in the file.
         @return Product[] :
         """
-        return map(lambda x: self.makeProduct(x), self.info.keys())
+        return [self.makeProduct(x) for x in self.info.keys()]
           
 
     def getFlavors(self):
@@ -207,7 +207,7 @@ class VersionFile(object):
         return the list of flavors declared in this file.
         @return string[] :
         """
-        return self.info.keys()
+        return list(self.info.keys())
 
     def hasFlavor(self, flavor):
         """
@@ -448,6 +448,10 @@ class VersionFile(object):
             if os.path.exists(file):  os.remove(file)
             return
 
+        # Make sure we correctly identify subpaths
+        if trimDir:
+            trimDir = os.path.realpath(trimDir)
+
         fd = open(file, "w")
 
         print("""FILE = version
@@ -479,6 +483,7 @@ Group:
 
                 if os.path.isfile(value) or os.path.isdir(value):
                     if trimDir and eups.utils.isSubpath(value, trimDir):
+                        value = os.path.realpath(value)
                         if trimDir == value:
                             pass        # special case: we are setting something to trimDir
                         else:

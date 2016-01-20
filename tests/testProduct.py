@@ -37,10 +37,10 @@ class ProductTestCase(unittest.TestCase):
         self.assertIn("mine", p.tags)
 
     def testPersist(self):
-        fd = file("test_product.pickle", "wb")
+        fd = open("test_product.pickle", "wb")
         self.prod.persist(fd)
         fd.close()
-        fd = file("test_product.pickle")
+        fd = open("test_product.pickle", "rb")
         p = Product.unpersist(fd)
 
         self.assertEqual(self.prod.name, p.name)

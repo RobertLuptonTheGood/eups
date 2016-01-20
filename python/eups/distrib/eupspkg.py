@@ -702,7 +702,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         # Prepare the string with all unrecognized options, to be passed to eupspkg on the command line
         # FIXME: This is not the right way to do it. -S options should be preserved in a separate dict()
         knownopts = set(['config', 'nobuild', 'noclean', 'noaction', 'exact', 'allowIncomplete', 'buildDir', 'noeups', 'installCurrent']);
-        self.qopts = " ".join( "%s=%s" % (k.upper(), pipes.quote(str(v))) for k, v in self.options.iteritems() if k not in knownopts )
+        self.qopts = " ".join( "%s=%s" % (k.upper(), pipes.quote(str(v))) for k, v in self.options.items() if k not in knownopts )
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
