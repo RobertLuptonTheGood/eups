@@ -16,9 +16,37 @@ import pwd
 
 # load the correct StringIO module (StringIO in 2, io in 3)
 if sys.version_info[0] == 2:
+    # Python 2.x versions
     import cStringIO as StringIO
+
+    xrange = xrange
+
+    def cmp_or_key(cmp):
+        return { 'cmp': cmp }
+
+    reload = reload
+
+    cmp = cmp
+
+    reduce = reduce
 else:
+    # Python 3.x versions
     import io as StringIO
+
+    xrange = range
+
+    import functools
+    def cmp_or_key(cmp):
+        return { 'key': functools.cmp_to_key(cmp) }
+
+    import importlib
+    reload = importlib.reload
+
+    def cmp(a, b):
+        return (a > b) - (a < b)
+
+    import functools
+    reduce = functools.reduce
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
