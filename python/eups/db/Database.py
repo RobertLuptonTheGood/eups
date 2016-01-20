@@ -7,6 +7,7 @@ from .ChainFile import ChainFile
 import eups.tags
 from eups.Product import Product
 from eups.exceptions import UnderSpecifiedProduct, ProductNotFound, TableFileNotFound
+from eups.utils import xrange, cmp_or_key
 
 versionFileExt = "version"
 versionFileTmpl = "%s." + versionFileExt
@@ -344,10 +345,10 @@ class _Database(object):
 #
 #  replaced with moral equivalent:
 #                          
-        v = map(lambda z:  z.values(), out.values())
+        v = list(map(lambda z:  list(z.values()), list(out.values())))
         x = v[0]
         for y in v[1:]:  x.extend(y)
-        x.sort(_cmp_by_verflav)
+        x.sort(**cmp_or_key(_cmp_by_verflav))
         return x
 
     def getTagAssignments(self, productName, glob=True, user=True):
@@ -691,7 +692,7 @@ class _Database(object):
 
         if not dbrootdir:
             dbrootdir = self.dbpath
-        proddirs = map(lambda d: os.path.join(self.dbpath, d), self.findProductNames())
+        proddirs = list(map(lambda d: os.path.join(self.dbpath, d), self.findProductNames()))
 
         for prod in proddirs:
             # check the directory mod-time: this will catch recent removal

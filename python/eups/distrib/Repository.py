@@ -6,7 +6,7 @@ from __future__ import absolute_import, print_function
 import sys
 import eups
 from eups.tags      import Tag, TagNotRecognized
-from eups.utils     import Flavor, isDbWritable
+from eups.utils     import Flavor, isDbWritable, cmp_or_key, xrange
 from eups.exceptions import EupsException, ProductNotFound
 from .server         import ServerConf, Manifest, Mapping, TaggedProductList
 from .server         import LocalTransporter
@@ -144,19 +144,19 @@ class Repository(object):
             lookup[pkg[0]][pkg[2]].append(pkg[1])
 
         # now sort the contents
-        keys = lookup.keys()
+        keys = list(lookup.keys())
         keys.sort()
         lookup["_sortOrder"] = keys
 
         for prod in lookup["_sortOrder"]:
-            keys = filter(lambda f: f != "generic", lookup[prod].keys())
+            keys = list(filter(lambda f: f != "generic", lookup[prod].keys()))
             keys.sort()
             if "generic" in lookup[prod].keys():
                 keys.insert(0, "generic")
             lookup[prod]["_sortOrder"] = keys
 
             for flav in lookup[prod]["_sortOrder"]:
-                lookup[prod][flav].sort(self.eups.version_cmp)
+                lookup[prod][flav].sort(**cmp_or_key(self.eups.version_cmp))
 
         return lookup
 
@@ -337,16 +337,16 @@ class Repository(object):
         for p in prods:
             names[p[0]] = 1
             flavors[p[2]] = 1
-        names = names.keys()
+        names = list(names.keys())
         names.sort()
-        flavors = filter(lambda f: f != "generic", flavors.keys())
+        flavors = list(filter(lambda f: f != "generic", flavors.keys()))
         flavors.sort()
         flavors.insert(0, "generic")
         
         for name in names:
             for flav in flavors:
-                latest = filter(lambda p: p[0] == name and p[2] == flav, prods)
-                latest.sort(lambda a,b: self.eups.version_cmp(a[1],b[1]))
+                latest = list(filter(lambda p: p[0] == name and p[2] == flav, prods))
+                latest.sort(**cmp_or_key(lambda a,b: self.eups.version_cmp(a[1],b[1])))
                 out.extend(latest)
 
         return out

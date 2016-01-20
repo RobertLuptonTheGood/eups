@@ -531,7 +531,7 @@ class TagNameConflict(EupsException):
             
 def checkTagsList(eupsenv, tagList):
     """Check that all tags in list are valid"""
-    badtags = filter(lambda t: not eupsenv.tags.isRecognized(t), tagList)
+    badtags = list(filter(lambda t: not eupsenv.tags.isRecognized(t), tagList))
 
     for tag in badtags[:]:
         fileName = re.sub(r"^file:", "", tag)

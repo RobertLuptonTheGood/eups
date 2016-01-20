@@ -3,6 +3,7 @@ the Uses class -- a class for tracking product dependencies (used by the remove(
 function).  
 """
 import re
+from .utils import cmp_or_key
 
 #
 # Cache for the Uses tree
@@ -98,7 +99,7 @@ class Uses(object):
             else:
                 return cmp(a[0], b[0])
 
-        consumerList.sort(pvsort)
+        consumerList.sort(**cmp_or_key(pvsort))
         
         return consumerList
         

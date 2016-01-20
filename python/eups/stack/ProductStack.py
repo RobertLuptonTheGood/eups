@@ -9,6 +9,7 @@ from eups import Product
 from .ProductFamily import ProductFamily
 from eups.exceptions import EupsException,ProductNotFound, UnderSpecifiedProduct
 from eups.db import Database
+from ..utils import xrange
 
 # Issues:
 #  o  restoring from cache (when and how) 
@@ -131,7 +132,7 @@ class ProductStack(object):
         """
         return the platform flavors supported by this stack
         """
-        return self.lookup.keys()
+        return list(self.lookup.keys())
 
     def getTags(self, flavor=None):
         """
@@ -152,7 +153,7 @@ class ProductStack(object):
             return _uniquify(_lol2l(map(lambda z: z.keys(), 
                                         self.lookup.values())))
         else:
-            return self.lookup[flavor].keys()
+            return list(self.lookup[flavor].keys())
 
     def getVersions(self, productName, flavor=None):
         """
@@ -245,7 +246,7 @@ class ProductStack(object):
 
             self.persist(flavor, file)
             if dir is None:
-                self.updated = filter(lambda x: x != flavor, self.updated)
+                self.updated = list(filter(lambda x: x != flavor, self.updated))
 
         if len(outofsync) > 0:
             raise CacheOutOfSync(outofsync)
@@ -505,7 +506,7 @@ class ProductStack(object):
         @throws ProductNotFound   if the specified product is not found
         """
         if flavors is None:
-            return self.assignTag(tag, product, version, self.lookup.keys())
+            return self.assignTag(tag, product, version, list(self.lookup.keys()))
 
         notfound = True
         if not isinstance(flavors, list):
@@ -689,7 +690,7 @@ class ProductStack(object):
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
             self.modtimes[fileName] = os.stat(fileName).st_mtime
-            fd = open(fileName)
+            fd = open(fileName, "rb")
             lookup = pickle.load(fd)
             fd.close()
 
@@ -699,12 +700,12 @@ class ProductStack(object):
     def findCachedFlavors(dir):
 
         # read comments from bottom to top
-        return map(lambda a: a.group(1),  # extra flavor name
+        return list(map(lambda a: a.group(1),  # extra flavor name
                    filter(lambda b: b,    # grab only cache files
                           # match file against cache file pattern
                           map(lambda c: ProductStack.persistFileRe.match(c),
                               # list contents of directory
-                              os.listdir(dir))))
+                              os.listdir(dir)))))
 
     findCachedFlavors = staticmethod(findCachedFlavors) # works since python2.2
 

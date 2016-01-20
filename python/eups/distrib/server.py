@@ -116,9 +116,9 @@ class DistribServer(object):
         are available on the server, where * is a tag name.  The flavor 
         parameter is ignored.
         """
-        return map(lambda x: x[:-5], 
+        return list(map(lambda x: x[:-5], 
                    filter(lambda f: f.endswith(".list"), 
-                          self.listFiles("", noaction)))
+                          self.listFiles("", noaction))))
 
     def getTagNamesFor(self, product, version, flavor="generic", tags=None, noaction=False):
         """
@@ -1198,8 +1198,8 @@ class LocalTransporter(Transporter):
             return []
         else:
             if os.path.isdir(self.loc):
-                return filter(lambda f: os.path.isfile(os.path.join(self.loc,f)), 
-                              os.listdir(self.loc))
+                return list(filter(lambda f: os.path.isfile(os.path.join(self.loc,f)), 
+                              os.listdir(self.loc)))
             else:
                 if self.verbose > 0:
                     print("%s does not exist" % self.loc, file=self.log)
@@ -1644,11 +1644,11 @@ class Manifest(object):
                               matching products.  Default is the last matching
                               product.
         """
-        out = filter(lambda x: x.product == product, self.products)
+        out = list(filter(lambda x: x.product == product, self.products))
         if version is not None:
-            out = filter(lambda x: x.version == version, out)
+            out = list(filter(lambda x: x.version == version, out))
         if flavor is not None:
-            out = filter(lambda x: x.flavor == flavor, out)
+            out = list(filter(lambda x: x.flavor == flavor, out))
         if len(out) == 0 or which >= len(out) or which < -len(out):
             return None
         return out[which]

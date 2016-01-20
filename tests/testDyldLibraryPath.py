@@ -55,7 +55,7 @@ class DyldLibraryPath(unittest.TestCase):
     def _run_script(self, shell, cmds, expect):
         # Run script in the cleaned-up environment
         try:
-            output = subprocess.check_output([shell, '-c', cmds], stderr=subprocess.STDOUT, env=self.env)
+            output = subprocess.check_output([shell, '-c', cmds], stderr=subprocess.STDOUT, env=self.env, universal_newlines=True)
         except subprocess.CalledProcessError as e:
             self.fail("Failed to run test for shell %s with args={%s}.\nretcode=%s\noutput: %s" % (shell, cmds, e.returncode, e.output))
 

@@ -33,7 +33,7 @@ class ProductFamily(object):
         """
         return a list containing the verison names in this product family
         """
-        return self.versions.keys()
+        return list(self.versions.keys())
 
     def getProduct(self, version, dbpath=None, flavor=None):
         """

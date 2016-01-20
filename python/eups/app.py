@@ -18,6 +18,7 @@ from .VersionParser  import VersionParser
 from .stack          import ProductStack, persistVersionName as cacheVersion
 from . import utils, table, hooks
 from .exceptions import EupsException
+from .utils import cmp_or_key, cmp
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
                   tags=None, setup=False, tablefile=False, directory=False, 
@@ -95,9 +96,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
             raise ProductNotFound(productName, versionName, msg="Unable to find product %s" % msg)
 
-    productList.sort(lambda a,b: cmp(a, b), 
-                     lambda p: ":".join([p.name, p.version]))
-    
+    productList.sort(key=lambda p: (p.name, p.version))
     if dependencies:
         _msgs = {}               # maintain list of printed dependencies
         recursionDepth, indent = 0, ""
@@ -150,7 +149,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             if not includeProduct(recursionDepth) or (checkCycles and not topological):
                 continue
 
-            if eupsenv.verbose or not _msgs.has_key(product.name):
+            if eupsenv.verbose or not product.name in _msgs:
                 _msgs[product.name] = product.version
 
                 if not re.search(r"==", depth): 
@@ -170,9 +169,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     tagsSeen = {}
     for pi in productList:
         for t in pi.tags:
-            if not tagsSeen.has_key(t):
+            if t not in tagsSeen:
                 tagsSeen[t] = {}
-            if not tagsSeen[t].has_key(pi.name):
+            if pi.name not in tagsSeen[t]:
                 tagsSeen[t][pi.name] = 0
 
             tagsSeen[t][pi.name] += 1
@@ -606,7 +605,7 @@ def listCache(path=None, verbose=0, flavor=None):
 
         for productName in productNames:
             versionNames = cache.getVersions(productName)
-            versionNames.sort(hooks.version_cmp)
+            versionNames.sort(**cmp_or_key(hooks.version_cmp))
 
             print("  %-20s %s" % (productName, " ".join(versionNames)))
 
@@ -759,7 +758,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
                 if re.search(r"^EUPS_(DIR|PATH|PKGROOT|SHELL)$", key):
                     continue
 
-            if os.environ.has_key(key):
+            if key in os.environ:
                 continue
 
             if eupsenv.shell == "sh" or eupsenv.shell == "zsh":
@@ -800,7 +799,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         # and unset ones that used to be present, but are now gone
         #
         for key in eupsenv.oldAliases.keys():
-            if eupsenv.aliases.has_key(key):
+            if key in eupsenv.aliases:
                 continue
 
             if eupsenv.shell == "sh" or eupsenv.shell == "zsh":

@@ -825,13 +825,27 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
 
     graph = component_graph
 
+    def cmp_prods_and_none(a, b):
+        """ Compare a and b, allowing either to be None. None
+            compares less than anything else. This function is
+            needed for Python 3 compatibility, where Product
+            is not any more comparable to NoneType.
+        """
+        if a is None:
+            if b is None:
+                return 0
+            return -1
+        if b is None:
+            return 1
+        return cmp(a, b)
+
     while True:
         ordered = set(item for item, dep in graph.items() if not dep)
         if not ordered:
             break
         flattened_ordered = [p for comp in list(ordered)
                                for p    in comp]
-        yield sorted(flattened_ordered)
+        yield sorted(flattened_ordered, **cmp_or_key(cmp_prods_and_none))
         ngraph = {}
         for item, dep in graph.items():
             if item not in ordered:

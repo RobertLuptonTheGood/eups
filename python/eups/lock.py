@@ -190,7 +190,7 @@ def giveLocks(locks, verbose=0):
 
             os.remove(f)
 
-        nlockFiles = len(os.walk(d).next()[2])
+        nlockFiles = len(next(os.walk(d))[2])
         if nlockFiles == 0:
             os.rmdir(d)
 

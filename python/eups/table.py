@@ -258,7 +258,7 @@ but no other interpretation is applied
             return
 
         try:
-            fd = file(tableFile)
+            fd = open(tableFile)
         except IOError as e:
             raise TableError(tableFile, msg=str(e))
 
@@ -342,11 +342,11 @@ but no other interpretation is applied
                 #
                 args = re.sub(r"(\"[^\"]+\")", lambda s: re.sub(",", "%c" % 3, s.group(0)), args)
 
-                args = filter(lambda s: s, re.split("[, ]", args))
-                args = map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args) # remove quotes
-                args = map(lambda s: re.sub(r'%c' % 1, r' ', s), args) # reinstate \001 as a space
-                args = map(lambda s: re.sub(r'%c' % 2, r'"', s), args) # reinstate \002 as "
-                args = map(lambda s: re.sub(r'%c' % 3, r',', s), args) # reinstate \003 as ,
+                args = list(filter(lambda s: s, re.split("[, ]", args)))
+                args = list(map(lambda s: re.sub(r'^"(.*)"$', r'\1', s), args)) # remove quotes
+                args = list(map(lambda s: re.sub(r'%c' % 1, r' ', s), args)) # reinstate \001 as a space
+                args = list(map(lambda s: re.sub(r'%c' % 2, r'"', s), args)) # reinstate \002 as "
+                args = list(map(lambda s: re.sub(r'%c' % 3, r',', s), args)) # reinstate \003 as ,
 
                 try:
                     cmd = {
@@ -1074,7 +1074,7 @@ class Action(object):
         append_delim = re.search(pat, value)
         value = re.sub(pat, "", value)
 
-        opath = filter(lambda el: el, opath.split(delim)) # strip extra : at start or end
+        opath = list(filter(lambda el: el, opath.split(delim))) # strip extra : at start or end
 
         if fwd:
             value = self.expandEnvironmentalVariable(value, Eups.verbose)
@@ -1093,7 +1093,7 @@ class Action(object):
                 else:
                     npath = [value] + npath
             else:
-                npath = filter(lambda d: d != value, npath)
+                npath = list(filter(lambda d: d != value, npath))
 
         npath = self.pathUnique(npath) # remove duplicates
 

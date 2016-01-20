@@ -4,7 +4,7 @@ testEupsStack = os.path.dirname(__file__)
 
 # clear out any products setup in the environment as these can interfere 
 # with the tests
-setupvars = filter(lambda k: k.startswith('SETUP_'), os.environ.keys())
+setupvars = list(filter(lambda k: k.startswith('SETUP_'), os.environ.keys()))
 for var in setupvars:
     del os.environ[var]
 
