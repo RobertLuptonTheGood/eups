@@ -974,7 +974,7 @@ class WebTransporter(Transporter):
             try:
                 try:                               # for python 2.4 compat
                     url = urlopen(self.loc)
-                    out = open(filename, 'w')
+                    out = open(filename, 'wb')
                     out.write(url.read())
                 except HTTPError:
                     raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
@@ -1044,8 +1044,9 @@ class WebTransporter(Transporter):
         try:
           try:                               # for python 2.4 compat
             url = urlopen(self.loc)
+            encoding = utils.get_content_charset(url)
             for line in url:
-                p.feed(line)
+                p.feed(utils.decode(line, encoding))
 
             url.close()
             if not p.is_apache and self.verbose >= 0:

@@ -29,6 +29,12 @@ if sys.version_info[0] == 2:
     cmp = cmp
 
     reduce = reduce
+
+    def get_content_charset(response):
+        return "ascii"
+
+    def decode(string, encoding):
+        return string
 else:
     # Python 3.x versions
     import io as StringIO
@@ -47,6 +53,12 @@ else:
 
     import functools
     reduce = functools.reduce
+
+    def get_content_charset(response):
+        return response.headers.get_content_charset(failobj='utf-8')
+
+    def decode(string, encoding):
+        return string.decode(encoding)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
