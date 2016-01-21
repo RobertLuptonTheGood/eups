@@ -295,7 +295,7 @@ class Repository(object):
                     raise TagNotRecognized(tag, "global", 
                                            msg="tag %s not supported by server" % tag)
 
-            return self.distServer.listAvailableProducts(product, version, flavor, tag)
+            return self.distServer.listAvailableProducts(product, version, flavor, tagName)
 
         else:
             if self._pkgList is None:
