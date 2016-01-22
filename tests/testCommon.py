@@ -3,6 +3,10 @@ import os.path
 import subprocess
 import glob
 
+# This will activate Python 2.6 compatibility hacks
+if sys.version_info[:2] == (2, 6):
+	import python26compat
+
 testEupsStack = os.path.dirname(__file__)
 
 # clear out any products setup in the environment as these can interfere 
