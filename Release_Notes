@@ -1,3 +1,18 @@
+2016-01-21 mjuric (2.0.1)
+    - Fixed the breakage caused by the introduction of Python 3.x support
+    - Completed Python 3.5 compatibility changes; EUPS should now be fully 
+      functional under Python 3.5
+    - All unit tests now pass on Python 2.6, 2.7 and 3.5
+    - Fixed a number of bugs revealed by the unit tests
+    - Framework for writing functional tests as scripts
+    - eupspkg: reintroduced the TAP_PACKAGE envvar mistakenly removed 
+      in 1.5.8, and deprecated the .tap_package mechanism
+    - release-new-version.sh learned to autogenerate draft release notes
+
+    dev stats:
+      - 62 files changed, 968 insertions(+), 718 deletions(-)
+      - contributors: Russell Owen, Mario Juric, Miguel de Val-Borro, Tim Jenness
+
 2016-01-09 mjuric (2.0.0)
     - Update code to support both python 2.6+ and 3.3+ (dropping 2.5 and older).
       Due to the complexity involved in accomplishing this, this release
