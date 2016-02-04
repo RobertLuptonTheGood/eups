@@ -675,6 +675,7 @@ import sys, os, shutil, tempfile, pipes, stat
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
 
+issued_sconsflags_warning = False
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to implement product distribution based on packages
@@ -933,6 +934,18 @@ TAGLIST_DIR = tags
         # Make sure the buildDir is empty (to avoid interference from failed builds)
         shutil.rmtree(buildDir)
         os.mkdir(buildDir)
+
+        # eupspkg ignores SCONSFLAGS; this may be surprising to some users, so
+        # print out a warning if we detect SCONSFLAGS are set in the environment.
+        # n.b. -- to pass SCONSFLAGS to eupspkg, set EUPSPKG_SCONSFLAGS
+        global issued_sconsflags_warning
+        if not issued_sconsflags_warning:
+            if "SCONSFLAGS" in os.environ and "EUPSPKG_SCONSFLAGS" not in os.environ and self.verbose >= 0:
+                print("\n"
+                      "**NOTICE**: you have SCONSFLAGS set in your environment; we will ignore it.\n"
+                      "If you want to pass SCONSFLAGS to `eups distrib install', please set the\n"
+                      "EUPSPKG_SCONSFLAGS environmental variable.", file=self.log)
+            issued_sconsflags_warning = True
 
         # Construct the build script
         q = pipes.quote
