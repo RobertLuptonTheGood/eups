@@ -1136,7 +1136,7 @@ PYSETUP_INSTALL_OPTIONS=${PYSETUP_INSTALL_OPTIONS:-"--home $PREFIX --prefix="}	#
 export CC=${CC:-cc}				# Autoconf prefers to look for gcc first, and the proper thing is to default to cc. This helps on Darwin.
 export CXX=${CXX:-c++}				# Autoconf prefers to look for gcc first, and the proper thing is to default to c++. This helps on Darwin.
 
-export SCONSFLAGS=${SCONSFLAGS:-"opt=3"}	# Default scons flags
+export SCONSFLAGS=${EUPSPKG_SCONSFLAGS:-"opt=3"}	# Default scons flags
 
 ##################################################################
 #
