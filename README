@@ -1,5 +1,45 @@
-EUPS : A Unix Versioning System
-Copyright (C) 2003-2006 Nikhil Padmanabhan and Robert Lupton
+[![Build Status](https://travis-ci.org/mjuric/eups.svg?branch=master)](https://travis-ci.org/mjuric/eups)
+
+# EUPS : A Unix Product Versioning System
+
+A system similar to [environment modules](http://modules.sourceforge.net)
+that allows for simple management of multiple versions of software on a UNIX
+machine, as well as their dependencies.
+
+Example usage:
+```
+source /path/to/eups/bin/setups.sh  # Initialize EUPS
+setup lsst_distrib 11.0             # Add the LSST software stack v11 to the path
+unsetup lsst_distrib                # Remove the currently set up LSST software stack
+```
+
+## Installing
+
+```
+./configure --prefix=/path/to/eups --with-eups=/path/to/managed/software/products
+make
+make install
+```
+where `/path/to/eups` is the directory where EUPS will be installed, while
+`/path/to/managed/software/products` is the path where software managed by
+EUPS will be installed. It is recommended that the latter is not a subpath
+of the former.
+
+## Manual
+Details on using EUPS are given in the manual, `doc/eups.tex`. To produce
+a readable copy, cd doc and say:
+```
+    latex eups.tex; dvips -f eups.dvi > eups.ps
+```
+or
+```
+    pdflatex eups.tex
+```
+**WARNING: The manual is significantly out of date; caveat reader!**
+
+## Legal
+
+Copyright (C) 2003-2016 Nikhil Padmanabhan and Robert Lupton
 npadmana@princeton.edu and rhl@astro.princeton.edu
 
 This program is free software; you can redistribute it and/or
@@ -20,9 +60,3 @@ Note that this package is distributed free of cost, and the user is
 free to update any/all parts of the code.  This is with the implicit
 assumption that the original code will be acknowledged.
 
-
-Details on installing and using EUPS are given in the manual,
-doc/eups.tex. To produce a readable copy, cd doc and say:
-      latex eups.tex; dvips -f eups.dvi > eups.ps
-or
-      pdflatex eups.tex
