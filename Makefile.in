@@ -32,8 +32,8 @@ install : show
 	@: directories are the same\; they may have different names due to
 	@: symbolic links and automounters
 	@:
-	@if [ -d $(EUPS_DIR) ]; then \
-	    if [ `ls -id $(EUPS_DIR) | awk '{print $$1}'` = `ls -id . | awk '{print $$1}'` ]; then \
+	@if [ -d "$(EUPS_DIR)" ]; then \
+	    if [ `ls -id "$(EUPS_DIR)" | awk '{print $$1}'` = `ls -id . | awk '{print $$1}'` ]; then \
 		echo "The destination directory is the same" \
 			"as the current directory; aborting." >&2; \
 		echo ""; \
@@ -44,11 +44,15 @@ install : show
 	@:
 	@: Delete the contents of $EUPS_DIR, if exists, keeping only the 'site' subdirectory
 	@:
-	@ if [ -d $(EUPS_DIR) ]; then \
-	        chmod -R u+w $(EUPS_DIR)/* ; \
-		$(RM) -r `ls -d $(EUPS_DIR)/* | awk '{ if($$1 != "site") { print } }'`; \
+	@ if [ -d "$(EUPS_DIR)" ]; then \
+	        chmod -R u+w "$(EUPS_DIR)"/* ; \
+	        for f in "$(EUPS_DIR)"/*; do \
+		    if [ -d "$$f" ] && [ `basename "$$f"` != "site" ]; then \
+			rm -r "$$f"; \
+		    fi; \
+		done; \
 	else \
-		mkdir -p $(EUPS_DIR); \
+		mkdir -p "$(EUPS_DIR)"; \
 	fi
 
 	@:
@@ -60,14 +64,14 @@ install : show
 	fi 
 	@ for d in $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}'); do \
 		if [ ! -d $$d ]; then \
-			mkdir -p $$d; \
+			mkdir -p "$$d"; \
 		fi; \
 	done
-	@ for db in $(EUPS_DB); do \
-		if [ -d $$db ]; then \
+	@ for db in "$(EUPS_DB)"; do \
+		if [ -d "$$db" ]; then \
 			echo "EUPS database $$db already exists"; \
 		else \
-			mkdir -p $$db; \
+			mkdir -p "$$db"; \
 		fi; \
 	done
 
@@ -76,14 +80,14 @@ install : show
 	@:
 	@ for f in $(SUBDIRS); do \
 		(\
-		   if [ ! -d $(EUPS_DIR)/$$f ]; then mkdir $(EUPS_DIR)/$$f; fi; \
+		   if [ ! -d "$(EUPS_DIR)"/$$f ]; then mkdir "$(EUPS_DIR)"/$$f; fi; \
 		   cd $$f ; \
 		   echo In $$f; $(MAKE) $(MFLAGS) install \
                 ); \
 	done
-	- cp Makefile README  Release_Notes gpl.txt $(EUPS_DIR)
+	- cp Makefile README  Release_Notes gpl.txt "$(EUPS_DIR)"
 
-	echo $(VERSION) > $(EUPS_DIR)/git.version
+	echo $(VERSION) > "$(EUPS_DIR)/git.version"
 	@echo "Remember to source $(EUPS_DIR)/bin/setups.{c,z,}sh"
 declare :
 	@vers="$(VERSION)"; \
@@ -96,11 +100,13 @@ show : git.version
 	@echo "Your EUPS database[s] will be               $(EUPS_DB)"
 	@echo "Your EUPS version is                        $(VERSION)"
 	@ \
-	EUPS_DB_DIR=`echo $(EUPS_PATH) | sed -e 's/:.*//'`; \
-	if [ -d $$EUPS_DB_DIR/site ]; then \
+	EUPS_DB_DIR=`echo "$(EUPS_PATH)" | sed -e 's/:.*//'`; \
+	if [ -d "$$EUPS_DB_DIR/site" ]; then \
 		echo "Your site configuration files are:"; \
-		for f in `ls $$EUPS_DB_DIR/site/*[a-z] | grep -v Makefile`; do \
-		    echo "   $$f"; \
+		for f in "$$EUPS_DB_DIR"/site/*[a-z]; do \
+		    if [ -n "`echo $$f | grep -v Makefile`" ]; then \
+		        echo "   $$f"; \
+		    fi; \
 		done; \
 	else \
 		echo "Your site configuration files will be in    $$EUPS_DB_DIR/site"; \
