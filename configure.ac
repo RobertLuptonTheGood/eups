@@ -29,15 +29,15 @@ AC_ARG_WITH(python,
    [AS_HELP_STRING(--with-python=PYTHON, [Use python interpreter PYTHON (e.g. /usr/local/bin/python) to run eups])],
    [EUPS_PYTHON=$(echo $withval)],
    [EUPS_PYTHON=$(which python)
-    if [[ $EUPS_PYTHON != /usr/bin/python ]]; then
+    if [[ "$EUPS_PYTHON" != /usr/bin/python ]]; then
       AC_MSG_ERROR([Your current python version isn't /usr/bin/python, please rerun configure specifying --with-python. 
 --with-python=$(which python) will force eups to use your current python version, 
 --with-python=/usr/bin/python will force eups to use system-installed python])
     fi
    ]) 
 
-if [[ -x $EUPS_PYTHON ]]; then
-    $EUPS_PYTHON -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || AC_MSG_ERROR([$EUPS_PYTHON does not seem to be a valid python interpreter])
+if [[ -x "$EUPS_PYTHON" ]]; then
+    "$EUPS_PYTHON" -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || AC_MSG_ERROR([$EUPS_PYTHON does not seem to be a valid python interpreter])
 else
     AC_MSG_ERROR([$EUPS_PYTHON doesn't exists or doesn't have execute permission granted])
 fi
@@ -45,7 +45,7 @@ fi
 AC_SUBST(EUPS_PYTHON)
 
 # Allow them to use --prefix as an alias for --with-eups_dir
-if test X$prefix != XNONE; then
+if test "X$prefix" != "XNONE"; then
    with_eups_dir=$prefix
 fi
 
@@ -120,5 +120,5 @@ if [[ X$SETUP_ALIASES != X ]]; then
    echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup \$@)" >> ups/eups.table
 fi
 
-(export EUPS_DIR=$PWD; cd bin; $EUPS_PYTHON ./mksetup $EUPS_PYTHON $EUPS_DIR $EUPS_PATH $SETUP_ALIASES) || exit $?
+(export EUPS_DIR="$PWD"; cd bin; "$EUPS_PYTHON" ./mksetup "$EUPS_PYTHON" "$EUPS_DIR" "$EUPS_PATH" "$SETUP_ALIASES") || exit $?
 make git.version
