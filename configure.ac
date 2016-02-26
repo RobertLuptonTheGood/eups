@@ -37,7 +37,7 @@ AC_ARG_WITH(python,
    ]) 
 
 if [[ -x $EUPS_PYTHON ]]; then
-    $EUPS_PYTHON -c "import sys;print \"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version)" > /dev/null 2>&1 || AC_MSG_ERROR([$EUPS_PYTHON does not seem to be a valid python interpreter])
+    $EUPS_PYTHON -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || AC_MSG_ERROR([$EUPS_PYTHON does not seem to be a valid python interpreter])
 else
     AC_MSG_ERROR([$EUPS_PYTHON doesn't exists or doesn't have execute permission granted])
 fi
