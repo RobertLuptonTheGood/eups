@@ -120,12 +120,12 @@ export EUPS_DIR=${EUPS_DIR:-%(eupsdir)s}
 
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-export EUPS_PATH=`%(eupspython)s -E -S -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
+export EUPS_PATH=`"%(eupspython)s" -E -S -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
 
 # setup EUPS, using EUPS
 # n.b.: we reset the flavor in SETUP_EUPS so eups doesn't show up in 'eups list'
 #       and similar. This is for backwards compatibility.
-eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
+eval `"%(setup)s" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
 export SETUP_EUPS="eups LOCAL:$EUPS_DIR -f (none) -Z (none)"
 
 # bash auto-completion
