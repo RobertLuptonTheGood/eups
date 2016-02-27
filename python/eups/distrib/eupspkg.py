@@ -980,7 +980,7 @@ tar xzvf %(eupspkg)s
 
 # Enter the directory unpacked from the tarball
 PKGDIR="$(find . -maxdepth 1 -type d ! -name ".*" | head -n 1)"
-test ! -z $PKGDIR
+test ! -z "$PKGDIR"
 cd "$PKGDIR"
 
 # If ./ups/eupspkg is not present, symlink in the default
