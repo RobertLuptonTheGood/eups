@@ -960,7 +960,7 @@ TAGLIST_DIR = tags
 # ----
 
 set -xe
-cd %(buildDir)s
+cd "%(buildDir)s"
 
 # make sure the EUPS environment is set up
 . "$EUPS_DIR/bin/setups.sh"
@@ -980,7 +980,7 @@ tar xzvf %(eupspkg)s
 
 # Enter the directory unpacked from the tarball
 PKGDIR="$(find . -maxdepth 1 -type d ! -name ".*" | head -n 1)"
-test ! -z $PKGDIR
+test ! -z "$PKGDIR"
 cd "$PKGDIR"
 
 # If ./ups/eupspkg is not present, symlink in the default

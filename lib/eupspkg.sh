@@ -184,9 +184,9 @@ require_eups_version()
 	IFS=. read -ra SA <<< "$eups_ver"
 	IFS=. read -ra SB <<< "$1"
 
-	# Print the array as zero-padded string, so we can compare it leicographically
-	V1=$(printf "%05d" ${SA[@]})
-	V2=$(printf "%05d" ${SB[@]})
+	# Print the array as zero-padded string, so we can compare it lexicographically
+	V1=$(printf "%05d" "${SA[@]}")
+	V2=$(printf "%05d" "${SB[@]}")
 
 	if [[ "$V1" < "$V2" ]]; then
 		message=${2-"EUPS v$eups_ver too old for this package; v$1 or later required."}
@@ -737,7 +737,7 @@ default_config()
 			fix_autoconf_timestamps
 		fi
 
-		./configure $CONFIGURE_OPTIONS
+	        eval ./configure $CONFIGURE_OPTIONS
 	fi
 }
 
@@ -1160,10 +1160,10 @@ ulimit -Su hard >/dev/null 2>&1 \
 
 IFS=':' read -ra _SCRIPTS <<< "$SCRIPTS"
 for _script in "${_SCRIPTS[@]}"; do
-	if [[ -f $_script ]]; then
+	if [[ -f "$_script" ]]; then
 		info "sourcing '$_script'."
-		. $_script
-	elif [[ -z $_script ]]; then
+		. "$_script"
+	elif [[ -z "$_script" ]]; then
 		continue
 	else
 		die "script '$_script' listed on the SCRIPTS path does not exist."

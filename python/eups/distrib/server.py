@@ -2308,7 +2308,7 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
         setups_sh = os.path.join(environ['EUPS_DIR'],"bin","setups.sh")
 
         if "EUPS_PATH" in environ: # keep current path
-            cmd = "source %s; export EUPS_PATH=%s; %s " % (setups_sh, environ["EUPS_PATH"], cmd)
+            cmd = 'source "%s"; export EUPS_PATH="%s"; "%s" ' % (setups_sh, environ["EUPS_PATH"], cmd)
 
         if verbosity < 0:
             cmd += "> /dev/null 2>&1"
