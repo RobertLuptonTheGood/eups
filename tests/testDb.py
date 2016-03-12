@@ -625,11 +625,11 @@ class DatabaseTestCase(unittest.TestCase):
         self.assert_(not self.db.isDeclared("doxygen", "1.5.9", "Linux"))
 
     def testUserTag(self):
-        vers = self.db.getTaggedVersion("user:my", "python", "Linux")
+        vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
         self.assert_(vers is None)
 
         self.db.assignTag("user:my", "python", "2.5.2")
-        vers = self.db.getTaggedVersion("user:my", "python", "Linux")
+        vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
         self.assertEquals(vers, "2.5.2")
         self.assert_(os.path.exists(os.path.join(self.userdb,
                                                  "python","my.chain")))
@@ -647,7 +647,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(tags[1], "user:my")
 
         self.db.unassignTag("user:my", "python")
-        vers = self.db.getTaggedVersion("user:my", "python", "Linux")
+        vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
         self.assert_(vers is None)
         self.assert_(not os.path.exists(os.path.join(self.userdb,
                                                      "python","my.chain")))
@@ -656,17 +656,17 @@ class DatabaseTestCase(unittest.TestCase):
         if not os.path.exists(self.pycur+".bak"):
             shutil.copyfile(self.pycur, self.pycur+".bak")
 
-        vers = self.db.getTaggedVersion("current", "python", "Linux")
+        vers = self.db.getTaggedVersion("current", "python", "Linux")[1]
         self.assertEquals(vers, "2.5.2")
         self.assertRaises(ProductNotFound, 
                           self.db.assignTag, "current", "python", "2.7")
 
         self.db.assignTag("current", "python", "2.6")
         self.assertEquals(self.db.getTaggedVersion("current","python","Linux"),
-                          "2.6")
+                          ("python", "2.6"))
         self.db.assignTag("current", "python", "2.5.2")
         self.assertEquals(self.db.getTaggedVersion("current","python","Linux"),
-                          "2.5.2")
+                          ("python", "2.5.2"))
 
         tfile = self.db._tagFile("python", "stable")
         if os.path.exists(tfile):  os.remove(tfile)
@@ -674,7 +674,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.assignTag("stable", "python", "2.6")
             self.assertEquals(self.db.getTaggedVersion("stable","python",
                                                        "Linux"),
-                              "2.6")
+                              ("python", "2.6"))
             self.db.unassignTag("stable", "python", "Linux")
             self.assert_(not os.path.exists(tfile))
         except:
@@ -687,25 +687,25 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.assignTag("beta", "doxygen", "1.5.9")
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
-                                                       "Linux64"),
+                                                       "Linux64")[1],
                               "1.5.9")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
-                                                       "Linux"),
+                                                       "Linux")[1],
                               "1.5.7.1")        
             self.db.unassignTag("beta", "doxygen", "Linux64")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
-                                                       "Linux"),
+                                                       "Linux")[1],
                               "1.5.7.1")        
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
-                                                       "Linux64"),
+                                                       "Linux64")[1],
                               None)        
             self.db.assignTag("beta", "doxygen", "1.5.9")
             self.db.unassignTag("beta", "doxygen", "Linux")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
-                                                       "Linux64"),
+                                                       "Linux64")[1],
                               "1.5.9")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
-                                                       "Linux"),
+                                                       "Linux")[1],
                               None)        
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.db.unassignTag("beta", "doxygen")
@@ -751,13 +751,13 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.declare(base2)
             self.assertEquals(self.db.getTaggedVersion("current", "base", 
                                                        "Linux"),
-                              "1.0")
+                              ("base", "1.0"))
             base3 = prods[0].clone()
             base3.version = "3.0"
             self.db.declare(base3)
             self.assertEquals(self.db.getTaggedVersion("current", "base", 
                                                        "Linux"),
-                              "3.0")
+                              ("base", "3.0"))
 
             self.assertEquals(len(self.db.findProducts("base")), 3)
 
@@ -771,7 +771,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.assertEquals(len(self.db.findProducts("base")), 1)
             self.assert_(not os.path.exists(os.path.join(pdir,"3.0.version")))
             self.assertEquals(self.db.getTaggedVersion("current", "base", 
-                                                       "Linux"),
+                                                       "Linux")[1],
                               None)
             self.assert_(not os.path.exists(os.path.join(pdir,"current.chain")))
             self.db.undeclare(base2)
