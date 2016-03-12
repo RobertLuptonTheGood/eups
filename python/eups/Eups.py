@@ -770,8 +770,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if not product:
                     # get qualified tag name (the database needs to see user tags as "user:...")
                     tag = str(self.tags.getTag(versionName))
-                    vers = self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName, flavor,
-                                                                           searchUserDB=True)
+                    productName, vers = \
+                                    self._databaseFor(eupsPathDir).getTaggedVersion(tag, productName,
+                                                                                    flavor, searchUserDB=True)
                     if vers is not None:
                         versionName = vers
 
@@ -1180,7 +1181,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 db = self._databaseFor(root)
                 try:
-                    version = db.getTaggedVersion(tag, name, flavor,searchUserDB=True)
+                    name, version = db.getTaggedVersion(tag, name, flavor,searchUserDB=True)
                     if version is not None:
                         prod = db.findProduct(name, version, flavor)
                         if prod:

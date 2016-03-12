@@ -549,8 +549,8 @@ class _Database(object):
         
     def getTaggedVersion(self, tag, productName, flavor, searchUserDB=True):
         """
-        return the version name of the product that has the given tag assigned
-        to it.  None is returned if the tag is not assigned to any version.
+        return the (name, version name) of the product that has the given tag assigned
+        to it.  (name, None) is returned if the tag is not assigned to any version.
         ProductNotFound is raised if no version of the product is declared.
         @param tag          the string name for the tag.  A user tag must be
                               prepended by a "user:" label to be found
@@ -560,9 +560,9 @@ class _Database(object):
 
         tf = self.getChainFile(tag, productName, searchUserDB=searchUserDB)
         if tf:
-            return tf.getVersion(flavor)
+            return tf.name, tf.getVersion(flavor)
         else:
-            return None
+            return productName, None
 
     def assignTag(self, tag, productName, version, flavors=None):
         """
