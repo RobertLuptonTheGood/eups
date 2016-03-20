@@ -76,7 +76,7 @@ def ScriptTestSuite(testSuiteDir):
         try:
             output = subprocess.check_output(testFn, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-            self.fail(("Test %s failed (retcode=%s)\nscript: %s\noutput: " + "-"*65 + "\n%s" + "-"*73) % (testFn, e.returncode, testFn, e.output))
+            self.fail(("Test %s failed (retcode=%s)\nscript: %s\n" + "~"*32 + " output " + "~"*33 + "\n%s" + "~"*73) % (testFn, e.returncode, testFn, e.output))
 
     testDir = os.path.join(os.path.abspath(os.path.dirname(__file__)), testSuiteDir)
 
