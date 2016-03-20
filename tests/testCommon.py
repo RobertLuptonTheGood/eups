@@ -91,7 +91,7 @@ def ScriptTestSuite(testSuiteDir):
     for testFn in glob.glob(os.path.join(testDir, "test*")):
         if not os.access(testFn, os.X_OK) or testFn.endswith("~"):
             continue
-        methodName = os.path.splitext(os.path.basename(testFn))[0]
+        methodName = os.path.basename(testFn).replace('.', '_')
         class_members[methodName] = lambda self, testFn=testFn: runBashTest(self, testFn)
 
     return type(testSuiteDir, (unittest.TestCase,), class_members)
