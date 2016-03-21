@@ -88,7 +88,7 @@ endif
 # setup EUPS, using EUPS
 # n.b.: we reset the flavor in SETUP_EUPS so eups doesn't show up in 'eups list'
 #       and similar. This is for backwards compatibility.
-eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
+eval `"%(setup)s" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
 setenv SETUP_EUPS "eups LOCAL:$EUPS_DIR -f (none) -Z (none)"
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
