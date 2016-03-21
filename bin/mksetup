@@ -86,8 +86,10 @@ if (! $?DYLD_LIBRARY_PATH) then
 endif
 
 # setup EUPS, using EUPS
-# n.b.: note the '-f (none)' flag -- this ensures eups won't show up in 'eups list' and similar
-eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR" -f "(none)"`
+# n.b.: we reset the flavor in SETUP_EUPS so eups doesn't show up in 'eups list'
+#       and similar. This is for backwards compatibility.
+eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
+setenv SETUP_EUPS "eups LOCAL:$EUPS_DIR -f (none) -Z (none)"
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
            "pythondir" : pythondir, "setup" : setup,  "unique_eups_path" : unique_eups_path, \
@@ -121,8 +123,10 @@ export EUPS_DIR=${EUPS_DIR:-%(eupsdir)s}
 export EUPS_PATH=`%(eupspython)s -E -S -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
 
 # setup EUPS, using EUPS
-# n.b.: note the '-f (none)' flag -- this ensures eups won't show up in 'eups list' and similar
-eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR" -f "(none)"`
+# n.b.: we reset the flavor in SETUP_EUPS so eups doesn't show up in 'eups list'
+#       and similar. This is for backwards compatibility.
+eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
+export SETUP_EUPS="eups LOCAL:$EUPS_DIR -f (none) -Z (none)"
 
 # bash auto-completion
 if [ X$BASH_COMPLETION != X -a -f "$EUPS_DIR/etc/bash_completion.d/eups" ]; then
