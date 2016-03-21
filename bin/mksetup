@@ -79,6 +79,12 @@ setenv EUPS_PATH `python -E -S` << EOT
 %(unique_eups_path)s
 EOT
 
+# csh shells die if variables are undefined, so we'll define an (empty) DYLD_LIBRARY_PATH
+# if there isn't one already
+if (! $?DYLD_LIBRARY_PATH) then
+    setenv DYLD_LIBRARY_PATH ""
+endif
+
 # setup EUPS, using EUPS
 # n.b.: note the '-f (none)' flag -- this ensures eups won't show up in 'eups list' and similar
 eval `%(setup)s "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR" -f "(none)"`
