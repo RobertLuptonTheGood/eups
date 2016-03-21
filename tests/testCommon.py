@@ -9,11 +9,14 @@ if sys.version_info[:2] == (2, 6):
 
 testEupsStack = os.path.dirname(__file__)
 
-# clear out any products setup in the environment as these can interfere 
-# with the tests
-setupvars = [k for k in os.environ.keys() if k.startswith('SETUP_')]
-for var in setupvars:
-    del os.environ[var]
+def clenseEnvironment():
+    # clear out any products setup in the environment as these can interfere 
+    # with the tests
+    setupvars = [k for k in os.environ.keys() if k.startswith('SETUP_')]
+    for var in setupvars:
+        del os.environ[var]
+
+clenseEnvironment()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -79,6 +82,9 @@ def ScriptTestSuite(testSuiteDir):
         if "EUPS_DIR" not in os.environ:
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
 
+        # Make sure there are no products that were setup
+        clenseEnvironment()
+
         # run setup.sh if it exists
         if os.path.isfile("setup.sh"):
             subprocess.check_call("./setup.sh")
@@ -97,7 +103,7 @@ def ScriptTestSuite(testSuiteDir):
             return
 
         try:
-            output = subprocess.check_output(testFn, stderr=subprocess.STDOUT)
+            output = subprocess.check_output(testFn, stderr=subprocess.STDOUT, env=os.environ)
         except subprocess.CalledProcessError as e:
             self.fail(("Test %s failed (retcode=%s)\nscript: %s\n" + "~"*32 + " output " + "~"*33 + "\n%s" + "~"*73) % (testFn, e.returncode, testFn, e.output))
 
