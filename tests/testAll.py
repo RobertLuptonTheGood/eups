@@ -21,6 +21,7 @@ for t in [
     "testDyldLibraryPath",
     "testEupspkg",
     "testSetups",
+    "testEupsIntegration",
     ]:
     tests += __import__(t).suite()
 
