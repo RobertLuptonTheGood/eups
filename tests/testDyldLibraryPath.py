@@ -26,7 +26,7 @@ echo $DYLD_LIBRARY_PATH
 
 csh_test = """\
 setenv DYLD_LIBRARY_PATH %s
-echo $DYLD_LIBRARY_PATH
+echo x$DYLD_LIBRARY_PATH
 
 source $EUPS_DIR/bin/setups.csh
 
@@ -34,7 +34,7 @@ setup dyldtest -r . -m dyldtest.table
 echo $DYLD_LIBRARY_PATH
 
 unsetup dyldtest
-echo $DYLD_LIBRARY_PATH
+echo x$DYLD_LIBRARY_PATH
 """;
 
 TestDir = os.path.abspath(os.path.dirname(__file__))
@@ -67,8 +67,8 @@ class DyldLibraryPath(unittest.TestCase):
 
     def testDyldLibraryPathRetention_csh(self):
         if os.path.exists("/bin/csh"):
-            self._run_script("/bin/csh", csh_test % 'a/b/c', "a/b/c\n/foo/bar:a/b/c\na/b/c\n")
-            self._run_script("/bin/csh", csh_test % ''     , "\n/foo/bar\n\n")
+            self._run_script("/bin/csh", csh_test % 'a/b/c', "xa/b/c\n/foo/bar:a/b/c\nxa/b/c\n")
+            self._run_script("/bin/csh", csh_test % ''     , "x\n/foo/bar\nx\n")
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
