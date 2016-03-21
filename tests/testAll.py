@@ -21,6 +21,7 @@ for t in [
     "testEupspkg",
     "testSetups",
     "testEupsIntegration",
+    "testSpaces",
     ]:
     tests += __import__(t).suite()
 
