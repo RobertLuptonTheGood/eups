@@ -3,6 +3,11 @@
 # A script that tests EUPS on TravisCI with Miniconda
 #
 
+# Should we test with csh installed?
+if [[ $CI_WITH_CSH == 1 ]]; then
+	sudo apt-get install -y csh
+fi
+
 make_and_install()
 {
 	(
