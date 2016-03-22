@@ -76,7 +76,7 @@ endif
 
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-setenv EUPS_PATH `python -E -S` << EOT
+setenv EUPS_PATH `python -E` << EOT
 %(unique_eups_path)s
 EOT
 
@@ -123,7 +123,7 @@ eupslocalpath=$(echo "$EUPS_DIR" | sed -e "s/ /-+-/g")
 
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
-export EUPS_PATH=`"%(eupspython)s" -E -S -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
+export EUPS_PATH=`"%(eupspython)s" -E -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
 
 # setup EUPS, using EUPS
 # n.b.: we reset the flavor in SETUP_EUPS so eups doesn't show up in 'eups list'

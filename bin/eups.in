@@ -2,5 +2,4 @@
 # N.b. some (many?) unix systems don't understand
 #  #!/usr/bin/env python options
 #
-unset PYTHONSTARTUP
-"@EUPS_PYTHON@" -S "$EUPS_DIR/bin/eups_impl.py" "$@"
+"@EUPS_PYTHON@" "$EUPS_DIR/bin/eups_impl.py" "$@"
