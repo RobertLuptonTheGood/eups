@@ -10,7 +10,7 @@ import os
 import sys
 import unittest
 import re, shutil
-from eups.utils import StringIO
+from eups.utils import StringIO, encodePath
 from testCommon import testEupsStack
 
 import eups.cmd
@@ -131,12 +131,12 @@ doxygen               1.5.7.1    \tcurrent
 eigen                 2.0.0      \tcurrent
 mpich2                1.0.5p4    \tcurrent
 python                2.5.2      \tcurrent
-python                2.6        
+python                2.6        """ """
 tcltk                 8.5a4      \tcurrent
 """.strip()
         outpy = """
    2.5.2      \tcurrent
-   2.6        
+   2.6
 """.strip()
         outcurr = "\n".join(l for l in outpy.split("\n") if l.find('current') >= 0).strip()
         outnews = "\n".join(l for l in outpy.split("\n") if l.find('2.6') >= 0).strip()
@@ -185,13 +185,14 @@ tcltk                 8.5a4      \tcurrent
 
         # test listing of LOCAL products
         self._resetOut()
-        eups.setup("python", productRoot=os.path.join(testEupsStack, "Linux",
-                                                      "python", "2.5.2"))
+        productRoot = os.path.join(testEupsStack, "Linux",
+                                   "python", "2.5.2")
+        eups.setup("python", productRoot=productRoot)
         outwlocal = """
    2.5.2      \tcurrent
-   2.6        
-   LOCAL:%s/Linux/python/2.5.2 \tsetup
-""".strip() % testEupsStack
+   2.6        """ """
+   LOCAL:%s \tsetup
+""".strip() % encodePath(productRoot)
         cmd = eups.cmd.EupsCmd(args="list python".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.out.getvalue(), outwlocal)
@@ -245,8 +246,8 @@ tcltk                 8.5a4      \tcurrent
         table = os.path.join(pdir10, "ups", "newprod.table")
         newprod = os.path.join(self.dbpath,"newprod")
 
-        cmd = "declare newprod 1.0 -r %s -m %s" % (pdir10, table)
-        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        cmdargs = ["declare", "newprod", "1.0", "-r", pdir10, "-m", table]
+        cmd = eups.cmd.EupsCmd(args=cmdargs, toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
@@ -293,8 +294,8 @@ tcltk                 8.5a4      \tcurrent
         self.assertFalse(os.path.isdir(newprod))
 
         self._resetOut()
-        cmd = "declare newprod 1.0 -F -r %s -m %s -t current" % (pdir10, table)
-        cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
+        cmdargs = ["declare", "newprod", "1.0", "-F", "-r", pdir10, "-m", table, "-t", "current"]
+        cmd = eups.cmd.EupsCmd(args=cmdargs, toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
@@ -399,9 +400,9 @@ class SetupCmdTestCase(unittest.TestCase):
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir11 = os.path.join(pdir, "1.1")
 
-        cmd = "-r %s newprod" % pdir11
+        cmdargs = ["-r", pdir11, "newprod"]
         hooks.config.Eups.defaultTags = dict(pre=[], post=[]) # disable any defined in the startup.py file
-        cmd = eups.setupcmd.EupsSetup(args=cmd.split(), toolname=prog)
+        cmd = eups.setupcmd.EupsSetup(args=cmdargs, toolname=prog)
         self.assertEqual(cmd.run(), 0)
         
 
