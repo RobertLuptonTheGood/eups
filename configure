@@ -1715,8 +1715,8 @@ fi
 if test "${with_eups+set}" = set; then :
   withval=$with_eups; EUPS_PATH=$(echo $withval | perl -pe 's|/*$||')
 else
-  if [ -z $EUPS_PATH ]; then
-       EUPS_PATH=${prefix}/share
+  if [ -z "$EUPS_PATH" ]; then
+       EUPS_PATH="${prefix}/share"
     else
        EUPS_PATH=$EUPS_PATH
     fi
