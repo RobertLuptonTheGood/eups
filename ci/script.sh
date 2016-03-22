@@ -11,18 +11,15 @@ fi
 make_and_install()
 {
 	(
+		# configure
 		PREFIX=$(mktemp -d -t XXXX)
-
-		# install
 		./configure --prefix="$PREFIX" --with-python=$(which python)
+
+		# install & test
 		make
+		make tests
 		make install
 
-		# run tests
-		cd tests
-		source $PREFIX/bin/setups.sh
-		python testAll.py
-	
 		# cleanup
 		chmod -R +w "$PREFIX"
 		rm -rf "$PREFIX"
