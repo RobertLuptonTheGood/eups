@@ -1,3 +1,16 @@
+2016-03-22 mjuric (2.0.2)
+    - README: correct TravisCI URLs
+    - Work around an issue where the user tags would be forgotten (Issue #93)
+    - Unit/integration test environment enhancements
+    - bugfix: setups.csh now works when DYLD_LIBRARY_PATH is empty
+    - TravisCI CI improvements
+    - bugfix: work around csh cross-platform quirks in testDyldLibraryPath.py
+    - eupspkg: Ignore SCONSFLAGS from the environment (use EUPSPKG_SCONSFLAGS instead)
+
+    dev stats:
+      - 23 files changed, 359 insertions(+), 53 deletions(-)
+      - contributors: Mario Juric, Robert Lupton the Good
+
 2016-01-21 mjuric (2.0.1)
     - Fixed the breakage caused by the introduction of Python 3.x support
     - Completed Python 3.5 compatibility changes; EUPS should now be fully 
