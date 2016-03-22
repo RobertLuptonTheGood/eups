@@ -9,6 +9,23 @@ if sys.version_info[:2] == (2, 6):
 
 testEupsStack = os.path.dirname(__file__)
 
+def setupEnvironment():
+    # Add eups modules to PYTHONPATH
+    try:
+        import eups.utils
+    except ImportError:
+        eupsPythonPath = os.path.join(os.environ.get("EUPS_DIR", os.path.dirname(testEupsStack)), "python")
+        sys.path.append(eupsPythonPath)
+
+        import eups.utils
+
+    # Make sure EUPS_SHELL is defined
+    if not "EUPS_SHELL" in os.environ:
+        os.environ["EUPS_SHELL"] = "sh"
+
+    # remove any SETUP_ variables
+    clenseEnvironment()
+
 def clenseEnvironment():
     # clear out any products setup in the environment as these can interfere 
     # with the tests
@@ -16,7 +33,11 @@ def clenseEnvironment():
     for var in setupvars:
         del os.environ[var]
 
-clenseEnvironment()
+# Thought it's typically bad practice to run executable code at the module level,
+# we do it here so that any individual test that imports it could be run directly
+# from the command line (i.e., `python testFoo.py`)
+#
+setupEnvironment()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
