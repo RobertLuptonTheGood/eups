@@ -62,8 +62,8 @@ install : show
 		echo You have not specified EUPS_PATH >&2; \
 		exit 1; \
 	fi 
-	@ for d in $(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}'); do \
-		if [ ! -d $$d ]; then \
+	@ for d in "$(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}')"; do \
+		if [ ! -d "$$d" ]; then \
 			mkdir -p "$$d"; \
 		fi; \
 	done
