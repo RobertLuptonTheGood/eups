@@ -1,22 +1,13 @@
 language: python
 python:
   - "2.7"
+  - "2.6"
+  - "3.5"
 
 # These will be read by ci/script.sh, to tweak the test environment
 env:
   - CI_WITH_CSH=1
   - CI_WITH_CSH=0
 
-before_install:
-  - sudo apt-get -qq update
-
-install:
-  - ./ci/install.sh
-
-cache:
-  directories:
-  - $HOME/miniconda
-
 script:
-  - export PATH="$HOME/miniconda/bin:$PATH"
   - ./ci/script.sh
