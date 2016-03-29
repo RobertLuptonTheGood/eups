@@ -10,7 +10,7 @@ import eups.Eups
 
 def parseDebugOption(debugOpts):
     """Parse the options passed on the command line as --debug=..."""
-    allowedDebugOptions = ["", "debug", "profile([filename])", "raise"]
+    allowedDebugOptions = ["", "debug", "none", "profile([filename])", "raise"]
 
     debugOptions = re.split("[:,]", debugOpts)
     for do in debugOptions:
