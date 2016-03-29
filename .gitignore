@@ -1,5 +1,6 @@
 *~
 *.pyc
+*-checkpoint.ipynb
 /Makefile
 config.log
 config.status
