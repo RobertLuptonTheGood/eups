@@ -1,3 +1,6 @@
+2016-03-29 (rhl)
+    - Added --debug none (which does nothing, but is convenient from cmdLine)
+
 2016-03-22 mjuric (2.0.2)
     - README: correct TravisCI URLs
     - Work around an issue where the user tags would be forgotten (Issue #93)
