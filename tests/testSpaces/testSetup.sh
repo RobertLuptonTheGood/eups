@@ -12,3 +12,4 @@ if [ $(eups list 2>&1 | grep -c Problem) != "0" ]; then
 fi
 
 unsetup -r .
+unsetup eups
