@@ -170,6 +170,8 @@ Common"""
 
         try:
             return ecmd.run()
+        except:
+            raise
         finally:
             lock.giveLocks(locks, ecmd.opts.verbose)
 
