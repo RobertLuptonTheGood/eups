@@ -119,7 +119,7 @@ class DistribServer(object):
         tagNames = []
         for f in self.listFiles("", noaction):
             if f.endswith(".list"):
-                tagNames.append(x[:-5])
+                tagNames.append(f[:-5])
 
         return tagNames
 

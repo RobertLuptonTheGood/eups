@@ -4,13 +4,16 @@ Tests for eups.Eups
 """
 
 from __future__ import print_function
+
+# Import this first, as it will set up the environment
+import testCommon
+
 import os
 import sys
 import shutil
 import unittest
 import time
 from eups.utils import StringIO
-import testCommon
 from testCommon import testEupsStack
 
 from eups import TagNotRecognized, ProductNotFound, EupsException

@@ -1,1 +1,0 @@
-envPrepend(DYLD_LIBRARY_PATH, /foo/bar)

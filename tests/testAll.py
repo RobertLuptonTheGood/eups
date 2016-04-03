@@ -18,7 +18,6 @@ for t in [
     "testStack",
     "testTable",
     "testTags",
-    "testDyldLibraryPath",
     "testEupspkg",
     "testSetups",
     "testEupsIntegration",

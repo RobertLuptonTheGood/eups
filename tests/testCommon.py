@@ -9,6 +9,32 @@ if sys.version_info[:2] == (2, 6):
 
 testEupsStack = os.path.dirname(__file__)
 
+EUPS_DIR = os.path.dirname(testEupsStack)
+EUPS_PATH = testEupsStack
+
+def setupEnvironment():
+    # Set up a clean environment.
+    # We're assuming tests are being run from within the source distribution.
+    #
+    # We will:
+    # * Add $EUPS_DIR/python to sys.path
+    # * Define $EUPS_SHELL (as eups python modules depend on it)
+    #
+    # * Unset $EUPS_DIR. The tests that need it should set it themselves (use testCommon.EUPS_DIR).
+    # * Unset $EUPS_PATH. The tests that need it should set it themselves (use testCommon.EUPS_PATH).
+
+    os.environ.pop('EUPS_DIR', None)
+    os.environ.pop('EUPS_PATH', None)
+
+    eupsPythonPath = os.path.join(EUPS_DIR, "python")
+    sys.path.append(eupsPythonPath)
+
+    os.environ["EUPS_SHELL"] = "sh"
+
+    # remove any SETUP_ variables, potentially left over from
+    # a previous run
+    clenseEnvironment()
+
 def clenseEnvironment():
     # clear out any products setup in the environment as these can interfere 
     # with the tests
@@ -16,7 +42,11 @@ def clenseEnvironment():
     for var in setupvars:
         del os.environ[var]
 
-clenseEnvironment()
+# Thought it's typically bad practice to run executable code at the module level,
+# we do it here so that any individual test that imports it could be run directly
+# from the command line (i.e., `python testFoo.py`)
+#
+setupEnvironment()
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #
@@ -79,8 +109,8 @@ def ScriptTestSuite(testSuiteDir):
         os.chdir(self.testDir)
 
         # Make sure the scripts know to find EUPS
-        if "EUPS_DIR" not in os.environ:
-            os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
+        os.environ["EUPS_DIR"] = EUPS_DIR
+        os.environ["EUPS_PATH"] = EUPS_PATH
 
         # Make sure there are no products that were setup
         clenseEnvironment()

@@ -4,7 +4,6 @@
 # This test was motivated by issue #93
 #
 set -e
-export
 
 _assert()
 {
@@ -16,6 +15,8 @@ _assert()
 		exit -1
 	fi
 }
+
+source "$EUPS_DIR/bin/setups.sh"
 
 # Prepare the dummy stack
 FLAV="$(eups flavor)"
