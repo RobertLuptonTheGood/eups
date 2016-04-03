@@ -312,6 +312,17 @@ class Eups(object):
         #
         self.versions = {}
         neededFlavors = utils.Flavor().getFallbackFlavors(self.flavor, True)
+        #
+        # We'll need to search for products in our datadir too (it's where anonymous tags go)
+        #
+        # We do this here so we'll remember to rebuild our cache.  We'll add
+        # other user's dataDirs once we know which (if any) of their tags we want
+        #
+        for p in self.path + [self.userDataDir]:
+            self._makeUserCacheDir(p)
+
+        self.includeUserDataDirInPath()
+
         if readCache:
           for p in self.path:
 
@@ -320,12 +331,13 @@ class Eups(object):
             dbpath = self.getUpsDB(p)
             cacheDir = dbpath
             userCacheDir = self._makeUserCacheDir(p)
+            userProductsDataDir = self._makeUserProductsDataDir(p)
             if not self.asAdmin or not utils.isDbWritable(p):
                 # use a user-writable alternate location for the cache
                 cacheDir = userCacheDir
             self.versions[p] = ProductStack.fromCache(dbpath, neededFlavors, 
                                                       persistDir=cacheDir, 
-                                                      userTagDir=userCacheDir,
+                                                      userTagDir=userProductsDataDir,
                                                       updateCache=True, 
                                                       autosave=False,
                                                       verbose=self.verbose)
@@ -365,7 +377,10 @@ class Eups(object):
                     raise RuntimeError("Unable to process tag %s: %s" % (tag, e))
 
         self._loadServerTags()
-        self._loadUserTags()
+        try:
+            self._loadUserTags()
+        except IOError:
+            pass
         #
         # Handle preferred tags; this is a list where None means hooks.config.Eups.preferredTags
         #
@@ -428,9 +443,8 @@ class Eups(object):
             except TypeError:
                 pass
         #
-        # Always search for products in user's datadir (it's where anonymous tags go)
+        # Always search for products in users' datadirs (it's where anonymous tags go)
         #
-        self.includeUserDataDirInPath()
         for user in self.tags.owners.values():
             self.includeUserDataDirInPath(utils.defaultUserDataDir(user))
         #
@@ -518,7 +532,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _databaseFor(self, eupsPathDir, dbpath=None):
         if not dbpath:
             dbpath = self.getUpsDB(eupsPathDir)
-        db = Database(dbpath, userTagRoot=self._userStackCache(eupsPathDir))
+        db = Database(dbpath, userTagRoot=self._userProductsDataDir(eupsPathDir))
 
         return db
 
@@ -540,6 +554,25 @@ The what argument tells us what sort of state is expected (allowed values are de
             except:
                 pass
         return cachedir
+
+    def _userProductsDataDir(self, eupsPathDir):
+        if not self.userDataDir:
+            return None
+        return utils.userProductsDataDirFor(eupsPathDir, self.userDataDir)
+
+    def _makeUserProductsDataDir(self, eupsPathDir):
+        datadir = self._userProductsDataDir(eupsPathDir)
+        if datadir and not os.path.exists(datadir):
+            os.makedirs(datadir)
+            try:
+                readme = open(os.path.join(datadir,"README"), "w")
+                try:
+                    print("User data directory for", eupsPathDir, file=readme)
+                finally:
+                    readme.close()
+            except:
+                pass
+        return datadir
 
     def _loadServerTags(self):
         tags = {}
@@ -602,10 +635,13 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def _loadUserTags(self):
         for path in self.path:
-            # start by looking for a cached list
-            dirName = self._userStackCache(path)
-            if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName):
-                continue
+            haveTags = False
+            for dirName in [self._userStackCache(path), self._userProductsDataDir(path)]:
+                if haveTags:
+                    break
+                if not dirName or not os.path.isdir(dirName) or self.tags.loadUserTags(dirName):
+                    haveTags = True
+                    continue
 
             # if no list cached, try asking the cached product stack
             tags = Tags()
@@ -617,7 +653,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             else:
                 # consult the individual User tag Chain files (via Database)
-                db = Database(self.getUpsDB(path), dirName)
+                db = Database(self.getUpsDB(path), self._userProductsDataDir(path))
                 for pname in db.findProductNames():
                     for tag, v, f in db.getTagAssignments(pname):
                         t = Tag.parse(tag)
@@ -625,7 +661,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             tags.registerTag(t.name, t.group)
 
             # cache the user tags:
-            tags.saveUserTags(dirName)
+            tags.saveUserTags(self._userStackCache(path))
 
             # now register them with self.tags:
             for tag in tags.getTags():
@@ -638,10 +674,10 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         for tag, owner in self.tags.owners.items():
             for p in self.path:
-                userCacheDir = utils.userStackCacheFor(p, userDataDir=utils.defaultUserDataDir(owner))
-                extraDb = Database(self.getUpsDB(p), userCacheDir, owner=owner)
+                userProductsDir = utils.userProductsDataDirFor(p, userDataDir=utils.defaultUserDataDir(owner))
+                extraDb = Database(self.getUpsDB(p), userProductsDir, owner=owner)
 
-                db.addUserTagDb(userCacheDir, p, userId=owner)
+                db.addUserTagDb(userProductsDir, p, userId=owner)
 
                 if p not in self.versions:
                     continue
@@ -1496,6 +1532,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                 self.path.append(dataDir)
                 
                 self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
+                                                                persistDir=self._userStackCache(dataDir),
+                                                                userTagDir=self._userProductsDataDir(dataDir),
                                                                 updateCache=True, autosave=False,
                                                                 verbose=self.verbose)
 
@@ -2137,7 +2175,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 "You don't have permission to assign a global tag %s in %s" % (tag, product.db))
 
         # update the database.  If it's a user tag, 
-        db = Database(product.db, self._userStackCache(root))
+        db = Database(product.db, self._userProductsDataDir(root))
         db.assignTag(tag, productName, versionName, self.flavor)
 
         # update the cache

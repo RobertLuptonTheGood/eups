@@ -240,6 +240,22 @@ def userStackCacheFor(eupsPathDir, userDataDir=None):
 
     return os.path.join(userDataDir,"_caches_", eupsPathDir[1:])
 
+def userProductsDataDirFor(eupsPathDir, userDataDir=None):
+    """
+    return cache directory for a given EUPS product stack in the user's 
+    data directory.  None is returned if a directory cannot be determined
+    @param eupsPathDir   the product stack to return a cache directory for
+    @param userDataDir   the user's personal data directory.  If not given,
+                            it is set to the value returned by 
+                            defaultUserDataDir() (by default ~/.eups).
+    """
+    if not userDataDir:
+        userDataDir = defaultUserDataDir()
+    if not userDataDir:
+        return None
+
+    return os.path.join(userDataDir, "_data_", eupsPathDir[1:])
+
 def defaultUserDataDir(user=""):
     """
     return the default user data directory.  This will be the value of 

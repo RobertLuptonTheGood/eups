@@ -47,7 +47,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None, owner=None):
 
     key = (dbpath, defStackRoot)
     if key not in _databases:
-        _databases[key] = _Database(dbpath, defStackRoot)
+        _databases[key] = _Database(dbpath, defStackRoot, userTagRoot)
 
     if userTagRoot:
         _databases[key].addUserTagDb(userTagRoot, defStackRoot, userId=owner)
@@ -90,7 +90,7 @@ class _Database(object):
     @author Raymond Plante
     """
 
-    def __init__(self, dbpath, defStackRoot):
+    def __init__(self, dbpath, defStackRoot, userTagRoot=None):
         """
         create an instance of a database; see Database() for details"""
 
@@ -98,7 +98,7 @@ class _Database(object):
         self.dbpath = dbpath
         self.defStackRoot = defStackRoot
 
-        self.addUserTagDb(None, defStackRoot)
+        self.addUserTagDb(userTagRoot, defStackRoot)
 
     def addUserTagDb(self, userTagRoot, upsdb, userId=None):
         """Add a user tag database for products in upsdb; userId == None means me"""
