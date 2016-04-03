@@ -8,10 +8,10 @@ functions are tested via testCmd.py
 import os
 import shutil
 import unittest
-from eups.utils import StringIO
 import testCommon
 from testCommon import testEupsStack
 
+from eups.utils import StringIO
 import eups
 
 class AppTestCase(unittest.TestCase):

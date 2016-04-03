@@ -3,12 +3,14 @@
 Tests for eups.cmd
 """
 
+# Import this first, as it will set up the environment
+import testCommon
+
 import os
 import sys
 import unittest
 import re, shutil
 from eups.utils import StringIO
-import testCommon
 from testCommon import testEupsStack
 
 import eups.cmd
