@@ -1,5 +1,85 @@
-#!/usr/bin/env sh
-# N.b. some (many?) unix systems don't understand
-#  #!/usr/bin/env python options
+#!@EUPS_PYTHON@
 #
-"@EUPS_PYTHON@" "$EUPS_DIR/bin/eups_setup_impl.py" "$@"
+# The EUPS setup programme
+#
+from __future__ import print_function
+import sys, os, re
+
+sys.argv[0] = "eups"
+
+# Add any argument of the form a=b to the environment. This primarily a workaround
+# for OS X 10.11's clobbering of DYLD_LIBRARY_PATH (the System Integrity Protection
+# mechanism).
+argv = []
+for arg in sys.argv:
+    m = re.match(r'^(\w+)=(.*)$', arg)
+    if m:
+        key, val = m.groups()
+        if val:
+            os.environ[key] = val
+        else:
+            os.environ.pop(key, None)
+    else:
+        argv.append(arg)
+sys.argv = argv
+
+# try to recover from an incomplete PYTHONPATH
+try:
+    import eups.setupcmd
+except ImportError:
+    eupsdir = None
+    if "EUPS_DIR" in os.environ:
+        eupsdir = os.environ["EUPS_DIR"]
+    else:
+        # the first item on sys.path is the script directory (bin)
+        eupsdir = os.path.dirname(sys.path[0])
+        if not os.path.isabs(eupsdir):
+            eupsdir = os.path.join(os.environ['PWD'], eupsdir)
+    if eupsdir:
+        sys.path[0] = os.path.join(eupsdir, "python")
+    else:
+        raise
+    import eups.setupcmd
+
+import eups.utils as utils
+from eups.utils import Color
+    
+# parse the command line
+setup = eups.setupcmd.EupsSetup()
+
+# set debugging features
+
+import eups.debug
+eups.debug.parseDebugOption(setup.opts.debug)
+
+# load any local customizations
+verbosity = setup.opts.verbose
+if setup.opts.quiet:
+    verbosity = -1
+eups.hooks.loadCustomization(verbosity, path=eups.Eups.setEupsPath(dbz=setup.opts.dbz))
+
+# run the command
+try:
+    # N.b. calling sys.exit here raises SystemExit which is caught...
+    if eups.Eups.profile:
+        try:
+            import cProfile as profile
+        except ImportError:
+            import profile
+        profile.run("status = setup.run()", eups.Eups.profile)
+        if verbosity > 0:
+            print("You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile, file==utils.stdinfo)
+    else:
+        status = setup.run()
+except Exception as e:
+    if eups.Eups.allowRaise:
+        raise
+
+    setup.err(Color(e, Color.classes["ERROR"]))
+    if hasattr(e, "status"):
+        status = e.status
+    else:
+        status = 9
+    print("false")
+
+sys.exit(status)

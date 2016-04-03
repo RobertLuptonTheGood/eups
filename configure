@@ -1812,7 +1812,7 @@ if test "${with_setup_aliases+set}" = set; then :
 fi
 
 
-ac_config_files="$ac_config_files Makefile bin/eups_impl.py bin/eups_setup_impl.py"
+ac_config_files="$ac_config_files Makefile"
 
 ac_config_files="$ac_config_files bin/eups"
 
@@ -2526,8 +2526,6 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "bin/eups_impl.py") CONFIG_FILES="$CONFIG_FILES bin/eups_impl.py" ;;
-    "bin/eups_setup_impl.py") CONFIG_FILES="$CONFIG_FILES bin/eups_setup_impl.py" ;;
     "bin/eups") CONFIG_FILES="$CONFIG_FILES bin/eups" ;;
     "bin/eups_setup") CONFIG_FILES="$CONFIG_FILES bin/eups_setup" ;;
     "ups/eups.table") CONFIG_FILES="$CONFIG_FILES ups/eups.table" ;;
