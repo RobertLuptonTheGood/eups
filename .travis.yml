@@ -2,6 +2,8 @@ language: python
 python:
   - "2.7"
   - "2.6"
+  - "3.3"
+  - "3.4"
   - "3.5"
 
 # These will be read by ci/script.sh, to tweak the test environment
