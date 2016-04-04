@@ -4,7 +4,7 @@
 #
 
 # Should we test with csh installed?
-if [[ $CI_WITH_CSH == 1 ]]; then
+if [[ $CI_WITH_CSH == 1 && "$TRAVIS_OS_NAME" == linux ]]; then
 	sudo apt-get install -y csh
 fi
 
