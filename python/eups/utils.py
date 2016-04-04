@@ -46,7 +46,13 @@ else:
         return { 'key': functools.cmp_to_key(cmp) }
 
     import importlib
-    reload = importlib.reload
+    try:
+        # Python 3.4 and newer
+        reload = importlib.reload
+    except AttributeError:
+        # Python 3.3 and older
+        import imp
+        reload = imp.reload
 
     def cmp(a, b):
         return (a > b) - (a < b)
