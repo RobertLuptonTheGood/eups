@@ -737,7 +737,9 @@ default_config()
 			fix_autoconf_timestamps
 		fi
 
-		./configure $CONFIGURE_OPTIONS
+		# Use eval so that quoted strings in $CONFIGURE_OPTIONS
+		# expand properly (e.g. --prefix="$PREFIX")
+		eval ./configure $CONFIGURE_OPTIONS
 	fi
 }
 
