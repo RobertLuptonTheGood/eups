@@ -756,7 +756,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             args.pop(0);  eupsPathDir = utils.decodePath(args.pop(0))
 
         if len(args) > 1 and (args[0] == "-m"):
-            args.pop(0);  tablefile = args.pop(0)
+            args.pop(0);  tablefile = utils.decodePath(args.pop(0))
 
         if args:
             raise RuntimeError("Unexpected arguments: %s" % args)
@@ -2043,7 +2043,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             setup_product_str = "%s %s -f %s -Z %s" % (
                 product.name, version, setupFlavor, utils.encodePath(product.stackRoot()))
             if tablefile:
-                setup_product_str += " -m %s" % (tablefile)
+                setup_product_str += " -m %s" % (utils.encodePath(tablefile))
 
             if not productRoot:
                 productRoot = product.dir

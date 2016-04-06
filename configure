@@ -1715,8 +1715,8 @@ fi
 if test "${with_eups+set}" = set; then :
   withval=$with_eups; EUPS_PATH=$(echo $withval | perl -pe 's|/*$||')
 else
-  if [ -z $EUPS_PATH ]; then
-       EUPS_PATH=${prefix}/share
+  if [ -z "$EUPS_PATH" ]; then
+       EUPS_PATH="${prefix}/share"
     else
        EUPS_PATH=$EUPS_PATH
     fi
@@ -1731,7 +1731,7 @@ if test "${with_python+set}" = set; then :
   withval=$with_python; EUPS_PYTHON=$(echo $withval)
 else
   EUPS_PYTHON=$(which python)
-    if [ $EUPS_PYTHON != /usr/bin/python ]; then
+    if [ "$EUPS_PYTHON" != /usr/bin/python ]; then
       as_fn_error $? "Your current python version isn't /usr/bin/python, please rerun configure specifying --with-python.
 --with-python=$(which python) will force eups to use your current python version,
 --with-python=/usr/bin/python will force eups to use system-installed python" "$LINENO" 5
@@ -1740,7 +1740,8 @@ else
 fi
 
 
-if [ -x $EUPS_PYTHON ]; then $EUPS_PYTHON -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || as_fn_error $? "$EUPS_PYTHON does not seem to be a valid python interpreter" "$LINENO" 5
+if [ -x "$EUPS_PYTHON" ]; then
+    "$EUPS_PYTHON" -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || as_fn_error $? "$EUPS_PYTHON does not seem to be a valid python interpreter" "$LINENO" 5
 else
     as_fn_error $? "$EUPS_PYTHON doesn't exists or doesn't have execute permission granted" "$LINENO" 5
 fi
@@ -1748,7 +1749,7 @@ fi
 
 
 # Allow them to use --prefix as an alias for --with-eups_dir
-if test X$prefix != XNONE; then
+if test "X$prefix" != "XNONE"; then
    with_eups_dir=$prefix
 fi
 
@@ -2992,5 +2993,5 @@ if [ X$SETUP_ALIASES != X ]; then
    echo "addAlias(`echo $SETUP_ALIASES | sed -e 's/^.*://'`, unsetup \$@)" >> ups/eups.table
 fi
 
-(export EUPS_DIR=$PWD; cd bin; $EUPS_PYTHON ./mksetup $EUPS_PYTHON $EUPS_DIR $EUPS_PATH $SETUP_ALIASES) || exit $?
+(export EUPS_DIR="$PWD"; cd bin; "$EUPS_PYTHON" ./mksetup "$EUPS_PYTHON" "$EUPS_DIR" "$EUPS_PATH" "$SETUP_ALIASES") || exit $?
 make git.version

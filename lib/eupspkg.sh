@@ -184,9 +184,9 @@ require_eups_version()
 	IFS=. read -ra SA <<< "$eups_ver"
 	IFS=. read -ra SB <<< "$1"
 
-	# Print the array as zero-padded string, so we can compare it leicographically
-	V1=$(printf "%05d" ${SA[@]})
-	V2=$(printf "%05d" ${SB[@]})
+	# Print the array as zero-padded string, so we can compare it lexicographically
+	V1=$(printf "%05d" "${SA[@]}")
+	V2=$(printf "%05d" "${SB[@]}")
 
 	if [[ "$V1" < "$V2" ]]; then
 		message=${2-"EUPS v$eups_ver too old for this package; v$1 or later required."}
@@ -737,7 +737,9 @@ default_config()
 			fix_autoconf_timestamps
 		fi
 
-		./configure $CONFIGURE_OPTIONS
+		# Use eval so that quoted strings in $CONFIGURE_OPTIONS
+		# expand properly (e.g. --prefix="$PREFIX")
+		eval ./configure $CONFIGURE_OPTIONS
 	fi
 }
 
@@ -1126,12 +1128,12 @@ MAKE_INSTALL_TARGETS=${MAKE_INSTALL_TARGETS:-"install"}	# Targets for invocation
 PRODUCTS_ROOT=${PRODUCTS_ROOT:-"$(eups path 0)/$(eups flavor)"}		# Root directory of EUPS-managed stack.
 PREFIX=${PREFIX:-"$PRODUCTS_ROOT/$PRODUCT/$VERSION"}			# Directory to which the product will be installed
 
-CONFIGURE_OPTIONS=${CONFIGURE_OPTIONS:-"--prefix $PREFIX"}		# Options passed to ./configure. Note that --prefix is NOT passed separately!
+CONFIGURE_OPTIONS=${CONFIGURE_OPTIONS:-"--prefix \"$PREFIX\""}		# Options passed to ./configure. Note that --prefix is NOT passed separately!
 # The following '--prefix=' is meant to clear any pre-set 'prefix' from a distutils.cfg or ~/.pydistutils.cfg
 # We can only specify a value for either --home XOR --prefix, not both.
 # So if we specify --home, we have to blank out --prefix:
 # See, e.g.,   http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install
-PYSETUP_INSTALL_OPTIONS=${PYSETUP_INSTALL_OPTIONS:-"--home $PREFIX --prefix="}	# Options passed to setup.py install. Note that --home is NOT passed separately!
+PYSETUP_INSTALL_OPTIONS=${PYSETUP_INSTALL_OPTIONS:-"--home \"$PREFIX\" --prefix="}	# Options passed to setup.py install. Note that --home is NOT passed separately!
 
 export CC=${CC:-cc}				# Autoconf prefers to look for gcc first, and the proper thing is to default to cc. This helps on Darwin.
 export CXX=${CXX:-c++}				# Autoconf prefers to look for gcc first, and the proper thing is to default to c++. This helps on Darwin.
@@ -1160,10 +1162,10 @@ ulimit -Su hard >/dev/null 2>&1 \
 
 IFS=':' read -ra _SCRIPTS <<< "$SCRIPTS"
 for _script in "${_SCRIPTS[@]}"; do
-	if [[ -f $_script ]]; then
+	if [[ -f "$_script" ]]; then
 		info "sourcing '$_script'."
-		. $_script
-	elif [[ -z $_script ]]; then
+		. "$_script"
+	elif [[ -z "$_script" ]]; then
 		continue
 	else
 		die "script '$_script' listed on the SCRIPTS path does not exist."

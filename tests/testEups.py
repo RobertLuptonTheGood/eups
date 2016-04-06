@@ -45,7 +45,7 @@ class EupsTestCase(unittest.TestCase):
 
         usercachedir = os.path.join(testEupsStack,"_userdata_","_caches_")
         if os.path.exists(usercachedir):
-            os.system("rm -rf " + usercachedir)
+            os.system('rm -rf "%s"' % usercachedir)
 
         if os.path.exists(self.betachain):  os.remove(self.betachain)
 

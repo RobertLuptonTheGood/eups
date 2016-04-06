@@ -9,7 +9,6 @@ eups.aux : eups.tex
 	@ if ! echo | latex $(LATEXFLAGS) eups.tex; then \
 		echo "Could not build eups.aux (ignoring)"; \
 	fi
-		
 
 eups.dvi : eups.aux
 	@ if ! echo | latex $(LATEXFLAGS) eups.tex; then \
@@ -31,7 +30,7 @@ eups.html : eups.aux
 		echo "<H1><CODE>eups</CODE> documentation</H1>" >> eups.html; \
 		echo "We're sorry, but we failed to build the <code>eups</code>" >> eups.html; \
 		echo "documentation as we couldn't find <code>latex2html</code>." >> eups.html; \
-		echo "The <A HREF=$(EUPS_DIR)/doc/eups.pdf>pdf documentation</A> was built successfully." >> eups.html;\
+		echo "The <A HREF=\"$(EUPS_DIR)/doc/eups.pdf\">pdf documentation</A> was built successfully." >> eups.html;\
 		echo "</HTML>" >> eups.html; \
 	fi
 
@@ -41,7 +40,7 @@ eups.pdf : eups.aux
 	fi
 
 install : eups.pdf eups.html
-	@ if ! cp Makefile *.tex eups.pdf eups.html $(EUPS_DIR)/doc; then \
+	@ if ! cp Makefile *.tex eups.pdf eups.html "$(EUPS_DIR)/doc"; then \
 		echo "Not all documentation files copied (ignoring)"; \
 	fi
 

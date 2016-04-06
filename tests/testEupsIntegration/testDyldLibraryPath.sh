@@ -73,3 +73,7 @@ chmod +x auxTestDyldLibraryPath_csh
 # Test with regular DYLD_LIBRARY_PATH
 (   auxTestDyldLibraryPath_bash "a/b/c" )
 ( ./auxTestDyldLibraryPath_csh  "a/b/c" )
+
+# Test with spaces in input DYLD_LIBRARY_PATH
+( auxTestDyldLibraryPath_bash  "a/b c/d" )
+( ./auxTestDyldLibraryPath_csh "a/b c/d" )
