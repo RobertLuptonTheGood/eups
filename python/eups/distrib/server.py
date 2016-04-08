@@ -976,10 +976,10 @@ class WebTransporter(Transporter):
                     url = urlopen(self.loc)
                     out = open(filename, 'wb')
                     out.write(url.read())
-                except HTTPError:
-                    raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-                except URLError:
-                    raise ServerNotResponding("Failed to contact URL %s" % self.loc)
+                except HTTPError as e:
+                    raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
+                except URLError as e:
+                    raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
                 except KeyboardInterrupt:
                     raise EupsException("^C")
             finally: 
@@ -1054,10 +1054,10 @@ class WebTransporter(Transporter):
 
             return p.files
 
-          except HTTPError:
-            raise RemoteFileNotFound("Failed to open URL %s" % self.loc)
-          except URLError:
-            raise ServerNotResponding("Failed to contact URL %s" % self.loc)
+          except HTTPError as e:
+            raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
+          except URLError as e:
+            raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
           except KeyboardInterrupt:
             raise EupsException("^C")
         finally: 
