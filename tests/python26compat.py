@@ -9,6 +9,10 @@
 #
 
 import unittest
+try:
+    safe_repr
+except NameError:
+    safe_repr = repr
 
 class TestCase27(unittest.TestCase):
     def assertIn(self, member, container, msg=None):
@@ -22,7 +26,7 @@ class TestCase27(unittest.TestCase):
         """Just like self.assertTrue(a not in b), but with a nicer default message."""
         if member in container:
             standardMsg = '%s unexpectedly found in %s' % (safe_repr(member),
-                                                        safe_repr(container))
+                                                           safe_repr(container))
             self.fail(self._formatMessage(msg, standardMsg))
 
     def assertIsNone(self, obj, msg=None):
