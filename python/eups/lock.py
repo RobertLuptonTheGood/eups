@@ -198,8 +198,11 @@ def clearLocks(path, verbose=0, noaction=False):
     """Remove all locks found in the directories listed in path"""
     
     for d in path:
-        lockDir = os.path.join(getLockPath(d), _lockDir)
+        lockDir = getLockPath(d)
+        if not lockDir:
+            continue
 
+        lockDir = os.path.join(lockDir, _lockDir)
         if not os.path.isdir(lockDir):
             continue
 
