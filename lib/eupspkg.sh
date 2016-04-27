@@ -799,7 +799,8 @@ default_install()
 	elif [[ -f setup.py ]]; then
 		PYDEST="$PREFIX/lib/python"
 		mkdir -p "$PYDEST"
-		PYTHONPATH="$PYDEST:$PYTHONPATH" python setup.py install $PYSETUP_INSTALL_OPTIONS
+                # eval is needed to allow $PYSETUP_INSTALL_OPTIONS to include double quotes
+		eval PYTHONPATH="$PYDEST:$PYTHONPATH" python setup.py install $PYSETUP_INSTALL_OPTIONS
 		evil_setuptools_pth_fix "$PYDEST"
 	else
 		# just copy everything, except for the ups directory
