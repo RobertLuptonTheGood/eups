@@ -2299,6 +2299,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                                then use of this input will simple assign this
                                tag to the variable.  (See also above note about 
                                backward compatibility.)
+        @param externalFileList List of extra files to write to the external files directory (i.e. -L files);
+                               input only -- we make a copy
         @param declareCurrent  DEPRECATED, if True and tag=None, it is 
                                equivalent to tag="current".  
         """
@@ -2400,6 +2402,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         ups_dir = "ups"
         tableFileIsInterned = False     # the table file is in the extra directory
         dbpath = self.getUpsDB(eupsPathDir)
+        externalFileList = externalFileList[:] # we're not passing files back to the parent
         externalFileDir = os.path.join(dbpath, utils.extraDirPath(self.flavor, productName, versionName))
 
         if not utils.isRealFilename(tablefile):
