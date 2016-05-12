@@ -568,7 +568,9 @@ but no other interpretation is applied
                 if True:
                     optional = a.extra["optional"]
                       
-                    requestedVRO, productName, productDir, vers, versExpr, noRecursion = a.processArgs(Eups)
+                    requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = a.processArgs(Eups)
+                    if noAction:
+                        continue
                     #
                     # Remove all mention of the unsetup product
                     #
@@ -591,7 +593,9 @@ but no other interpretation is applied
             elif a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
 
-                requestedVRO, productName, productDir, vers, versExpr, noRecursion = a.processArgs(Eups)
+                requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = a.processArgs(Eups)
+                if noAction:
+                    continue
 
                 Eups.pushStack("vro", requestedVRO)
 
@@ -780,7 +784,7 @@ class Action(object):
         i = -1
 
         requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTags = []
-        productDir = False; keep = False; requestedVRO = None
+        productDir = False; keep = False; requestedVRO = None; noAction = False
         ignoredOpts = []
         while i < len(_args) - 1:
             i += 1
@@ -792,6 +796,8 @@ class Action(object):
                     noRecursion = True
                 elif _args[i] in ("-k", "--keep"):  # keep already-setup versions of this product
                     keep = True
+                elif _args[i] in ("-n", "--noaction"):  # don't actually perform the setup
+                    noAction = True
                 elif _args[i] == "-r":  # e.g. -r productDir
                     productDir = _args[i + 1]
                     i += 1              # skip the argument
@@ -919,7 +925,18 @@ class Action(object):
         if not productName:
             raise RuntimeError("I was unable to find a product specification in \"%s\"" % " ".join(_args))
 
-        return requestedVRO, productName, productDir, vers, versExpr, noRecursion
+        if productName == "eups":       # eups is special; we won't set it up but we can check versions
+            noAction = True
+
+        if noAction:                    # they specified -n
+            if productName != "eups":
+                raise RuntimeError("-n is only supported for eups: \"%s\"" % " ".join(_args))
+
+            eupsVersion = utils.version()
+            if not Eups.version_match(eupsVersion, versExpr):
+                raise RuntimeError("eups version %s doesn't satisfy condition \"%s\"" % (eupsVersion, versExpr))
+
+        return requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction
 
     def expandEnvironmentalVariable(self, value, verbose=0):
         # look for values that are optional environment variables: ${XXX} or $?{XXX}
@@ -954,8 +971,11 @@ class Action(object):
         optional = self.extra["optional"]
         silent = self.extra.get("silent", False)
 
-        requestedVRO, productName, productDir, vers, versExpr, noRecursion = \
+        requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = \
             self.processArgs(Eups, fwd)
+        if noAction:
+            return
+        
         if productDir:
             productDir = self.expandEnvironmentalVariable(productDir, Eups.verbose)
             if productDir is None:
@@ -1012,7 +1032,9 @@ class Action(object):
         optional = self.extra["optional"]
         silent = self.extra.get("silent", False)
 
-        requestedVRO, productName, productDir, vers, versExpr, noRecursion = self.processArgs(Eups, fwd=False)
+        requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = self.processArgs(Eups, fwd=False)
+        if noAction:
+            return
 
         Eups.pushStack("env")
         Eups.pushStack("verbose")

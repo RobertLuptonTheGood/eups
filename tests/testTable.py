@@ -165,6 +165,31 @@ class IfElseTestCase(unittest.TestCase):
 
             self.assertEqual(os.environ["FOO"].lower(), t)
                 
+class EupsVersionTestCase(unittest.TestCase):
+    """
+    Check that we can check the eups version
+    """
+    def setUp(self):
+        os.environ["EUPS_PATH"] = testEupsStack
+        self.tablefile = os.path.join(testEupsStack, "eupsVersion.table")
+        self.table = Table(self.tablefile)
+        self.eups = Eups()
+
+    def testVersionCheck(self):
+        actions = self.table.actions("DarwinX86")
+        for action in actions:
+            action.execute(self.eups, 1)
+
+    def testVersionCheck(self):
+        actions = self.table.actions("DarwinX86")
+        assert actions[0].cmd == "setupRequired" and actions[0].args[0] == 'eups', "First action sets up eups"
+        assert  " ".join(actions[0].args[1:]) == '[> 2.0.2]'
+        actions[0].args[1:] = "[> 1000]".split()
+        for action in actions:
+            try:
+                action.execute(self.eups, 1)
+            except RuntimeError as e:
+                self.assertTrue("doesn't satisfy condition" in str(e))
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -176,6 +201,7 @@ def suite(makeSuite=True):
         TableTestCase1,
         TableTestCase2,
         IfElseTestCase,
+        EupsVersionTestCase,
         ], makeSuite)
 
 def run(shouldExit=False):
