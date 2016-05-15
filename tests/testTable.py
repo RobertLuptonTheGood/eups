@@ -190,6 +190,25 @@ class EupsVersionTestCase(unittest.TestCase):
                 action.execute(self.eups, 1)
             except RuntimeError as e:
                 self.assertTrue("doesn't satisfy condition" in str(e))
+                
+class ExternalProductsTestCase(unittest.TestCase):
+    """
+    Check that we can check the eups version
+    """
+    def setUp(self):
+        os.environ["EUPS_PATH"] = testEupsStack
+        self.tablefile = os.path.join(testEupsStack, "externalProducts.table")
+        self.table = Table(self.tablefile)
+        self.eups = Eups()
+
+    def testFoo(self):
+        import eups.hooks as hooks
+        defaultProductName = hooks.config.Eups.defaultProduct["name"]
+        for i, productName, led in [(0, defaultProductName,       False),
+                                    (0, "someExternalProduct",    True),
+                                    (1, "anotherExternalProduct", True),
+        ]:
+            self.assertEqual(self.table.dependencies(listExternalDependencies=led)[i][0].name, productName)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -202,6 +221,7 @@ def suite(makeSuite=True):
         TableTestCase2,
         IfElseTestCase,
         EupsVersionTestCase,
+        ExternalProductsTestCase,
         ], makeSuite)
 
 def run(shouldExit=False):
