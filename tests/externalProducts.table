@@ -1,0 +1,2 @@
+setupRequired(someExternalProduct 1.0 --external)
+setupOptional(anotherExternalProduct 1.0 --external)

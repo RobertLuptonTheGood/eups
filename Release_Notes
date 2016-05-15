@@ -1,3 +1,8 @@
+2016-05-15 (rhl)
+    - Added support for a new flag --external to setup{Optional,Required} in table files
+    N.b. this is not visible from the setup command, but can be seen by passing
+    listExternalDependencies=True to Table.dependencies()
+
 2016-05-11 (rhl)
     - Added support for setupRequired(eups [> XXX]) to check eups version
     N.b. We implicitly add "-n", and no setup is performed.

@@ -515,7 +515,8 @@ but no other interpretation is applied
     _versionre = re.compile(r"(.*)\s*\[([^\]]+)\]\s*")
 
     def dependencies(self, Eups=None, eupsPathDirs=None, recursive=None, recursionDepth=0, followExact=None,
-                     productDictionary=None, addDefaultProduct=None, requiredVersions={}):
+                     productDictionary=None, addDefaultProduct=None, requiredVersions={},
+                     listExternalDependencies=False):
         """
         Return the product dependencies as specified in this table as a list 
         of (Product, optional?, recursionDepth) tuples
@@ -533,6 +534,9 @@ but no other interpretation is applied
                                (Product, optional? recursionDepth)
         @param addDefaultProduct If not False add the defaultProduct to any table file
         @param requiredVersions  Dict with version required for products
+        @param listExternalDependencies Return the external dependencies (i.e. the ones that eups tracks
+                                        but does not manage), rather than the ones it both tracks and
+                                        manages via declare/setup
         """
         from .Product import Product
 
@@ -555,6 +559,8 @@ but no other interpretation is applied
         if productDictionary is None:
             productDictionary = {}
 
+        listExternalDependencies = not not listExternalDependencies # ensure it is boolean
+
         if self.topProduct not in productDictionary:
             productDictionary[self.topProduct] = []
             
@@ -568,8 +574,10 @@ but no other interpretation is applied
                 if True:
                     optional = a.extra["optional"]
                       
-                    requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = a.processArgs(Eups)
-                    if noAction:
+                    requestedVRO, productName, productDir, vers, versExpr, extraArgs = a.processArgs(Eups)
+                    if extraArgs["noAction"]:
+                        continue
+                    if extraArgs["isExternal"] != listExternalDependencies:
                         continue
                     #
                     # Remove all mention of the unsetup product
@@ -581,7 +589,7 @@ but no other interpretation is applied
                     table = thisProduct.getTable()
 
                     unsetupProducts = [thisProduct.name]
-                    if table and not noRecursion:
+                    if table and not extraArgs["noRecursion"]:
                         subDeps = table.dependencies(Eups, eupsPathDirs=eupsPathDirs,
                                                     recursive=True, followExact=followExact)
                         unsetupProducts += [val[0].name for val in subDeps]
@@ -593,8 +601,10 @@ but no other interpretation is applied
             elif a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
 
-                requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = a.processArgs(Eups)
-                if noAction:
+                requestedVRO, productName, productDir, vers, versExpr, extraArgs = a.processArgs(Eups)
+                if extraArgs["noAction"]:
+                    continue
+                if extraArgs["isExternal"] != listExternalDependencies:
                     continue
 
                 Eups.pushStack("vro", requestedVRO)
@@ -619,7 +629,7 @@ but no other interpretation is applied
                         val.append(None)
                     deps += [val]
 
-                    if recursive and not noRecursion and prodkey(product) not in recursiveDict:
+                    if recursive and not extraArgs["noRecursion"] and prodkey(product) not in recursiveDict:
                         recursiveDict[prodkey(product)] = 1
                         deptable = product.getTable(addDefaultProduct=addDefaultProduct)
                         if deptable:
@@ -778,13 +788,17 @@ class Action(object):
             print("Unimplemented action", self.cmd, file=utils.stderr)
 
     def processArgs(self, Eups, fwd=True):
-        """Process the arguments in a setup command found in a table file"""
+        """Process the arguments in a setup command found in a table file
+
+        Returning requestedVRO, productName, productDir, vers, versExpr, extraArgs
+        where extraArgs is a dict
+        """
 
         _args = self.args; args = []
         i = -1
 
         requestedFlavor = None; requestedBuildType = None; noRecursion = False; requestedTags = []
-        productDir = False; keep = False; requestedVRO = None; noAction = False
+        productDir = False; keep = False; requestedVRO = None; noAction = False; isExternal=False
         ignoredOpts = []
         while i < len(_args) - 1:
             i += 1
@@ -798,6 +812,8 @@ class Action(object):
                     keep = True
                 elif _args[i] in ("-n", "--noaction"):  # don't actually perform the setup
                     noAction = True
+                elif _args[i] in ("--external"): # This is an external dependency
+                    isExternal = True
                 elif _args[i] == "-r":  # e.g. -r productDir
                     productDir = _args[i + 1]
                     i += 1              # skip the argument
@@ -936,7 +952,8 @@ class Action(object):
             if not Eups.version_match(eupsVersion, versExpr):
                 raise RuntimeError("eups version %s doesn't satisfy condition \"%s\"" % (eupsVersion, versExpr))
 
-        return requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction
+        return requestedVRO, productName, productDir, vers, versExpr, \
+            dict(noRecursion=noRecursion, noAction=noAction, isExternal=isExternal)
 
     def expandEnvironmentalVariable(self, value, verbose=0):
         # look for values that are optional environment variables: ${XXX} or $?{XXX}
@@ -971,9 +988,8 @@ class Action(object):
         optional = self.extra["optional"]
         silent = self.extra.get("silent", False)
 
-        requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = \
-            self.processArgs(Eups, fwd)
-        if noAction:
+        requestedVRO, productName, productDir, vers, versExpr, extraArgs = self.processArgs(Eups, fwd)
+        if extraArgs["noAction"] or extraArgs["isExternal"]:
             return
         
         if productDir:
@@ -990,7 +1006,7 @@ class Action(object):
 
         try:
             productOK, vers, reason = \
-                       Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=noRecursion,
+                       Eups.setup(productName, vers, fwd, recursionDepth, noRecursion=extraArgs["noRecursion"],
                                   versionExpr=versExpr, productRoot=productDir, optional=optional,
                                   implicitProduct=implicitProduct)
         except Exception as e:
@@ -1032,8 +1048,8 @@ class Action(object):
         optional = self.extra["optional"]
         silent = self.extra.get("silent", False)
 
-        requestedVRO, productName, productDir, vers, versExpr, noRecursion, noAction = self.processArgs(Eups, fwd=False)
-        if noAction:
+        requestedVRO, productName, productDir, vers, versExpr, extraArgs = self.processArgs(Eups, fwd=False)
+        if extraArgs["noAction"] or extraArgs["isExternal"]:
             return
 
         Eups.pushStack("env")
@@ -1042,7 +1058,7 @@ class Action(object):
 
         try:
             productOK, vers, reason = Eups.unsetup(productName, vers, recursionDepth,
-                                                   noRecursion=noRecursion, optional=optional)
+                                                   noRecursion=extraArgs["noRecursion"], optional=optional)
                                                    
         except Exception as e:
             productOK, reason = False, e
@@ -1255,6 +1271,8 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 flags += ["%s %s" % (a, args[i])]
             elif re.search(r"^-[cdejknoPsvtV0-3]", a):
                 flags += [a]
+            elif re.search(r"^--external", a):
+                flags += [a]
             elif re.search(r"^-[BO]", a):
                 print("I don't know how to process %s" % a, file=utils.stderr)
             elif re.search(r"^-", a):
@@ -1343,6 +1361,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
     setupBlocks = []                    # sets of contiguous setup commands
     block = [False, []]                 # [isSetupBlock, [current set of contiguous commands]]
+    finalBlock = [True, []]             # extra block to put out at the end of the file
     setupBlocks.append(block)
 
     lastSetupBlock = None               # index of the _last_ block of setups
@@ -1367,7 +1386,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
             args = mat.group(2)
             if args:
-                products.append((args.split(" ")[0], mat.group(1) == "setupOptional"))
+                products.append((args.split(" ")[0],
+                                 mat.group(1) == "setupOptional",
+                                 "--external" in line))
         else:
             if block[0]:
                 block = [False, []]
@@ -1383,9 +1404,12 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     desiredProducts = []
     optionalProducts = {}
     notFound = {}
-    for productName, optional in products:
+    for productName, optional, isExternal in products:
         if productName == toplevelName:
             continue                    # Don't include product foo in foo.table
+        if isExternal:                  # ignore products labelled --external
+            finalBlock[1].append(line)
+            continue
 
         NVOL = []
         version = None
@@ -1478,6 +1502,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
             for j in range(len(block)):
                 line = block[j].strip()
+                if "--external" in line:
+                    continue
+                
                 if j == len(block) - 1: # this is just cosmetics in the generated file
                     if not line and indentLevel > 0:
                         break
@@ -1489,3 +1516,11 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 output(ofd, indentLevel, "}")
 
         i += 1
+    #
+    # Output any common commands
+    #
+    finalBlock.pop(0)                   # drop logical
+    for line in finalBlock[0]:
+        output(ofd, 0, line)
+
+        
