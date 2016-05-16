@@ -1252,6 +1252,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
         original = match.group(0)
 
+        if args and args[0] == "eups":  # don't expand eups version
+            return original
+
         flags = []; words = []
 
         i = -1
@@ -1386,7 +1389,12 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
 
             args = mat.group(2)
             if args:
-                products.append((args.split(" ")[0],
+                cmd = args.split(" ")[0]
+                if cmd == "eups":
+                    finalBlock[1].append(line)
+                    continue
+                
+                products.append((cmd,
                                  mat.group(1) == "setupOptional",
                                  "--external" in line))
         else:
