@@ -1276,9 +1276,9 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
             print("I cannot find a product in %s; passing through unchanged" % original, file=utils.stderr)
             return original
 
-        try:
+        if len(words) and words[0] != '[':
             version = words.pop(0)
-        except IndexError:
+        else:
             version = None
         # 
         #
