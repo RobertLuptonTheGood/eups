@@ -1,3 +1,10 @@
+2016-05-31 (rhl)
+    - Make
+       eups tags tagName productName
+    work as documented.  Either or both of tagName and productName may be globs, e.g.
+      $ eups tags b\* pipe\*
+      b1990 b1997
+
 2016-05-15 (rhl)
     - Added support for a new flag --external to setup{Optional,Required} in table files
     N.b. this is not visible from the setup command, but can be seen by passing

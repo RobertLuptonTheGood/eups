@@ -2752,7 +2752,7 @@ class TagsCmd(EupsCmd):
 
     usage = """%prog tags [-h|--help] [options] [tagname] [product]
 
-    When listing tags, tagname may be a glob pattern
+    When listing tags, tagname and product may be glob patterns
     """
 
     # set this to True if the description is preformatted.  If false, it 
@@ -2809,15 +2809,23 @@ class TagsCmd(EupsCmd):
         nargs = len(self.args)
         if nargs == 0:
             globPattern = None
-        elif nargs == 1:
-            globPattern = self.args[0]
         else:
-            if len(self.args) == 2:
+            globPattern = self.args.pop(0)
+            nargs -= 1
+
+        if nargs == 0:
+            productName = None
+        else:
+            productName = self.args.pop(0)
+            nargs -= 1
+
+        if nargs:
+            if nargs == 1:
                 _s = ""
             else:
                 _s = "s"
 
-            self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args[1:])))
+            self.err("Unexpected argument%s: %s" % (_s, ", ".join(self.args)))
             return 1
 
         tagNames = myeups.tags.getTagNames(omitPseudo=True)
@@ -2825,6 +2833,13 @@ class TagsCmd(EupsCmd):
             import fnmatch
 
             tagNames = [n for n in tagNames if fnmatch.fnmatch(n, globPattern)]
+
+        if productName:
+            matchedTagNames = []
+            for t in tagNames:
+                if self.createEups(self.opts).findProducts(productName, tags=[t]):
+                    matchedTagNames.append(t)
+            tagNames = matchedTagNames
 
         try:
             isatty = os.isatty(sys.stdout.fileno())
