@@ -59,7 +59,19 @@ class Product(object):
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
                  tags=None, db=None, noInit=None, ups_dir=None):
         if (name and not isinstance(name, str)) or isinstance(dir,bool) or noInit is not None:
-            print("Note: detected use of deprecated API; use Eups.getProduct() instead.", file=utils.stdwarn)
+            import inspect
+            caller = (inspect.stack(context=2))[1]
+            reason = "unknown"
+            if name and not isinstance(name, str):
+                reason = "name is '{0}' ({1}) and not str".format(name, type(name))
+            elif isinstance(dir, bool):
+                reason = "dir is bool"
+            elif noInit is not None:
+                reason = "noInit is not None"
+
+            print("Note: detected use of deprecated API at {0}:{1} ({2}) (reason: {3});"
+                  " use Eups.getProduct() instead.".format(caller[1], caller[2], caller[3], reason),
+                  file=utils.stdwarn)
             name = version
             version = flavor
             if not version:
