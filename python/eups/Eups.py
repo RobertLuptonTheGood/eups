@@ -50,7 +50,7 @@ class Eups(object):
         if not path:
             path = os.environ.get("EUPS_PATH", [])
 
-        if isinstance(path, str):
+        if utils.is_string(path):
             path = path.split(":")
 
         if dbz:
@@ -206,12 +206,12 @@ class Eups(object):
         self.cmdName = cmdName
 
         # set the valid setup types
-        if isinstance(validSetupTypes, str):
+        if utils.is_string(validSetupTypes):
             validSetupTypes = validSetupTypes.split()
         self._validSetupTypes = validSetupTypes
         if self._validSetupTypes is None:
             self._validSetupTypes = hooks.config.Eups.setupTypes
-            if isinstance(self._validSetupTypes, str):
+            if utils.is_string(self._validSetupTypes):
                 utils.deprecated("Setting config.Eups.setupTypes with a string is deprecated; " +
                                  "please use a list.", self.quiet)
                 self._validSetupTypes.split()
@@ -220,7 +220,7 @@ class Eups(object):
         #
         if setupType in (None, ""):
             self.setupType = []
-        elif isinstance(setupType, str):
+        elif utils.is_string(setupType):
             if re.search(r"[\s,]", setupType):
                 self.setupType = re.split(r"[\s,]+", setupType)
             else:
@@ -335,7 +335,7 @@ class Eups(object):
         if not isinstance(fallbackList, dict):
             fallbackList = {None : fallbackList}
         for flavor, fbl in fallbackList.items():
-            if isinstance(fbl, str):
+            if utils.is_string(fbl):
                 fbl = fbl.split()
             utils.Flavor().setFallbackFlavors(flavor, fbl)
         # 
@@ -356,7 +356,7 @@ class Eups(object):
             (["commandLine", "keep", "path", "setup", "type",
               "version", "version!", "versionExpr", "warn",], Tags.pseudo),
             ]:
-            if isinstance(tags, str):
+            if utils.is_string(tags):
                 tags = tags.split()
             for tag in tags:
                 try:
@@ -376,7 +376,7 @@ class Eups(object):
         for tags in pt:
             if not tags:
                 tags = hooks.config.Eups.preferredTags
-            if isinstance(tags, str):
+            if utils.is_string(tags):
                 tags = tags.split()
 
             for t in tags:
@@ -391,7 +391,7 @@ class Eups(object):
         self._reservedTags = hooks.config.Eups.reservedTags
         if self._reservedTags is None:
             self._reservedTags = []
-        elif isinstance(self._reservedTags, str):
+        elif utils.is_string(self._reservedTags):
             self._reservedTags = self._reservedTags.split()
         #
         # Some tags are always reserved
@@ -668,7 +668,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def _kindlySetPreferredTags(self, tags, strict=False):
 
-        if isinstance(tags, str):
+        if utils.is_string(tags):
             tags = tags.split()
         if not isinstance(tags, list):
             raise TypeError("Eups.setPreferredTags(): arg not a list")
@@ -831,7 +831,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
-        if isinstance(eupsPathDirs, str):
+        if utils.is_string(eupsPathDirs):
             eupsPathDirs = [eupsPathDirs]
 
         product, vroReason = None, None
@@ -1069,10 +1069,10 @@ The what argument tells us what sort of state is expected (allowed values are de
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
-        if isinstance(eupsPathDirs, str):
+        if utils.is_string(eupsPathDirs):
             eupsPathDirs = [eupsPathDirs]
 
-        if isinstance(version, str):
+        if utils.is_string(version):
             if self.isLegalRelativeVersion(version):  # raises exception if bad syntax used
                 return self._findPreferredProductByExpr(name, version, 
                                                         eupsPathDirs, flavor, 
@@ -1134,7 +1134,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
-        if isinstance(eupsPathDirs, str):
+        if utils.is_string(eupsPathDirs):
             eupsPathDirs = [eupsPathDirs]
 
         try:
@@ -1158,7 +1158,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
-        if isinstance(eupsPathDirs, str):
+        if utils.is_string(eupsPathDirs):
             eupsPathDirs = [eupsPathDirs]
 
         if tag.name == "latest":
@@ -1227,7 +1227,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             flavor = self.flavor
         if eupsPathDirs is None:
             eupsPathDirs = self.path
-        if isinstance(eupsPathDirs, str):
+        if utils.is_string(eupsPathDirs):
             eupsPathDirs = [eupsPathDirs]
         #
         # Read file seeing if it lists a desired version of product name
@@ -1804,7 +1804,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param implicitProduct  True iff product is setup due to being specified in implicitProducts
         """
 
-        if isinstance(versionName, str) and versionName.startswith(Product.LocalVersionPrefix):
+        if utils.is_string(versionName) and versionName.startswith(Product.LocalVersionPrefix):
             productRoot = versionName[len(Product.LocalVersionPrefix):]
 
         if productRoot is None:
@@ -2653,7 +2653,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 
         if tag:
             # we just want to update the tag
-            if isinstance(tag, str):
+            if utils.is_string(tag):
                 tag = [self.tags.getTag(tag)]
 
             if verbose:
@@ -3383,7 +3383,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                               will be remembered only for the current 
                               Eups instance.  
         """
-        if isinstance(tags, str):
+        if utils.is_string(tags):
             tags = tags.split()
 
         stacktags = None
@@ -3454,7 +3454,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
         if not path:
             path = self.path
-        elif isinstance(path, str):
+        elif utils.is_string(path):
             path = [path]
 
         preferred = currentTypesToTry

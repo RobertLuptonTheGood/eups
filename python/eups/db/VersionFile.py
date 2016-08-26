@@ -184,7 +184,7 @@ class VersionFile(object):
 
         dosub = list(data.keys())
         if skip:
-            if isinstance(skip, str):
+            if eups.utils.is_string(skip):
                 skip = skip.split()
             dosub = [n for n in dosub if n not in skip]
 

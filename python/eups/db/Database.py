@@ -7,7 +7,7 @@ from .ChainFile import ChainFile
 import eups.tags
 from eups.Product import Product
 from eups.exceptions import UnderSpecifiedProduct, ProductNotFound, TableFileNotFound
-from eups.utils import xrange, cmp_or_key
+from eups.utils import xrange, cmp_or_key, is_string
 
 versionFileExt = "version"
 versionFileTmpl = "%s." + versionFileExt
@@ -529,7 +529,7 @@ class _Database(object):
         if not os.path.exists(pdir):
             raise ProductNotFound(productName, stack=self.dbpath);
 
-        if isinstance(tag, str):
+        if is_string(tag):
             tag = eups.tags.Tag(tag)
 
         pdirs = []
@@ -577,7 +577,7 @@ class _Database(object):
                                 If None, tag all available flavors.  
         """
 
-        if isinstance(tag, str):
+        if is_string(tag):
             tag = eups.tags.Tag(tag)
 
         vf = VersionFile(self._versionFile(productName, version))

@@ -325,7 +325,7 @@ Common"""
             
         if hasattr(opts, "tag") and opts.tag:
             tag = opts.tag
-            if isinstance(tag, str):
+            if utils.is_string(tag):
                 tag = [tag]
         else:
             tag = None

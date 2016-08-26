@@ -6,7 +6,7 @@ from __future__ import absolute_import, print_function
 import sys
 import eups
 from eups.tags      import Tag, TagNotRecognized
-from eups.utils     import Flavor, isDbWritable, cmp_or_key, xrange
+from eups.utils     import Flavor, isDbWritable, cmp_or_key, xrange, is_string
 from eups.exceptions import EupsException, ProductNotFound
 from .server         import ServerConf, Manifest, Mapping, TaggedProductList
 from .server         import LocalTransporter
@@ -98,7 +98,7 @@ class Repository(object):
         # of available products will be used.
         self._alwaysQueryServer = False
         if "alwaysQueryServer" in self.options:
-            if isinstance(self.options["alwaysQueryServer"], str):
+            if is_string(self.options["alwaysQueryServer"]):
                 self.options["alwaysQueryServer"] = \
                     self.options["alwaysQueryServer"].upper()
                 if "TRUE".startswith(self.options["alwaysQueryServer"]):
@@ -318,7 +318,7 @@ class Repository(object):
                 for flav in flavs:
                     if version is None:
                         out.extend( (prod, v, flav) for v in self._pkgList[prod][flav] )
-                    elif version and isinstance(version, str):
+                    elif version and is_string(version):
                         if version not in self._pkgList[prod][flav]:
                             continue
                         out.append( (prod, version, flav) )

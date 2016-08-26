@@ -35,6 +35,9 @@ if sys.version_info[0] == 2:
 
     def decode(string, encoding):
         return string
+
+    def is_string(string):
+        return isinstance(string, basestring)
 else:
     # Python 3.x versions
     import io as StringIO
@@ -65,6 +68,9 @@ else:
 
     def decode(string, encoding):
         return string.decode(encoding)
+
+    def is_string(string):
+        return isinstance(string, str)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -300,7 +306,7 @@ def findWritableDb(pathdirs, ups_db):
     """return the first directory in the eups path that the user can install 
     stuff into
     """
-    if isinstance(pathdirs, str):
+    if is_string(pathdirs):
         pathdirs = pathdirs.split(':')
     if not isinstance(pathdirs, list):
         raise TypeError("findWritableDb(): arg is not list or string: " + 

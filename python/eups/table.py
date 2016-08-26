@@ -1033,7 +1033,7 @@ class Action(object):
                             msg += ": %s" % reason
                         print("            %s%s" % (recursionDepth*" ", msg), file=utils.stdinfo)
                 else:
-                    if isinstance(reason, str):
+                    if utils.is_string(reason):
                         utils.debug("reason is a str", reason)
 
                     reason.msg = "in file %s: %s" % (self.tableFile, reason)
@@ -1082,7 +1082,7 @@ class Action(object):
                             msg += ": %s" % reason
                         print("            %s%s" % (recursionDepth*" ", msg), file=utils.stdinfo)
                 else:
-                    if isinstance(reason, str):
+                    if utils.is_string(reason):
                         utils.debug("reason is a str", reason)
 
                     reason.msg = "in file %s: %s" % (self.tableFile, reason)

@@ -137,7 +137,7 @@ class DistribServer(object):
         """
         if tags is None:
             tags = self.getTagNames()
-        if isinstance(tags, str):
+        if utils.is_string(tags):
             tags = tags.split()
 
         out = []
@@ -1463,7 +1463,7 @@ class Dependency(object):
     def __init__(self, product, version, flavor, tablefile, instDir, distId,
                  isOptional=False, shouldRecurse=False, extra=None):
         self.product = product
-        if not isinstance(version, str):
+        if not utils.is_string(version):
             if isinstance(version, type):
                 version = version()
             else:
