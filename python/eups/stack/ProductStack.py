@@ -262,7 +262,7 @@ class ProductStack(object):
         """
         if not flavors:
             flavors = self.getFlavors()
-        if isinstance(flavors, str):
+        if utils.is_string(flavors):
             flavors = [flavors]
         for flavor in flavors:
             file = self._persistPath(flavor)
@@ -587,12 +587,12 @@ class ProductStack(object):
                                 None, cache for all products
         @param flavors       the flavors of products to cache tables fo.  
         """
-        if productName and isinstance(productName, str):
+        if productName and utils.is_string(productName):
             productName = productName.split()
 
         if not flavors:
             flavors = self.getFlavors()
-        elif isinstance(flavors, str):
+        elif utils.is_string(flavors):
             flavors = flavors.split()
         
         for flavor in flavors:

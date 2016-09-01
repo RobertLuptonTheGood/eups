@@ -55,7 +55,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     if not eupsenv:
         eupsenv = Eups()
     if tags:
-        if isinstance(tags, str):
+        if utils.is_string(tags):
             tags = tags.split()
         checkTagsList(eupsenv, tags)
     elif setup and not dependencies:
@@ -540,7 +540,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
     """
     if path is None:
         path = os.environ["EUPS_PATH"]
-    if isinstance(path, str):
+    if utils.is_string(path):
         path = path.split(":")
 
     userDataDir = utils.defaultUserDataDir()
@@ -549,7 +549,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
     if not inUserDir:
         userDataDir = None              # Clear the system cache, not the one in userDataDir
 
-    if isinstance(flavors, str):
+    if utils.is_string(flavors):
         flavors = flavors.split()
 
     for p in path:
@@ -575,7 +575,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
 def listCache(path=None, verbose=0, flavor=None):
     if path is None:
         path = os.environ["EUPS_PATH"]
-    if isinstance(path, str):
+    if utils.is_string(path):
         path = path.split(":")
 
     if not flavor:
@@ -663,7 +663,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
         if version:
             eupsenv.selectVRO(versionName=version)
 
-    if isinstance(prefTags, str):
+    if utils.is_string(prefTags):
         prefTags = prefTags.split()
     elif isinstance(prefTags, Tag):
         prefTags = [prefTags]

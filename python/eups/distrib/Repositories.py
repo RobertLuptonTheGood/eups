@@ -59,7 +59,7 @@ class Repositories(object):
         @param log        the destination for status messages (default:
                             sys.stderr)
         """
-        if isinstance(pkgroots, str):
+        if utils.is_string(pkgroots):
             pkgroots = [p.strip() for p in pkgroots.split("|")]
         if not allowEmptyPkgroot and len(pkgroots) == 0:
             raise EupsException("No package servers to query; set -r or $EUPS_PKGROOT")
@@ -323,7 +323,7 @@ class Repositories(object):
                             defaults to False).
         """
         if alsoTag is not None:
-            if isinstance(alsoTag, str):
+            if utils.is_string(alsoTag):
                 alsoTag = [self.eups.tags.getTag(t) for t in alsoTag.split()]
             elif isinstance(alsoTag, Tag):
                 alsoTag = [alsoTag]

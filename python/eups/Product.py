@@ -58,11 +58,11 @@ class Product(object):
 
     def __init__(self, name, version, flavor=None, dir=None, table=None, 
                  tags=None, db=None, noInit=None, ups_dir=None):
-        if (name and not isinstance(name, str)) or isinstance(dir,bool) or noInit is not None:
+        if (name and not utils.is_string(name)) or isinstance(dir,bool) or noInit is not None:
             import inspect
             caller = (inspect.stack(context=2))[1]
             reason = "unknown"
-            if name and not isinstance(name, str):
+            if name and not utils.is_string(name):
                 reason = "name is '{0}' ({1}) and not str".format(name, type(name))
             elif isinstance(dir, bool):
                 reason = "dir is bool"
@@ -260,7 +260,7 @@ class Product(object):
 
         dosub = list(data.keys())
         if skip:
-            if isinstance(skip, str):
+            if utils.is_string(skip):
                 skip = skip.split()
             dosub = [n for n in dosub if n not in skip]
 

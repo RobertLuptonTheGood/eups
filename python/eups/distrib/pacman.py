@@ -8,6 +8,7 @@ from __future__ import print_function
 import sys, os
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
+from eups import utils
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to encapsulate Pacman-based product distribution
@@ -71,7 +72,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return False
 
             msg = "Illegal value for Option 'pacmanCache': "
-            if not isinstance(self.options['pacmanCache'], str):
+            if not utils.is_string(self.options['pacmanCache']):
                 print(msg + self.options['pacmanCache'], file=self.log)
                 return False
 

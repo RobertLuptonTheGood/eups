@@ -28,7 +28,7 @@ def defineProperties(names, parentName=None):
                           Provide this if this is defining a non-top-level
                           property.  
     """
-    if isinstance(names, str):
+    if utils.is_string(names):
         names = names.split()
     return utils.ConfigProperty(names, parentName)
 

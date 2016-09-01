@@ -43,7 +43,7 @@ class Tags(object):
             if group not in self.bygrp:
                 self.bygrp[group] = []
 
-        if isinstance(globals, str):
+        if utils.is_string(globals):
             globals = globals.split()
         if globals:
             for tag in globals:
@@ -62,7 +62,7 @@ class Tags(object):
                          type Tag
         @return bool 
         """
-        if isinstance(tag, str) and tag.find(':') >= 0:
+        if utils.is_string(tag) and tag.find(':') >= 0:
             # parse a qualified name
             tag = Tag.parse(tag)
         return (self.groupFor(tag) is not None)
@@ -118,7 +118,7 @@ class Tags(object):
         if tag is None:
             return None
 
-        if isinstance(tag, str) and tag != ":" and tag.find(':') >= 0:
+        if utils.is_string(tag) and tag != ":" and tag.find(':') >= 0:
             # parse a qualified name
             tag = Tag.parse(tag)
         group = self.groupFor(tag)
@@ -148,7 +148,7 @@ class Tags(object):
         if group is None:
             group = self.global_
 
-        if isinstance(name, str):
+        if utils.is_string(name):
             owner = None
         else:
             name, owner = name
@@ -262,7 +262,7 @@ class Tags(object):
                             stacks) given either as a list of strings 
                             or a single colon-separated string.
         """
-        if isinstance(eupsPath, str):
+        if utils.is_string(eupsPath):
             eupsPath = eupsPath.split(':')
         if not isinstance(eupsPath, list):
             raise TypeError("Tags.loadFromEupsPath(): eupsPath not a str/list:"
