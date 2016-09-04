@@ -542,6 +542,15 @@ def checkTagsList(eupsenv, tagList):
     if badtags:
         raise TagNotRecognized(str(badtags), 
                                msg="Unsupported tag(s): %s" % ", ".join([str(t) for t in badtags]))
+    #
+    # Warn if any tag files shadow tagnames
+    #
+    for tag in tagList:
+        fileName = re.sub(r"^file:", "", tag)
+        if os.path.isfile(os.path.expanduser(fileName)):
+            if eupsenv.verbose > 0:
+                print("Warning: \"-t %s\" will be interpreted as specifying a filename" % tag,
+                      file=utils.stdwarn)
 
 def getUserDefinedTags(user):
     """Return all the tags that a given user defines

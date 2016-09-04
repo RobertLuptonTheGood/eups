@@ -1,3 +1,6 @@
+2016-09-04 (rhl)
+    - Added a warning if a tag is shadowed by a filename
+
 2016-05-31 (rhl)
     - Make
        eups tags tagName productName
