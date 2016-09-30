@@ -122,6 +122,9 @@ class Product(object):
     def __ne__(self, rhs):
         return not (self == rhs)
 
+    def __lt__(self, rhs):
+        return (self.name, self.version, self.flavor) < (rhs.name, rhs.version, rhs.flavor)
+
     @classmethod
     def _decode_dir(self, version):
         if version is not None and version.startswith(self.LocalVersionPrefix):

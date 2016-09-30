@@ -153,7 +153,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 _msgs[product.name] = product.version
 
                 if not re.search(r"==", depth): 
-                    indent = "| " * (recursionDepth/2) 
+                    indent = "| "*(recursionDepth//2) 
                     if recursionDepth%2 == 1: 
                         indent += "|" 
 
