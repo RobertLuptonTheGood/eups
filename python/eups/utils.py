@@ -393,6 +393,8 @@ def encodePath(path):
     environment variable. This currently means that spaces are encoded. Use decodePath()
     to reverse this process.
     """
+    if not path:
+        return path
     return path.replace(" ", SPACE_TO_STRING)
 
 def decodePath(encodedPath):
