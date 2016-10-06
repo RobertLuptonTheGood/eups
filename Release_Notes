@@ -1,3 +1,6 @@
+2016-10-06 (rhl)
+    - Include userDataDir (e.g. ~/.eups) in "eups path -v"
+
 2016-09-04 (rhl)
     - Added a warning if a tag is shadowed by a filename
 

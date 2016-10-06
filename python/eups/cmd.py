@@ -612,7 +612,9 @@ integer argument, n, will cause just the n-th directory to be listed (where
 
     def execute(self):
         self._init()
-        path = [e for e in self.createEups(self.opts).path if e != utils.defaultUserDataDir()]
+        path = self.createEups(self.opts).path
+        if not self.opts.verbose:
+            path = [e for e in path if e != utils.defaultUserDataDir()]
         return self.printEnv(path)
 
 class StartupCmd(EnvListCmd):
