@@ -2145,7 +2145,7 @@ tag will be installed.
                             help="tag all newly installed products with this user TAG (repeat as needed)")
         self.clo.add_option("-g", "--groupAccess", dest="groupperm", action="store", metavar="GROUP",
                             help="Give specified group r/w access to all newly installed packages")
-        self.clo.add_option("-I", "--install-into", dest="installStack", action="append", metavar="DIR",
+        self.clo.add_option("-I", "--install-into", dest="installStack", metavar="DIR",
                             help="install into this product stack " +
                             "(Default: the first writable stack in $EUPS_PATH)")
         self.clo.add_option("-m", "--manifest", dest="manifest", action="store",
