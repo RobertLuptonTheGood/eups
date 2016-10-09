@@ -79,6 +79,7 @@ endif
 setenv EUPS_PATH `python -E` << EOT
 %(unique_eups_path)s
 EOT
+set _eups_path = "$EUPS_PATH"
 
 # csh shells die if variables are undefined, so we'll define an (empty) DYLD_LIBRARY_PATH
 # if there isn't one already
@@ -91,7 +92,8 @@ endif
 #       and similar. This is for backwards compatibility.
 eval `"%(setup)s" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
 setenv SETUP_EUPS "eups LOCAL:$eupslocalpath -f (none) -Z (none)"
-unset eupslocalpath
+setenv EUPS_PATH "$_eups_path"            # make sure that the setup script didn't reset EUPS_PATH
+unset eupslocalpath _eups_path
 
 """ % {"bindir" : bindir, "eupsdir" : eupsdir, "prefix" : prefix, \
            "pythondir" : pythondir, "setup" : setup,  "unique_eups_path" : unique_eups_path, \
@@ -124,13 +126,15 @@ eupslocalpath=$(echo "$EUPS_DIR" | sed -e "s/ /-+-/g")
 # Set EUPS_PATH, appending any pre-existing EUPS_PATH (and only keeping
 # one copy of each directory)
 export EUPS_PATH=`"%(eupspython)s" -E -c '%(unique_path)s' "$EUPS_PATH" "%(prefix)s"`
+_eups_path=$EUPS_PATH
 
 # setup EUPS, using EUPS
 # n.b.: we reset the flavor in SETUP_EUPS so eups doesn't show up in 'eups list'
 #       and similar. This is for backwards compatibility.
 eval `"%(setup)s" "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}" eups -r "$EUPS_DIR"`
 export SETUP_EUPS="eups LOCAL:$eupslocalpath -f (none) -Z (none)"
-unset eupslocalpath
+export EUPS_PATH=$_eups_path            # make sure that the setup script didn't reset EUPS_PATH
+unset eupslocalpath _eups_path
 
 # bash auto-completion
 if [ X$BASH_COMPLETION != X -a -f "$EUPS_DIR/etc/bash_completion.d/eups" ]; then
