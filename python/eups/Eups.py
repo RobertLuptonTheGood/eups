@@ -2695,12 +2695,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                         print("mkdir -p %s" % (dirName), file=utils.stdinfo)
                     os.makedirs(dirName)
 
-            if self.noaction:
-                print("cp %s %s" % (fileNameIn, pathOut))
-            else:
-                utils.copyfile(fileNameIn, pathOut)
-            if self.verbose > 1:
-                print("Copying %s to %s" % (fileNameIn, pathOut), file=utils.stdinfo)
+            if not (os.path.exists(pathOut) and os.path.samefile(fileNameIn, pathOut)):
+                if self.noaction:
+                    print("cp %s %s" % (fileNameIn, pathOut))
+                else:
+                    utils.copyfile(fileNameIn, pathOut)
+                if self.verbose > 1:
+                    print("Copying %s to %s" % (fileNameIn, pathOut), file=utils.stdinfo)
         
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
                   undeclareCurrent=None):
