@@ -308,27 +308,14 @@ class Eups(object):
 
         #
         # Get product information:  
-        #   * read the cached version of product info
+        #   read the cached version of product info
+        # N.b. we'll do the same for user directories (e.g. ~/.eups) later
         #
         self.versions = {}
         neededFlavors = utils.Flavor().getFallbackFlavors(self.flavor, True)
         if readCache:
           for p in self.path:
-
-            # the product cache.  If cache is non-existent or out of date,
-            # the product info will be refreshed from the database
-            dbpath = self.getUpsDB(p)
-            cacheDir = dbpath
-            userCacheDir = self._makeUserCacheDir(p)
-            if not self.asAdmin or not utils.isDbWritable(p):
-                # use a user-writable alternate location for the cache
-                cacheDir = userCacheDir
-            self.versions[p] = ProductStack.fromCache(dbpath, neededFlavors, 
-                                                      persistDir=cacheDir, 
-                                                      userTagDir=userCacheDir,
-                                                      updateCache=True, 
-                                                      autosave=False,
-                                                      verbose=self.verbose)
+              self._setProductStack_fromCache(p, neededFlavors)
         #
         # 
         fallbackList = hooks.config.Eups.fallbackFlavors
@@ -1495,9 +1482,23 @@ The what argument tells us what sort of state is expected (allowed values are de
             if self.path.count(dataDir) == 0:
                 self.path.append(dataDir)
                 
-                self.versions[dataDir] = ProductStack.fromCache(self.getUpsDB(dataDir), [self.flavor],
-                                                                updateCache=True, autosave=False,
-                                                                verbose=self.verbose)
+                self._setProductStack_fromCache(dataDir, [self.flavor])
+
+    def _setProductStack_fromCache(self, dataDir, neededFlavors):
+        # the product cache.  If cache is non-existent or out of date, the product info will be refreshed from
+        # the database
+        dbpath = self.getUpsDB(dataDir)
+        cacheDir = dbpath
+        userCacheDir = self._makeUserCacheDir(dataDir)
+        if not self.asAdmin or not utils.isDbWritable(dataDir):
+            # use a user-writable alternate location for the cache
+            cacheDir = userCacheDir
+
+        self.versions[dataDir] = ProductStack.fromCache(dbpath, neededFlavors,
+                                                        persistDir=cacheDir, 
+                                                        userTagDir=userCacheDir,
+                                                        updateCache=True, autosave=False,
+                                                        verbose=self.verbose)
 
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""
