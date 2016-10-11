@@ -646,6 +646,9 @@ that would be loaded [in brackets].
 
             print("%-40s" % f)
 
+        if self.opts.verbose > 1:
+            print("See also $EUPS_STARTUP and/or $EUPS_USERDIR")
+
 class PkgrootCmd(EnvListCmd):
 
     usage = """%prog pkgroot [-h|--help] [n]

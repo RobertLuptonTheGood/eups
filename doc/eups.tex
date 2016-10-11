@@ -614,8 +614,9 @@ The functions in \code{eups.app} define the supported API:
 You can customize \eups's behaviour in two ways:
 \begin{itemize}
 \item By setting an environment variable \code{\$EUPS\_STARTUP} which points to a python script
-\item By putting a \file{startup.py} in a well known place, usually \file{\$HOME/.eups} but in fact \eups
-  searches a number of place in order.
+\item By putting a \file{startup.py} in the directory given by the  environment variable
+  \code{\$EUPS\_USERDATA} (or \file{\$HOME/.eups} if \code{EUPS\_USERDATA} isn't set).
+  In fact \eups searches a number of place in order (see below).
 \end{itemize}
 
 You can list your startup files with \code{eups startup}; with \code{-v} files that would be consulted if they
