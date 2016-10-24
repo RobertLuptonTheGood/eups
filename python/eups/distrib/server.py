@@ -600,7 +600,17 @@ class ConfigurableDistribServer(DistribServer):
             return self.getFileForProduct(path, product, version, flavor, 
                                           'PRODUCT_FILE', filename, noaction)
 
-        # this shouldn't happen
+        # The comment at the line is, "this shouldn't happen"
+        # and I (RHL) think it's due to the file being unavailable.
+        #
+        # I didn't write this code, and I know that it's unreliable,
+        # so I'm assuming that this attempt to recover a file with path == ""
+        # is hopeless
+        if not path:
+            raise RuntimeError("Unable to retrieve file")
+        
+        print("'This shouldn't happen': Retrieving %s for (%s, %s, %s) failed; continuing in desperation" %
+              (ftype, product, version, flavor), file=self.log)
         return DistribServer.getFileForProduct(self, path, product, version, 
                                                flavor, None, filename, 
                                                noaction)
