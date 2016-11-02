@@ -219,15 +219,18 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     info += pi.tablefile
                 else:
                     info += "none"
-        elif showName:
-            if raw:
-                if info:
-                    info += "|"
-                info += name
-            else:
-                info += "%-10s" % (name)
-        elif showVersion:
-            info += "%-10s" % (version)
+        elif showName or showVersion:   # both are permitted
+            if showName:
+                if raw:
+                    if info:
+                        info += "|"
+                    info += name
+                else:
+                    info += "%-10s" % (name)
+                    if showVersion:
+                        info += " "     # in case it's more than 10 characters
+            if showVersion:
+                info += "%-10s" % (version)
         else:
             if raw:
                 if info:

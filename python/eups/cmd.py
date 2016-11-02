@@ -465,7 +465,7 @@ will also be printed.
         self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Follow the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("--name", dest="showName", action="store_true", default=False,
-                            help="Only print the product's name")
+                            help="Print the product's name")
         self.clo.add_option("-r", "--root", dest="productDir", action="store", 
                             help="root directory where product is installed")
         self.clo.add_option("--raw", action="store_true", 
