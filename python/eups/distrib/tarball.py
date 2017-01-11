@@ -289,4 +289,5 @@ DIST_URL = %(base)s/%(path)s
                                 manifest.  This implementation ignores
                                 this parameter.
         """
-        return os.path.join(serverDir, "%s-%s@%s.manifest" % (product, version, flavor))
+        return self.distServer.getConfigProperty("MANIFEST_URL") % \
+            dict(base=serverDir, product=product, version=version, flavor=flavor)
