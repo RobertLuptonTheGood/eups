@@ -14,7 +14,7 @@ EUPS_PATH = @EUPS_PATH@
 EUPS_DIR = @EUPS_DIR@
 SETUP_ALIASES = @SETUP_ALIASES@
 EUPS_PYTHON = @EUPS_PYTHON@
-EUPS_DB = $(firstword $(subst :, ,$(EUPS_PATH)))
+EUPS_DB = $(patsubst %,%/ups_db, $(subst :, ,$(EUPS_PATH)))
 #
 export prefix EUPS_PATH EUPS_DIR SETUP_ALIASES EUPS_PYTHON
 #
