@@ -93,7 +93,7 @@ DIST_URL = %(base)s/%(path)s
         (baseDir, productDir) = self.getProductInstDir(product, version, flavor)
         if not baseDir:
             if productDir != "none":
-                raise RuntimeError("Please complain to RHL about %s %s (baseDir = '', productDir = %s)" % 
+                raise RuntimeError("Please complain to RHL about %s %s (baseDir = '', productDir = '%s')" %
                                    (product, version, productDir))
 
             msg = "I don't know how to write a tarball for %s %s as it has no directory" % (product, version)
@@ -123,7 +123,7 @@ DIST_URL = %(base)s/%(path)s
 
         fullTarball = os.path.join(serverDir, tarball)
         try:
-            eupsServer.system("(cd %s && tar -cf - %s) | gzip > %s" % 
+            eupsServer.system('(cd "%s" && tar -cf - "%s") | gzip > "%s"' %
                               (baseDir, productDir, fullTarball),
                               self.Eups.noaction, self.verbose-1, self.log)
         except Exception as e:
@@ -137,7 +137,7 @@ DIST_URL = %(base)s/%(path)s
             except:
                 pass
 
-            raise OSError("Failed to write %s: %s" % (tarball, str(e)))
+            raise OSError("Failed to write '%s': %s" % (tarball, str(e)))
 
         try:
             os.unlink(pwdFile)
@@ -219,10 +219,10 @@ DIST_URL = %(base)s/%(path)s
             print("installing %s into %s" % (tarball, unpackDir), file=self.log)
 
         try:
-            eupsServer.system("cd %s && tar -zxmf %s" % (unpackDir, tfile), 
+            eupsServer.system('cd "%s" && tar -zxmf "%s"' % (unpackDir, tfile),
                               self.Eups.noaction, verbosity=self.verbose-1)
         except Exception as e:
-            raise RuntimeError("Failed to read %s: %s" % (tfile, e))
+            raise RuntimeError("Failed to read '%s': %s" % (tfile, e))
 
         if installDir and installDir == "none":
             installDir = None
