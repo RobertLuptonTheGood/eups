@@ -2321,7 +2321,10 @@ def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
             cmd = 'source "%s"; export EUPS_PATH="%s"; %s ' % (setups_sh, environ["EUPS_PATH"], cmd)
 
         if verbosity < 0:
-            cmd += "> /dev/null 2>&1"
+            if ">" in cmd:
+                cmd += " 2>/dev/null"
+            else:
+                cmd += "> /dev/null 2>&1"
 
         errno = os.spawnle(os.P_WAIT, BASH, BASH, "-c", cmd, environ)
 
