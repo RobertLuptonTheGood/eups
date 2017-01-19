@@ -3277,6 +3277,9 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _remove(self, productName, versionName, recursive, checkRecursive, topProduct, topVersion, userInfo):
         """The workhorse for remove"""
 
+        if productName == hooks.config.Eups.defaultProduct.get("name", "toolchain"):
+            return []
+
         product = self.getProduct(productName, versionName)  # can raise ProductNotFound
         deps = [[product, False, 0]]
         if recursive:
