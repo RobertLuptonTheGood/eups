@@ -29,7 +29,12 @@ class Distrib(eupsDistrib.DefaultDistrib):
     """
 
     NAME = "tarball"
-
+    
+    MANIFEST_FILE_RE = r"^(?P<product>[^-]+)-(?P<version>[^@]+)@(?P<flavor>.*)\.manifest$"
+    MANIFEST_URL =     r"%(base)s/manifests/%(product)s-%(version)s@%(flavor)s.manifest"
+    TARBALL_URL =      r"%(base)s/%(path)s"
+    DIST_URL =         r"%(base)s/%(path)s"
+    
     def __init__(self, Eups, distServ, flavor, tag="current", options=None,
                  verbosity=0, log=sys.stderr):
         eupsDistrib.Distrib.__init__(self, Eups, distServ, flavor, tag, options,
@@ -63,11 +68,11 @@ class Distrib(eupsDistrib.DefaultDistrib):
         config = os.path.join(serverDir, eupsServer.serverConfigFilename)
         if not os.path.exists(config):
             configcontents = """# Configuration for a tarball-based server
-MANIFEST_FILE_RE = ^(?P<product>[^-]+)-(?P<version>[^@]+)@(?P<flavor>.*)\.manifest$
-MANIFEST_URL = %(base)s/manifests/%(product)s-%(version)s@%(flavor)s.manifest
-TARBALL_URL = %(base)s/%(path)s
-DIST_URL = %(base)s/%(path)s
-"""
+MANIFEST_FILE_RE = %s
+MANIFEST_URL = %s
+TARBALL_URL = %s
+DIST_URL = %s
+""" % (Distrib.MANIFEST_FILE_RE, Distrib.MANIFEST_URL, Distrib.TARBALL_URL, Distrib.DIST_URL)
             cf = open(config, 'a')
             try:
                 cf.write(configcontents)
@@ -291,3 +296,13 @@ DIST_URL = %(base)s/%(path)s
         """
         return self.distServer.getConfigProperty("MANIFEST_URL") % \
             dict(base=serverDir, product=product, version=version, flavor=flavor)
+
+    def overrideConfigParameters(self, config):
+        """Override some config parameters
+        @param config    The configuration whose values should be overridden
+        """
+
+        config["MANIFEST_FILE_RE"] = Distrib.MANIFEST_FILE_RE
+        config["MANIFEST_URL"] = Distrib.MANIFEST_URL
+        config["TARBALL_URL"] = Distrib.TARBALL_URL
+        config["DIST_URL"] = Distrib.DIST_URL

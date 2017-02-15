@@ -447,6 +447,7 @@ class Repository(object):
             raise RuntimeError("%s: Distrib name not recognized (known types are \"%s\")" %
                                (distribTypeName, '", "'.join(self.distFactory.lookup.keys())))
 
+        distrib.overrideConfigParameters(self.distServer.config)
         # load manifest data
         if manifest is None:
             # create it from what we (eups) know about it

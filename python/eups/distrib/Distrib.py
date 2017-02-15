@@ -941,6 +941,13 @@ class DefaultDistrib(Distrib):
     #         buildVersion = hooks.config.Eups.versionIncrementer(product, buildVersion)
     #     return None
 
+    def overrideConfigParameters(self, config):
+        """Allow a subclass of Distrib to override some config parameters
+        @param config    The configuration whose values should be overridden
+
+        See tarball.py for an example"""
+        pass
+
 def findInstallableRoot(Eups):
     """return the first directory in the eups path that the user can install 
     stuff into
