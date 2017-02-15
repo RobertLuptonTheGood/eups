@@ -493,14 +493,6 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def __showStack(self, op, what):
         """Debugging routine for stack"""
-        if Eups.debugFlag:
-            values = self._stacks[what][:]
-
-            if what == "env":
-                values = ["BASE_DIR" in e for e in values + [os.environ]]
-
-            values.insert(-1, ":")
-            utils.debug("%s %-5s" % (what, op), len(self._stacks[what]), values)
 
     def _databaseFor(self, eupsPathDir, dbpath=None):
         if not dbpath:
