@@ -449,10 +449,10 @@ class Distrib(object):
         # The first thing to do is to ensure that more deeply nested products are listed first as we need to
         # build them first when installing
         #
-        def byDepth(a, b):
+        def byDepth(a):
             """Sort by recursion depth"""
-            return cmp(b[2], a[2])
-        dependencies.sort(byDepth)
+            return a[2]
+        dependencies.sort(key=byDepth)
 
         for (dprod, dopt, recursionDepth) in dependencies:
             dproductName = dprod.name
