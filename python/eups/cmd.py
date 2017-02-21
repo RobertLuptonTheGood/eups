@@ -2583,6 +2583,9 @@ class DistribCreateCmd(EupsCmd):
                 
                 if prod:
                     version = prod.version
+                else:
+                    self.err("Failed to find product %s with tag %s" % (productName, self.opts.tag[0]))
+                    return 2
 
         if not version:
             self.err("Please specify a product version")
