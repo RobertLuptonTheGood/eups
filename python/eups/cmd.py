@@ -1690,7 +1690,7 @@ class AdminClearServerCacheCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-r", "--root", dest="root", action="store", 
+        self.clo.add_option("-r", "--root", "--server-dir", dest="root", action="store", 
                             help="Location of manifests/buildfiles/tarballs " +
                             "(may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
 
@@ -2079,7 +2079,7 @@ class DistribListCmd(EupsCmd):
             pkgroots = os.environ.get("EUPS_PKGROOT")
 
         if not pkgroots:
-            self.err("Please specify a repository with -s or $EUPS_PKGROOT")
+            self.err("Please specify a repository with --server-dir or $EUPS_PKGROOT")
             return 2
 
         options = None
@@ -2166,7 +2166,8 @@ tag will be installed.
         self.clo.set_defaults(depends=distrib.Repositories.DEPS_ALL)
         self.clo.add_option("-N", "--noeups", dest="noeups", action="store_true", default=False,
                             help="Don't attempt to lookup product in eups (always install)")
-        self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
+        self.clo.add_option("-r", "--repository", "--server-dir",
+                            dest="root", action="append", metavar="BASEURL",
                             help="the base URL for a repository to access (repeat as needed).  " +
                             "Default: $EUPS_PKGROOT")
         self.clo.add_option("-t", "--tag", dest="tag", action="store",
@@ -2303,12 +2304,12 @@ tag will be installed.
             self.opts.root = "|".join(self.opts.root)
         else:
             if "EUPS_PKGROOT" not in os.environ:
-                self.err("No repositories specified; please set -r or $EUPS_PKGROOT")
+                self.err("No repositories specified; please set --server-dir or $EUPS_PKGROOT")
                 return 3
             self.opts.root = os.environ["EUPS_PKGROOT"]
 
         if not self.opts.root:
-            self.err("No repositories specified; please set -r or $EUPS_PKGROOT and try again")
+            self.err("No repositories specified; please set --server-dir or $EUPS_PKGROOT and try again")
             return 3
 
         log = None
@@ -2369,7 +2370,8 @@ product will be fully removed, even if its installation was successful.
                             help="Assume the DIR is the product's installation/root directory")
         self.clo.add_option("-R", "--remove", dest="remove", action="store_true", default=False,
                             help="Also remove the named product after cleaning")
-        self.clo.add_option("-r", "--repository", dest="root", action="append", metavar="BASEURL",
+        self.clo.add_option("-r", "--repository", "--server-dir",
+                            dest="root", action="append", metavar="BASEURL",
                             help="the base URL for a repository to access (repeat as needed).  " +
                             "Default: $EUPS_PKGROOT")
         self.clo.add_option("-T", "--tmp-dir", dest="builddir", action="store", metavar="DIR",
@@ -2468,7 +2470,8 @@ class DistribCreateCmd(EupsCmd):
                             help="Use this manifest file for the requested product")
         self.clo.add_option("-j", "--nodepend", dest="nodepend", action="store_true", default=False,
                             help="Just create package for named product, not its dependencies")
-        self.clo.add_option("-r", "--repository", dest="repos", action="append", metavar="BASEURL",
+        self.clo.add_option("-r", "--repository", "--server-dir",
+                            dest="repos", action="append", metavar="BASEURL",
                             help="the base URL for other repositories to consult (repeat as needed).  " +
                             "Default: $EUPS_PKGROOT")
         self.clo.add_option("-s", "--server-dir", dest="serverDir", action="store", metavar="DIR",
