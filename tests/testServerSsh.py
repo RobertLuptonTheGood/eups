@@ -47,15 +47,15 @@ class SshTransporterTestCase(unittest.TestCase):
         trx = SshTransporter(loc)
         trx.cacheToFile(localfile)
         self.assert_(os.path.exists(localfile))
-        
+
         loc = self.base+"s2"
         trx = SshTransporter(loc)
         files = trx.listDir()
         self.assertEquals(len(files), 2)
         self.assertIn("config.txt", files)
         self.assertIn("current.list", files)
-        
-from eups.distrib.server import DistribServer 
+
+from eups.distrib.server import DistribServer
 
 class SshConfigFileTestCase(unittest.TestCase):
 
@@ -74,7 +74,7 @@ class SshConfigFileTestCase(unittest.TestCase):
         configFile = ds.getConfigFile(self.configFile)
         self.assert_(os.path.exists(configFile))
 
-        
+
 
 from eups.distrib.server import ServerConf
 
@@ -118,7 +118,7 @@ class SshDistribServerTestCase(unittest.TestCase):
         self.assertEquals(len(tags), 1)
         self.assertIn("current", tags)
 
-__all__ = "SshTransporterTestCase SshConfigFileTestCase SshServerConfTestCase SshDistribServerTestCase".split()        
+__all__ = "SshTransporterTestCase SshConfigFileTestCase SshServerConfTestCase SshDistribServerTestCase".split()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

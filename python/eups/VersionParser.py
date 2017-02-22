@@ -30,19 +30,19 @@ names are declared using VersionParser.define()
         exprStr = re.sub(r"['\"]([^'\"]+)['\"]", r"\1", exprStr)
         self._tokens = re.split(r"(\$\??{[^}]+}|[\w.+]+|\s+|==|!=|<=|>=|[()<>])", exprStr)
         self._tokens = [p for p in self._tokens if p and not re.search(r"^\s*$", p)]
-        
+
         self._symbols = {}
         self._caseSensitive = False
 
     def define(self, key, value):
         """Define a symbol, which may be substituted using _lookup"""
-        
+
         self._symbols[key] = value
 
     def _lookup(self, key):
         """Attempt to lookup a key in the symbol table"""
         key0 = key
-        
+
         try:
             envVar, modifier, value = re.search(r"^\${([^:}]*)(:-([^\}*]*))?}", key).groups()
 
@@ -66,11 +66,11 @@ names are declared using VersionParser.define()
         try:
             return self._symbols[key]
         except KeyError:
-            return key0        
+            return key0
 
     def _peek(self):
         """Return the next terminal symbol, but don't pop it off the lookahead stack"""
-        
+
         if not self._tokens:
             return "EOF"
 
@@ -93,16 +93,16 @@ names are declared using VersionParser.define()
 
         if tok != "EOF":
             self._tokens = [tok] + self._tokens
-    
+
     def _next(self):
         """Return the next terminal symbol, popping it off the lookahead stack"""
-        
+
         tok = self._peek()
         if tok != "EOF":
             self._tokens.pop(0)
 
         return tok
-    
+
     def eval(self):
         """Evaluate the logical expression, returning a Bool"""
 
@@ -170,7 +170,7 @@ names are declared using VersionParser.define()
             self._next()
 
             term = self._expr()
-            
+
             if next == "!" or next == "not":
                 term = not term
             elif next == "(":

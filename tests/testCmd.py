@@ -56,7 +56,7 @@ class CmdTestCase(unittest.TestCase):
                 for file in subdirs:
                     os.rmdir(os.path.join(dir,file))
             os.rmdir(newprod)
-                    
+
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir20 = os.path.join(pdir, "2.0")
         if os.path.exists(pdir20):
@@ -64,7 +64,7 @@ class CmdTestCase(unittest.TestCase):
 
     def testInit(self):
         eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
-        
+
 
     def testQuiet(self):
         cmd = eups.cmd.EupsCmd(args="-q".split(), toolname=prog)
@@ -122,7 +122,7 @@ class CmdTestCase(unittest.TestCase):
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "You have no EUPS_FLAGS set")
-                          
+
 
     def testList(self):
         outall = """
@@ -145,7 +145,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), outall)
-                          
+
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list python".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
@@ -251,7 +251,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
-        
+
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
         self.assertIsNotNone(prod, msg="Failed to declare product")
@@ -268,19 +268,19 @@ tcltk                 8.5a4      \tcurrent
         self.assertNotEqual(cmd.run(), 0)
         self.assertNotEqual(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
-        
+
         self._resetOut()
         cmd = "declare -F newprod 1.0 -t current"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
-        
+
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
         self.assertIsNotNone(prod, msg="product went missing after tagging")
         self.assertIn("current", prod.tags)
-        
+
         self._resetOut()
         cmd = "undeclare newprod 1.0"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
@@ -299,7 +299,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
         self.assertEquals(self.out.getvalue(), "")
-        
+
         myeups = eups.Eups()
         prod = myeups.findProduct("newprod")
         self.assertIsNotNone(prod, msg="Failed to declare product")
@@ -308,7 +308,7 @@ tcltk                 8.5a4      \tcurrent
         self.assertEquals(len(prod.tags), 1)
         self.assertIn("current", prod.tags)
         self.assertTrue(os.path.isdir(newprod))
-        
+
         self._resetOut()
         cmd = "undeclare newprod 1.0"
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
@@ -330,7 +330,7 @@ tcltk                 8.5a4      \tcurrent
 
         eups.Eups().declare("newprod", "2.0", pdir20)
         self.assertTrue(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")))
-        
+
         cmd = eups.cmd.EupsCmd(args="remove newprod 2.0".split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
         self.assertEquals(self.err.getvalue(), "")
@@ -404,7 +404,7 @@ class SetupCmdTestCase(unittest.TestCase):
         hooks.config.Eups.defaultTags = dict(pre=[], post=[]) # disable any defined in the startup.py file
         cmd = eups.setupcmd.EupsSetup(args=cmdargs, toolname=prog)
         self.assertEqual(cmd.run(), 0)
-        
+
 
 class Stdout(object):
 

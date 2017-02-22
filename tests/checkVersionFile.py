@@ -54,7 +54,7 @@ class CheckVersionFileTestCase(unittest.TestCase):
             return out
 
 #            return map(lambda g: g.strip(),
-#                       map(lambda f: self.flavre.sub("", f), 
+#                       map(lambda f: self.flavre.sub("", f),
 #                           filter(lambda l: self.flavre.match(l), fd)))
 
         finally:
@@ -75,19 +75,19 @@ class CheckVersionFileTestCase(unittest.TestCase):
             self.assertPathExists(path, what)
 
     def assertPathExists(self, path, what):
-        self.assert_(os.path.exists(path), 
+        self.assert_(os.path.exists(path),
                      "Path %s does not exist: %s" % (what, path))
 
     def assertResolvedMacros(self, path, what):
-        self.assert_(path.find('$') < 0, 
+        self.assert_(path.find('$') < 0,
                      "Unresolved macro in %s: %s" % (what, path))
     def assertAbs(self, path, what):
-        self.assert_(path == "none" or os.path.isabs(path), 
+        self.assert_(path == "none" or os.path.isabs(path),
                      "Relative path in %s: %s"  % (what, path))
 
     def shortDescription(self):
         return self.file
-                 
+
 class VersionFileTestResult(unittest._TextTestResult):
 
     def __init__(self, stream=None):
@@ -119,14 +119,14 @@ __all__ = "CheckVersionFileTestCase".split()
 
 if __name__ == "__main__":
     cli = OptionParser(usage="%prog [-p ROOTDIR] [-e] file/dir [...]")
-    cli.add_option("-e", "--exists-test", action="store_true", 
+    cli.add_option("-e", "--exists-test", action="store_true",
                    dest="testexist", default=False,
                    help="test if paths actually exist")
     cli.add_option("-p", "--product-root", action="store", dest="root",
                    help="root directory below which products are installed")
     (cli.opts, cli.args) = cli.parse_args()
     if cli.opts.root:  cli.opts.testexist = True
-    
+
 
     result = VersionFileTestResult()
 
@@ -142,10 +142,10 @@ if __name__ == "__main__":
     if not result.wasSuccessful():
         result.printErrors()
         if nprobs != 1: plural.append(plural.pop(0))
-        result.stream.writeln("%i file%s encountered problems; %i ok" % 
+        result.stream.writeln("%i file%s encountered problems; %i ok" %
                               (nprobs, plural[0], result.testsRun-nprobs))
     else:
         if result.testsRun != 1: plural.append(plural.pop(0))
-        result.stream.writeln("%i file%s appear%s ok" % 
+        result.stream.writeln("%i file%s appear%s ok" %
                               (result.testsRun, plural[0], plural[1]))
-        
+

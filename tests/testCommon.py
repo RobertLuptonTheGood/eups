@@ -36,7 +36,7 @@ def setupEnvironment():
     clenseEnvironment()
 
 def clenseEnvironment():
-    # clear out any products setup in the environment as these can interfere 
+    # clear out any products setup in the environment as these can interfere
     # with the tests
     setupvars = [k for k in os.environ.keys() if k.startswith('SETUP_')]
     for var in setupvars:

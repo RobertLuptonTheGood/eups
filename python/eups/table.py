@@ -23,11 +23,11 @@ class Table(object):
         Parse a tablefile
         @param  tableFile          the tablefile we're reading
         @param  topProduct         the Product that owns this tablefile
-        @param  addDefaultProduct  if True or None, automatically add a 
+        @param  addDefaultProduct  if True or None, automatically add a
                                      "setupOptional" action for the product
                                      specified in hooks.config.Eups.defaultProduct
         @throws TableError       if an IOError occurs while reading the table file
-        @throws BadTableContent  if the table file parser encounters unparseable 
+        @throws BadTableContent  if the table file parser encounters unparseable
                                    content.  Note that BadTableContent is a subclass
                                    of TableError.
         """
@@ -158,13 +158,13 @@ but no other interpretation is applied
 
         if inNewGroup:
             ncontents += [(lineNo, "}")]
-            
+
         return ncontents
 
     def expandEupsVariables(self, product, quiet=False):
         """Expand eups-related variables such as $PRODUCT_DIR"""
 
-        for actions in self._actions: 
+        for actions in self._actions:
             for logicalOrBlock in actions:
                 if not isinstance(logicalOrBlock, list): # a logical expression as a string
                     continue
@@ -250,7 +250,7 @@ but no other interpretation is applied
                         a.args[i] = value
 
         return self
-    
+
     def _read(self, tableFile, addDefaultProduct, verbose=0, topProduct=None):
         """Read and parse a table file, setting _actions"""
 
@@ -297,14 +297,14 @@ but no other interpretation is applied
                         else:
                             ifBlock = block
                             elseBlock = []
-                            
+
                         logicalBlocks += [logical, ifBlock, elseBlock,]
 
                         if logicalBlocks and mat.group(1) != None:
                             self._actions.append(logicalBlocks)
                             ifBlock = []
                             logicalBlocks = []
-                        
+
                     block = []
 
                 if mat.group(1) != None:
@@ -351,7 +351,7 @@ but no other interpretation is applied
                 try:
                     cmd = {
                         "addalias" : Action.addAlias,
-                        "declareoptions" : Action.declareOptions, 
+                        "declareoptions" : Action.declareOptions,
                         "envappend" : Action.envAppend,
                         "envprepend" : Action.envPrepend,
                         "envset" : Action.envSet,
@@ -382,7 +382,7 @@ but no other interpretation is applied
                 pass                 # the actions are always executed
             elif cmd == Action.addAlias:
                 pass
-            elif cmd == Action.declareOptions: 
+            elif cmd == Action.declareOptions:
                 pass
             elif cmd == Action.unsetupOptional or cmd == Action.unsetupRequired:
                 if cmd == Action.unsetupRequired:
@@ -429,11 +429,11 @@ but no other interpretation is applied
 
                 if args[0] == "PRODUCT_DIR":
                     args[0] = pdirVar
-                    
+
                 if args[0] != pdirVar:  # only allow the unsetting of this one variable
                     if pdirVar and verbose > 0:
                         print("Attempt to unset $%s at %s:%d" % (args[0], self.file, lineNo), file=utils.stdwarn)
-                    continue                
+                    continue
             elif cmd == Action.sourceRequired:
                 print("Ignoring unsupported directive %s at %s:%d" % (line, self.file, lineNo), file=utils.stderr)
                 continue
@@ -518,15 +518,15 @@ but no other interpretation is applied
                      productDictionary=None, addDefaultProduct=None, requiredVersions={},
                      listExternalDependencies=False):
         """
-        Return the product dependencies as specified in this table as a list 
+        Return the product dependencies as specified in this table as a list
         of (Product, optional?, recursionDepth) tuples
 
         @param Eups            an Eups instance to use to locate packages
         @param eupsPathDirs    the product stacks to restrict searches to
-        @param recursive       if True, this function will be called 
-                                  recursively on each of the dependency 
+        @param recursive       if True, this function will be called
+                                  recursively on each of the dependency
                                   products in this table.
-        @param followExact     follow the exact, as-built versions in the 
+        @param followExact     follow the exact, as-built versions in the
                                   table file.  If None or not specified,
                                   it defaults to Eups.exact_version.
         @param productDictionary add each product as a member of this dictionary (if non-NULL) and with the
@@ -563,7 +563,7 @@ but no other interpretation is applied
 
         if self.topProduct not in productDictionary:
             productDictionary[self.topProduct] = []
-            
+
         if addDefaultProduct is None and \
                self.topProduct and self.topProduct.name == hooks.config.Eups.defaultProduct["name"]:
             addDefaultProduct = False
@@ -573,7 +573,7 @@ but no other interpretation is applied
             if a.cmd == Action.unsetupRequired:
                 if True:
                     optional = a.extra["optional"]
-                      
+
                     requestedVRO, productName, productDir, vers, versExpr, extraArgs = a.processArgs(Eups)
                     if extraArgs["noAction"]:
                         continue
@@ -597,7 +597,7 @@ but no other interpretation is applied
                     for pn in unsetupProducts:
                         for i in reversed(sorted([i for i, val in enumerate(deps) if val[0].name == pn])):
                             del deps[i]
-                        
+
             elif a.cmd == Action.setupRequired:
                 optional = a.extra["optional"]
 
@@ -636,7 +636,7 @@ but no other interpretation is applied
                             deps += deptable.dependencies(Eups, eupsPathDirs, recursiveDict,
                                                           recursionDepth + 1, followExact, productDictionary,
                                                           addDefaultProduct, requiredVersions=requiredVersions)
-                        
+
                 except (ProductNotFound, TableFileNotFound):
                     product = Product(productName, vers) # it doesn't exist, but it's still a dep.
 
@@ -668,7 +668,7 @@ but no other interpretation is applied
 
                 if len(elseBlock) > 13:
                     print("Oh dear. Please type w at the pdb prompt and notify rhl@astro.princeton.edu")
-                    import pdb; pdb.set_trace() 
+                    import pdb; pdb.set_trace()
 
                 parser = VersionParser(logical)
                 parser.define("flavor", flavor)
@@ -731,9 +731,9 @@ class Action(object):
         @param tableFile  the parent tableFile; used in user messages
         @param cmd      the name of the command (as it appears in the table file
                           command line)
-        @param args     the list of arguments passed to the command as 
+        @param args     the list of arguments passed to the command as
                           instantiated in a table file.
-        @param extra    dictionary of extra, command-specific data passed by the parser to 
+        @param extra    dictionary of extra, command-specific data passed by the parser to
                           control the execution of the command.
         @param topProduct The top-level Product that we're setting up
         """
@@ -770,8 +770,8 @@ class Action(object):
                 return
 
             self.execute_unsetupRequired(Eups, recursionDepth, fwd, tableProduct)
-        elif self.cmd == Action.declareOptions: 
-            pass                        # used at declare time 
+        elif self.cmd == Action.declareOptions:
+            pass                        # used at declare time
         elif self.cmd == Action.envPrepend:
             self.execute_envPrepend(Eups, fwd)
         elif self.cmd == Action.envSet:
@@ -782,7 +782,7 @@ class Action(object):
             self.execute_addAlias(Eups, fwd)
         elif self.cmd == Action.prodDir or self.cmd == Action.setupEnv:
             pass
-        elif self.cmd == Action.doPrint: 
+        elif self.cmd == Action.doPrint:
             self.execute_print(Eups, fwd)
         else:
             print("Unimplemented action", self.cmd, file=utils.stderr)
@@ -827,7 +827,7 @@ class Action(object):
                     requestedVRO = _args[i + 1]
                     i += 1              # skip the argument
                 else:
-                    ignoredOpts.append(_args[i]) 
+                    ignoredOpts.append(_args[i])
 
                 continue
 
@@ -865,16 +865,16 @@ class Action(object):
             vers = " ".join(args)
 
         if ignoredOpts:
-            if fwd or Eups.verbose > 1: 
+            if fwd or Eups.verbose > 1:
                 print("Ignoring options %s for %s %s" % \
-                      (" ".join(ignoredOpts), productName, vers), file=utils.stdwarn) 
+                      (" ".join(ignoredOpts), productName, vers), file=utils.stdwarn)
 
         if fwd and requestedFlavor and requestedFlavor != Eups.flavor:
             print("Ignoring --flavor option in \"%s(%s)\"" % (self.cmdName, " ".join(_args)), file=utils.stdwarn)
 
 
         versExpr = None                 # relational expression for version
-        if vers:  
+        if vers:
             # see if a version of the form "exact [logical]"
             mat = re.search(r"(?:(\S*)\s+)?\[([^\]]+)\]\s*", vers)
             if mat:
@@ -889,7 +889,7 @@ class Action(object):
             if keep:
                 if fwd:
                     if Eups.verbose > 0:
-                        extraText = " in %s" % self.tableFile 
+                        extraText = " in %s" % self.tableFile
                     else:
                         extraText = ""
 
@@ -963,7 +963,7 @@ class Action(object):
         mat = re.search(varRE, value)
         if not mat:
             return value
-        
+
         optional, key, default = mat.groups()
 
         if key in os.environ:
@@ -977,7 +977,7 @@ class Action(object):
 
             return None
         else:
-            raise RuntimeError("$%s is not defined; unable to expand %s" % (key, value))           
+            raise RuntimeError("$%s is not defined; unable to expand %s" % (key, value))
 
     #
     # Here are the real execute routines
@@ -991,7 +991,7 @@ class Action(object):
         requestedVRO, productName, productDir, vers, versExpr, extraArgs = self.processArgs(Eups, fwd)
         if extraArgs["noAction"] or extraArgs["isExternal"]:
             return
-        
+
         if productDir:
             productDir = self.expandEnvironmentalVariable(productDir, Eups.verbose)
             if productDir is None:
@@ -999,7 +999,7 @@ class Action(object):
 
         Eups.pushStack("env")
         Eups.pushStack("vro", requestedVRO)
-                
+
         q = None
         if optional:
             q = utils.Quiet(Eups)
@@ -1059,7 +1059,7 @@ class Action(object):
         try:
             productOK, vers, reason = Eups.unsetup(productName, vers, recursionDepth,
                                                    noRecursion=extraArgs["noRecursion"], optional=optional)
-                                                   
+
         except Exception as e:
             productOK, reason = False, e
 
@@ -1136,7 +1136,7 @@ class Action(object):
         npath = self.pathUnique(npath) # remove duplicates
 
         npath = delim.join(npath)     # convert back to a string
-        
+
         if prepend_delim and not re.search(r"^%s" % delim, npath):
             npath = delim + npath
         if append_delim and not re.search(r"%s$" % delim, npath):
@@ -1156,7 +1156,7 @@ class Action(object):
         if fwd:
             value = " ".join(args[1:])
         if Eups.force and key in Eups.oldAliases:
-            del Eups.oldAliases[key]    # Does this actually work? 
+            del Eups.oldAliases[key]    # Does this actually work?
 
         if fwd:
             Eups.setAlias(key, value)
@@ -1191,7 +1191,7 @@ class Action(object):
         for d in path:
             if d not in pp:
                 pp += [d]
-                
+
         return pp
 
     def execute_print(self, Eups, fwd=True):
@@ -1218,7 +1218,7 @@ class Action(object):
             raise RuntimeError("Impossible destination: %s" % dest)
 
         print(" ".join(args), file=dest)
-        
+
     def execute_envUnset(self, Eups, fwd=True):
         """Execute envUnset"""
 
@@ -1262,7 +1262,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
             i += 1
             if i == len(args):
                 break
-            
+
             a = args[i]
 
             if re.search(r"^-[fgHmMqrUz]", a):
@@ -1301,7 +1301,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
             version = words.pop(0)
         else:
             version = None
-        # 
+        #
         #
         # Is version actually a logical expression?  If so, we'll want to save it
         # as well as the exact version being installed
@@ -1318,7 +1318,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         if version and Eups.isLegalRelativeVersion(version):
             if logical:                 # how did this happen? Version is logical and also a [logical]
                 print("Two logical expressions are present in %s; using first" % original, file=utils.stdwarn)
-                
+
             logical = " ".join([version] + words)
             version = None
 
@@ -1393,7 +1393,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 if cmd == "eups":
                     finalBlock[1].append(line)
                     continue
-                
+
                 products.append((cmd,
                                  mat.group(1) == "setupOptional",
                                  "--external" in line))
@@ -1512,11 +1512,11 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
                 line = block[j].strip()
                 if "--external" in line:
                     continue
-                
+
                 if j == len(block) - 1: # this is just cosmetics in the generated file
                     if not line and indentLevel > 0:
                         break
-                    
+
                 output(ofd, indentLevel, line)
 
             if indentedBlock:
@@ -1531,4 +1531,4 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     for line in finalBlock[0]:
         output(ofd, 0, line)
 
-        
+

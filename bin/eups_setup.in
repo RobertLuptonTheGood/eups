@@ -43,7 +43,7 @@ except ImportError:
 
 import eups.utils as utils
 from eups.utils import Color
-    
+
 # parse the command line
 setup = eups.setupcmd.EupsSetup()
 

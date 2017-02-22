@@ -66,7 +66,7 @@ AC_DEFUN([EUPS_DEFINE_ROOT], [
         dnl define([eups_version], [$eups_version])
 	AC_SUBST([eups_version])
 	AC_MSG_NOTICE([Setting version to $eups_version])
-	
+
 	AC_ARG_WITH([flavor],
 	      [AS_HELP_STRING(--with-flavor=FLAVOR,Use FLAVOR as eups flavor)],
 	      eups_flavor="$withval"
@@ -91,7 +91,7 @@ AC_DEFUN([EUPS_DEFINE_ROOT], [
 				  */$eups_db$|$eups_db/*|*/$eups_db/*)
 				       prefix=$d;;
 			       esac
-		       done			
+		       done
 		       if [[ X"$prefix" = X"NONE" ]]; then
 			      AC_MSG_ERROR([I can't find DB \"$eups_db\" in $EUPS_PATH])
 		       fi
@@ -147,16 +147,16 @@ AC_DEFUN([EUPS_WITH_CONFIGURE],[
 		else
 		   ac_eups_PROD[]_CONFIG=$(which ac_eups_prod-config)
 	   	fi])])
-	
+
 	if test -z $ac_eups_PROD[]_CONFIG; then
 	   AC_MSG_ERROR([Cannot find ac_eups_prod; setup ac_eups_prod or try --with-ac_eups_prod])
 	fi
 	AC_CHECK_FILE([$]ac_eups_PROD[]_CONFIG,[],
 		[AC_MSG_ERROR([Cannot find ac_eups_prod; setup ac_eups_prod or use --with-ac_eups_prod])])
-	
+
 	ac_eups_PROD[]_CFLAGS="$([$]{ac_eups_PROD[]_CONFIG} --cflags)"
 	ac_eups_PROD[]_LIBS="$([$]{ac_eups_PROD[]_CONFIG} --libs)"
-	
+
 	if test $ac_eups_PROD[]_FROM_UPS = 1; then
 	   ac_eups_PROD[]_CFLAGS=$(echo $ac_eups_PROD[]_CFLAGS | sed -e "s|$ac_eups_PROD[]_DIR|\\\${ac_eups_PROD[]_DIR}|g")
 	   ac_eups_PROD[]_LIBS=$(echo $ac_eups_PROD[]_LIBS | sed -e "s|$ac_eups_PROD[]_DIR|\\\${ac_eups_PROD[]_DIR}|g")
@@ -173,7 +173,7 @@ AC_DEFUN([EUPS_WITH_CONFIGURE],[
 	      unset ac_eups_dir
 	   fi
 	fi
-		
+
 	AC_SUBST(ac_eups_PROD[]_CFLAGS)
 	AC_SUBST(ac_eups_PROD[]_LIBS)
 
@@ -214,12 +214,12 @@ AC_DEFUN([EUPS_WITHOUT_CONFIGURE], [
 	      ac_eups_PROD[]_LIBS="-L$ac_eups_PROD[]_DIR/lib"
 	   fi])
 	ifelse([$3], [], [], [ac_eups_PROD[]_LIBS="$ac_eups_PROD[]_LIBS $3"])
-	
+
 	dnl Save CPPFLAGS/CFLAGS/LDFLAGS so that they can be restored after tests
 	TMP_CPPFLAGS=${CPPFLAGS}
 	TMP_CFLAGS=${CFLAGS}
 	TMP_LDFLAGS=${LDFLAGS}
-	
+
 	CFLAGS="${TMP_CFLAGS} ${ac_eups_PROD[]_CFLAGS}"
 	CPPFLAGS="${CFLAGS}"
 	LDFLAGS="${TMP_LDFLAGS} ${ac_eups_PROD[]_LIBS}"
@@ -235,12 +235,12 @@ AC_DEFUN([EUPS_WITHOUT_CONFIGURE], [
 	     [AC_MSG_ERROR([Failed to find ac_eups_prod; use --with-ac_eups_prod to specify location.])]
 	)])
 	LIBS=${TMP_LIBS}
-	
+
 	dnl restore the CPPFLAGS/CFLAGS/LDFLAGS
 	CPPFLAGS=${TMP_CPPFLAGS}
 	CFLAGS=${TMP_CFLAGS}
 	LDFLAGS=${TMP_LDFLAGS}
-	
+
 	if test $ac_eups_PROD[]_FROM_UPS = 1; then
 	   ac_eups_PROD[]_CFLAGS=$(echo $ac_eups_PROD[]_CFLAGS | sed -e "s|$ac_eups_PROD[]_DIR|\\\${ac_eups_PROD[]_DIR}|g")
 	   ac_eups_PROD[]_LIBS=$(echo $ac_eups_PROD[]_LIBS | sed -e "s|$ac_eups_PROD[]_DIR|\\\${ac_eups_PROD[]_DIR}|g")
@@ -253,7 +253,7 @@ AC_DEFUN([EUPS_WITHOUT_CONFIGURE], [
 
 	   unset ac_eups_dir
 	fi
-	
+
 	AC_SUBST(ac_eups_PROD[]_CFLAGS)
 	AC_SUBST(ac_eups_PROD[]_LIBS)
 

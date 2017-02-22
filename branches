@@ -12,7 +12,7 @@ Thu Apr 15 14:34:19 EDT 2004
    cvs co eups
    cvs diff -d v0_4
    (no diffs)
-   
+
    cvs rtag -r v0_4 v0_5_0 eups
    cvs rtag -r v0_5_0 -b v0_5 eups
 
@@ -45,7 +45,7 @@ Tue Jul  6 13:45:05 EDT 2004
    cvs rtag v0_7_6 eups
    Added Current/Setup information to "setup -l"
    _Finally_ indented eups_(un)?setup
-   
+
 Thu Jul 22 11:27:49 EDT 2004
    cvs rtag v0_7_7 eups
    Added directory information to "setup -v -l"
@@ -86,7 +86,7 @@ v0_7_16?? Part of the GNU configure work, I believe.
 
 Mon Sep 11 10:10:10 EDT 2006
     cvs rtag v0_7_17 eups
-    Support colon-delimited EUPS_PATH elements. Added -z to allow specify 
+    Support colon-delimited EUPS_PATH elements. Added -z to allow specify
     one such element.
 
 

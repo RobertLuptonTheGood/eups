@@ -54,7 +54,7 @@ try:
         if verbosity > 0:
             print("You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile, file=utils.stdinfo)
     else:
-        status = cmd.run() 
+        status = cmd.run()
 except Exception as e:
     if eups.Eups.allowRaise:
         raise

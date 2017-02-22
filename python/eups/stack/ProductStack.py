@@ -12,41 +12,41 @@ from eups.db import Database
 from ..utils import xrange
 
 # Issues:
-#  o  restoring from cache (when and how) 
+#  o  restoring from cache (when and how)
 
 # the version name for the persistence format used by this implementation.
 # It is intended to match the version of EUPS when this format was introduced
 persistVersionName = "1.3.0"
 
-# the prefix to a tag name that labels it as a user tag.  Anything left over is 
+# the prefix to a tag name that labels it as a user tag.  Anything left over is
 # considered a global tag.
-userPrefix = "user:"     
+userPrefix = "user:"
 
 dotre = re.compile(r'\.')
 who = utils.getUserName()
 
 class ProductStack(object):
     """
-    a lookup for products installed into a software "stack" managed by 
-    EUPS via a single ups_db database.  
+    a lookup for products installed into a software "stack" managed by
+    EUPS via a single ups_db database.
 
-    This class is can persist its data to disk on every update when 
+    This class is can persist its data to disk on every update when
     instantiated with saving turned on (save contructor parameter).
-    The instantiater is responsible for ensuring that the current user 
+    The instantiater is responsible for ensuring that the current user
     has permission to write to caching directory (given via the constructor
-    or defaults to the ups_db directory.  
+    or defaults to the ups_db directory.
 
-    It also supports a notion of global versus user tags.  Tags that should 
-    be considered as user-specific should start with the prefix "user:".  
+    It also supports a notion of global versus user tags.  Tags that should
+    be considered as user-specific should start with the prefix "user:".
     This will affect where tag information is persisted.  A user tag is
-    persisted to a special user directory (set via the userTagPersistDir 
-    constructor parameter).  A global tag is persisted along with the rest of 
-    the product data.  
+    persisted to a special user directory (set via the userTagPersistDir
+    constructor parameter).  A global tag is persisted along with the rest of
+    the product data.
 
-    Note that this class does not keep track of what are considered allowed 
-    tag names.  The user of this class should manage this.  
+    Note that this class does not keep track of what are considered allowed
+    tag names.  The user of this class should manage this.
     """
-    # static variable: version of Product stack cache, set to the EUPS 
+    # static variable: version of Product stack cache, set to the EUPS
     # version when the format was introduced
     persistVersion = persistVersionName
 
@@ -64,39 +64,39 @@ class ProductStack(object):
         create the stack with a given database
         @param dbpath             the path to the ups_db directory
         @param persistDir         the directory to this cache to.  If None,
-                                     the dbpath value will be used as the 
+                                     the dbpath value will be used as the
                                      directory.
-        @param autosave           if true (default), all updates will be 
+        @param autosave           if true (default), all updates will be
                                      saved to disk.
         """
         # the path to the ups_db directory
         self.dbpath = dbpath
         if not self.dbpath:
-            raise RuntimeError("Empty/None given as EUPS database path: " + 
+            raise RuntimeError("Empty/None given as EUPS database path: " +
                                str(dbpath))
         if not os.path.exists(self.dbpath):
             raise IOError(dbpath + ": EUPS database directory not found")
 
-        # a hierarchical dictionary for looking up products.  The dimensions 
+        # a hierarchical dictionary for looking up products.  The dimensions
         # of the hierarchy (from left to right, general to specific) are:
         #   * flavor
         #   * product name
-        # The values at the bottom of the hierarchy are ProductFamily 
+        # The values at the bottom of the hierarchy are ProductFamily
         # instances
         self.lookup = {}
 
         # if true, the product data automatically will be cached on each update
         self.autosave = autosave
 
-        # a list of flavors for which product data has changed since the 
-        # last time it was cached to disk.  If empty, then no changes are 
+        # a list of flavors for which product data has changed since the
+        # last time it was cached to disk.  If empty, then no changes are
         # pending
         self.updated = []
 
-        # a lookup of modification times for the underlying cachefiles 
-        # by cachefile name when data was loaded in from this cache.  
+        # a lookup of modification times for the underlying cachefiles
+        # by cachefile name when data was loaded in from this cache.
         # If a target cache file has been updated since then, we should
-        # not save any new changes to it.  
+        # not save any new changes to it.
         self.modtimes = {}
 
         # the directory to persist this data to when save is called.  If None,
@@ -107,8 +107,8 @@ class ProductStack(object):
               os.makedirs(self.persistDir)
               # raise IOError("Directory not found: " + self.persistDir)
 
-        # user tag assignments stored a hierarchical dictionary.  The 
-        # dimensions of the hierarchy (from left to right, general to 
+        # user tag assignments stored a hierarchical dictionary.  The
+        # dimensions of the hierarchy (from left to right, general to
         # specific) are:
         #   * flavor
         #   * tag
@@ -174,9 +174,9 @@ class ProductStack(object):
         return true if a desired product is registered.
 
         @param name :    the product name
-        @param flavor :  the desired flavor.  If None, any existing 
+        @param flavor :  the desired flavor.  If None, any existing
                              flavor will return true
-        @param version : the desired version name.  If None, any existing 
+        @param version : the desired version name.  If None, any existing
                              version will return true.
         @return bool :
         """
@@ -195,13 +195,13 @@ class ProductStack(object):
 
     def getProduct(self, name, version, flavor):
         """
-        lookup and return a Product description given the product name, 
+        lookup and return a Product description given the product name,
         flavor, and version.  All parameters must be provided.
 
         @param name :     the product name
         @param version :  the desired version name
         @param flavor :   the desired platform flavor
-        @return Product : the requested product 
+        @return Product : the requested product
         """
         try:
             out = self.lookup[flavor][name].getProduct(version)
@@ -219,17 +219,17 @@ class ProductStack(object):
 
     def save(self, flavors=None, dir=None):
         """
-        persist the product information to disk.  If a cache file for a 
-        flavor is newer than when we loaded from it last, that flavor 
+        persist the product information to disk.  If a cache file for a
+        flavor is newer than when we loaded from it last, that flavor
         will not be saved, and a RuntimeError will be raised.  Other flavors,
         will be saved, though.
-        @param flavors  the flavors to persist.  This can be a single string 
-                           (for a single flavor) or a list of flavors.  If 
+        @param flavors  the flavors to persist.  This can be a single string
+                           (for a single flavor) or a list of flavors.  If
                            None, save all flavors that appear to need updating
-        @param file     the file to save it to.  
+        @param file     the file to save it to.
         """
         if flavors is None:
-            if not self.updated: return 
+            if not self.updated: return
             return self.save(self.updated)
         if not isinstance(flavors, list):
             flavors = [flavors]
@@ -250,13 +250,13 @@ class ProductStack(object):
             raise CacheOutOfSync(outofsync)
 
     def _cacheFileIsInSync(self, file):
-        return (file not in self.modtimes or 
+        return (file not in self.modtimes or
                 os.stat(file).st_mtime <= self.modtimes[file])
 
     def cacheIsInSync(self, flavors=None):
         """
-        return False if it appears that disk caches have been updated 
-        since they were last read in.  
+        return False if it appears that disk caches have been updated
+        since they were last read in.
 
         Note that this is different from cacheIsUpToDate()
         """
@@ -284,7 +284,7 @@ class ProductStack(object):
         """
         persist the product information for a particular flavor to a file
         @param flavor   the flavor to persist.
-        @param file     the name of the file to persist to.  If it already 
+        @param file     the name of the file to persist to.  If it already
                           exists, it will be overwritten.  If value is None,
                           a location will be be used.
         """
@@ -305,8 +305,8 @@ class ProductStack(object):
 
     def export(self):
         """
-        return a hierarchical dictionary of all the Products in the stack, 
-        suitable for persisting.  The dimensions of the hierarchy (from 
+        return a hierarchical dictionary of all the Products in the stack,
+        suitable for persisting.  The dimensions of the hierarchy (from
         left to right, general to specific) are:
            * flavor
            * product name
@@ -331,7 +331,7 @@ class ProductStack(object):
                                  unchanged.
         @param persistDir      the directory to find cached product data.
                                  If None, the directory set at construction
-                                 time will be used.  
+                                 time will be used.
         @param verbose         if > 0, print a message if reload is necessary
         """
         if not self.cacheIsInSync(flavors):
@@ -339,18 +339,18 @@ class ProductStack(object):
                 print("Note: cache appears out-of-sync; updating...", file=sys.stderr)
             self.reload(flavors, persistDir)
 
-    def addFlavor(self, flavor): 
+    def addFlavor(self, flavor):
         """
-        register a flavor without products.  
+        register a flavor without products.
 
-        This makes a flavor recognized even though no products have been 
-        registered for this flavor.  It is typical for an Eups instance to 
+        This makes a flavor recognized even though no products have been
+        registered for this flavor.  It is typical for an Eups instance to
         want to load product information for more than one flavor as back-up
         to the native flavor.  It is helpful, then to provide an empty lookup
-        in this ProductStack, so that the Eups instance doesn't need 
-        continually filter its desired flavors against the ones we actually 
-        have products for.  In particular, it allows info an empty flavor to be 
-        cached just like normal flavor.  
+        in this ProductStack, so that the Eups instance doesn't need
+        continually filter its desired flavors against the ones we actually
+        have products for.  In particular, it allows info an empty flavor to be
+        cached just like normal flavor.
         """
         if flavor not in self.lookup:
             self.lookup[flavor] = {}
@@ -359,15 +359,15 @@ class ProductStack(object):
         """
         register a product with a particular flavor
 
-        @param product : register a product.  If this particular product 
-                            is already registered, its information will be 
+        @param product : register a product.  If this particular product
+                            is already registered, its information will be
                             over-written
         """
         if not isinstance(product, Product):
             raise TypeError("non-Product passed to addProduct()")
         if not product.name or not product.version or not product.flavor:
             raise UnderSpecifiedProduct(
-                msg="Product not fully specified: %s %s %s" 
+                msg="Product not fully specified: %s %s %s"
                     % (str(product.name), str(product.version),
                        str(product.flavor))
             )
@@ -402,10 +402,10 @@ class ProductStack(object):
 
     def saveNeeded(self, flavors=None):
         """
-        return true if there are unsaved updates to this product stack.  
+        return true if there are unsaved updates to this product stack.
         @param favors   restrict answer to the given flavors.  This parameter
-                          can be given either as a single string (for a 
-                          single flavor) or as a list of flavor names.  If 
+                          can be given either as a single string (for a
+                          single flavor) or as a list of flavor names.  If
                           None, true will be returned if any flavor has been
                           updated.
         """
@@ -419,19 +419,19 @@ class ProductStack(object):
             if flavor in self.updated:
                 return True
         return False
-          
+
 
 
     def import_(self, products):
         """
-        import a set of products in a hierarchical dictionary.  
-        @param products : the hierarchical dictionary containing the 
-                            products.  The dimensions of the hierarchy 
+        import a set of products in a hierarchical dictionary.
+        @param products : the hierarchical dictionary containing the
+                            products.  The dimensions of the hierarchy
                             (from left to right, general to specific) are:
                               * flavor
                               * product name
                               * version name
-                            The values at the bottom of the hierarchy are 
+                            The values at the bottom of the hierarchy are
                             Product instances.
         """
         updated = False
@@ -469,7 +469,7 @@ class ProductStack(object):
 
     def getTaggedProduct(self, name, flavor, tag):
         """
-        return a version of a Product with the given tag assigned to it 
+        return a version of a Product with the given tag assigned to it
         or None if no version of the product is so tagged.
 
         @param name :   the product name
@@ -478,28 +478,28 @@ class ProductStack(object):
         @return Product :
         """
         try:
-            return self.lookup[flavor][name].getTaggedProduct(tag, 
-                                                              self.dbpath, 
+            return self.lookup[flavor][name].getTaggedProduct(tag,
+                                                              self.dbpath,
                                                               flavor)
         except KeyError:
             return None
-        
+
 
     def assignTag(self, tag, product, version, flavors=None):
         """
-        assign a tag to a given version of a product.  If tag does not 
-        start with "user:" (indicating a global tag) but 
-        the user does not have permission to write into the stack database, 
+        assign a tag to a given version of a product.  If tag does not
+        start with "user:" (indicating a global tag) but
+        the user does not have permission to write into the stack database,
         an exception is raised.
 
-        @param tag :     the tag name to be assigned.  If this name starts 
-                           with "user:", it will be considered a user prefix 
-                           and thus the assignment will be cached to a 
-                           the user-specific location.  
-        @param product : the name of the product the tag is being assigned to 
+        @param tag :     the tag name to be assigned.  If this name starts
+                           with "user:", it will be considered a user prefix
+                           and thus the assignment will be cached to a
+                           the user-specific location.
+        @param product : the name of the product the tag is being assigned to
         @param version : the version to assign tag to
-        @param flavor :  the platform flavor name or names.  The value can 
-                           be a single string or a list.  If None, assign the 
+        @param flavor :  the platform flavor name or names.  The value can
+                           be a single string or a list.  If None, assign the
                            tag for specified version of all flavors.
         @throws ProductNotFound   if the specified product is not found
         """
@@ -521,7 +521,7 @@ class ProductStack(object):
             raise ProductNotFound(product, version, flavors, self.dbpath)
 
         self._flavorsUpdated(flavors)
-        if self.autosave: 
+        if self.autosave:
             self.save(flavors)
 
     def unassignTag(self, tag, product, flavors=None):
@@ -530,9 +530,9 @@ class ProductStack(object):
 
         @param tag :     the name of the tag to remove
         @param product : the name of product to remove tag from.
-        @param flavors : the flavors to unassign the tag for.  If None, 
+        @param flavors : the flavors to unassign the tag for.  If None,
                            the tag will be unassigned for all flavors
-        @return bool :   return false if the tag was not found assigned to 
+        @return bool :   return false if the tag was not found assigned to
                            any product or product was not found.
         """
         if flavors is None:
@@ -550,7 +550,7 @@ class ProductStack(object):
             except KeyError:
                 pass
 
-        if updated and self.autosave: 
+        if updated and self.autosave:
             self.save(flavors)
         return updated
 
@@ -558,9 +558,9 @@ class ProductStack(object):
         """
         cache the parsed contents of the table file for a given product.
         If table is not None,
-        it will be taken as the Table instance representing the already 
-        parsed contents; otherwise, the table will be loaded from the 
-        table file path.  
+        it will be taken as the Table instance representing the already
+        parsed contents; otherwise, the table will be loaded from the
+        table file path.
 
         @param productName  the name of the desired product
         @param version      the version of the product to load
@@ -581,11 +581,11 @@ class ProductStack(object):
 
     def loadTables(self, productName=None, flavors=None):
         """
-        ensure all tables for a given product have been parsed and cached 
-        into memory.  
-        @param productName   the name of the product to cache tables for.  If 
+        ensure all tables for a given product have been parsed and cached
+        into memory.
+        @param productName   the name of the product to cache tables for.  If
                                 None, cache for all products
-        @param flavors       the flavors of products to cache tables fo.  
+        @param flavors       the flavors of products to cache tables fo.
         """
         if productName and utils.is_string(productName):
             productName = productName.split()
@@ -594,7 +594,7 @@ class ProductStack(object):
             flavors = self.getFlavors()
         elif utils.is_string(flavors):
             flavors = flavors.split()
-        
+
         for flavor in flavors:
             if flavor not in self.lookup:
                 continue
@@ -612,7 +612,7 @@ class ProductStack(object):
     def cacheIsUpToDate(self, flavor, cacheDir=None):
         """
         return True if there is a cache file on disk with product information
-        for a given flavor which is newer than the information in the 
+        for a given flavor which is newer than the information in the
         product database.  False is returned if the file does not exist
         or otherwise appears out-of-date.
 
@@ -638,15 +638,15 @@ class ProductStack(object):
 
     def clearCache(self, flavors=None, cachedir=None, verbose=0):
         """
-        remove the cache file containing the persisted product information for 
-        the given flavors.  
+        remove the cache file containing the persisted product information for
+        the given flavors.
         @param flavors    the platform flavors to clear caches for.  This value
-                            can be a single flavor name (as a string) or a list 
+                            can be a single flavor name (as a string) or a list
                             of flavors.
-        @param cachedir   the directory where to find the cache.  If not 
+        @param cachedir   the directory where to find the cache.  If not
                             provided, it will default to the current persist
                             directory or, if that is not set, to the database
-                            directory.  
+                            directory.
         """
         if not flavors:
             flavors = self.getFlavors()
@@ -670,7 +670,7 @@ class ProductStack(object):
                                     unchanged.
         @param persistDir         the directory to find cached product data.
                                     If None, the directory set at construction
-                                    time will be used.  
+                                    time will be used.
         """
         if persistDir is None:
             persistDir = self._persistDir()
@@ -711,7 +711,7 @@ class ProductStack(object):
         """
         load product information directly from the database files on disk,
         overwriting any previous information.  If userTagDir is provided,
-        user tag assignments will be explicitly loaded into the stack 
+        user tag assignments will be explicitly loaded into the stack
         (otherwise, the stack may not have user tags in it).
         """
         db = Database(self.dbpath, userTagDir)
@@ -734,7 +734,7 @@ class ProductStack(object):
         for pname in prodnames:
             for tag, version, flavor in db.getTagAssignments(pname, glob=False):
                 self.assignTag(tag, pname, version, flavor)
-            
+
 
     # @staticmethod   # requires python 2.4
     def fromDatabase(dbpath, persistDir=None, userTagDir=None, autosave=True):
@@ -743,10 +743,10 @@ class ProductStack(object):
         database.  If a userTagDir is provided, user tag assignments will be
         loaded in as well.
         @param dbpath      the full path to the database directory ("ups_db")
-        @param persistDir  the directory to persist to.  If None, the dbpath 
+        @param persistDir  the directory to persist to.  If None, the dbpath
                               value will be used as the directory.
         @param userTagDir  the directory where user tag data is persisted.
-        @param autosave    if true (default), all updates will be saved to 
+        @param autosave    if true (default), all updates will be saved to
                               disk.
         """
         out = ProductStack(dbpath, persistDir, autosave)
@@ -755,33 +755,33 @@ class ProductStack(object):
     fromDatabase = staticmethod(fromDatabase)    # works since python2.2
 
     # @staticmethod   # requires python 2.4
-    def fromCache(dbpath, flavors, persistDir=None, userTagDir=None, 
+    def fromCache(dbpath, flavors, persistDir=None, userTagDir=None,
                   updateCache=True, autosave=True, verbose=0):
         """
-        return a ProductStack that has all products loaded in from the 
-        available caches.  If they are out of date (or non-existent), this 
+        return a ProductStack that has all products loaded in from the
+        available caches.  If they are out of date (or non-existent), this
         will refresh from the database.
 
         The specific algorithm is as follows.  persistDir is first checked
-        for an cache.  If it apears up-to-date, it will be read in.  This 
-        will be assumed to have all user tags included in the cache.  If 
+        for an cache.  If it apears up-to-date, it will be read in.  This
+        will be assumed to have all user tags included in the cache.  If
         no cache exists, then an up-to-date one will be looked for in dbpath.
         If one does not exist, one will be created by loading all product
-        data from the dbpath database.  A ProductStack created from dbpath 
-        will not have user tags in it; thus, these will be explicitly added 
-        to it.  Finally, regardless of where the stack was loaded from, if 
-        persistDir is set and updateCache is True, the stack is pesisted 
+        data from the dbpath database.  A ProductStack created from dbpath
+        will not have user tags in it; thus, these will be explicitly added
+        to it.  Finally, regardless of where the stack was loaded from, if
+        persistDir is set and updateCache is True, the stack is pesisted
         into persistDir.
 
         @param dbpath       the full path to the database directory ("ups_db")
         @param flavors         the desired flavors
         @param persistDir   the directory to persist to.  If None,
-                               the dbpath value will be used as the 
+                               the dbpath value will be used as the
                                directory.
         @param userTagDir   the directory where user tag data is persisted
-        @param updateCache  if true (default), update the caches if any 
+        @param updateCache  if true (default), update the caches if any
                                appear out of date
-        @param autosave     if true (default), all updates will be 
+        @param autosave     if true (default), all updates will be
                                saved to disk.
         """
         if not flavors:
@@ -860,7 +860,7 @@ def _lol2l(lol, tolist=None):
 
 class CacheOutOfSync(EupsException):
     """
-    It was detected that one or more cache files containing data for a stack 
+    It was detected that one or more cache files containing data for a stack
     are newer than the data in the ProductStack instance.
     """
     def __init__(self, files=None, flavors=None, maxsave=None, msg=None):

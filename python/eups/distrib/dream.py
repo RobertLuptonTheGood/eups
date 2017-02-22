@@ -27,8 +27,8 @@ class DreamServer(DistribServer):
         # Working with real files from here on out
         assert self.base.startswith("dream:")
         self.base = self.base[len("dream:"):]
-        
-    def getFileForProduct(self, path, product, version, flavor, 
+
+    def getFileForProduct(self, path, product, version, flavor,
                           ftype=None, filename=None, noaction=False):
         if ftype is not None and ftype.lower() == "manifest":
             return self.getManifest(product, version, flavor, noaction=noaction)
@@ -38,7 +38,7 @@ class DreamServer(DistribServer):
         elif version is not None:
             pv = "%s-%s" % (product, version)
             path = re.sub(pv, product, path)
-        
+
         if ftype is not None and ftype == "build":
             if version is None:
                 raise RuntimeError("Unspecified version for %s" % product)
@@ -52,7 +52,7 @@ class DreamServer(DistribServer):
             return filename
 
         return self.getFile(path, flavor, ftype=ftype, filename=filename, noaction=noaction)
-        
+
     def getManifest(self, product, version, flavor, noaction=False):
         if noaction:
             return Manifest()
@@ -94,7 +94,7 @@ class DreamServer(DistribServer):
             if os.path.exists(path + ".table") and os.path.exists(path + ".build"):
                 products.append((product, version, flavor))
         return products
-      
+
     def listFiles(self, path, flavor=None, tag=None, noaction=False):
         return list()
 

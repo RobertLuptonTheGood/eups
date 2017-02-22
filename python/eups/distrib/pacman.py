@@ -15,20 +15,20 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
     OPTIONS:
     The behavior of a Distrib class is fine-tuned via options (a dictionary
-    of named values) that are passed in at construction time.  The options 
+    of named values) that are passed in at construction time.  The options
     supported are:
-       noeups           do not use the local EUPS database for information  
-                          while creating packages.       
-       obeyGroups       when creating files (other on the user side or the 
+       noeups           do not use the local EUPS database for information
+                          while creating packages.
+       obeyGroups       when creating files (other on the user side or the
                           server side), set group ownership and make group
                           writable
-       groupowner       when obeyGroups is true, change the group owner of 
+       groupowner       when obeyGroups is true, change the group owner of
                           to this value
-       pacmanCache      the value of the pacman cache (used when creating 
-                          packages); default: the server's package base 
+       pacmanCache      the value of the pacman cache (used when creating
+                          packages); default: the server's package base
                           URL + "/pm"
-       pacmanDBRoot     the root directory containing the pacman database 
-                          (o..pacman..o); default: the root directory for 
+       pacmanDBRoot     the root directory containing the pacman database
+                          (o..pacman..o); default: the root directory for
                           product installation
     """
 
@@ -45,7 +45,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
-        """Return a valid package location if and only we recognize the 
+        """Return a valid package location if and only we recognize the
         given distribution identifier
 
         This implementation return a location if it starts with "pacman:"
@@ -61,7 +61,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
     parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
-        """Check that self is properly initialised; this matters for subclasses 
+        """Check that self is properly initialised; this matters for subclasses
         with special needs"""
         if not eupsDistrib.Distrib.checkInit(self, forserver):
             return False
@@ -85,64 +85,64 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
     def getManifestPath(self, serverDir, product, version, flavor=None):
         """return the path where the manifest for a particular product will
-        be deployed on the server.  In this implementation, all manifest 
+        be deployed on the server.  In this implementation, all manifest
         files are deployed into a subdirectory of serverDir called "manifests"
-        with the filename form of "<product>-<version>.manifest".  It is 
-        assumed that pacman distributions are platform-generic, so the 
+        with the filename form of "<product>-<version>.manifest".  It is
+        assumed that pacman distributions are platform-generic, so the
         flavor parameter is ignored.
 
-        @param serverDir      the local directory representing the root of 
-                                 the package distribution tree.  In this 
-                                 implementation, the returned path will 
+        @param serverDir      the local directory representing the root of
+                                 the package distribution tree.  In this
+                                 implementation, the returned path will
                                  start with this directory.
-        @param product        the name of the product that the manifest is 
+        @param product        the name of the product that the manifest is
                                 for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform for the 
+        @param flavor         the flavor of the target platform for the
                                 manifest.  This implementation ignores
                                 this parameter.
         """
-        return os.path.join(serverDir, "manifests", 
+        return os.path.join(serverDir, "manifests",
                             "%s-%s.manifest" % (product, version))
 
-    def createPackage(self, serverDir, product, version, flavor=None, 
+    def createPackage(self, serverDir, product, version, flavor=None,
                       overwrite=False):
-        """Write a package distribution into server directory tree and 
-        return the distribution ID 
-        @param serverDir      a local directory representing the root of the 
+        """Write a package distribution into server directory tree and
+        return the distribution ID
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation
-        @param overwrite      if True, this package will overwrite any 
+        @param overwrite      if True, this package will overwrite any
                                 previously existing distribution files even if Eups.force is false
         """
-        # we don't have a way of creating pacman files.  
+        # we don't have a way of creating pacman files.
         return self.getDistIdForPackage(product, version, flavor)
 
     def packageCreated(self, serverDir, product, version, flavor=None):
-        """return True if a distribution package for a given product has 
-        apparently been deployed into the given server directory.  
-        @param serverDir      a local directory representing the root of the 
+        """return True if a distribution package for a given product has
+        apparently been deployed into the given server directory.
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation.  None means
                                 that the status of a non-flavor-specific package
                                 is of interest, if supported.
         """
-        location = self.parseDistID(self.getDistIdForPackage(product, version, 
+        location = self.parseDistID(self.getDistIdForPackage(product, version,
                                                              flavor))
         return os.path.exists(os.path.join(serverDir, location))
 
     def getDistIdForPackage(self, product, version, flavor=None):
         """return the distribution ID that for a package distribution created
         by this Distrib class (via createPackage())
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
         @param flavor         the flavor of the target platform; None means
@@ -155,19 +155,19 @@ class Distrib(eupsDistrib.DefaultDistrib):
             return "pacman:%s:%s/%s-%s" % \
                 (self.options['pacmanCache'], flavor, product, version)
 
-    def installPackage(self, location, product, version, productRoot, 
+    def installPackage(self, location, product, version, productRoot,
                        installDir, setups=None, buildDir=None):
         """Install a package with a given server location into a given
         product directory tree.
-        @param location     the location of the package on the server.  This 
+        @param location     the location of the package on the server.  This
                                value is a distribution ID (distID) that has
                                been stripped of its build type prefix.
         @param product      the name of the product to install
         @param version      the version of the product
-        @param productRoot  the product directory tree under which the 
+        @param productRoot  the product directory tree under which the
                                product should be installed
         @param installDir   the preferred sub-directory under the productRoot
-                               to install the directory.  This value, which 
+                               to install the directory.  This value, which
                                should be a relative path name, may be
                                ignored or over-ridden by the pacman scripts
         @param setups       a list of EUPS setup commands that should be run
@@ -180,7 +180,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         self.createPacmanDir(pacmanDir)
 
-        self.installPacmanPackage(location, productRoot, installDir, 
+        self.installPacmanPackage(location, productRoot, installDir,
                                   pacmanDir, setups)
         self.cleanPackage(product, version, pacmanDir, location)
         self.setGroupPerms(installDir, descend=True)
@@ -195,7 +195,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         try:
             eupsServer.system("""cd %s && pacman -allow urllib2 -install "%s" """ % \
-                                  (pacmanDir, location), 
+                                  (pacmanDir, location),
                               self.Eups.noaction, self.verbose, self.log)
         except OSError:
             raise RuntimeError("Pacman failed to install " + location)
@@ -208,7 +208,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         """
         if not os.path.isdir(pacmanDir):
             os.mkdir(pacmanDir)
-        
+
     def cleanPackage(self, product, version, productRoot, location):
         """remove any distribution-specific remnants of a package installation.
         This gets run automatically after a successful installation; however,
@@ -219,22 +219,22 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         @param product      the name of the product to clean up after
         @param version      the version of the product
-        @param productRoot  the product directory tree under which the 
+        @param productRoot  the product directory tree under which the
                                product is assumed to be installed
         @param location     the distribution location used to install the
                                package.  The implementation may ignore this.
         @returns bool    True, if any state was cleaned up or False if nothing
-                             needed to be done.  Note that False is not an 
-                             error.  
+                             needed to be done.  Note that False is not an
+                             error.
         """
         pacmanDir = self.getOption('pacmanDBRoot', productRoot)
         if os.path.exists(os.path.join(pacmanDir,'o..pacman..o')):
             cmd = 'cd %s && pacman -allow urllib2 -remove "%s" '
-            eupsServer.system(cmd % (pacmanDir, location), 
+            eupsServer.system(cmd % (pacmanDir, location),
                               self.Eups.noaction, self.verbose, self.log)
         else:
             if self.verbose >= 0:
                 print("Warning: pacman database not found under", pacmanDir, file=self.log)
             return False
-        
+
         return True

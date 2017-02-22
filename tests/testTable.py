@@ -50,7 +50,7 @@ class TableTestCase2(unittest.TestCase):
         for action in actions:
             action.execute(self.eups, 1, True, True)
         self.assertIn("GOOBPATH", os.environ)
-        self.assertEquals(os.environ["GOOBPATH"], 
+        self.assertEquals(os.environ["GOOBPATH"],
                           "/home/user/goob:/usr/goob:/usr/local/goob")
         self.assertNotIn("FOO", os.environ)
         self.assertNotIn("BAR", os.environ)
@@ -81,7 +81,7 @@ class TableTestCase2(unittest.TestCase):
         self.assertNotIn("BAR", os.environ)
         self.assertIn("GOOBPATH", os.environ)
         self.assertEquals(os.environ["GOOBPATH"], '')
-        
+
 
     def testIfType(self):
         actions = self.table.actions("DarwinX86", "build")
@@ -164,7 +164,7 @@ class IfElseTestCase(unittest.TestCase):
                 t = "other"
 
             self.assertEqual(os.environ["FOO"].lower(), t)
-                
+
 class EupsVersionTestCase(unittest.TestCase):
     """
     Check that we can check the eups version
@@ -190,7 +190,7 @@ class EupsVersionTestCase(unittest.TestCase):
                 action.execute(self.eups, 1)
             except RuntimeError as e:
                 self.assertTrue("doesn't satisfy condition" in str(e))
-                
+
 class ExternalProductsTestCase(unittest.TestCase):
     """
     Check that we can check the eups version

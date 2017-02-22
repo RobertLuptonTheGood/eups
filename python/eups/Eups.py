@@ -1,5 +1,5 @@
 """
-The Eups class 
+The Eups class
 """
 from __future__ import absolute_import, print_function
 import glob
@@ -35,7 +35,7 @@ class Eups(object):
 
     This class also maintains state about the user's preferences, including:
       o  the software stacks to be managed by EUPS (i.e. EUPS_PATH)
-      o  behavioral preferences such as verbosity, overriding safe-guards 
+      o  behavioral preferences such as verbosity, overriding safe-guards
          (the "force" option), etc.
     """
 
@@ -85,7 +85,7 @@ class Eups(object):
 
         for k in hooks.config.Eups.defaultTags.keys():
             if k not in ("pre", "post",):
-                print("Ignoring unexpected key \"%s\" in hooks.config.Eups.defaultTags" % k, file=utils.stdwarn)       
+                print("Ignoring unexpected key \"%s\" in hooks.config.Eups.defaultTags" % k, file=utils.stdwarn)
 
         if not hasattr(opts, "postTag"):
             opts.postTag = []
@@ -115,27 +115,27 @@ class Eups(object):
                  exact_version=None, cmdName=None
                  ):
         """
-        @param path             the colon-delimited list of product stack 
+        @param path             the colon-delimited list of product stack
                                   directories to find products in.
-        @param root             used during setup(), this is the directory to 
-                                  find the top-level target product.  Its 
-                                  dependencies can be found in any of the 
-                                  directories in path.  
-        @param userDataDir      the directory where per-user information is 
+        @param root             used during setup(), this is the directory to
+                                  find the top-level target product.  Its
+                                  dependencies can be found in any of the
+                                  directories in path.
+        @param userDataDir      the directory where per-user information is
                                   cached.  If None, this defaults to ~/.eups.
         @param asAdmin          if True, product caches will be saved in the
-                                  database directories rather than under the 
-                                  user directory.  User tags will not be 
-                                  available for writable stacks in path.  
+                                  database directories rather than under the
+                                  user directory.  User tags will not be
+                                  available for writable stacks in path.
         @param setupType        the setup type.  This will cause conditional
-                                  sections of the table filebased on "type" 
-                                  (e.g. "if (type == build) {...}") to be 
+                                  sections of the table filebased on "type"
+                                  (e.g. "if (type == build) {...}") to be
                                   executed.  If setupType is a list then the conditional will
                                   be interpreted as "if (build in type) {...}"
-        @param validSetupTypes  the names to recognize as valid setupTypes.  
-                                  This list can be given either as a 
-                                  space-delimited string or a python list of 
-                                  strings (each being a separate name).  If 
+        @param validSetupTypes  the names to recognize as valid setupTypes.
+                                  This list can be given either as a
+                                  space-delimited string or a python list of
+                                  strings (each being a separate name).  If
                                   None, the list will be set according to the
                                   user's configuration.
         @param preferredTags      List of tags to process in order; None will be intepreted as the default
@@ -159,7 +159,7 @@ class Eups(object):
             elif re.search(r"(^|/)(zsh)$", shell):
                 shell = "zsh"
             else:
-                raise EupsException("Unknown shell type %s" % shell)    
+                raise EupsException("Unknown shell type %s" % shell)
 
         self.shell = shell
 
@@ -233,7 +233,7 @@ class Eups(object):
                 raise EupsException('Unknown setup type %s; valid types are: "%s"' % \
                                     (st, '", "'.join(self._validSetupTypes)))
         #
-        # a look-up of the products that have been setup since the life 
+        # a look-up of the products that have been setup since the life
         # of this instance.  Used by setup().
         #
         self.alreadySetupProducts = {}
@@ -283,10 +283,10 @@ class Eups(object):
             self._vroDict[key] = v
 
         self._vro = None                # the actual VRO to use
-        # 
-        # determine the user data directory.  This is a place to store 
+        #
+        # determine the user data directory.  This is a place to store
         # user preferences and caches of product information.
-        # 
+        #
         if not userDataDir:
             userDataDir = utils.defaultUserDataDir()
             if not userDataDir and self.quiet <= 0:
@@ -302,12 +302,12 @@ class Eups(object):
 
         if userDataDir and not os.path.isdir(userDataDir):
             raise EupsException("User data directory not found (as a directory): " + userDataDir)
-                                
+
         self.userDataDir = userDataDir
         self.asAdmin = asAdmin
 
         #
-        # Get product information:  
+        # Get product information:
         #   read the cached version of product info
         # N.b. we'll do the same for user directories (e.g. ~/.eups) later
         #
@@ -317,7 +317,7 @@ class Eups(object):
           for p in self.path:
               self._setProductStack_fromCache(p, neededFlavors)
         #
-        # 
+        #
         fallbackList = hooks.config.Eups.fallbackFlavors
         if not isinstance(fallbackList, dict):
             fallbackList = {None : fallbackList}
@@ -325,9 +325,9 @@ class Eups(object):
             if utils.is_string(fbl):
                 fbl = fbl.split()
             utils.Flavor().setFallbackFlavors(flavor, fbl)
-        # 
+        #
         # load up the recognized tags.
-        # 
+        #
         user = utils.getUserName() # our username is always a valid user tag (if not already global)
         if hooks.config.Eups.userTags.count(user) == 0 and \
            hooks.config.Eups.globalTags.count(user) == 0:
@@ -368,7 +368,7 @@ class Eups(object):
 
             for t in tags:
                 preferredTags.append(t)
-                
+
         q = utils.Quiet(self)
         self._kindlySetPreferredTags(preferredTags)
         del q
@@ -634,11 +634,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                             self.versions[p].lookup[flavor][productName].tags[etag] = versionName
                         except KeyError:
                             continue
-                
+
     def setPreferredTags(self, tags):
         """
-        set a list of tags to prefer when selecting products.  The 
-        list order indicates the order of preference with the most 
+        set a list of tags to prefer when selecting products.  The
+        list order indicates the order of preference with the most
         preferred tag being first.
         @param tags   the tags as a list or a space-delimited string.
                         Unrecognized tag names will be ignored.
@@ -691,15 +691,15 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def getPreferredTags(self):
         """
-        Return the list of  tags to prefer when selecting products.  The 
-        list order indicates the order of preference with the most 
+        Return the list of  tags to prefer when selecting products.  The
+        list order indicates the order of preference with the most
         preferred tag being first.
         """
         ptags = []
         for t in list(self.preferredTags):
             if True or not re.search(r"^type:", t): # we want type:exact in VRO processing
                 ptags.append(t)
-                
+
         return ptags
 
     def findSetupVersion(self, productName, environ=None):
@@ -720,7 +720,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             sproductName = args.pop(0)
         except IndexError:          # Oh dear;  "$setupEnvPrefix()_productName" must be malformed
             return None, eupsPathDir, productDir, tablefile, flavor
-            
+
         if sproductName != productName:
             if self.verbose > 1:
                 print("Warning: product name %s != %s (probable mix of old and new eups)" %(productName, sproductName), file=utils.stdwarn)
@@ -763,7 +763,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         tablefile = "none"
             except KeyError:
                 pass
-            
+
         if eupsPathDir == 'None':
             eupsPathDir = None
 
@@ -784,25 +784,25 @@ The what argument tells us what sort of state is expected (allowed values are de
         return a product matching the given constraints by searching the VRO (we also return info about the
         VRO element that matched).  By default, the cache will be searched when available; otherwise, the
         product database will be searched.  Return (None, []) if a match was not found.
-        
+
         @param name          the name of the desired product
-        @param version       the desired version.  This can in one of the 
+        @param version       the desired version.  This can in one of the
                                 following forms:
-                                 *  an explicit version 
+                                 *  an explicit version
                                  *  a version expression (e.g. ">=3.3") (see also versionExpr)
-                                 *  a Tag instance 
-                                 *  null, in which case, the (most) preferred 
+                                 *  a Tag instance
+                                 *  null, in which case, the (most) preferred
                                       version will be returned.
         @param versionExpr   An expression specifying the constraints on the version
-        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
+        @param eupsPathDirs  the EUPS path directories to search.  (Each should
                                 have a ups_db sub-directory.)  If None (def.),
-                                configured EUPS_PATH directories will be 
+                                configured EUPS_PATH directories will be
                                 searched.
-        @param flavor        the desired flavor.  If None (default), the 
+        @param flavor        the desired flavor.  If None (default), the
                                 default flavor will be searched for.
-        @param noCache       if true, the software inventory cache should not be 
+        @param noCache       if true, the software inventory cache should not be
                                 used to find products; otherwise, it will be used
-                                to the extent it is available.  
+                                to the extent it is available.
         @param recursionDepth Recursion depth (0 => top, so e.g. keep should be ignored)
         """
 
@@ -823,7 +823,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             preVro =  vro[0    :i]
             postVro = vro[i + 1:]
-            
+
             if vroTag in ("path"):
                 continue
 
@@ -833,7 +833,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     product = product[0]
                     vroReason = [vroTag, None]
                     break
-                    
+
             elif vroTag == "commandLine":
                 if name in self.alreadySetupProducts: # name is already setup
                     oproduct, ovroReason = self.alreadySetupProducts[name]
@@ -854,9 +854,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                             print("Failed to find %s %s for flavor %s" % \
                                   (name, version, flavor), file=utils.stdwarn)
                             break
-                    
+
                     versionExpr = version
-                    
+
                 if vroTag == "versionExpr" and versionExpr:
                     if self.isLegalRelativeVersion(versionExpr):  # raises exception if bad syntax used
                         products = self._findProductsByExpr(name, versionExpr, eupsPathDirs, flavor, noCache)
@@ -904,7 +904,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         product = Product(name, version)
                         vroTag = "path from version"
                         vroReason = [vroTag, version]
-                        
+
                 if product:
                     if recursionDepth == 0:
                         vroReason[0] = "commandLine"
@@ -922,7 +922,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     debugLevel += 2
                 if self.quiet:
                     debugLevel += 0
-                    
+
                 if self.verbose >= debugLevel:
                     if version:
                         vname = version
@@ -955,7 +955,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                 if not product:
                     continue
-                
+
                 vroReason = [vroTag, None]
 
             elif re.search(r"^type:(.+)$", vroTag):
@@ -987,7 +987,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             if self.verbose > 1:
                                 print("%s%s has higher priority than %s in your VRO; keeping %s %s" % \
                                       (13*" ", ovroTag, vroTag0, oproduct.name, oproduct.version), file=utils.stdinfo)
-                                
+
                             product, vroReason, vroTag = oproduct, ovroReason, ovroTag
                     except Exception as e:
                         utils.debug("RHL", name, vroTag, vro, vroReason, e)
@@ -1019,26 +1019,26 @@ The what argument tells us what sort of state is expected (allowed values are de
     def findProduct(self, name, version=None, eupsPathDirs=None, flavor=None,
                     noCache=False):
         """
-        return a product matching the given constraints.  By default, the 
-        cache will be searched when available; otherwise, the product 
+        return a product matching the given constraints.  By default, the
+        cache will be searched when available; otherwise, the product
         database will be searched.  Return None if a match was not found.
         @param name          the name of the desired product
-        @param version       the desired version.  This can in one of the 
+        @param version       the desired version.  This can in one of the
                                 following forms:
-                                 *  an explicit version 
+                                 *  an explicit version
                                  *  a version expression (e.g. ">=3.3")
-                                 *  a Tag instance 
-                                 *  null, in which case, the (most) preferred 
+                                 *  a Tag instance
+                                 *  null, in which case, the (most) preferred
                                       version will be returned.
-        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
+        @param eupsPathDirs  the EUPS path directories to search.  (Each should
                                 have a ups_db sub-directory.)  If None (def.),
-                                configured EUPS_PATH directories will be 
+                                configured EUPS_PATH directories will be
                                 searched.
-        @param flavor        the desired flavor.  If None (default), the 
+        @param flavor        the desired flavor.  If None (default), the
                                 default flavor will be searched for.
-        @param noCache       if true, the software inventory cache should not be 
+        @param noCache       if true, the software inventory cache should not be
                                 used to find products; otherwise, it will be used
-                                to the extent it is available.  
+                                to the extent it is available.
         """
 
         if not version or (not isinstance(version, Tag) and self.ignore_versions):
@@ -1053,15 +1053,15 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if utils.is_string(version):
             if self.isLegalRelativeVersion(version):  # raises exception if bad syntax used
-                return self._findPreferredProductByExpr(name, version, 
-                                                        eupsPathDirs, flavor, 
+                return self._findPreferredProductByExpr(name, version,
+                                                        eupsPathDirs, flavor,
                                                         noCache)
 
         if isinstance(version, Tag):
             # search for a tagged version
             return self._findTaggedProduct(name, version, eupsPathDirs, flavor, noCache)
 
-        # search path for an explicit version 
+        # search path for an explicit version
         for root in eupsPathDirs:
             if noCache or root not in self.versions or not self.versions[root]:
                 # go directly to the EUPS database
@@ -1074,7 +1074,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     product = self._databaseFor(root).findProduct(name, version, flavor)
                 except ProductNotFound:
                     product = None
-    
+
                 if product:
                     return product
 
@@ -1091,22 +1091,22 @@ The what argument tells us what sort of state is expected (allowed values are de
     def findTaggedProduct(self, name, tag, eupsPathDirs=None, flavor=None,
                           noCache=False):
         """
-        return a version of a product that has a given tag assigned to it.  
-        By default, the cache will be searched when available; otherwise, 
-        the product database will be searched.  Return None if a match was 
+        return a version of a product that has a given tag assigned to it.
+        By default, the cache will be searched when available; otherwise,
+        the product database will be searched.  Return None if a match was
         not found.
         @param name          the name of the desired product
-        @param tag           the desired tag.  This can either be string 
-                                giving the tag name or a Tag instance.  
-        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
+        @param tag           the desired tag.  This can either be string
+                                giving the tag name or a Tag instance.
+        @param eupsPathDirs  the EUPS path directories to search.  (Each should
                                 have a ups_db sub-directory.)  If None (def.),
-                                configured EUPS_PATH directories will be 
+                                configured EUPS_PATH directories will be
                                 searched.
-        @param flavor        the desired flavor.  If None (default), the 
+        @param flavor        the desired flavor.  If None (default), the
                                 default flavor will be searched for.
-        @param noCache       if true, the software inventory cache should not 
-                                be used to find products; otherwise, it will 
-                                be used to the extent it is available.  
+        @param noCache       if true, the software inventory cache should not
+                                be used to find products; otherwise, it will
+                                be used to the extent it is available.
         @throws TagNotRecongized  if the given tag is not valid
         """
         if not flavor:
@@ -1176,7 +1176,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             else:
                 # consult the cache
-                try: 
+                try:
                     self.versions[root].ensureInSync(verbose=self.verbose)
                     prod = self.versions[root].getTaggedProduct(name, flavor, tag)
                     if prod:
@@ -1193,7 +1193,7 @@ The what argument tells us what sort of state is expected (allowed values are de
            (optionally prefixed by some number or "|" and " ", as put out by "eups list -D -s")
         or
            setupRequired(productName [-X ...] version ...)
-           
+
         @param name          the name of the product
         @param fileName      the file listing productNames and versions
         @param eupsPathDirs  the Eups path directories to search
@@ -1264,7 +1264,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             product = Product.createLocal(name, version)
             if not product and self.verbose:
                 print("Unable to find version %s specified in tag file %s" % \
-                    (version, fileName), file=utils.stdwarn)                
+                    (version, fileName), file=utils.stdwarn)
 
         if not product:
             msg = "Unable to find product %s %s specified in %s" % (name, version, fileName)
@@ -1277,10 +1277,10 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return product
 
-    def _findLatestProduct(self, name, eupsPathDirs, flavor, minver=None, 
+    def _findLatestProduct(self, name, eupsPathDirs, flavor, minver=None,
                            noCache=False):
-        # find the latest version of a product.  If minver is not None, 
-        # the product must have a version matching this or newer.  
+        # find the latest version of a product.  If minver is not None,
+        # the product must have a version matching this or newer.
         out = None
 
         for root in eupsPathDirs:
@@ -1300,14 +1300,14 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if minver and self.version_cmp(latest.version, minver) < 0:
                     continue
 
-                if out == None or self.version_cmp(latest.version, 
+                if out == None or self.version_cmp(latest.version,
                                                     out.version) > 0:
                     # latest one in this stack is latest one seen
                     out = latest
 
             else:
                 # consult the cache
-                try: 
+                try:
                     vers = self.versions[root].getVersions(name, flavor)
                     vers.sort(**cmp_or_key(self.version_cmp))
                     if len(vers) == 0:
@@ -1317,7 +1317,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if minver and self.version_cmp(vers[-1], minver) < 0:
                         continue
 
-                    if out == None or self.version_cmp(vers[-1], 
+                    if out == None or self.version_cmp(vers[-1],
                                                         out.version) > 0:
                         # latest one in this stack is latest one seen
                         out = self.versions[root].getProduct(name, vers[-1], flavor)
@@ -1327,7 +1327,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         return out
 
-    def _findPreferredProductByExpr(self, name, expr, eupsPathDirs, flavor, 
+    def _findPreferredProductByExpr(self, name, expr, eupsPathDirs, flavor,
                                     noCache):
         return self._selectPreferredProduct(
             self._findProductsByExpr(name, expr, eupsPathDirs, flavor, noCache))
@@ -1345,7 +1345,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     continue
 
                 products = self._databaseFor(root).findProducts(name, flavors=flavor)
-                if len(products) == 0: 
+                if len(products) == 0:
                     continue
 
                 products = [z for z in products if self.version_match(z.version, expr)]
@@ -1356,7 +1356,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             else:
                 # consult the cache
-                try: 
+                try:
                     vers = self.versions[root].getVersions(name, flavor)
                     vers = [z for z in vers if self.version_match(z, expr)]
                     if len(vers) == 0:
@@ -1366,7 +1366,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             prod = self.versions[root].getProduct(name, ver, flavor)
                             out.append(prod)
                             outver.append(prod.version)
-                
+
                 except ProductNotFound:
                     continue
 
@@ -1375,8 +1375,8 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _selectPreferredProduct(self, products, preferredTags=None):
         # return the product in a list that is most preferred.
         # None is returned if no products are so tagged.
-        # The special "latest" tag will select the product with the latest 
-        # version.  
+        # The special "latest" tag will select the product with the latest
+        # version.
         if not products:
             return None
         if preferredTags is None:
@@ -1402,30 +1402,30 @@ The what argument tells us what sort of state is expected (allowed values are de
                 for p in products:
                     if p.isTagged(tag):
                         return p
-                
+
         return None
 
-    def findPreferredProduct(self, name, eupsPathDirs=None, flavor=None, 
+    def findPreferredProduct(self, name, eupsPathDirs=None, flavor=None,
                              preferred=None, noCache=False):
         """
         return the most preferred version of a product.  The "preferred" parameter
         gives a list of versions to look for in preferred order; the first one
-        found will be returned.  Each version will be searched for in all of the 
+        found will be returned.  Each version will be searched for in all of the
         directories given in eupsPathDirs.
         @param name           the name of the desired product
-        @param eupsPathDirs  the EUPS path directories to search.  (Each 
-                                should have a ups_db sub-directory.)  If 
-                                None (def.), configured EUPS_PATH 
+        @param eupsPathDirs  the EUPS path directories to search.  (Each
+                                should have a ups_db sub-directory.)  If
+                                None (def.), configured EUPS_PATH
                                 directories will be searched.
-        @param flavor        the desired flavor.  If None (default), the 
+        @param flavor        the desired flavor.  If None (default), the
                                 default flavor will be searched for.
         @param preferred     a list of preferred versions.  Each item
-                                may be an explicit version, a tag name, or 
-                                Tag instance.  The first version found will 
+                                may be an explicit version, a tag name, or
+                                Tag instance.  The first version found will
                                 be returned.
-        @param noCache       if true, the software inventory cache should not 
-                                be used to find products; otherwise, it will 
-                                be used to the extent it is available.  
+        @param noCache       if true, the software inventory cache should not
+                                be used to find products; otherwise, it will
+                                be used to the extent it is available.
         """
         if not flavor:
             flavor = self.flavor
@@ -1455,7 +1455,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if not os.path.isdir(upsDB):
             if create:
-                os.makedirs(upsDB)                
+                os.makedirs(upsDB)
 
         if not os.path.isdir(upsDB):
             if noRaise:
@@ -1463,17 +1463,17 @@ The what argument tells us what sort of state is expected (allowed values are de
             raise OSError("%s does not contain a %s directory" % (eupsPathDir, self.ups_db))
 
         return upsDB
-    
+
 
     def includeUserDataDirInPath(self, dataDir=None):
         """Include the ~/.eups versions of directories on self.path in the search path"""
         if not dataDir:
             dataDir = self.userDataDir
-            
+
         if os.path.isdir(self.getUpsDB(dataDir)):
             if self.path.count(dataDir) == 0:
                 self.path.append(dataDir)
-                
+
                 self._setProductStack_fromCache(dataDir, [self.flavor])
 
     def _setProductStack_fromCache(self, dataDir, neededFlavors):
@@ -1487,7 +1487,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             cacheDir = userCacheDir
 
         self.versions[dataDir] = ProductStack.fromCache(dbpath, neededFlavors,
-                                                        persistDir=cacheDir, 
+                                                        persistDir=cacheDir,
                                                         userTagDir=userCacheDir,
                                                         updateCache=True, autosave=False,
                                                         verbose=self.verbose)
@@ -1541,7 +1541,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def findSetupProduct(self, productName, environ=None):
         """
-        return a Product instance for a currently setup product.  None is 
+        return a Product instance for a currently setup product.  None is
         returned if a product with the given name is not currently setup.
         """
         versionName, eupsPathDir, productDir, tablefile, flavor = \
@@ -1555,10 +1555,10 @@ The what argument tells us what sort of state is expected (allowed values are de
         else:                           # a real product, fully identified by a version (and flavor, -Z)
             return self.findProduct(productName, versionName, eupsPathDirs=[eupsPathDir],
                                     flavor=flavor, noCache=False)
-        
+
     def setEnv(self, key, val, interpolateEnv=False):
         """Set an environmental variable"""
-            
+
         if interpolateEnv:              # replace ${ENV} by its value if known
             val = re.sub(r"(\${([^}]*)})", lambda x : os.environ.get(x.group(2), x.group(1)), val)
 
@@ -1586,30 +1586,30 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def getProduct(self, productName, versionName=None, eupsPathDirs=None, noCache=False):
         """
-        select the most preferred product with a given name.  This function is 
-        equivalent to 
-           findProduct(productName, versionName, eupsPathDirs, flavor=None, 
+        select the most preferred product with a given name.  This function is
+        equivalent to
+           findProduct(productName, versionName, eupsPathDirs, flavor=None,
                        noCache=noCache)
         except that it throws a ProductNotFound exception if it is not found.
 
         @param name          the name of the desired product
-        @param version       the desired version.  This can in one of the 
+        @param version       the desired version.  This can in one of the
                                 following forms:
-                                 *  an explicit version 
+                                 *  an explicit version
                                  *  a version expression (e.g. ">=3.3")
                                  *  a string tag name
-                                 *  a Tag instance 
-                                 *  null, in which case, the (most) preferred 
+                                 *  a Tag instance
+                                 *  null, in which case, the (most) preferred
                                       version will be returned.
-        @param eupsPathDirs  the EUPS path directories to search.  (Each should 
+        @param eupsPathDirs  the EUPS path directories to search.  (Each should
                                 have a ups_db sub-directory.)  If None (def.),
-                                configured EUPS_PATH directories will be 
+                                configured EUPS_PATH directories will be
                                 searched.
-        @param noCache       if true, the software inventory cache should not be 
+        @param noCache       if true, the software inventory cache should not be
                                 used to find products; otherwise, it will be used
-                                to the extent it is available.  
+                                to the extent it is available.
         """
-        out = self.findProduct(productName, versionName, eupsPathDirs, 
+        out = self.findProduct(productName, versionName, eupsPathDirs,
                                noCache=noCache)
         if out is None:
             raise ProductNotFound(productName, versionName, self.flavor)
@@ -1642,8 +1642,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         return versionName is None or versionName == prod.version
 
     def unsetupSetupProduct(self, product, noRecursion=False):
-        """ 
-        if the given product is setup, unset it up.  
+        """
+        if the given product is setup, unset it up.
         @param product     a Product instance or a product name
         """
         if isinstance(product, Product):
@@ -1666,7 +1666,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self._relop_re.search(versionName):
             return True
         if self._bad_relop_re.match(versionName):
-            raise EupsException("Bad expr syntax: %s; did you mean '=='?" % 
+            raise EupsException("Bad expr syntax: %s; did you mean '=='?" %
                                 versionName)
         return False
 
@@ -1694,7 +1694,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             elif expr[i] == "&&" or expr[i] == "and":
                 if not value:
                     return False        # short circuit
-                
+
                 logop = "and"
                 continue
             else:
@@ -1761,35 +1761,35 @@ The what argument tells us what sort of state is expected (allowed values are de
               productRoot=None, tablefile=None, versionExpr=None, optional=False,
               implicitProduct=False):
         """
-        Update the environment to use (or stop using) a specified product.  
+        Update the environment to use (or stop using) a specified product.
 
-        The environment is updated by updating environment variables in 
+        The environment is updated by updating environment variables in
         os.environ as well as an internal list of shell command aliases.
         (The app.setup() wrapper function is responsible for generating
         the actual commands that should be run by the shell to update
         the shell environment.)
 
         @param productName      the name of the product desired
-        @param versionName      the version of the product desired.  This is 
+        @param versionName      the version of the product desired.  This is
                                   can either be a actual version name or an
                                   instance of Tag.  See also versionExpr
         @param fwd              if False, the product will be unset; otherwise
                                   it will be setup.
-        @param recursionDepth   the number of dependency levels this setup 
+        @param recursionDepth   the number of dependency levels this setup
                                   command represents.  If the requested product
-                                  is being setup because it is required by 
-                                  another product, this value should > 0.  
-                                  Normally, this parameter is only used 
+                                  is being setup because it is required by
+                                  another product, this value should > 0.
+                                  Normally, this parameter is only used
                                   internally, not by external applications.
-        @param setupToplevel    if False, this request is being called to 
+        @param setupToplevel    if False, this request is being called to
                                   setup a dependency product.  This is primarily
-                                  for internal use; application use will 
+                                  for internal use; application use will
                                   normally leave this to its default value of
                                   True.
-        @param noRecursion      if True, dependency products should not be 
+        @param noRecursion      if True, dependency products should not be
                                   setup.  The default is False.
         @param productRoot      the directory where the product is installed
-                                  to assume.  This is useful for products 
+                                  to assume.  This is useful for products
                                   that are not currently declared.
 
         @param tablefile        use this table file to setup the product
@@ -1836,7 +1836,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if p and p.version:
                     versionName = p.version
 
-            if not product.version:  
+            if not product.version:
                 product.version = versionName
             elif versionName and not self.version_match(product.version, versionName):
                 if self.quiet <= 0:
@@ -1881,7 +1881,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                                      recursionDepth=recursionDepth, vro=vro)
 
                         if not product and productName in self.alreadySetupProducts:
-                            # We couldn't find it, but maybe it's already setup 
+                            # We couldn't find it, but maybe it's already setup
                             # locally?   That'd be OK
                             product = self.alreadySetupProducts[productName][0]
                             if not self.keep and product.version != versionName:
@@ -1897,7 +1897,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                 vro = vro[vro.index(vroReason[0]) + 1:]
 
                                 if self.verbose >= 0:
-                                    msg = ("Requested %s version %s; " + 
+                                    msg = ("Requested %s version %s; " +
                                            "version %s found on VRO as \"%s\" is not acceptable") % \
                                           (productName, versionName, product.version, vroReason[0])
                                     if vro:
@@ -1909,7 +1909,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if product:         # got it
                             if product.flavor:
                                 fallbackFlavor = product.flavor
-                                
+
                             if setupFlavor != fallbackFlavor:
                                 setupFlavor = fallbackFlavor
                                 if self.verbose > 2:
@@ -1917,7 +1917,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                           (setupFlavor, productName, versionName), file=utils.stdwarn)
                         else:
                             break       # no product, and we've searched the vro already.  Try next flavour
-                        
+
                     if product:
                         break
 
@@ -1949,7 +1949,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             table = None
             print("Warning: %s" % e, file=utils.stdwarn)
-        
+
         if table:
             try:
                 verbose = self.verbose
@@ -2009,12 +2009,12 @@ The what argument tells us what sort of state is expected (allowed values are de
                         if self.verbose > 1:
                             print("            %s %s is already setup; skipping" % \
                                   (len(indent)*" " + product.name, product.version), file=utils.stdinfo)
-                            
+
                         return True, product.version, None
                 else:
 
                     # the currently setup version is different from what was requested
-                    if recursionDepth > 0 and not (False and self.keep): 
+                    if recursionDepth > 0 and not (False and self.keep):
 
                         # Warn the user that we're switching versions (top level shouldn't whine)
                         msg = "%s %s is currently setup; overriding with %s" % \
@@ -2047,7 +2047,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if stackRoot:
                 extraDir = os.path.join(stackRoot, Eups.ups_db,
                                         utils.extraDirPath(setupFlavor, product.name, product.version))
-                                    
+
                 if os.path.exists(extraDir):
                     self.setEnv(utils.dirExtraEnvNameFor(product.name), extraDir)
             #
@@ -2097,7 +2097,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         # we made a copy of os.environ so the usual magic putenv doesn't happen
         #
         for key, val in os.environ.items():
-            os.putenv(key, val)         
+            os.putenv(key, val)
 
         return True, product.version, None
 
@@ -2112,9 +2112,9 @@ The what argument tells us what sort of state is expected (allowed values are de
         assign the given tag to a product.  The product that it will be
         assigned to will be the first product found in the EUPS_PATH
         with the given name and version.  If the product is not found
-        a ProductNotFound exception is raised.  If the tag is not 
+        a ProductNotFound exception is raised.  If the tag is not
         supported, a TagNotRecognized exception will be raised
-        @param tag           the tag to assign as tag name or Tag instance 
+        @param tag           the tag to assign as tag name or Tag instance
         @param productName   the name of the product to tag
         @param versionName   the version of the product
         """
@@ -2131,7 +2131,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             raise EupsException(
                 "You don't have permission to assign a global tag %s in %s" % (tag, product.db))
 
-        # update the database.  If it's a user tag, 
+        # update the database.  If it's a user tag,
         db = Database(product.db, self._userStackCache(root))
         db.assignTag(tag, productName, versionName, self.flavor)
 
@@ -2149,8 +2149,8 @@ The what argument tells us what sort of state is expected (allowed values are de
 
     def unassignTag(self, tag, productName, versionName=None, eupsPathDir=None, eupsPathDirForRead=None):
         """
-        unassign the given tag on a product.    
-        @param tag           the tag to assign as tag name or Tag instance 
+        unassign the given tag on a product.
+        @param tag           the tag to assign as tag name or Tag instance
         @param productName   the name of the product to tag
         @param versionName   the version of the product.  If None, choose the
                                  version that currently has the tag.
@@ -2184,7 +2184,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         elif not eupsPathDir or isinstance(eupsPathDir, list):
             prod = self.findProduct(productName, tag, eupsPathDir, self.flavor)
             if prod is None:
-                # This tag is not assigned to this product.  Is it 
+                # This tag is not assigned to this product.  Is it
                 # because the product doesn't exist?
                 prod = self.findProduct(productName, versionName)
                 if prod is None:
@@ -2241,25 +2241,25 @@ The what argument tells us what sort of state is expected (allowed values are de
             elif self.verbose:
                 print("Tag %s not assigned to %s %s" % \
                     (productName, versionName), file=utils.stdwarn)
-                
 
-    def declare(self, productName, versionName, productDir=None, eupsPathDir=None, tablefile=None, 
+
+    def declare(self, productName, versionName, productDir=None, eupsPathDir=None, tablefile=None,
                 tag=None, externalFileList=[], declareCurrent=None):
-        """ 
-        Declare a product.  That is, make this product known to EUPS.  
+        """
+        Declare a product.  That is, make this product known to EUPS.
 
         If the product is already declared, this method can be used to
         change the declaration.  The most common type of
-        "redeclaration" is to only assign a tag.  (Note that this can 
+        "redeclaration" is to only assign a tag.  (Note that this can
         be accomplished more efficiently with assignTag() as well.)
         Attempts to change other data for a product requires self.force
-        to be true. 
+        to be true.
 
         If the product has not installation directory or table file,
         these parameters should be set to "none".  If either are None,
-        some attempt is made to surmise what these should be.  If the 
+        some attempt is made to surmise what these should be.  If the
         guessed locations are not found to exist, this method will
-        raise an exception.  
+        raise an exception.
 
         If the tablefile is an open file descriptor, it is assumed that a copy should be made and placed
         somewhere in the ups_db hierarchy in a hidden directory; this directory will be created if it doesn't
@@ -2267,20 +2267,20 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         For backward compatibility, the declareCurrent parameter is
         provided but its use is deprecated.  It is ignored unless the
-        tag argument is None.  A value of True is equivalent to 
+        tag argument is None.  A value of True is equivalent to
         setting tag="current".  If declareCurrent is None and tag is
-        boolean, this method assumes the boolean value is intended for 
-        declareCurrent.  
+        boolean, this method assumes the boolean value is intended for
+        declareCurrent.
 
         @param productName   the name of the product to declare
         @param versionName   the version to declare.
         @param productDir    the directory where the product is installed.
                                If set to "none", there is no installation
                                directory (and tablefile must be specified).
-                               If None, an attempt to determine the 
-                               installation directory (from eupsPathDir) is 
+                               If None, an attempt to determine the
+                               installation directory (from eupsPathDir) is
                                made.
-        @param eupsPathDir   the EUPS product stack to install the product 
+        @param eupsPathDir   the EUPS product stack to install the product
                                into.  If None, then the first writable stack
                                in EUPS_PATH will be installed into.
         @param tablefile     the path to the table file for this product.  If
@@ -2288,16 +2288,16 @@ The what argument tells us what sort of state is expected (allowed values are de
                                it is looked for under productDir/ups.  If set
                                to a file stream, its contents will get written
                                into the product database (into $utils.dirExtraEnvNameFor(productName)/ups)
-        @param tag           the tag to assign to this product.  If the 
+        @param tag           the tag to assign to this product.  If the
                                specified product is already registered with
                                the same product directory and table file,
                                then use of this input will simple assign this
-                               tag to the variable.  (See also above note about 
+                               tag to the variable.  (See also above note about
                                backward compatibility.)
         @param externalFileList List of extra files to write to the external files directory (i.e. -L files);
                                input only -- we make a copy
-        @param declareCurrent  DEPRECATED, if True and tag=None, it is 
-                               equivalent to tag="current".  
+        @param declareCurrent  DEPRECATED, if True and tag=None, it is
+                               equivalent to tag="current".
         """
         if re.search(r"[^a-zA-Z_0-9]", productName):
             raise EupsException("Product names may only include the characters [a-zA-Z_0-9]: saw %s" % productName)
@@ -2330,11 +2330,11 @@ The what argument tells us what sort of state is expected (allowed values are de
             # Look for productDir on self.path
             #
             for eupsProductDir in self.path:
-                for flavor in utils.Flavor().getFallbackFlavors(self.flavor, True): 
-                    _productDir = os.path.join(eupsProductDir, flavor, productName, versionName) 
-                    if os.path.isdir(_productDir): 
-                        productDir = _productDir 
-                        break 
+                for flavor in utils.Flavor().getFallbackFlavors(self.flavor, True):
+                    _productDir = os.path.join(eupsProductDir, flavor, productName, versionName)
+                    if os.path.isdir(_productDir):
+                        productDir = _productDir
+                        break
                 if productDir:
                     break
 
@@ -2373,7 +2373,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if not eupsPathDirForRead:
                 eupsPathDirForRead = eupsPathDir
-                
+
             if not eupsPathDir or not utils.isDbWritable(self.getUpsDB(eupsPathDir)):
                 eupsPathDir = utils.findWritableDb(self.path, self.ups_db)
 
@@ -2386,9 +2386,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                 os.makedirs(ups_db)
             eupsPathDir = self.userDataDir
 
-        if not eupsPathDir: 
+        if not eupsPathDir:
             raise EupsException(
-                "Unable to find writable stack in EUPS_PATH to declare %s %s" % 
+                "Unable to find writable stack in EUPS_PATH to declare %s %s" %
                 (productName, versionName))
 
         if not eupsPathDirForRead:
@@ -2404,7 +2404,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             ups_dir = None
         elif tablefile:
             # is this a filestream?
-            # 
+            #
             # Instead of checking on the type, e.g:
             #   if isinstance(tablefile, file):
             # look for file-like methods; this accepts StringIO objects
@@ -2472,7 +2472,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             full_tablefile = os.path.join(ups_dir, tablefile)
                         except Exception as e:
                             raise EupsException("Unable to generate full tablefilename: %s" % e)
-                    
+
                     if not os.path.isabs(full_tablefile):
                         #
                         # We can't simply check os.path.isfile(full_tablefile) as a file of the name might
@@ -2606,7 +2606,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.noaction:
             verbose = 2
         if dodeclare:
-            # Talk about doing a full declare.  
+            # Talk about doing a full declare.
             if verbose > 1:
                 info = "Declaring"
                 if verbose > 1:
@@ -2620,13 +2620,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                 info += " in %s" % (eupsPathDir)
 
                 print(info, file=utils.stdinfo)
-            if not self.noaction:  
+            if not self.noaction:
                 #
                 # now really declare the product.  This will also update the tags
                 #
                 if tag:
                     tag = [self.tags.getTag(tag)]
-                product = Product(productName, versionName, self.flavor, productDir, 
+                product = Product(productName, versionName, self.flavor, productDir,
                                   tablefile, tag, dbpath, ups_dir=ups_dir)
 
                 # update the database
@@ -2645,7 +2645,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                             print("Note: " + str(e), file=utils.stdwarn)
                             print("Correcting...", file=utils.stdwarn)
                         self.versions[eupsPathDir].refreshFromDatabase()
-                
+
         if tag:
             # we just want to update the tag
             if utils.is_string(tag):
@@ -2677,7 +2677,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         for fileNameIn, pathOut in externalFileList:
             pathOut = os.path.join(externalFileDir, pathOut)
-            
+
             dirName = os.path.split(pathOut)[0]
             if not os.path.exists(dirName):
                 if self.noaction:
@@ -2694,40 +2694,40 @@ The what argument tells us what sort of state is expected (allowed values are de
                     utils.copyfile(fileNameIn, pathOut)
                 if self.verbose > 1:
                     print("Copying %s to %s" % (fileNameIn, pathOut), file=utils.stdinfo)
-        
-    def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None, 
+
+    def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None,
                   undeclareCurrent=None):
         """
         Undeclare a product.  That is, remove knowledge of this
         product from EUPS.  This method can also be used to just
         remove a tag from a product without fully undeclaring it.
 
-        A tag parameter that is not None indicates that only a 
-        tag should be de-assigned.  (Note that this can 
-        be accomplished more efficiently with unassignTag() as 
-        well.)  In this case, if versionName is None, it will 
+        A tag parameter that is not None indicates that only a
+        tag should be de-assigned.  (Note that this can
+        be accomplished more efficiently with unassignTag() as
+        well.)  In this case, if versionName is None, it will
         apply to any version of the product.  If eupsPathDir is None,
-        this method will attempt to undeclare the first matching 
-        product in the default EUPS path.  
+        this method will attempt to undeclare the first matching
+        product in the default EUPS path.
 
         For backward compatibility, the undeclareCurrent parameter is
         provided but its use is deprecated.  It is ignored unless the
-        tag argument is None.  A value of True is equivalent to 
+        tag argument is None.  A value of True is equivalent to
         setting tag="current".  If undeclareCurrent is None and tag is
-        boolean, this method assumes the boolean value is intended for 
-        undeclareCurrent.  
+        boolean, this method assumes the boolean value is intended for
+        undeclareCurrent.
 
         @param productName   the name of the product to undeclare
-        @param versionName   the version to undeclare; this can be None if 
+        @param versionName   the version to undeclare; this can be None if
                                there is only one version declared; otherwise
-                               an EupsException is raised.  
+                               an EupsException is raised.
         @param eupsPathDir   the product stack to undeclare the product from.
-                               ProductNotFound is raised if the product 
-                               is not installed into this stack.  
+                               ProductNotFound is raised if the product
+                               is not installed into this stack.
         @param tag           if not None, only unassign this tag; product
-                                will not be undeclared.  
+                                will not be undeclared.
         @param undeclareCurrent  DEPRECATED; if True, and tag is None, this
-                                is equivalent to tag="current".  
+                                is equivalent to tag="current".
         """
         # this is for backward compatibility
         if isinstance(tag, bool) or (tag is None and undeclareCurrent):
@@ -2740,7 +2740,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # We may have automatically declared this version as tag:XXX when we tagged it
                 versions = [p.version for p in
                             self.findProducts(productName, tags=[tag], eupsPathDirs=eupsPathDir)]
-                
+
                 if len(versions) == 1 and versions[0] == ("tag:%s" % str(tag)):
                     versionName = versions[0]
                     undeclareVersion = True
@@ -2750,7 +2750,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         product = None
         if not versionName:
-            productList = self.findProducts(productName, eupsPathDirs=eupsPathDir) 
+            productList = self.findProducts(productName, eupsPathDirs=eupsPathDir)
             if len(productList) == 0:
                 raise ProductNotFound(productName, stack=eupsPathDir)
 
@@ -2761,14 +2761,14 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             else:
                 versionName = productList[0].version
-            
+
         # this raises ProductNotFound if not found
         product = self.getProduct(productName, versionName, eupsPathDir)
         eupsPathDir = product.stackRoot()
 
         if not utils.isDbWritable(product.db):
             raise EupsException("You do not have permission to undeclare products from %s" % eupsPathDir)
-            
+
         if self.isSetup(product):
             if self.force:
                 print("Product %s %s is currently setup; proceeding" % (productName, versionName), file=utils.stdwarn)
@@ -2787,11 +2787,11 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not self._databaseFor(eupsPathDir).undeclare(product):
             # this should not happen
             raise ProductNotFound(product.name, product.version, product.flavor, product.db)
-            
+
         if eupsPathDir in self.versions and self.versions[eupsPathDir]:
 
             self.versions[eupsPathDir].ensureInSync(verbose=self.verbose)
-            self.versions[eupsPathDir].removeProduct(product.name, 
+            self.versions[eupsPathDir].removeProduct(product.name,
                                                      product.flavor,
                                                      product.version)
 
@@ -2809,20 +2809,20 @@ The what argument tells us what sort of state is expected (allowed values are de
                      eupsPathDirs=None, flavors=None):
         """
         Return a list of Product objects for products we know about
-        with given restrictions.  This will include currently setup 
-        products which may not be currently declared.  
+        with given restrictions.  This will include currently setup
+        products which may not be currently declared.
 
         The returned list will be restricted by the name, version,
         and/or tag assignment using the productName, productVersion,
-        and tags parameters, respectively.  productName and 
-        productVersion can have shell wildcards (like *); in this 
-        case, they will be matched in a shell globbing-like way 
-        (using fnmatch).  
+        and tags parameters, respectively.  productName and
+        productVersion can have shell wildcards (like *); in this
+        case, they will be matched in a shell globbing-like way
+        (using fnmatch).
         @param name          the name or name pattern for the products of
                                interest
         @param version       the version or version pattern for the products
                                of interest
-        @param tags          a list of tag names; if provided, the list of 
+        @param tags          a list of tag names; if provided, the list of
                                returned products will be restricted to those
                                assigned at least one of these tags.  This can
                                be one of the following:
@@ -2832,9 +2832,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                                  o  a single Tags instance
         @param eupsPathDirs  search these products stacks for the products;
                                if None, search EUPS_PATH.
-        @param flavors       restrict products to these flavors; if None, 
+        @param flavors       restrict products to these flavors; if None,
                                the current flavor and all fallback flavors
-                               will be searched.  
+                               will be searched.
         """
         if flavors is None:
             flavors = utils.Flavor().getFallbackFlavors(self.flavor, True)
@@ -2847,7 +2847,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if not isinstance(tags, list):
                 tags = [tags]
 
-            # check for unsupported tags and convert them to their 
+            # check for unsupported tags and convert them to their
             # qualified names (i.e. user tags start with "user:")
             bad = []
             for i in xrange(len(tags)):
@@ -2889,7 +2889,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 setup[prodkey(prod)] = prod
 
         # now look for products in the cache.  By default, we'll search
-        # the stacks in the EUPS_PATH.  
+        # the stacks in the EUPS_PATH.
         if eupsPathDirs is None:
             eupsPathDirs = self.path
         if not isinstance(eupsPathDirs, list):
@@ -2943,7 +2943,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                         # match against the desired tags
                         if tags:
                             if latest and latest.version == ver:
-                                # we'll add this on the end so as not to 
+                                # we'll add this on the end so as not to
                                 # double-list it
                                 continue
 
@@ -2952,11 +2952,11 @@ The what argument tells us what sort of state is expected (allowed values are de
 
                             elif "setup" in tags and self.isSetup(prod.name, prod.version, d):
                                 out.append(prod)
-                                
+
                         else:
                             out.append(prod)
 
-                        # remove this product from the setup list if it is 
+                        # remove this product from the setup list if it is
                         # setup:
                         key = prodkey(prod)
                         if key in setup:  del setup[key]
@@ -2980,10 +2980,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                         del setup[key]
 
         if version:
-            if self.isLegalRelativeVersion(version): 
+            if self.isLegalRelativeVersion(version):
                 out = [p for p in out if self.version_match(p.version, version)]
             else:
-                out = [p for p in out if fnmatch.fnmatch(p.version, version)] 
+                out = [p for p in out if fnmatch.fnmatch(p.version, version)]
 
         if not version or \
            (isinstance(version,str) and version.startswith(Product.LocalVersionPrefix)) or \
@@ -3006,7 +3006,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         productList = utils.uniq(out)
 
-        return productList                
+        return productList
 
     def dependencies_from_table(self, tablefile, eupsPathDirs=None):
         """Return self's dependencies as a list of (Product, optional, recursionDepth) tuples
@@ -3174,7 +3174,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if p in entries:
                     continue
                 entries[p] = 1
-                
+
                 tmp.append([p, optional[p], d])
 
             dependentProducts = [v for v in reversed(tmp)]
@@ -3220,7 +3220,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         for product in productsToRemove:
             dir = product.dir
             if False and not dir:
-                raise ProductNotFound("Product %s with version %s doesn't seem to exist" % 
+                raise ProductNotFound("Product %s with version %s doesn't seem to exist" %
                                       (product.name, product.version))
             #
             # Don't ask about the same product twice
@@ -3309,13 +3309,13 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                  userInfo=userInfo)
 
             productsToRemove += [product]
-                
+
         return productsToRemove
 
     def uses(self, productName=None, versionName=None, depth=9999, usesInfo=None):
         """Return a list of all products which depend on the specified product in the form of a list of tuples
-        (productName, productVersion, (versionNeeded, optional, tags)) 
-        (where tags is a list of tag names).  
+        (productName, productVersion, (versionNeeded, optional, tags))
+        (where tags is a list of tag names).
 
         depth tells you how indirect the setup is (depth==1 => product is setup in table file,
         2 => we set up another product with product in its table file, etc.)
@@ -3369,18 +3369,18 @@ The what argument tells us what sort of state is expected (allowed values are de
         """
         support the list of tags provided by a server.  This function will
         register the tag names as recognized tags provided by a distribution
-        server.  If eupsPathDir is also specified, they will be cached into 
-        the software stack that it points to so that the tags will be 
-        recognized anytime this stack is used in the future.  Not that the 
-        eupsPathDir/ups_db directory must be writable by the user for the tags 
-        to be remembered.  If it is not writable, this function will proceed 
-        quietly as if eupsPathDir were set to None.  
-        @param tags         the list of tags either as a python list or a 
-                              space-delimited string.   
+        server.  If eupsPathDir is also specified, they will be cached into
+        the software stack that it points to so that the tags will be
+        recognized anytime this stack is used in the future.  Not that the
+        eupsPathDir/ups_db directory must be writable by the user for the tags
+        to be remembered.  If it is not writable, this function will proceed
+        quietly as if eupsPathDir were set to None.
+        @param tags         the list of tags either as a python list or a
+                              space-delimited string.
         @param eupsPathDir  The path to the Eups-managed stack that needs
-                              to support these tags.  If null, the tags 
-                              will be remembered only for the current 
-                              Eups instance.  
+                              to support these tags.  If null, the tags
+                              will be remembered only for the current
+                              Eups instance.
         """
         if utils.is_string(tags):
             tags = tags.split()
@@ -3402,7 +3402,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if needPersist:
             stacktags.saveGlobalTags(eupsPathDir)
-    
+
 
     # =-=-=-=-=-=-=-=-=-= DEPRECATED METHODS =-=-=-=-=-=-=-=-=-=-=
 
@@ -3418,11 +3418,11 @@ The what argument tells us what sort of state is expected (allowed values are de
     def findVersion(self, productName, versionName=None, eupsPathDirs=None, allowNewer=False, flavor=None):
         """
         Find a version of a product.  This function is DEPRECATED; use
-        findProduct() instead.  
+        findProduct() instead.
 
         If no version is specified, the most preferred tagged version
         is returned.  The return value is: versionName, eupsPathDir,
-        productDir, tablefile 
+        productDir, tablefile
 
         If allowNewer is true, look for versions that are >= the
         specified version if an exact match fails.
@@ -3432,7 +3432,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         prod = self.findVersion(productName, versionName, eupsPathDirs, flavor)
 
-        msg = "Unable to locate product %s %s for flavor %s." 
+        msg = "Unable to locate product %s %s for flavor %s."
         if not prod and allowNewer:
             # an explicit version given; try to find a newer one
             if self.quiet <= 0:
@@ -3441,7 +3441,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
             if self.tags.isRecognized(versionName):
                 versionName = None
-            prod = self._findLatestVersion(productName, eupsPathDirs, flavor, 
+            prod = self._findLatestVersion(productName, eupsPathDirs, flavor,
                                            versionName)
         if not prod:
             raise RuntimeError(msg % (productName, versionName, flavor))
@@ -3476,7 +3476,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         Find a version given full details of where to look
         DEPRECATED: use findProduct()
         """
-        try: 
+        try:
             out = self.findProduct(productName, versionName, eupsPathDir, flavor)
             if not out:
                 raise ProductNotFound(productName, versionName, flavor, eupsPathDir)
@@ -3509,19 +3509,19 @@ The what argument tells us what sort of state is expected (allowed values are de
                      current=False, setup=False):
         """
         Return a list of Product objects for products we know about
-        with given restrictions. 
+        with given restrictions.
 
-        This method is DEPRECATED; use findProducts() instead. 
+        This method is DEPRECATED; use findProducts() instead.
 
         The returned list will be restricted by the name, version,
         and/or tag assignment using the productName, productVersion,
-        and tags parameters, respectively.  productName and 
-        productVersion can have shell wildcards (like *); in this 
-        case, they will be matched in a shell globbing-like way 
-        (using fnmatch).  
+        and tags parameters, respectively.  productName and
+        productVersion can have shell wildcards (like *); in this
+        case, they will be matched in a shell globbing-like way
+        (using fnmatch).
 
         current and setup are provided for backward compatibility, but
-        are deprecated.  
+        are deprecated.
         """
         utils.deprecated("Eups.listProducts() is deprecated; use Eups.findProducts() instead.", self.quiet)
 
@@ -3581,7 +3581,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if self.userVRO:
             tag = None                  # no need to prepend it to VRO as they set this tag's VRO explicitly
-        elif vroTag in self._vroDict:            
+        elif vroTag in self._vroDict:
             pass
         elif "default" in self._vroDict:
             vroTag = "default"
@@ -3674,7 +3674,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # Look up a product to exercise the type:XXX processing in the VRO
         #
-        self.findProductFromVRO("", optional=False)        
+        self.findProductFromVRO("", optional=False)
 
     # staticmethod;  would use a decorator if we knew we had a new enough python
     def __mergeWarnings(vro):
@@ -3793,7 +3793,7 @@ class _TagSet(object):
 
 def _set(iterable):
     """
-    return the unique members of a given list.  This is used in lieu of 
+    return the unique members of a given list.  This is used in lieu of
     a python set to support python 2.3 and earlier.
     """
     out = []

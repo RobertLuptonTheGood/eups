@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Tests for selected deprecated functions 
+Tests for selected deprecated functions
 """
 
 import os

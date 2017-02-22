@@ -8,23 +8,23 @@ who = getUserName(full=True)
 
 class ChainFile(object):
     """
-    a representation of the data contained in a product tag chain file.  
-    This file records which version of a product a particular tag is 
+    a representation of the data contained in a product tag chain file.
+    This file records which version of a product a particular tag is
     assigned to.
 
     @author: Raymond Plante
     """
 
-    # Per-flavor metadata fields in file, in order of appearance.  
+    # Per-flavor metadata fields in file, in order of appearance.
     # Values are stored in self.info
-    _fields = [      
+    _fields = [
       "DECLARER",
       "DECLARED",
       "MODIFIER",
       "MODIFIED",
     ]
 
-    def __init__(self, file, productName=None, tag=None, verbosity=0, 
+    def __init__(self, file, productName=None, tag=None, verbosity=0,
                  readFile=True):
 
         # the file containing the tag information
@@ -36,7 +36,7 @@ class ChainFile(object):
         # the name of the tag being described
         self.tag = tag
 
-        # tag assignment attributes as a dictionary.  Each key is a flavor 
+        # tag assignment attributes as a dictionary.  Each key is a flavor
         # name and its value is a properties set of named metadata.
         self.info = {}
 
@@ -59,16 +59,16 @@ class ChainFile(object):
 
     def hasFlavor(self, flavor):
         """
-        return true if the product is declared for a given flavor 
+        return true if the product is declared for a given flavor
         """
         return flavor in self.info
 
     def getVersion(self, flavor):
         """
-        return the version that has been assigned this tag or None if the 
+        return the version that has been assigned this tag or None if the
         tag is not assigned to the flavor.
 
-        @param flavor : the name of the flavor to get the tagged versions for. 
+        @param flavor : the name of the flavor to get the tagged versions for.
         @return string : the version tag is assigned to
         """
         try:
@@ -82,7 +82,7 @@ class ChainFile(object):
 
         @param version : the version to assign this tag to
         @param flavors : the flavors to update tags for as a list or a single
-                           string (for a single flavor).  If None, tag all 
+                           string (for a single flavor).  If None, tag all
                            previously tagged flavors will be retagged.
         """
         if flavors is None:
@@ -96,18 +96,18 @@ class ChainFile(object):
                 info["modifier"] = who
                 info["modified"] = ctimeTZ()
             else:
-                info = { "declarer": who, "declared": ctimeTZ() } 
+                info = { "declarer": who, "declared": ctimeTZ() }
 
             info["version"] = version
             self.info[flavor] = info
 
     def removeVersion(self, flavors=None):
         """
-        remove the version tagging for the given flavors.  Return false 
+        remove the version tagging for the given flavors.  Return false
         if the tag was not previously assigned for any of the flavors.
 
-        @param flavors : the flavors to remove the tag for.  If None, the 
-                            tag for all available flavors will be removed.  
+        @param flavors : the flavors to remove the tag for.  If None, the
+                            tag for all available flavors will be removed.
         @return bool : False if tag was not assigned for the given flavors.
         """
         if flavors is None:
@@ -132,11 +132,11 @@ class ChainFile(object):
     def write(self, file=None):
         """
         write the tag assingment data out to a file.  Note that if the tag
-        is not currently assigned to any flavor, the file will be removed 
+        is not currently assigned to any flavor, the file will be removed
         from disk.
 
-        @param file : the file to write the data to.  If None, the 
-                       configured file will be used.  
+        @param file : the file to write the data to.  If None, the
+                       configured file will be used.
         """
 
         if not file:
@@ -147,8 +147,8 @@ class ChainFile(object):
 
         fd = open(file, "w")
 
-        # Should really be "FILE = chain", but eups checks for version.  I've changed it to allow 
-        # chain, but let's not break backward compatibility with old eups versions 
+        # Should really be "FILE = chain", but eups checks for version.  I've changed it to allow
+        # chain, but let's not break backward compatibility with old eups versions
         print("""FILE = version
 PRODUCT = %s
 CHAIN = %s

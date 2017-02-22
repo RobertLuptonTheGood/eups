@@ -1,6 +1,6 @@
 """
-the Uses class -- a class for tracking product dependencies (used by the remove() 
-function).  
+the Uses class -- a class for tracking product dependencies (used by the remove()
+function).
 """
 import re
 from .utils import cmp_or_key, cmp
@@ -16,9 +16,9 @@ class Props(object):
 
 class Uses(object):
     """
-    a class for tracking product dependencies.  Typically an instance of 
-    this class is created via a call to Eups.uses().  This class is used 
-    by Eups.remove() to figure out what to remove.  
+    a class for tracking product dependencies.  Typically an instance of
+    this class is created via a call to Eups.uses().  This class is used
+    by Eups.remove() to figure out what to remove.
     """
 
     def __init__(self):
@@ -76,7 +76,7 @@ class Uses(object):
             versionName = re.escape(versionName)
         else:
             versionName = r"[\w.+\-]+"
-            
+
         versionName = r"(?P<version>%s)" % versionName
 
         pattern = re.compile(r"^%s$" % self._getKey(productName, versionName))
@@ -100,6 +100,6 @@ class Uses(object):
                 return cmp(a[0], b[0])
 
         consumerList.sort(**cmp_or_key(pvsort))
-        
+
         return consumerList
-        
+

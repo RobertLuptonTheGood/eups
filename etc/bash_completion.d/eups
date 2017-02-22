@@ -57,9 +57,9 @@ _eups()
 
     local commands="admin declare distrib expandbuild expandtable flags flavor help list path pkgroot pkg-config remove tags undeclare uses vro"
     local general="--debug -h --help --nolocks -V --version --vro"
-    
+
     local cmd=$(_eups_cmd "$commands $general")
-    
+
     if [[ -z $cmd ]]; then
         COMPREPLY=($(compgen -W "$commands $general" -- "$cur"))
         return 0
@@ -193,7 +193,7 @@ _eups()
         COMPREPLY=($(compgen -W "$products $general $common $options" -- "$cur"))
         return 0
     fi
-    
+
     if [[ $prev == $prod ]]; then
         local versions
         if [[ $cmd == "distrib" ]]; then
@@ -216,7 +216,7 @@ _setup()
     COMPREPLY=()
     local cur=`_get_cword`
     local prev=${COMP_WORDS[COMP_CWORD-1]}
-   
+
     local options="-Z --database --debug -e --exact -f --flavor -E --inexact -F --force -h --help -i --ignore-versions -j --just -k --keep -l --list -m --table -S --max-depth -n --noaction -N --nolocks --noCallbacks -q --quiet -r --root -z --select-db -t --tag -T --type -u --unsetup -v --verbose -V --version --vro"
 
     case "$prev" in

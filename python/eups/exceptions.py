@@ -1,6 +1,6 @@
 """
-exceptions raised by EUPS.  This includes EupsException, the base exception 
-for EUPS related failures.  
+exceptions raised by EUPS.  This includes EupsException, the base exception
+for EUPS related failures.
 """
 class EupsException(Exception):
     """
@@ -10,7 +10,7 @@ class EupsException(Exception):
     def __init__(self, message):
         """
         create the exception
-        @param message  the message describing the failure.  
+        @param message  the message describing the failure.
         """
         self.msg = message
 
@@ -29,17 +29,17 @@ class EupsException(Exception):
 
 class ProductNotFound(EupsException):
     """
-    an exception indicating that the requested product was not found in 
+    an exception indicating that the requested product was not found in
     a stack database.
 
     An instance has the following public attributes:
         name     the product name
-        version  the version.  A None value (default) means no product of 
+        version  the version.  A None value (default) means no product of
                      any version was found.
         flavors  the platform flavors of interest.  A None value (default)
                      means that the flavor is unknown, though typically can
                      be assumed to mean any of the supportable platforms.
-        stack    the path to the EUPS-managed software stack or to the 
+        stack    the path to the EUPS-managed software stack or to the
                      database directory (ups_db).  A None value (default)
                      means that the flavor is unknown, though typically can
                      be assumed to mean any of the stacks in scope.
@@ -49,10 +49,10 @@ class ProductNotFound(EupsException):
         """
         create the exception
         @param name     the product name
-        @param version  the version.  Use None (default) if no product of 
+        @param version  the version.  Use None (default) if no product of
                             any version was found.
         @param flavors   the platform flavors of interest.  default: None
-        @param stack    the path to the EUPS-managed software stack or to the 
+        @param stack    the path to the EUPS-managed software stack or to the
                            database directory (ups_db)
         @param msg      the descriptive message.  A default will be generated
                            from the product name.
@@ -78,10 +78,10 @@ class ProductNotFound(EupsException):
 class UnderSpecifiedProduct(EupsException):
     """
     An exception indicating that not enough information about a product
-    was provided to carry out a requested operation.  
+    was provided to carry out a requested operation.
 
-    This exception includes the following public parameters, any of which 
-    may be None (because they were either not provided by the user or not 
+    This exception includes the following public parameters, any of which
+    may be None (because they were either not provided by the user or not
     relevent):
        name     the product name
        version  the version name
@@ -90,9 +90,9 @@ class UnderSpecifiedProduct(EupsException):
     def __init__(self, productName=None, version=None, flavor=None, msg=None):
         """
         @param productName     the product name
-        @param version  the version.  
-        @param flavor   the platform flavor of interest.  
-        @param msg      the descriptive message.  If None, A default will be 
+        @param version  the version.
+        @param flavor   the platform flavor of interest.
+        @param msg      the descriptive message.  If None, A default will be
                        generated from the product name
         """
         message = msg
@@ -113,7 +113,7 @@ class TableError(EupsException):
     """
     A parent exception for problems accessing a product's table.
 
-    This exception includes the following public parameters, any of which 
+    This exception includes the following public parameters, any of which
     may be None:
        tablefile  the path to the missing tablefile
        name       the product name
@@ -121,17 +121,17 @@ class TableError(EupsException):
        flavor     the platform flavor
     """
 
-    def __init__(self, tablefile=None, productName=None, version=None, 
+    def __init__(self, tablefile=None, productName=None, version=None,
                  flavor=None, problem=None, msg=None):
         """
         @param productName  the product name
-        @param version      the version.  
-        @param flavor       the platform flavor of interest.  
+        @param version      the version.
+        @param flavor       the platform flavor of interest.
         @param problem      a terse description of the problem.  What gets
-                               printed will combine this with the product 
+                               printed will combine this with the product
                                information (unless msg is given).
-        @param msg          the full descriptive message.  If None, A default 
-                               based on problem and citing the product 
+        @param msg          the full descriptive message.  If None, A default
+                               based on problem and citing the product
                                information will be generated.
         """
         if problem is None:
@@ -162,63 +162,63 @@ class TableError(EupsException):
                 out += ": %s" % str(self.tablefile)
         return out
 
-        
+
 class TableFileNotFound(TableError):
     """
     a TableError indicating that a table file could not be found on disk.
 
-    This exception includes the following public parameters, any of which 
+    This exception includes the following public parameters, any of which
     may be None:
        tablefile  the path to the missing tablefile
        name       the product name
        version    the version name
        flavor     the platform flavor
     """
-    
-    def __init__(self, tablefile=None, productName=None, version=None, 
+
+    def __init__(self, tablefile=None, productName=None, version=None,
                  flavor=None, msg=None):
         """
         @param productName  the product name
-        @param version      the version.  
-        @param flavor       the platform flavor of interest.  
-        @param msg          the descriptive message.  If None, A default will 
+        @param version      the version.
+        @param flavor       the platform flavor of interest.
+        @param msg          the descriptive message.  If None, A default will
                                be generated.
         """
-        TableError.__init__(self, tablefile, productName, version, flavor, 
+        TableError.__init__(self, tablefile, productName, version, flavor,
                             "Table file not found", msg)
 
 class BadTableContent(TableError):
     """
     a TableError indicating an error occurred while parsing a table file.
 
-    This exception includes the following public parameters, any of which 
+    This exception includes the following public parameters, any of which
     may be None:
        tablefile  the path to the missing tablefile
        name       the product name
        version    the version name
        flavor     the platform flavor
     """
-    
-    def __init__(self, tablefile=None, productName=None, version=None, 
+
+    def __init__(self, tablefile=None, productName=None, version=None,
                  flavor=None, msg=None):
         """
         @param productName  the product name
-        @param version      the version.  
-        @param flavor       the platform flavor of interest.  
-        @param msg          the descriptive message.  If None, A default will 
+        @param version      the version.
+        @param flavor       the platform flavor of interest.
+        @param msg          the descriptive message.  If None, A default will
                                be generated.
         """
-        TableError.__init__(self, tablefile, productName, version, flavor, 
+        TableError.__init__(self, tablefile, productName, version, flavor,
                             "Table parsing error", msg)
 
 class CustomizationError(EupsException):
     """
     an error occurred while running a user's customization code
     """
-    
+
     def __init__(self, msg=None):
         """
-        @param msg          the descriptive message.  If None, A default will 
+        @param msg          the descriptive message.  If None, A default will
                                be generated.
         """
         if not msg:
@@ -232,12 +232,12 @@ class TagNameConflict(EupsException):
 
     An instance has the following public attributes:
         name     the product name
-        version  the version.  A None value (default) means no product of 
+        version  the version.  A None value (default) means no product of
                      any version was found.
         flavors  the platform flavors of interest.  A None value (default)
                      means that the flavor is unknown, though typically can
                      be assumed to mean any of the supportable platforms.
-        stack    the path to the EUPS-managed software stack or to the 
+        stack    the path to the EUPS-managed software stack or to the
                      database directory (ups_db).  A None value (default)
                      means that the flavor is unknown, though typically can
                      be assumed to mean any of the stacks in scope.
@@ -247,10 +247,10 @@ class TagNameConflict(EupsException):
         """
         create the exception
         @param name     the product name
-        @param version  the version.  Use None (default) if no product of 
+        @param version  the version.  Use None (default) if no product of
                             any version was found.
         @param flavors   the platform flavors of interest.  default: None
-        @param stack    the path to the EUPS-managed software stack or to the 
+        @param stack    the path to the EUPS-managed software stack or to the
                            database directory (ups_db)
         @param msg      the descriptive message.  A default will be generated
                            from the product name.
@@ -286,7 +286,7 @@ class OperationForbidden(EupsException):
     def __init__(self, message):
         """
         create the exception
-        @param message  the message describing the failure.  
+        @param message  the message describing the failure.
         """
         EupsException.__init__(self, message)
 

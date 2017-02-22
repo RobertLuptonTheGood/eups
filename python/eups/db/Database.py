@@ -19,25 +19,25 @@ tagFileRe = re.compile(r'^(\w.*)\.%s$' % tagFileExt)
 try:
     _databases
 except NameError:
-    _databases = {}                     # the actual Database objects, making Database(XXX) a singleton 
+    _databases = {}                     # the actual Database objects, making Database(XXX) a singleton
 
 def Database(dbpath, userTagRoot=None, defStackRoot=None, owner=None):
     """Return the singleton _Database object identified by this function call's arguments
-    
-        @param dbpath        the full path to the directory (usually called 
+
+        @param dbpath        the full path to the directory (usually called
                                 "ups_db") containing a EUPS software database.
-        @param userTagRoot   a full path to a user-writable directory where 
-                                user tag assignment may be recorded.  The 
-                                file/directory structure maintained will be 
-                                the same assumed by dbpath, though only 
-                                chain files will be consulted.  If None, 
+        @param userTagRoot   a full path to a user-writable directory where
+                                user tag assignment may be recorded.  The
+                                file/directory structure maintained will be
+                                the same assumed by dbpath, though only
+                                chain files will be consulted.  If None,
                                 user tags will not be accessible or assignable.
         @param defStackRoot  the default path for product stack root directory.
                                 When product install directories are specified
                                 with relative paths, they will be assumed to be
-                                relative to this root directory.  If None, 
+                                relative to this root directory.  If None,
                                 it defaults to the parent directory of dbpath.
-                                Specify an empty string ("") is the default is 
+                                Specify an empty string ("") is the default is
                                 a bad assumption.
         @param owner         the owner of the userTagRoot
         """
@@ -59,31 +59,31 @@ class _Database(object):
     An interface to the product database recorded on disk.  This interface will
     enforce restrictions on product names, flavors, and versions.
 
-    A database is represented on disk as a collection of files with a known 
-    directory structure.  (The root directory is typically called "ups_db"; 
-    however, but its name does not matter to this implementation.)  The 
+    A database is represented on disk as a collection of files with a known
+    directory structure.  (The root directory is typically called "ups_db";
+    however, but its name does not matter to this implementation.)  The
     root directory contains a subdirectory named after each declared product.
 
     Each product name subdirectory contains one or more "version files", each
-    in turn containing the product data (excluding tag assignments) for a 
+    in turn containing the product data (excluding tag assignments) for a
     particular declared version of the product.  The version file has a name
     composed of the version string appended by the ".version" extension.  The
     format is known to the VersionFile class.  The version file will define
-    one or more flavors of its version of the product.  
+    one or more flavors of its version of the product.
 
-    The product name subdirectory may also contain "chain files"; these 
+    The product name subdirectory may also contain "chain files"; these
     record the assignment of tags to versions of a product.  A chain file
-    has a name composed of a tag name appended by the ".chain" extension.  
+    has a name composed of a tag name appended by the ".chain" extension.
     The format of the chain file is known to the ChainFile class.  Note that
-    tags are assigned to a version on a per-flavor basis; that is, a tag 
+    tags are assigned to a version on a per-flavor basis; that is, a tag
     may be assigned to one flavor of the version but not all.  The chain
     file, thus, indicates which flavors are assigned the tag.
 
     The Database class understands a notion of "user" tags defined from its
-    perspective as tag assignments that are recorded under a separate 
-    directory (provided by the constructor).  Methods that take a tag name as 
+    perspective as tag assignments that are recorded under a separate
+    directory (provided by the constructor).  Methods that take a tag name as
     input will recognize it as a user tag if the name has the "user:" prefix.
-    The structure of the separate user tag directory is the same as the 
+    The structure of the separate user tag directory is the same as the
     main database directory with the assignments recorded as chain files.
     (Any version files there will be ignored.)
 
@@ -111,7 +111,7 @@ class _Database(object):
         if upsdb not in self._userTagDbs:
             self._userTagDbs[upsdb] = {}
             self._userTagDbs[upsdb]["__keys"] = [] # .keys() in the order they were inserted
-            
+
         if userId not in self._userTagDbs[upsdb]:
             self._userTagDbs[upsdb]["__keys"].append(userId) # keep keys in order
         self._userTagDbs[upsdb][userId] = userTagRoot
@@ -161,7 +161,7 @@ class _Database(object):
 
     def findProduct(self, name, version, flavor):
         """
-        find the fully specified declared product given its name, version, 
+        find the fully specified declared product given its name, version,
         and platform flavor, or None if product is not declared.
 
         @param name :     the name of the desired product
@@ -176,18 +176,18 @@ class _Database(object):
         verdata = VersionFile(vfile, name, version)
         product = None
         try:
-            product = verdata.makeProduct(flavor, self.defStackRoot, 
+            product = verdata.makeProduct(flavor, self.defStackRoot,
                                           self.dbpath)
             product.tags = self.findTags(name, version, flavor)
         except ProductNotFound:
             return None
 
         return product
-        
+
     def findTags(self, productName, version, flavor):
         """
-        return a list of tags for a given product.  An empty list is 
-        returned if no tags are assigned.  ProductNotFound is raised if 
+        return a list of tags for a given product.  An empty list is
+        returned if no tags are assigned.  ProductNotFound is raised if
         no version of the product is declared.
         @param productName : the name of the desired product
         @param version :     the desired version of the product
@@ -210,7 +210,7 @@ class _Database(object):
         # look tag assignments via chain files in a given directory
 
         tagFiles = [x for x in os.listdir(dir) if not x.startswith('.')]
-        
+
         tags = []
         for file in tagFiles:
             mat = tagFileRe.match(file)
@@ -237,7 +237,7 @@ class _Database(object):
                     out.append(dir)
                     break
         return out
-        
+
 
     def findVersions(self, productName):
         """
@@ -257,15 +257,15 @@ class _Database(object):
             if mat: versions.append(mat.group(1))
 
         return versions
-        
+
     def findFlavors(self, productName, versions=None):
         """
-        return a list of flavors supported for the given product.  An 
-        empty list is returned if the product is not declared or the 
+        return a list of flavors supported for the given product.  An
+        empty list is returned if the product is not declared or the
         given version is not declared.
 
         @param productName : the name of the product to fine
-        @param versions :    the versions to search for.  If None, all 
+        @param versions :    the versions to search for.  If None, all
                                   versions will be considered.
         @return string[] :
         """
@@ -284,16 +284,16 @@ class _Database(object):
                 if f not in out:  out.append(f)
 
         return out
-            
+
 
     def findProducts(self, name, versions=None, flavors=None):
         """
         return a list of Products matching the given inputs
 
         @param name :     the name of the desired product
-        @param versions : the desired versions.  If versions is None, 
+        @param versions : the desired versions.  If versions is None,
                             return all declared versions of the product.
-        @param flavors :  the desired flavors.  If None, return matching 
+        @param flavors :  the desired flavors.  If None, return matching
                             products of all declared flavors.
         @return Product[] : a list of the matching products
         """
@@ -312,14 +312,14 @@ class _Database(object):
             if not os.path.exists(vfile):
                 continue
             vfile = VersionFile(vfile, name, vers)
-                                
+
             flavs = flavors
             declared = vfile.getFlavors()
             if flavs is None:  flavs = declared
             out[vers] = {}
             for f in flavs:
                 if f in declared:
-                    out[vers][f] = vfile.makeProduct(f, self.defStackRoot, 
+                    out[vers][f] = vfile.makeProduct(f, self.defStackRoot,
                                                      self.dbpath)
 
         if len(out.keys()) == 0:
@@ -329,20 +329,20 @@ class _Database(object):
         if not os.path.exists(pdir):
           raise RuntimeError("programmer error: product directory disappeared")
 
-        # add in the tags 
+        # add in the tags
         for tag, vers, flavor in self.getTagAssignments(name):
-            try: 
+            try:
                 out[vers][flavor].tags.append(tag)
             except KeyError:
                 pass
 
 #  not sure why this doesn't work:
-#        out = reduce(lambda x,y: x.extend(y), 
+#        out = reduce(lambda x,y: x.extend(y),
 #                     map(lambda z:  z.values(), out.values()))
 #        out.sort(_cmp_by_verflav)
 #
 #  replaced with moral equivalent:
-#                          
+#
         v = [list(z.values()) for z in out.values()]
         x = v[0]
         for y in v[1:]:  x.extend(y)
@@ -359,21 +359,21 @@ class _Database(object):
         """
         out = []
         loc = [None, None]
-        if glob:  loc[0] = self._productDir(productName) 
+        if glob:  loc[0] = self._productDir(productName)
         if user and self._getUserTagDb():
             loc[1] = self._productDir(productName, self._getUserTagDb())
 
         tgroup = ""
         for i in xrange(len(loc)):
             if not loc[i]: continue
-            if i > 0:  
+            if i > 0:
                 tgroup = "user:"
                 if not os.path.exists(loc[i]):
                     continue
 
             for file in os.listdir(loc[i]):
                 mat = tagFileRe.match(file)
-                if mat: 
+                if mat:
                     tag = mat.group(1)
                     file = ChainFile(os.path.join(loc[i],file), productName,tag)
                     for flavor in file.getFlavors():
@@ -387,19 +387,19 @@ class _Database(object):
         return true if a product is declared.
 
         @param productName : the name of the product to search for
-        @param version :     a specific version to look for.  If None, 
-                               return true if any version of this product 
-                               is available.  
-        @param flavor :      a specific platform flavor to look for.  If 
-                               None, return true if any flavor is supported 
-                               by the product.  
+        @param version :     a specific version to look for.  If None,
+                               return true if any version of this product
+                               is available.
+        @param flavor :      a specific platform flavor to look for.  If
+                               None, return true if any flavor is supported
+                               by the product.
         """
         pdir = self._productDir(productName)
         if not os.path.exists(pdir):
             return False
 
         if version is None:
-            if flavor is None:  
+            if flavor is None:
                 return True
 
             vfiles = os.listdir(pdir)
@@ -418,12 +418,12 @@ class _Database(object):
                 return True
             file = VersionFile(file)
             return file.hasFlavor(flavor)
-            
+
 
     def declare(self, product):
         """
-        declare the given product.  If a table file is not specified, a 
-        default one will be searched for (in the ups subdirectory of the 
+        declare the given product.  If a table file is not specified, a
+        default one will be searched for (in the ups subdirectory of the
         install directory).
 
         @param product : the Product instance to register
@@ -435,7 +435,7 @@ class _Database(object):
                                product)
         if not product.name or not product.version or not product.flavor:
             raise UnderSpecifiedProduct(
-              msg="Product not fully specified: %s %s %s" 
+              msg="Product not fully specified: %s %s %s"
                    % (str(product.name), str(product.version),
                       str(product.flavor))
             )
@@ -446,7 +446,7 @@ class _Database(object):
         if not tablefile:
             tablefile = prod.tableFileName()
             if not tablefile or not os.path.exists(tablefile):
-                raise TableFileNotFound(prod.name, prod.version, prod.flavor, 
+                raise TableFileNotFound(prod.name, prod.version, prod.flavor,
                                         msg="Unable to located a table file in default location: " + tablefile)
 
         # set the basic product information
@@ -463,7 +463,7 @@ class _Database(object):
             trimDir = prod.stackRoot()
             if trimDir and not os.path.exists(trimDir):
                 trimDir = None
-                
+
         versionFile.write(trimDir)
 
         # now assign any tags
@@ -472,8 +472,8 @@ class _Database(object):
 
     def undeclare(self, product):
         """
-        undeclare the given Product.  Only the name, version, and flavor 
-        will be paid attention to.  False is returned if the product was 
+        undeclare the given Product.  Only the name, version, and flavor
+        will be paid attention to.  False is returned if the product was
         not found in the database.
 
         @param product : the Product instance to undeclare.
@@ -486,7 +486,7 @@ class _Database(object):
                                product)
         if not product.name or not product.version or not product.flavor:
             raise UnderSpecifiedProduct(
-                msg="Product not fully specified: %s %s %s" 
+                msg="Product not fully specified: %s %s %s"
                     % (str(product.name), str(product.version),
                        str(product.flavor))
             )
@@ -506,7 +506,7 @@ class _Database(object):
         changed = versionFile.removeFlavor(product.flavor)
         if changed:  versionFile.write()
 
-        # do a little clean up: if we got rid of the version file, try 
+        # do a little clean up: if we got rid of the version file, try
         # deleting the directory
         if not os.path.exists(vfile):
             try:
@@ -546,7 +546,7 @@ class _Database(object):
                 return ChainFile(tfile)
 
         return None
-        
+
     def getTaggedVersion(self, tag, productName, flavor, searchUserDB=True):
         """
         return the (name, version name) of the product that has the given tag assigned
@@ -568,13 +568,13 @@ class _Database(object):
         """
         assign a tag to a given product.
 
-        @param tag :         the name of the tag to assign.  If the name is 
+        @param tag :         the name of the tag to assign.  If the name is
                                prepended with the "user:" label, the assignment
                                will be recorded in the user tag area.
         @param productName : the name of the product getting the tag
-        @param version :     the version to tag 
-        @param flavors :     the flavors of the product to be tagged.  
-                                If None, tag all available flavors.  
+        @param version :     the version to tag
+        @param flavors :     the flavors of the product to be tagged.
+                                If None, tag all available flavors.
         """
 
         if is_string(tag):
@@ -600,7 +600,7 @@ class _Database(object):
             if flavor in declaredFlavors and flavor not in flavors:
                 flavors.append(flavor)
         if len(flavors) == 0:
-            raise ProductNotFound(productName, version, 
+            raise ProductNotFound(productName, version,
                                msg="Requested flavors not declared for %s %s"
                                    % (productName, version))
 
@@ -613,26 +613,26 @@ class _Database(object):
                 os.makedirs(pdir)
         else:
             pdir = self._productDir(productName)
-        
+
         tfile = self._tagFileInDir(pdir, tag.name)
         tagFile = ChainFile(tfile, productName, tag.name)
 
         tagFile.setVersion(version, flavors)
         tagFile.write()
-            
+
 
     def unassignTag(self, tag, productNames, flavors=None):
         """
         unassign a tag from a product
 
         @param tag :          the tag to unassign
-        @param productNames : the names of the products to deassign the 
-                                 tag for.  This can be given as a single 
+        @param productNames : the names of the products to deassign the
+                                 tag for.  This can be given as a single
                                  string (for a single product) or as a list
-                                 of product names.  If None, the tag will 
-                                 be deassigned from all products.  
-        @param flavors :      the flavors of the product to deassign tag for.  
-                                 If None, deassign the tag for all available 
+                                 of product names.  If None, the tag will
+                                 be deassigned from all products.
+        @param flavors :      the flavors of the product to deassign tag for.
+                                 If None, deassign the tag for all available
                                  flavors.
         @return bool : False if tag was not assigned to any of the products.
         """
@@ -680,7 +680,7 @@ class _Database(object):
         NOTE: file timestamps only have a resolution of 1 second!
         @param timestamp    the epoch time, as given by os.stat()
         @param dbrootdir    directory where to look for file times.  If None,
-                               defaults to database root.  
+                               defaults to database root.
         """
         # HACK: If the user is _certain_ that the caches are up-to-date,
         #       allow them to say so. This is a hack to speed up builds
@@ -708,16 +708,16 @@ class _Database(object):
                     return True
 
         return False
-        
+
 def _cmp_by_verflav(a, b):
     c = _cmp_str(a.version,b.version)
     if c == 0:
         return _cmp_str(a.flavor, b.version)
     return c
-    
+
 def _cmp_str(a, b):
     if a < b:  return -1
     if a > b:  return 1
     return 0
 
-    
+

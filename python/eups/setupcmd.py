@@ -1,5 +1,5 @@
 """
-functions for processing the eups setup requests.  
+functions for processing the eups setup requests.
 
 To run setup from Python, try:
 
@@ -27,7 +27,7 @@ def append_current(option, opt_str, value, parser):
     """Add "current" to values.tag;  would use append_const but that's not in python 2.4"""
     if not parser.values.postTag:
         parser.values.postTag = []
-        
+
     parser.values.postTag.append("current")
 
 class EupsSetup(object):
@@ -38,12 +38,12 @@ class EupsSetup(object):
 
     usage = "%prog [-h|--help|-V|--version] [options] [product [version]]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""(Un)Setup an EUPS-managed product.  This will "load" (or "unload") the 
+"""(Un)Setup an EUPS-managed product.  This will "load" (or "unload") the
 product and all its dependencies into the environment so that it can be used.
 """
 
@@ -58,8 +58,8 @@ product and all its dependencies into the environment so that it can be used.
             args = sys.argv[1:]
         self.clargs = args[:]
 
-        self.clo = EupsOptionParser(utils.stderr, self.usage, 
-                                    self.description, 
+        self.clo = EupsOptionParser(utils.stderr, self.usage,
+                                    self.description,
                                     not self.noDescriptionFormatting,
                                     self.prog)
         self.clo.enable_interspersed_args()
@@ -182,7 +182,7 @@ product and all its dependencies into the environment so that it can be used.
                     self.err("%s does not exist" % self.opts.tablefile)
                     print(self.clo.get_usage(), file=utils.stderr)
                     return 3
-                    
+
                 self.opts.tablefile = os.path.abspath(self.opts.tablefile)
 
                 if not productName:
@@ -229,11 +229,11 @@ product and all its dependencies into the environment so that it can be used.
         status = 0
         try:
             try:
-                Eups = eups.Eups(flavor=self.opts.flavor, path=self.opts.path, 
-                                 dbz=self.opts.dbz, # root=self.opts.productDir, 
+                Eups = eups.Eups(flavor=self.opts.flavor, path=self.opts.path,
+                                 dbz=self.opts.dbz, # root=self.opts.productDir,
                                  readCache=False, force=self.opts.force,
-                                 quiet=self.opts.quiet, verbose=self.opts.verbose, 
-                                 noaction=self.opts.noaction, keep=self.opts.keep, 
+                                 quiet=self.opts.quiet, verbose=self.opts.verbose,
+                                 noaction=self.opts.noaction, keep=self.opts.keep,
                                  ignore_versions=self.opts.ignoreVer, setupType=self.opts.setupType,
                                  max_depth=self.opts.max_depth, vro=self.opts.vro,
                                  exact_version=self.opts.exact_version, cmdName="setup")
@@ -297,9 +297,9 @@ product and all its dependencies into the environment so that it can be used.
 
     def err(self, msg, volume=0):
         """
-        print an error message to standard error.  The message will only 
+        print an error message to standard error.  The message will only
         be printed if "-q" was not set and volume <= the number of "-v"
-        arguments provided. 
+        arguments provided.
         """
         if not self.opts.quiet and self.opts.verbose >= volume:
             print("%s: %s" % (self.prog, msg), file=utils.stdwarn)

@@ -61,7 +61,7 @@ install : show
 	@if [ "$(EUPS_PATH)" = "" ]; then \
 		echo You have not specified EUPS_PATH >&2; \
 		exit 1; \
-	fi 
+	fi
 	@ for d in "$(shell perl -e 'foreach $$d (split(":","$(EUPS_PATH)")) { print "$$d\n"}')"; do \
 		if [ ! -d "$$d" ]; then \
 			mkdir -p "$$d"; \
@@ -125,7 +125,7 @@ configure : configure.ac
 # Run tests
 #
 tests : test
-test : 
+test :
 	@ echo "Running tests"
 	python tests/testAll.py
 	@ echo "Running server tests (requires network)"

@@ -27,14 +27,14 @@ def getLockPath(dirName, create=False):
 
         if base is None: # no locking
             return None
-        
+
         if not os.path.isabs(base):
             raise RuntimeError("hooks.config.site.lockDirectoryBase must be an absolute path, not \"%s\"" %
                                hooks.config.site.lockDirectoryBase)
 
         if os.path.isabs(dirName):
             dirName = dirName[1:]
-            
+
         dirName = os.path.join(base, dirName)
 
         if create:
@@ -42,7 +42,7 @@ def getLockPath(dirName, create=False):
                 os.makedirs(dirName)
 
         return dirName
-    
+
 def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
     locks = []
 
@@ -89,7 +89,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
                                     utils.stdinfo.flush()
                                 makeLock = False
                                 break
-                                
+
                             msg += ": %s" % (reason)
                             if i == ntry:
                                 raise RuntimeError(msg)
@@ -133,7 +133,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
 
             if not makeLock:
                 continue
-            
+
             if "EUPS_LOCK_PID" not in os.environ: # remember the PID of the process taking the lock
                 os.environ["EUPS_LOCK_PID"] = "%d" % os.getpid()
                 os.putenv("EUPS_LOCK_PID", os.environ["EUPS_LOCK_PID"])
@@ -196,7 +196,7 @@ def giveLocks(locks, verbose=0):
 
 def clearLocks(path, verbose=0, noaction=False):
     """Remove all locks found in the directories listed in path"""
-    
+
     for d in path:
         lockDir = getLockPath(d)
         if not lockDir:
@@ -215,7 +215,7 @@ def clearLocks(path, verbose=0, noaction=False):
             try:
                 shutil.rmtree(lockDir)
             except OSError as e:
-                print("Unable to remove %s: %s" % (lockDir, e), file=utils.stderr)                    
+                print("Unable to remove %s: %s" % (lockDir, e), file=utils.stderr)
 
 def listLocks(path, verbose=0, noaction=False):
     """List all locks found in the directories listed in path"""

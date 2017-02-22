@@ -6,7 +6,7 @@ N.b. can't go in utils.py as utils is imported be eups, and we need to import eu
 from __future__ import print_function
 import re
 import sys
-import eups.Eups    
+import eups.Eups
 
 def parseDebugOption(debugOpts):
     """Parse the options passed on the command line as --debug=..."""

@@ -54,7 +54,7 @@
 (define-derived-mode eups-mode c-mode "Eups"
   "Major mode for editing eups code.
 
-Turning on eups mode calls the value of the variable eups-mode-hook 
+Turning on eups mode calls the value of the variable eups-mode-hook
 with no args, if it is non-nil.
 \\{eups-mode-map}"
   ;;(interactive "p")

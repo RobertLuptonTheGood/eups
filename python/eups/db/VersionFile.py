@@ -11,12 +11,12 @@ defaultProductUpsDir = "ups"
 
 class VersionFile(object):
     """
-    A representation of the declaration information stored in a version 
+    A representation of the declaration information stored in a version
     file for a particular product declared in an EUPS database.
 
-    A version file contains the product data for all declared flavors of a 
+    A version file contains the product data for all declared flavors of a
     product.  That is, a version file is characterized by it product name
-    and version name.   For each declared flavor, the following data are 
+    and version name.   For each declared flavor, the following data are
     stored:
       ups_dir:  the default directory containing the table file.
       table_file:  the full path to the table file
@@ -26,16 +26,16 @@ class VersionFile(object):
       modifier:  the name of the user that later modified the declaration.
       modified:  a date of when the declaration was modified.
 
-    Typically this information is initialized from a file; however, the 
+    Typically this information is initialized from a file; however, the
     methods for adding and removing data for flavors can be used to create
-    a new declared version of a product.  After all changes are made, the 
+    a new declared version of a product.  After all changes are made, the
     write() method must be called to persist the information back to disk.
 
-    This class understands a few rules for handling paths stored in 
+    This class understands a few rules for handling paths stored in
     productDir, table_file, and ups_dir:
       *  A value of "none" indicates that the path explicitly does not have
            a logical value.  For example, for table_file, the product does not
-           have a table file to set up the product.  For productDir, the 
+           have a table file to set up the product.  For productDir, the
            product is not formally installed anywhere.
       *  A value of None indicates that the path can be reset to a normalized
            default when written out.
@@ -43,43 +43,43 @@ class VersionFile(object):
            when written out).
       *  If productDir is relative, it is assumed to be relative to the base
            directory of the software stack (not known to this class).
-      *  If the ups_dir is relative, it is assumed to be relative to the 
+      *  If the ups_dir is relative, it is assumed to be relative to the
            product installation directory, productDir.
       *  If the table file is relative, it is assumed to be relative to the
-           ups_dir directory.  If the ups_dir is "none" or None, then the 
+           ups_dir directory.  If the ups_dir is "none" or None, then the
            table file is relative to productDir.
       *  The path may include symbolic path "macro"--a path
            with a context-specific value.  These macros have the form $name,
            and most have restrictions on where in the value it can appear
            (i.e. all but $FLAVOR may only appear at the start of the path).
-           Some restrictions also apply as to within which path a macro may 
+           Some restrictions also apply as to within which path a macro may
            appear.
            The supported macros are:
-              $PROD_ROOT -- the absolute path to the default root directory 
-                            where products are installed by default--i.e. 
-                            the value of the EUPS path directory where it 
-                            is registered.  This can only appear at the 
+              $PROD_ROOT -- the absolute path to the default root directory
+                            where products are installed by default--i.e.
+                            the value of the EUPS path directory where it
+                            is registered.  This can only appear at the
                             start of the path.
               $FLAVOR    -- the value of the product's flavor.
-              $PROD_DIR  -- the fully resolved value of productDir; this 
+              $PROD_DIR  -- the fully resolved value of productDir; this
                             macro cannot appear in the productDir value.
                             This can only appear at the start of the path.
               $UPS_DIR   -- the fully resolved value of ups_dir.
                             This can only appear at the start of the path.
-              $UPS_DB    -- the path to the EUPS database directory path 
+              $UPS_DB    -- the path to the EUPS database directory path
                             (which typically ends with the name "ups_db").
                             This can only appear at the start of the path.
 
-    These rules are generally applied in makeProduct() (via 
+    These rules are generally applied in makeProduct() (via
     Product.resolvePaths()) which turns the parsed data from a version file
     into a specific product description.
 
     @author  Raymond Plante
     """
 
-    # Per-flavor metadata fields in file, in order of appearance.  
+    # Per-flavor metadata fields in file, in order of appearance.
     # Values are stored in self.info
-    _fields = [      
+    _fields = [
       "DECLARER",
       "DECLARED",
       "MODIFIER",
@@ -89,20 +89,20 @@ class VersionFile(object):
       "TABLE_FILE"
     ]
 
-    def __init__(self, file, productName=None, version=None, verbosity=0, 
+    def __init__(self, file, productName=None, version=None, verbosity=0,
                  readFile=True):
         """
         create the version file data container.  If this file exists
         (and readFile is true), the data will be filled from its contents.
-        @param file          the path to the file on disk.  
-        @param productName   the name of the product.  If None, this will 
+        @param file          the path to the file on disk.
+        @param productName   the name of the product.  If None, this will
                                 be set when the file is read.
-        @param version       the version name.  If None, this will 
+        @param version       the version name.  If None, this will
                                 be set when the file is read.
         @param verbosity     the level of messages to spew on parsing.  If
-                                < 0, parsing with be quiet; if > 0 extra 
+                                < 0, parsing with be quiet; if > 0 extra
                                 messages (may) be printed
-        @param readFile      if True, the file (if it exists) will be read 
+        @param readFile      if True, the file (if it exists) will be read
                                 in and its contents loaded into this instance.
         """
 
@@ -110,15 +110,15 @@ class VersionFile(object):
         # may not exist yet.
         self.file = file
 
-        # the name of the registered product.  If None, the name is not known 
+        # the name of the registered product.  If None, the name is not known
         # yet.
         self.name = productName
 
         # the product version.  If None, the name is not known yet.
         self.version = version
 
-        # the attributes for this product for each flavor of this 
-        # product-version.  Each key is a flavor and its value is 
+        # the attributes for this product for each flavor of this
+        # product-version.  Each key is a flavor and its value is
         # dictionary of named properties.  Property names include:
         #   ups_dir:  the default directory containing the table file.
         #   table_file:  the full path to the table file
@@ -148,20 +148,20 @@ class VersionFile(object):
 
     def makeProduct(self, flavor, eupsPathDir=None, dbpath=None):
         """
-        create a Product instance for the given flavor.  If the product has 
-        not been declared for the flavor, a  ProductNotFound exception is 
+        create a Product instance for the given flavor.  If the product has
+        not been declared for the flavor, a  ProductNotFound exception is
         raised.
 
-        @param flavor      : the desired flavor for the Product.  
-        @param eupsPathDir : the product stack path to assume that product is 
+        @param flavor      : the desired flavor for the Product.
+        @param eupsPathDir : the product stack path to assume that product is
                              installed under.  If the product install directory
-                             is a relative path (product.dir), this eupsPathDir 
-                             will be prepended in the output.  If None, no 
-                             alterations of the product install directory will 
+                             is a relative path (product.dir), this eupsPathDir
+                             will be prepended in the output.  If None, no
+                             alterations of the product install directory will
                              be done.
-        @param dbpath      : the product database directory to store into 
-                             the output product.db attribute.  If None, it will 
-                             default to eupsPathDir/ups_db; if eupsPathDir is 
+        @param dbpath      : the product database directory to store into
+                             the output product.db attribute.  If None, it will
+                             default to eupsPathDir/ups_db; if eupsPathDir is
                              None, the product.db field will not be set.
         @return Product : a Product instance representing the product data
         """
@@ -172,8 +172,8 @@ class VersionFile(object):
             dbpath = os.path.join(eupsPathDir, "ups_db")
 
         info = self.info[flavor]
-        out = Product(self.name, self.version, flavor, 
-                      info.get("productDir"), info.get("table_file"), 
+        out = Product(self.name, self.version, flavor,
+                      info.get("productDir"), info.get("table_file"),
                       db=dbpath, ups_dir=info.get("ups_dir"))
         out.resolvePaths()
 
@@ -200,7 +200,7 @@ class VersionFile(object):
         @return Product[] :
         """
         return [self.makeProduct(x) for x in self.info.keys()]
-          
+
 
     def getFlavors(self):
         """
@@ -211,27 +211,27 @@ class VersionFile(object):
 
     def hasFlavor(self, flavor):
         """
-        return true if the product is declared for a given flavor 
+        return true if the product is declared for a given flavor
         """
         return flavor in self.info
 
-    def addFlavor(self, flavor, installdir = None, tablefile = None, 
+    def addFlavor(self, flavor, installdir = None, tablefile = None,
                   upsdir = None):
         """
         add a flavored version to this file.  If an entry for this flavor
         already exists, it will be modified.
 
         @param flavor :     the name of the platform flavor to be adding.
-        @param installdir : the installation directory for the new version 
-                              being added.  If None, this package as no 
+        @param installdir : the installation directory for the new version
+                              being added.  If None, this package as no
                               install directory.
-        @param tablefile :  the path to the table file for this version.  If 
-                              this is relative, then it is assumed to be 
+        @param tablefile :  the path to the table file for this version.  If
+                              this is relative, then it is assumed to be
                               relative to the upsdir; if upsdir is None,
                               it is assumed to be relative to installdir
                               If None, the product has no tablefile.
-        @param upsdir :     the path to the ups directory for this product.  
-                              If None, a value of  "ups" will be assumed.  
+        @param upsdir :     the path to the ups directory for this product.
+                              If None, a value of  "ups" will be assumed.
         """
         if flavor in self.info:
             # if this flavor already exists, use it to set defaults.
@@ -242,7 +242,7 @@ class VersionFile(object):
                 upsdir = info["ups_dir"]
             if not tablefile and "table_file" in info:
                 tablefile = info["table_file"]
-          
+
         info = {}
         if installdir:
             installdir = installdir.rstrip('/')
@@ -265,7 +265,7 @@ class VersionFile(object):
                     else:
                         upsdir = "none"
 
-            info["table_file"] = tablefile 
+            info["table_file"] = tablefile
 
         if upsdir:
             # regularize upsdir: strip off leading installdir
@@ -297,10 +297,10 @@ class VersionFile(object):
 
     def removeFlavor(self, flavors):
         """
-        remove versions for the given flavors.  
+        remove versions for the given flavors.
 
-        @param flavors : a list of flavors to remove version information 
-                            for.  If None, all available flavors will be 
+        @param flavors : a list of flavors to remove version information
+                            for.  If None, all available flavors will be
                             removed.
         @return bool : False if product is not declared for the given flavors
         """
@@ -329,7 +329,7 @@ class VersionFile(object):
         """
         load data from a file
 
-        @param file : the file to read the data from.   
+        @param file : the file to read the data from.
         """
         if not file:
             file = self.file
@@ -430,7 +430,7 @@ class VersionFile(object):
                     self.info[flavor][key] = value
 
         fd.close()
-        
+
 
     def write(self, trimDir=None, file=None):
         """
@@ -472,7 +472,7 @@ Group:
    FLAVOR = %s
    QUALIFIERS = "%s"\
 """ % (flavor, qualifier), file=fd)
-        
+
             #
             # Strip trimDir from directory names
             #
@@ -509,7 +509,7 @@ Group:
 
                 if k in info:
                     value = info[k]
-                            
+
                     if not value:
                         if k == "productDir":
                             value = "none"

@@ -26,7 +26,7 @@ Usage:
 Supported commands are:
 	declare		Declare a product
 	distrib		Install a product from a remote distribution,
-			or create such a distribution 
+			or create such a distribution
 	expandbuild	Expand variables in a build file
 	expandtable	Insert explicit version tags into a table file
 	flags		Show the value of \$EUPS_FLAGS
@@ -71,7 +71,7 @@ With n, print the n'th component
 EOF
         exit 0;;
      -*)
-        echo "Unsupported argument[s] to eups $cmd: $args" >&2; exit 1;;  
+        echo "Unsupported argument[s] to eups $cmd: $args" >&2; exit 1;;
     esac
 
     echo $EUPS_PATH | \

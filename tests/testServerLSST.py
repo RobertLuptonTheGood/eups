@@ -16,7 +16,7 @@ pkgroot = "http://dev.lsstcorp.org/dmspkgs"
 bootroot = "http://dev.lsstcorp.org/dmspkgs/bootstrap"
 prog = "eups"
 
-from eups.distrib.server import DistribServer 
+from eups.distrib.server import DistribServer
 
 class LsstConfigFileTestCase(unittest.TestCase):
 
@@ -35,7 +35,7 @@ class LsstConfigFileTestCase(unittest.TestCase):
         configFile = ds.getConfigFile(self.configFile)
         self.assert_(os.path.exists(configFile))
 
-        
+
 
 from eups.distrib.server import ServerConf
 
@@ -72,7 +72,7 @@ class LsstDistribServerTestCase(unittest.TestCase):
         pass
 
     def testInit(self):
-        self.assert_(isinstance(self.ds, ConfigurableDistribServer), 
+        self.assert_(isinstance(self.ds, ConfigurableDistribServer),
                      "factory did not return ConfigurableDistribServer")
         self.assertEquals(self.ds.getConfigProperty("PREFER_GENERIC",""), '')
 
@@ -128,7 +128,7 @@ class LsstRepositoryTestCase(unittest.TestCase):
             os.environ["EUPS_DIR"] = os.path.dirname(testEupsStack)
         self.pkgroot = pkgroot
         self.eups = Eups()
-        self.opts = { "serverconf": 
+        self.opts = { "serverconf":
                       { "DISTRIB_SERVER_CLASS": "eups.distrib.server.ConfigurableDistribServer",
                         "DISTRIB_CLASS": "eups.distrib.Distrib.DefaultDistrib" }
                       }
@@ -201,7 +201,7 @@ class LsstRepositoriesTestCase(unittest.TestCase):
         self.localroot = os.path.join(testEupsStack, "testserver", "s2")
         self.lsstroot = pkgroot
         self.eups = Eups()
-        self.opts = { "serverconf": 
+        self.opts = { "serverconf":
                       { "DISTRIB_SERVER_CLASS": "eups.distrib.server.ConfigurableDistribServer",
                         "DISTRIB_CLASS": "eups.distrib.Distrib.DefaultDistrib" }
                       }
@@ -302,9 +302,9 @@ class LsstCmdTestCase(unittest.TestCase):
         self.flavor = eups.flavor()
 
     def tearDown(self):
-        lssteups = [ os.path.join(testEupsStack,"ups_db","lssteups"), 
+        lssteups = [ os.path.join(testEupsStack,"ups_db","lssteups"),
                      os.path.join(testEupsStack,"EupsBuildDir",
-                                  self.flavor,"lssteups-1.1"), 
+                                  self.flavor,"lssteups-1.1"),
                      os.path.join(testEupsStack,self.flavor,"lssteups") ]
         for pdir in lssteups:
             if os.path.exists(pdir):
@@ -337,7 +337,7 @@ class LsstCmdTestCase(unittest.TestCase):
 
         prod = Eups().findProduct("lssteups")
         self.assert_(prod is None)
-        
+
         cmd = "distrib install lssteups 1.1 --noclean -q -r " + self.lsstroot
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
@@ -360,9 +360,9 @@ class LsstCmdTestCase(unittest.TestCase):
         prod = Eups().findProduct("lssteups")
         self.assert_(prod is None)
         self.assert_(not os.path.exists(pdir))
-        
 
-__all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase LsstRepositoryTestCase LsstRepositoriesTestCase".split()        
+
+__all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase LsstRepositoryTestCase LsstRepositoriesTestCase".split()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

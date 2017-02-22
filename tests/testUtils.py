@@ -30,7 +30,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(err.getvalue(), msg)
 
 
-__all__ = "UtilsTestCase".split()        
+__all__ = "UtilsTestCase".split()
 
 if __name__ == "__main__":
     unittest.main()

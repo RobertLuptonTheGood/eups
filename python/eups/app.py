@@ -20,8 +20,8 @@ from . import utils, table, hooks
 from .exceptions import EupsException
 from .utils import cmp_or_key, cmp
 
-def printProducts(ostrm, productName=None, versionName=None, eupsenv=None, 
-                  tags=None, setup=False, tablefile=False, directory=False, 
+def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
+                  tags=None, setup=False, tablefile=False, directory=False,
                   dependencies=False, showVersion=False, showName=False,
                   depth=None, productDir=None, topological=False, checkCycles=False, raw=False):
     """
@@ -29,8 +29,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     @param ostrm           the output stream to send listing to
     @param productName     restrict the listing to this product
     @param versionName     restrict the listing to this version of the product.
-    @param eupsenv         the Eups instance to use; if None, a default 
-                              will be created.  
+    @param eupsenv         the Eups instance to use; if None, a default
+                              will be created.
     @param tags            restrict the listing to products with these tag names
     @param setup           restrict the listing to products that are currently
                               setup (or print actually setup versions with dependencies)
@@ -44,9 +44,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              be included.  This string can be a simple integer
                              which will be taken to mean, print all depths
                              <= that integer.  An expression having just a
-                             a logical operator and an integer (e.g. 
+                             a logical operator and an integer (e.g.
                              "> 3") implies a comparison with the depth
-                             of each dependency (i.e. "depth > 3").  
+                             of each dependency (i.e. "depth > 3").
     @param topological     List dependencies in topological-sorted order
     @param checkCycles     Raise RuntimeError if topological sort detects a cycle
     @param raw             Generate "raw" output (suitable for further processing)
@@ -78,7 +78,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     raise EupsException("Guessed product %s from ups directory, but %s from path" % \
                                         (productName, p))
             else:
-                productName = p  
+                productName = p
 
         eupsenv.setup(productName, versionName, productRoot=os.path.abspath(productDir))
         setup = True                    # only list this version
@@ -110,29 +110,29 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     else:
         if topological:
             raise EupsException("--topological only makes sense with --dependencies")
-        
-    oinfo = None                 # previous value of "info"; used to suppress repetitions due to e.g. 
-                                 # listing directories when there's a NULL and Linux declaration 
 
-    if depth is None: 
-        depth = "True" 
-    else: 
-        try: 
-            depth = "<= %d" % int(depth) 
-        except ValueError: 
-            pass 
- 
-        if not re.search(r"depth", depth): 
-            depth = "depth" + depth 
-         
-    def includeProduct(recursionDepth): 
-        """Should we include a product at this recursionDepth in the listing?""" 
+    oinfo = None                 # previous value of "info"; used to suppress repetitions due to e.g.
+                                 # listing directories when there's a NULL and Linux declaration
+
+    if depth is None:
+        depth = "True"
+    else:
+        try:
+            depth = "<= %d" % int(depth)
+        except ValueError:
+            pass
+
+        if not re.search(r"depth", depth):
+            depth = "depth" + depth
+
+    def includeProduct(recursionDepth):
+        """Should we include a product at this recursionDepth in the listing?"""
         depthExpr = VersionParser(depth)
-        depthExpr.define("depth", recursionDepth) 
-        return depthExpr.eval() 
+        depthExpr.define("depth", recursionDepth)
+        return depthExpr.eval()
 
     if dependencies:
-        recursionDepth = 0 
+        recursionDepth = 0
 
         product = productList[0]
 
@@ -152,10 +152,10 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             if eupsenv.verbose or not product.name in _msgs:
                 _msgs[product.name] = product.version
 
-                if not re.search(r"==", depth): 
-                    indent = "| "*(recursionDepth//2) 
-                    if recursionDepth%2 == 1: 
-                        indent += "|" 
+                if not re.search(r"==", depth):
+                    indent = "| "*(recursionDepth//2)
+                    if recursionDepth%2 == 1:
+                        indent += "|"
 
                 if raw:
                     print("%s|%s" % (product.name, product.version))
@@ -189,9 +189,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 continue
         else:
             if not pi._prodStack:       # only found in the environment
-                if False:           
+                if False:
                     continue            # Exclude environment-only products
-        
+
         if directory or tablefile:
             if eupsenv.verbose:
                 if raw:
@@ -279,24 +279,24 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     info += "\t" + " ".join(extra)
 
         if info:
-            if info != oinfo: 
-                print(info) 
+            if info != oinfo:
+                print(info)
                 oinfo = info
 
     return nprod
 
-def printUses(outstrm, productName, versionName=None, eupsenv=None, 
+def printUses(outstrm, productName, versionName=None, eupsenv=None,
               depth=9999, showOptional=False, tags=None, pickleFile=None):
     """
-    print a listing of products that make use of a given product.  
-    @param outstrm       the output stream to write the listing to 
+    print a listing of products that make use of a given product.
+    @param outstrm       the output stream to write the listing to
     @parma productName   the name of the product to find usage of for
     @param versionName   the product version to query.  If None, all
                             versions will be considered
     @param eupsenv       the Eups instance to use; if None, a default will
                             be created.
     @param depth         maximum number of dependency levels to examine
-    @param showOptional  if True, indicate if a dependency is optional.  
+    @param showOptional  if True, indicate if a dependency is optional.
     @param tags          the preferred set of tags to choose when examining
                             dependencies.
     @param pickleFile    file to save uses dependencies to (or read from if starts with <)
@@ -357,7 +357,7 @@ def getDependencies(productName, versionName=None, eupsenv=None, setup=False, sh
     Return a list of productName's dependent products : [(productName, VersionName, optional, recursionDepth), ...]
     @param productName     Desired product's name
     @param versionName     Desired version of product
-    @param eupsenv         the Eups instance to use; if None, a default will be created.  
+    @param eupsenv         the Eups instance to use; if None, a default will be created.
     @param setup           Return the versions of dependent products that are actually setup
     @param shouldRaise     Raise an exception if setup is True and a required product isn't setup
     @param followExact     If None use the exact/inexact status in eupsenv; if non-None set desired exactness
@@ -371,7 +371,7 @@ def getDependencies(productName, versionName=None, eupsenv=None, setup=False, sh
     topProduct = eupsenv.findProduct(productName, versionName)
     if not topProduct:                  # it's never been declared (at least not with this version)
         return []
-        
+
     return [(product.name, product.version, optional, recursionDepth) for product, optional, recursionDepth in
             eupsenv.getDependentProducts(topProduct, setup, shouldRaise, followExact,
                                          topological=topological)]
@@ -379,8 +379,8 @@ def getDependencies(productName, versionName=None, eupsenv=None, setup=False, sh
 def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None, repoVersion=None,
                     verbose=0):
     """
-    expand the template variables in a .build script to produce an 
-    explicitly executable shell scripts.  
+    expand the template variables in a .build script to produce an
+    explicitly executable shell scripts.
 
     @param ofd      the output file stream to write expanded script to.
     @param ifd      the input file stream to read the build template from.
@@ -389,7 +389,7 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None, repo
     @param svnroot  An SVN root URL to find source code under.
     @param cvsroot  A CVS root URL to find source code under.
     @param repoVersion  the version name within the repository
-    @param verbose  an integer verbosity level where larger values result 
+    @param verbose  an integer verbosity level where larger values result
                        in more messages
     """
     builderVars = hooks.config.distrib["builder"]["variables"]
@@ -406,19 +406,19 @@ def expandBuildFile(ofd, ifd, product, version, svnroot=None, cvsroot=None, repo
 def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, force=False,
                     expandVersions=True, addExactBlock=True, toplevelName=None):
     """
-    expand the version specifications in a table file.  When a version in 
-    the original table file is expressed as an expression, the expression is 
-    enclosed in brackets and the actual product version used to build the 
-    table file's product is added.  
+    expand the version specifications in a table file.  When a version in
+    the original table file is expressed as an expression, the expression is
+    enclosed in brackets and the actual product version used to build the
+    table file's product is added.
 
     @param ofd          the output file stream to write expanded tablefile to.
     @param ifd          the input file stream to read the tablefile from.
-    @param productList  a lookup dictionary of the as-built versions.  The 
-                           keys are product names and the values are the 
+    @param productList  a lookup dictionary of the as-built versions.  The
+                           keys are product names and the values are the
                            versions.
     @param versionRegexp  an unparsed regular expression string
-    @param eupsenv      an Eups instance to assume.  If not provided, a 
-                           default will be created.  
+    @param eupsenv      an Eups instance to assume.  If not provided, a
+                           default will be created.
     @param force        convert missing required dependencies to optional
     """
     if not eupsenv:
@@ -430,44 +430,44 @@ def expandTableFile(ofd, ifd, productList, versionRegexp=None, eupsenv=None, for
     except ProductNotFound:
         raise
 
-def declare(productName, versionName, productDir=None, eupsPathDir=None, 
+def declare(productName, versionName, productDir=None, eupsPathDir=None,
             tablefile=None, externalFileList=[], tag=None, eupsenv=None):
     """
-    Declare a product.  That is, make this product known to EUPS.  
+    Declare a product.  That is, make this product known to EUPS.
 
     If the product is already declared, this method can be used to
     change the declaration.  The most common type of
-    "redeclaration" is to only assign a tag.  (Note that this can 
+    "redeclaration" is to only assign a tag.  (Note that this can
     be accomplished more efficiently with assignTag() as well.)
     Attempts to change other data for a product requires self.force
-    to be true. 
+    to be true.
 
     If the product has no installation directory or table file,
     these parameters should be set to "none".  If either are None,
-    some attempt is made to surmise what these should be.  If the 
+    some attempt is made to surmise what these should be.  If the
     guessed locations are not found to exist, this method will
-    raise an exception.  
+    raise an exception.
 
-    If the tablefile is an open file descriptor, it is assumed that 
+    If the tablefile is an open file descriptor, it is assumed that
     a copy should be made and placed into product's ups directory.
     This directory will be created if it doesn't exist.
 
     For backward compatibility, the declareCurrent parameter is
     provided but its use is deprecated.  It is ignored unless the
-    tag argument is None.  A value of True is equivalent to 
+    tag argument is None.  A value of True is equivalent to
     setting tag="current".  If declareCurrent is None and tag is
-    boolean, this method assumes the boolean value is intended for 
-    declareCurrent.  
+    boolean, this method assumes the boolean value is intended for
+    declareCurrent.
 
     @param productName   the name of the product to declare
     @param versionName   the version to declare.
     @param productDir    the directory where the product is installed.
                            If set to "none", there is no installation
                            directory (and tablefile must be specified).
-                           If None, an attempt to determine the 
-                           installation directory (from eupsPathDir) is 
+                           If None, an attempt to determine the
+                           installation directory (from eupsPathDir) is
                            made.
-    @param eupsPathDir   the EUPS product stack to install the product 
+    @param eupsPathDir   the EUPS product stack to install the product
                            into.  If None, then the first writable stack
                            in EUPS_PATH will be installed into.
     @param tablefile     the path to the table file for this product.  If
@@ -475,20 +475,20 @@ def declare(productName, versionName, productDir=None, eupsPathDir=None,
                            it is looked for under productDir/ups.
     @param externalFileList  List of tuples (infile, outfile) of files that should be
                          saved in the product's "Extra" directory
-    @param tag           the tag to assign to this product.  If the 
+    @param tag           the tag to assign to this product.  If the
                            specified product is already registered with
                            the same product directory and table file,
                            then use of this input will simple assign this
-                           tag to the variable.  (See also above note about 
+                           tag to the variable.  (See also above note about
                            backward compatibility.)
-    @param eupsenv       the Eups instance to assume.  If None, a default 
-                           will be created.  
+    @param eupsenv       the Eups instance to assume.  If None, a default
+                           will be created.
     """
     if not eupsenv:
         eupsenv = Eups()
     return eupsenv.declare(productName, versionName, productDir, eupsPathDir,
                            tablefile, externalFileList=externalFileList, tag=tag)
-           
+
 def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
               eupsenv=None):
     """
@@ -496,44 +496,44 @@ def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
     product from EUPS.  This method can also be used to just
     remove a tag from a product without fully undeclaring it.
 
-    A tag parameter that is not None indicates that only a 
-    tag should be de-assigned.  (Note that this can 
-    be accomplished more efficiently with unassignTag() as 
-    well.)  In this case, if versionName is None, it will 
+    A tag parameter that is not None indicates that only a
+    tag should be de-assigned.  (Note that this can
+    be accomplished more efficiently with unassignTag() as
+    well.)  In this case, if versionName is None, it will
     apply to any version of the product.  If eupsPathDir is None,
-    this method will attempt to undeclare the first matching 
-    product in the default EUPS path.  
+    this method will attempt to undeclare the first matching
+    product in the default EUPS path.
 
     For backward compatibility, the undeclareCurrent parameter is
     provided but its use is deprecated.  It is ignored unless the
-    tag argument is None.  A value of True is equivalent to 
+    tag argument is None.  A value of True is equivalent to
     setting tag="current".  If undeclareCurrent is None and tag is
-    boolean, this method assumes the boolean value is intended for 
-    undeclareCurrent.  
+    boolean, this method assumes the boolean value is intended for
+    undeclareCurrent.
 
     @param productName   the name of the product to undeclare
-    @param versionName   the version to undeclare; this can be None if 
+    @param versionName   the version to undeclare; this can be None if
                            there is only one version declared; otherwise
-                           a RuntimeError is raised.  
+                           a RuntimeError is raised.
     @param eupsPathDir   the product stack to undeclare the product from.
-                           ProductNotFound is raised if the product 
-                           is not installed into this stack.  
+                           ProductNotFound is raised if the product
+                           is not installed into this stack.
     @param tag           if not None, only unassign this tag; product
-                            will not be undeclared.  
-    @param eupsenv       the Eups instance to assume.  If None, a default 
-                           will be created.  
+                            will not be undeclared.
+    @param eupsenv       the Eups instance to assume.  If None, a default
+                           will be created.
     """
     if not eupsenv:
         eupsenv = Eups()
     return eupsenv.undeclare(productName, versionName, eupsPathDir, tag)
-                             
+
 def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
     """
     remove the product cache for given stacks/databases and flavors
     @param path     the stacks to clear caches for.  This can be given either
-                        as a python list or a colon-delimited string.  If 
+                        as a python list or a colon-delimited string.  If
                         None (default), EUPS_PATH will be used.
-    @param flavors  the flavors to clear the cache for.  This can either 
+    @param flavors  the flavors to clear the cache for.  This can either
                         be a python list or space-delimited string.  If None,
                         clear caches for all flavors.
     @param inUserDir  if True (default), it will be assumed that it is the
@@ -548,7 +548,7 @@ def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
 
     userDataDir = utils.defaultUserDataDir()
     path.append(userDataDir)
-    
+
     if not inUserDir:
         userDataDir = None              # Clear the system cache, not the one in userDataDir
 
@@ -587,10 +587,10 @@ def listCache(path=None, verbose=0, flavor=None):
     userDataDir = utils.defaultUserDataDir()
     if not userDataDir in path:
         path.append(userDataDir)
-        
+
     for p in path:
         dbpath = os.path.join(p, Eups.ups_db)
-        cache = ProductStack.fromCache(dbpath, flavor, updateCache=False, 
+        cache = ProductStack.fromCache(dbpath, flavor, updateCache=False,
                                        autosave=False)
 
         productNames = cache.getProductNames()
@@ -615,9 +615,9 @@ def listCache(path=None, verbose=0, flavor=None):
 def Current():
     """
     a deprecated means of specifying a preferred tag.  This will return
-    None, which is consistent with how it was typically once used as a 
-    value for a version parameter to a function.  Now, passing None to 
-    version means that the version assigned with the most preferred tag 
+    None, which is consistent with how it was typically once used as a
+    value for a version parameter to a function.  Now, passing None to
+    version means that the version assigned with the most preferred tag
     is desired.
     """
     utils.deprecated("Use of Current() is deprecated (and ignored).")
@@ -629,34 +629,34 @@ def osetup(Eups, productName, version=None, fwd=True, setupType=[]):
     """
     return setup(productName, version, None, setupType, Eups, fwd)
 
-def setup(productName, version=None, prefTags=None, productRoot=None, 
+def setup(productName, version=None, prefTags=None, productRoot=None,
           eupsenv=None, fwd=True, tablefile=None, exact_version=False, postTags=[]):
     """
-    Return a set of shell commands which, when sourced, will setup a product.  
+    Return a set of shell commands which, when sourced, will setup a product.
     (If fwd is false, unset it up.)
 
     Note that if the first argument is found to be an instance of Eups,
     this function will assume that the old setup() signature is expected
     by the caller, and the parameters will be forwarded to osetup().
 
-    @param productName     the name of the desired product to setup.  
+    @param productName     the name of the desired product to setup.
     @param version         the desired version of the product.  This can be
                              either a string giving an explicit version
-                             or a Tag instance.  
+                             or a Tag instance.
     @param prefTags        the list of requested tags (n.b. the VRO already knows about them)
     @param postTags        the list of requested post-tags (n.b. the VRO already knows about them)
     @param productRoot     the root directory where the product is installed.
                              If set, Eups will not consult its database for
                              the product's location, but rather set it up as
-                             a "LOCAL" product.  
-    @param eupsenv         the Eups instance to use to do the setup.  If 
+                             a "LOCAL" product.
+    @param eupsenv         the Eups instance to use to do the setup.  If
                              None, one will be created for it.
     @param fwd             If False, actually do an unsetup.
     """
     if isinstance(productName, Eups):
-        # Note: this probably won't work if a mix of key-worded and 
+        # Note: this probably won't work if a mix of key-worded and
         # non-keyworded parameters are used.
-        utils.deprecated("setup(): assuming deprecated function signature", 
+        utils.deprecated("setup(): assuming deprecated function signature",
                          productName.quiet)
         if productRoot is None:  productRoot = True
         return osetup(productName, version, prefTags, productRoot, productName.setupType)
@@ -684,7 +684,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     versionRequested = version
     ok, version, reason = eupsenv.setup(productName, version, fwd,
                                         productRoot=productRoot, tablefile=tablefile)
-        
+
     cmds = []
     if ok:
         #
@@ -828,7 +828,7 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
 
             if versionName:
                 versionName = " " + versionName
-        
+
             print("Failed to setup %s%s: %s" % (productName, versionName, reason), file=utils.stderr)
         else:
             print("Failed to unsetup %s: %s" % (productName, reason), file=utils.stderr)
@@ -838,9 +838,9 @@ def setup(productName, version=None, prefTags=None, productRoot=None,
     return cmds
 
 def unsetup(productName, version=None, eupsenv=None):
-    """ 
+    """
     Return a set of shell commands which, when sourced, will unsetup a product.
-    This is equivalent to setup(productName, version, fwd=False). 
+    This is equivalent to setup(productName, version, fwd=False).
     """
     return setup(productName, version, fwd=False)
 
@@ -848,15 +848,15 @@ def findProduct(productName, versionName=None, eupsenv=None):
     """
     return the specified product.  None is returned if no matching product can be found
     @param productName   the name of the product of interest
-    @param version       the desired version (default: current).  This can in one of the 
+    @param version       the desired version (default: current).  This can in one of the
     following forms:
-    *  an explicit version 
+    *  an explicit version
     *  a version expression (e.g. ">=3.3")
-    *  a Tag instance 
-    *  None, in which case, the (most) preferred 
+    *  a Tag instance
+    *  None, in which case, the (most) preferred
     version will be returned.
-    @param eupsenv       The Eups instance to use to find the product.  If 
-    not provided, a default will created.  
+    @param eupsenv       The Eups instance to use to find the product.  If
+    not provided, a default will created.
     """
     if not eupsenv:
         eupsenv = Eups()
@@ -868,19 +868,19 @@ def findProduct(productName, versionName=None, eupsenv=None):
 
 def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
     """
-    return the installation directory (PRODUCT_DIR) for the specified 
+    return the installation directory (PRODUCT_DIR) for the specified
     product.  None is returned if no matching product can be found
     @param productName   the name of the product of interest; if None return a dictionary of all productDirs
-    @param version       the desired version.  This can in one of the 
+    @param version       the desired version.  This can in one of the
                          following forms:
-                          *  an explicit version 
+                          *  an explicit version
                           *  a version expression (e.g. ">=3.3")
-                          *  a Tag instance 
-                          *  None, in which case, the (most) preferred 
+                          *  a Tag instance
+                          *  None, in which case, the (most) preferred
                                version will be returned.
-                         The default is the global tag "setup".  
-    @param eupsenv       The Eups instance to use to find the product.  If 
-                            not provided, a default will created.  
+                         The default is the global tag "setup".
+    @param eupsenv       The Eups instance to use to find the product.  If
+                            not provided, a default will created.
     """
     if productName and versionName == Tag("setup"): # we can take a shortcut
         return os.environ.get(utils.dirEnvNameFor(productName))
@@ -893,7 +893,7 @@ def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
         if versionName == Tag("setup"):
             tags = versionName
             versionName = ""
-            
+
         productList = eupsenv.findProducts(productName, versionName, tags)
         productDirs = {}
         for prod in productList:
@@ -911,7 +911,7 @@ def productDir(productName=None, versionName=Tag("setup"), eupsenv=None):
     pdir = prod.dir
     if pdir == "none":
         pdir = None
-        
+
     return pdir
 
 def getSetupVersion(productName, eupsenv=None):
@@ -919,7 +919,7 @@ def getSetupVersion(productName, eupsenv=None):
     return the version name for the currently setup version of a given product.
 
     @param productName   the name of the setup product
-    @param eupsenv       the Eups instance to use; if None (default), a 
+    @param eupsenv       the Eups instance to use; if None (default), a
                              default will be created.
     @throws ProductNotFound  if the requested product is not setup
     """
@@ -934,4 +934,4 @@ def enableLocking(enableLocking=True):
     """Enable or disable the use of lock files"""
     from . import lock
     lock.disableLocking = not enableLocking
-    
+

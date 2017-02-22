@@ -20,7 +20,7 @@ If mustReturnInt is False and you don't want to allow the versions to be sorted,
         prim2, sec2, ter2 = self._splitVersion(v2)
 
         if prim1 == prim2:
-            # the same primary release component 
+            # the same primary release component
             if sec1 or sec2 or ter1 or ter2:
                 if sec1 or sec2:
                     if (sec1 and sec2):
@@ -108,7 +108,7 @@ If mustReturnInt is False and you don't want to allow the versions to be sorted,
                             return -1
                         elif c1[i].startswith(c2[i]):
                             return 1
-                        
+
                     raise ValueError("Versions %s and %s cannot be sorted" % (v1, v2))
 
         # So far, the two versions are identical.  The longer version should sort later
@@ -116,7 +116,7 @@ If mustReturnInt is False and you don't want to allow the versions to be sorted,
 
     def _splitVersion(self, version):
         """
-        Break a version string down into its 3 main components: 
+        Break a version string down into its 3 main components:
           o  a base release name (e.g. 1.2.3),
           o  an optional decrementing annotation (e.g. -2)
           o  an optional incrementing annotation (e.g. +svn1039)
@@ -124,7 +124,7 @@ If mustReturnInt is False and you don't want to allow the versions to be sorted,
         if not version:
             return "", "", ""
 
-        if len(version.split("-")) > 2: 
+        if len(version.split("-")) > 2:
             # a version string such as rel-0-8-2 with more than one hyphen
             return version, "", ""
 

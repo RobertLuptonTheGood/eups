@@ -36,15 +36,15 @@ class WebTransporterTestCase(unittest.TestCase):
         trx = WebTransporter(loc)
         trx.cacheToFile(localfile)
         self.assert_(os.path.exists(localfile))
-        
+
         loc = self.base+"s2"
         trx = WebTransporter(loc)
         files = trx.listDir()
         self.assertEquals(len(files), 2)
         self.assertIn("config.txt", files)
         self.assertIn("current.list", files)
-        
-from eups.distrib.server import DistribServer 
+
+from eups.distrib.server import DistribServer
 
 class WebConfigFileTestCase(unittest.TestCase):
 
@@ -61,7 +61,7 @@ class WebConfigFileTestCase(unittest.TestCase):
         configFile = ds.getConfigFile(self.configFile)
         self.assert_(os.path.exists(configFile))
 
-        
+
 
 from eups.distrib.server import ServerConf
 
@@ -102,7 +102,7 @@ class WebDistribServerTestCase(unittest.TestCase):
         self.assertIn("current", tags)
 
 
-__all__ = "WebTransporterTestCase WebConfigFileTestCase WebServerConfTestCase WebDistribServerTestCase".split()        
+__all__ = "WebTransporterTestCase WebConfigFileTestCase WebServerConfTestCase WebDistribServerTestCase".split()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
