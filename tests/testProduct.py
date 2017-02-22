@@ -36,20 +36,6 @@ class ProductTestCase(unittest.TestCase):
         self.assertIn("stable", p.tags)
         self.assertIn("mine", p.tags)
 
-    def testPersist(self):
-        fd = open("test_product.pickle", "wb")
-        self.prod.persist(fd)
-        fd.close()
-        fd = open("test_product.pickle", "rb")
-        p = Product.unpersist(fd)
-
-        self.assertEqual(self.prod.name, p.name)
-        self.assertEqual(self.prod.version, p.version)
-        self.assertEqual(self.prod.dir, p.dir)
-        self.assertEqual(self.prod.db, p.db)
-        self.assert_(self.prod._table is None)
-        self.assert_(self.prod.tablefile is None)
-
     def testStackRoot(self):
         self.assert_(self.prod.stackRoot() is None)
         self.prod.db = os.path.join(self.prod.dir, "ups_db")
