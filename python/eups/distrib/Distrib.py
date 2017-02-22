@@ -670,7 +670,7 @@ class DefaultDistrib(Distrib):
                 print(msg, file=self.log)
             return None
 
-        return server.TaggedProductList.fromFile(file, tag)
+        return server.TaggedProductList.fromFile(file, tag, flavor=flavor)
 
     def getTaggedReleasePath(self, tag, flavor=None):
         """get the file path relative to a server root that will be used 

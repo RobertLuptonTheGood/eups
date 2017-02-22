@@ -2013,6 +2013,19 @@ If no product or version is provided, all defined tags are defined.
         pl = dist.getTaggedRelease(pkgroot, tagName)
         if not pl:
             pl = distrib.server.TaggedProductList(tagName)
+        #
+        # Due to the structure of the TaggedProductList class it cannot store tags for
+        # objects with multiple flavors for a given product
+        #
+        # Because we want a tag to always mean the same thing, we'll simply disallow
+        # anything but "generic".  The code that reads the TaggedProductList handles
+        # this by replacing "generic" by the current flavor.  This is a bit of a
+        # hack (it'd be better to rewrite TaggedProductList), but it's OK for now
+        #
+        if self.opts.useFlavor:
+            print("Ignoring --flavor in \"eups distrib declare\"", file=utils.stdwarn)
+            self.opts.useFlavor = None
+
         for productName, versionName in products:
             pl.addProduct(productName, versionName, flavor=self.opts.useFlavor)
             dist.writeTaggedRelease(pkgroot, tagName, pl, self.opts.useFlavor, True)

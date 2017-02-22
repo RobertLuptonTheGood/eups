@@ -1,3 +1,9 @@
+2017-02-21 (rhl)
+    - Interpret "generic" as "current flavor" in .tags files
+    - Don't allow a --flavor argument to "eups distrib declare" as it doesn't work
+      properly
+    - Accept --server-dir consistently for all "eups distrib" commands
+
 2017-02-21 timj (2.1.0)
     - Many fixes in Python 3 support.
     - Many improvements to the test suite.
@@ -6,7 +12,7 @@
 
     dev stats:
       - 59 files changed, 875 insertions(+), 601 deletions(-)
-      - contributors: Robert Lupton the Good, Tim Jenness, Mario Juric, Jim Bosch, Joshua Hoblitt, Pim Schellart
+      - contributors: Robert Lupton the Good, Tim Jenness, Mario Juric, Jim Bosch, Joshua Hoblitt, Pim Schellar
 
 2016-11-02 (rhl)
     - Permit "eups list --name --version"

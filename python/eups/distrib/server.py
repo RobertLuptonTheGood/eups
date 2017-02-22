@@ -179,7 +179,7 @@ class DistribServer(object):
             try:
                 file = self.getFile("", flavor, tag, "list", noaction=noaction)
                 self.tagged[tag] = \
-                    TaggedProductList.fromFile(file, tag, 
+                    TaggedProductList.fromFile(file, tag, flavor=flavor,
                                                verbosity=self.verbose-1,
                                                log=self.log)
                 return self.tagged[tag]
@@ -1305,7 +1305,7 @@ class TaggedProductList(object):
     tag.  
     """
 
-    def __init__(self, tag, defFlavor="generic", verbosity=0, log=sys.stderr):
+    def __init__(self, tag, defFlavor=None, verbosity=0, log=sys.stderr):
         """create an empty collection of products with a given name
         @param tag         the logical name for this collection of product
         @param defFlavor   the flavor to assume when a product flavor is 
@@ -1317,7 +1317,10 @@ class TaggedProductList(object):
                                sys.stderr)
         """
         self.tag = tag
-        self.flavor = defFlavor
+        if defFlavor is None:
+            self.flavor = "generic"
+        else:
+            self.flavor = defFlavor
         self.products = []
         self.info = {}
         self.verbose = verbosity
@@ -1372,7 +1375,12 @@ class TaggedProductList(object):
                 except:
                     raise RuntimeError("Failed to parse line:" + line)
 
-                self.addProduct(info[0], info[2], info[1], info[3:])
+                productName, versionName, flavor, info = info[0], info[2], info[1], info[3:]
+                if flavor == "generic":
+                    flavor = self.flavor
+                
+                if flavor == self.flavor:
+                    self.addProduct(productName, versionName, flavor, info)
         finally:
             fd.close()
 
@@ -1453,13 +1461,13 @@ EUPS distribution %s version list. Version %s
         return out
 
     # @staticmethod   # requires python 2.4
-    def fromFile(filename, tag="current", verbosity=0, log=sys.stderr):
+    def fromFile(filename, tag="current", flavor=None, verbosity=0, log=sys.stderr):
         """create a TaggedProductList from the contents of a product list file
         @param filename   the file to read
         @param tag        the tag name to associate with this list 
                             (default: 'current')
         """
-        out = TaggedProductList(tag, verbosity=verbosity, log=log)
+        out = TaggedProductList(tag, defFlavor=flavor, verbosity=verbosity, log=log)
         out.read(filename)
         return out
 
