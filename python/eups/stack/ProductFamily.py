@@ -7,8 +7,8 @@ from eups.table import Table
 
 class ProductFamily(object):
     """
-    a set of different versions of a named product.  When this refers to 
-    installed products, it is assumed that all versions are of the same flavor. 
+    a set of different versions of a named product.  When this refers to
+    installed products, it is assumed that all versions are of the same flavor.
     """
 
     def __init__(self, name):
@@ -19,13 +19,13 @@ class ProductFamily(object):
         # the product name
         self.name = name
 
-        # a lookup for version-specific information where the keys are the 
-        # version names and the values are tuples containing the installation 
+        # a lookup for version-specific information where the keys are the
+        # version names and the values are tuples containing the installation
         # directory, the dependencies table, and a corresponding instance of
         # Table (which may be None).
         self.versions = {}
 
-        # a lookup of tag assignments where each key is a tag name and its 
+        # a lookup of tag assignments where each key is a tag name and its
         # value is the version name assigned to the tag.
         self.tags = {}
 
@@ -48,20 +48,20 @@ class ProductFamily(object):
         try:
             versdata = self.versions[version]
             tags = [item[0] for item in [x for x in self.tags.items() if x[1] == version]]
-            out = Product(self.name, version, flavor, 
+            out = Product(self.name, version, flavor,
                           versdata[0],    # the install directory
                           versdata[1],    # the table file
                           tags, dbpath)
             if versdata[2]:
                 out._table = versdata[2]
             return out
-                           
+
         except KeyError:
             raise ProductNotFound(self.name, version)
 
     def getTags(self):
         """
-        return a list of the tag names assigned to versions in this 
+        return a list of the tag names assigned to versions in this
         product family
         """
         return list(self.tags.keys())
@@ -80,7 +80,7 @@ class ProductFamily(object):
         @param tag : the desired tag name
         @param dbpath    a database path to set on the returned product
         @param flavor    a platform flavor to set on the returned product
-        @return Product 
+        @return Product
         """
         if isinstance(tag, eups.tags.Tag):
             tag = str(tag)
@@ -92,7 +92,7 @@ class ProductFamily(object):
 
     def export(self, dbpath=None, flavor=None):
         """
-        return all Products as a dictionary suitable for persisting.  Each 
+        return all Products as a dictionary suitable for persisting.  Each
         key is a version name and its value is a Product describing it.
         @param dbpath    a database path to set for each product exported
         @param flavor    a platform flavor to set for each product exported
@@ -105,33 +105,33 @@ class ProductFamily(object):
 
     def import_(self, versions):
         """
-        import products into this family.  
-        This will ignore over any products whose name does not match the 
+        import products into this family.
+        This will ignore over any products whose name does not match the
         name of this family.  Matching products will overwrite previous
         versions having the same version name.
-        @param dictionary versions : the information for versions to be add 
-                             to this family.  Each key is a version name and 
+        @param dictionary versions : the information for versions to be add
+                             to this family.  Each key is a version name and
                              its value is a Product instance.
         """
         for vers in versions.keys():
             prod = versions[vers]
             if prod.name == self.name:
-                self.addVersion(prod.version, prod.dir, prod.tablefile, 
+                self.addVersion(prod.version, prod.dir, prod.tablefile,
                                 prod._table)
 
     def addVersion(self, version, installdir, tablefile=None, table=None):
         """
-        register an installed version.  If the version already exists, it 
+        register an installed version.  If the version already exists, it
         will be overwritten.
 
         @param version :      the name of the version to add
-        @param installdir :   the installation directory where the product 
+        @param installdir :   the installation directory where the product
                                   is installed.
-        @param tablefile :    the path to the dependency table for this 
+        @param tablefile :    the path to the dependency table for this
                                   version.  If None, no path is applicable
         @param table :        the dependency table as a Table instance.  If
-                                  None, the loading of the Table instance is 
-                                  deferred.  
+                                  None, the loading of the Table instance is
+                                  deferred.
         """
         if not version:
             msg = "Missing version name while registering new version " + \
@@ -170,8 +170,8 @@ class ProductFamily(object):
 
         @param tag :     the tag name being assigned
         @param version : the name of the version being assigned the tag
-        @param file :    the file to record the tagging information to.  
-        If None, it will not get recorded.  
+        @param file :    the file to record the tagging information to.
+        If None, it will not get recorded.
         """
         if not self.hasVersion(version):
             raise ProductNotFound(self.name, version)
@@ -181,7 +181,7 @@ class ProductFamily(object):
 
     def unassignTag(self, tag, file=None):
         """
-        remove a given tag from this product.  Return false if the tag is 
+        remove a given tag from this product.  Return false if the tag is
         not assigned to a version of this product.
 
         @param string tag : the tag to remove from this product
@@ -197,9 +197,9 @@ class ProductFamily(object):
     def loadTableFor(self, version, table=None):
         """
         cache the parsed contents of the table file.  If table is not None,
-        it will be taken as the Table instance representing the already 
-        parsed contents; otherwise, the table will be loaded from the 
-        table file path.  
+        it will be taken as the Table instance representing the already
+        parsed contents; otherwise, the table will be loaded from the
+        table file path.
 
         @param version   the version of the product to load
         @param table     an instance of Table to accept as the loaded
@@ -220,7 +220,7 @@ class ProductFamily(object):
 
     def loadTables(self):
         """
-        ensure that the tables for all versions have be parsed and cached 
+        ensure that the tables for all versions have be parsed and cached
         into memory.
         """
         for ver in self.getVersions():

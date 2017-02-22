@@ -29,7 +29,7 @@ class ProductTestCase(unittest.TestCase):
         self.assert_(self.prod._prodStack is None)
 
         db = os.path.join(os.environ["PWD"], "ups_db")
-        p = Product("eups", "1.0", dir=os.environ["PWD"], 
+        p = Product("eups", "1.0", dir=os.environ["PWD"],
                     tags="stable mine".split(), db=db)
         self.assertEqual(p.db, db)
         self.assertEqual(len(p.tags), 2)
@@ -82,12 +82,12 @@ class ProductTransformationTestCase(unittest.TestCase):
         pver = "2.0"
         pdir = os.path.join(self.eupsPathDir,"Linux",pname,pver)
         prod = Product("newprod", "2.0", "Linux", pdir, db=self.dbpath)
-                       
+
         self.assertEquals(prod.dir, pdir)
         self.assertEquals(prod.db, self.dbpath)
         self.assert_(prod.ups_dir is None)
         self.assert_(prod.tablefile is None)
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
         # test cloning (we'll use this later)
@@ -96,17 +96,17 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(clone.db, self.dbpath)
         self.assert_(clone.ups_dir is None)
         self.assert_(clone.tablefile is None)
-        self.assertEquals(clone.tableFileName(), 
+        self.assertEquals(clone.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
         # turn to absolute paths
         prod.resolvePaths()
         self.assertEquals(prod.dir, pdir)
         self.assertEquals(prod.db, self.dbpath)
-        self.assertEquals(prod.tablefile, 
+        self.assertEquals(prod.tablefile,
                           os.path.join(pdir,"ups",pname+".table"))
         self.assertEquals(prod.ups_dir, os.path.join(pdir,"ups"))
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
         # turn to relative paths
@@ -115,17 +115,17 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(prod.db, self.dbpath)
         self.assertEquals(prod.tablefile, pname+".table")
         self.assertEquals(prod.ups_dir, "ups")
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
         # round trip: turn back to absolute paths
         prod.resolvePaths()
         self.assertEquals(prod.dir, pdir)
         self.assertEquals(prod.db, self.dbpath)
-        self.assertEquals(prod.tablefile, 
+        self.assertEquals(prod.tablefile,
                           os.path.join(pdir,"ups",pname+".table"))
         self.assertEquals(prod.ups_dir, os.path.join(pdir,"ups"))
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
         # turn original to relative paths
@@ -134,17 +134,17 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(clone.db, self.dbpath)
         self.assertEquals(clone.tablefile, pname+".table")
         self.assertEquals(clone.ups_dir, "ups")
-        self.assertEquals(clone.tableFileName(), 
+        self.assertEquals(clone.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
         # back to absolute paths
         clone.resolvePaths()
         self.assertEquals(clone.dir, pdir)
         self.assertEquals(clone.db, self.dbpath)
-        self.assertEquals(clone.tablefile, 
+        self.assertEquals(clone.tablefile,
                           os.path.join(pdir,"ups",pname+".table"))
         self.assertEquals(clone.ups_dir, os.path.join(pdir,"ups"))
-        self.assertEquals(clone.tableFileName(), 
+        self.assertEquals(clone.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
     def testProd2(self):
@@ -154,26 +154,26 @@ class ProductTransformationTestCase(unittest.TestCase):
         pname = "newprod"
         pver = "2.0"
         pdir = os.path.join(self.eupsPathDir,"Linux",pname,pver)
-        prod = Product("newprod", "2.0", "Linux", pdir, db=self.dbpath, 
+        prod = Product("newprod", "2.0", "Linux", pdir, db=self.dbpath,
                        table=os.path.join(self.dbpath,pname,'Linux',
                                           pver+".table"))
 
         self.assertEquals(prod.dir, pdir)
         self.assertEquals(prod.db, self.dbpath)
-        self.assertEquals(prod.tablefile, 
+        self.assertEquals(prod.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
         self.assert_(prod.ups_dir is None)
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
         # test cloning (we'll use this later)
         clone = prod.clone()
         self.assertEquals(clone.dir, pdir)
         self.assertEquals(clone.db, self.dbpath)
-        self.assertEquals(clone.tablefile, 
+        self.assertEquals(clone.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
         self.assert_(clone.ups_dir is None)
-        self.assertEquals(clone.tableFileName(), 
+        self.assertEquals(clone.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
         # turn to absolute paths
@@ -181,9 +181,9 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(prod.dir, pdir)
         self.assertEquals(prod.db, self.dbpath)
         self.assert_(prod.ups_dir is None)
-        self.assertEquals(prod.tablefile, 
+        self.assertEquals(prod.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
         prod.canonicalizePaths()
@@ -191,7 +191,7 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(prod.db, self.dbpath)
         self.assertEquals(prod.ups_dir, "$UPS_DB/newprod/Linux")
         self.assertEquals(prod.tablefile, "2.0.table")
-        self.assertEquals(prod.tableFileName(), 
+        self.assertEquals(prod.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
         # turn original to relative paths
@@ -200,18 +200,18 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEquals(clone.db, self.dbpath)
         self.assertEquals(clone.ups_dir, "$UPS_DB/newprod/Linux")
         self.assertEquals(clone.tablefile, "2.0.table")
-        self.assertEquals(clone.tableFileName(), 
+        self.assertEquals(clone.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
         # back to absolute paths
         clone.resolvePaths()
         self.assertEquals(clone.dir, pdir)
         self.assertEquals(clone.db, self.dbpath)
-        self.assertEquals(clone.ups_dir, 
+        self.assertEquals(clone.ups_dir,
                           os.path.join(self.dbpath,pname,"Linux"))
-        self.assertEquals(clone.tablefile, 
+        self.assertEquals(clone.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
-        self.assertEquals(clone.tableFileName(), 
+        self.assertEquals(clone.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

@@ -4,7 +4,7 @@ dnl Protect against typos
 dnl
 AC_ARG_WITH(ups,
    [AS_HELP_STRING(--with-ups=DIR, [Typo for --with-eups=DIR])],
-   AC_MSG_ERROR([Please use --with-eups]))   
+   AC_MSG_ERROR([Please use --with-eups]))
 AC_ARG_WITH(ups_dir,
    [AS_HELP_STRING(--with-ups_dir=DIR, [Typo for --with-eups_dir=DIR])],
    AC_MSG_ERROR([Please use --with-eups_dir]))
@@ -30,11 +30,11 @@ AC_ARG_WITH(python,
    [EUPS_PYTHON=$(echo $withval)],
    [EUPS_PYTHON=$(which python)
     if [[ "$EUPS_PYTHON" != /usr/bin/python ]]; then
-      AC_MSG_ERROR([Your current python version isn't /usr/bin/python, please rerun configure specifying --with-python. 
---with-python=$(which python) will force eups to use your current python version, 
+      AC_MSG_ERROR([Your current python version isn't /usr/bin/python, please rerun configure specifying --with-python.
+--with-python=$(which python) will force eups to use your current python version,
 --with-python=/usr/bin/python will force eups to use system-installed python])
     fi
-   ]) 
+   ])
 
 if [[ -x "$EUPS_PYTHON" ]]; then
     "$EUPS_PYTHON" -c "import sys;print(\"EUPS_PYTHON :\ninterpreter : %s\nversion : %s\" % (sys.executable, sys.version))" > /dev/null 2>&1 || AC_MSG_ERROR([$EUPS_PYTHON does not seem to be a valid python interpreter])
@@ -60,7 +60,7 @@ AC_ARG_WITH(eups_dir,
       eups_dir_in_path=$(perl -e "(\$ed='$EUPS_DIR')=~s|/eups$||; @ep=split(':', '$EUPS_PATH'); print (grep(m|^\$ed\$|, @ep)) . \"\n\"")
       if [[ X$eups_dir_in_path = X"" -a X"$EUPS_DIR" != X"" ]]; then
           AC_MSG_WARN([Ignoring \$EUPS_DIR = $EUPS_DIR (not in EUPS_PATH = $EUPS_PATH)])
-	  EUPS_DIR=""         
+	  EUPS_DIR=""
       fi
       if [[ X"$EUPS_DIR" = X"" ]]; then
          EUPS_DIR=$(echo $EUPS_PATH | perl -pe 's/:.*//')/eups
@@ -72,13 +72,13 @@ AC_ARG_WITH(eups_dir,
 	  */$eups_db$|$eups_db/*|*/$eups_db/*)
 	    EUPS_DIR=$d/eups;;
 	  esac
-       done			
+       done
        if [[ X"$EUPS_DIR" = X"NONE" ]]; then
           AC_MSG_ERROR([I can't find DB \"$eups_db\" in $EUPS_PATH])
        fi
        if [[ X"$OLD_EUPS_DIR" != X"$EUPS_DIR" -a X"$OLD_EUPS_DIR" != X"" ]]; then
           AC_MSG_WARN([Ignoring \$EUPS_DIR = $OLD_EUPS_DIR])
-       fi       
+       fi
     fi])
 AC_SUBST(EUPS_DIR)
 dnl

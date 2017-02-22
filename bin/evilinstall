@@ -55,7 +55,7 @@ fi
 # Source EUPS setup
 echo "Setting up EUPS....."
 if [ -z $EUPS_DIR ]; then
-    echo 
+    echo
     echo "ABORT: EUPS not set up - either set it up, or set EUPS_DIR manually."
     exit
 fi
@@ -290,7 +290,7 @@ else
    # set versions
    mv $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table.old
    echo "The current table file has been saved in $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table.old"
-   eups_expandtable $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table.old > $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table 
+   eups_expandtable $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table.old > $MYSDSS_ROOT/$PRODVERS/ups/$PRODNAME.table
 fi
 
 #------------------------------------------------------------------------------

@@ -14,12 +14,12 @@ install :
 	      mkdir -p $(prefix)/$$d; \
 	   fi; \
 	done
-	
+
 	install -m 775 bin/foo $(prefix)/bin
 	eups expandtable ups/$(PRODUCT).table $(prefix)/ups
 
 declare :
 	eups declare -r $(prefix) $(PRODUCT) $(VERSION)
-	
+
 current : declare
 	eups declare $(PRODUCT) $(VERSION) --current --force

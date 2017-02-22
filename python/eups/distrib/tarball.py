@@ -14,14 +14,14 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
     OPTIONS:
     The behavior of a Distrib class is fine-tuned via options (a dictionary
-    of named values) that are passed in at construction time.  The options 
+    of named values) that are passed in at construction time.  The options
     supported are:
-       noeups           do not use the local EUPS database for information  
-                          while creating packages.       
-       obeyGroups       when creating files (other on the user side or the 
+       noeups           do not use the local EUPS database for information
+                          while creating packages.
+       obeyGroups       when creating files (other on the user side or the
                           server side), set group ownership and make group
                           writable
-       groupowner       when obeyGroups is true, change the group owner of 
+       groupowner       when obeyGroups is true, change the group owner of
                           to this value
        buildDir         a directory to use to build a package during install.
                           If this is a relative path, the full path will be
@@ -29,12 +29,12 @@ class Distrib(eupsDistrib.DefaultDistrib):
     """
 
     NAME = "tarball"
-    
+
     MANIFEST_FILE_RE = r"^(?P<product>[^-]+)-(?P<version>[^@]+)@(?P<flavor>.*)\.manifest$"
     MANIFEST_URL =     r"%(base)s/manifests/%(product)s-%(version)s@%(flavor)s.manifest"
     TARBALL_URL =      r"%(base)s/%(path)s"
     DIST_URL =         r"%(base)s/%(path)s"
-    
+
     def __init__(self, Eups, distServ, flavor, tag="current", options=None,
                  verbosity=0, log=sys.stderr):
         eupsDistrib.Distrib.__init__(self, Eups, distServ, flavor, tag, options,
@@ -43,7 +43,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
-        """Return a valid package location if and only if we recognize the 
+        """Return a valid package location if and only if we recognize the
         given distribution identifier
 
         This implementation return a location if it ends with ".tar.gz"
@@ -79,18 +79,18 @@ DIST_URL = %s
             finally:
                 cf.close()
 
-    def createPackage(self, serverDir, product, version, flavor=None, 
+    def createPackage(self, serverDir, product, version, flavor=None,
                       overwrite=False):
-        """Write a package distribution into server directory tree and 
-        return the distribution ID 
-        @param serverDir      a local directory representing the root of the 
+        """Write a package distribution into server directory tree and
+        return the distribution ID
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation
-        @param overwrite      if True, this package will overwrite any 
+        @param overwrite      if True, this package will overwrite any
                                 previously existing distribution files even if Eups.force is false
         """
         if flavor is None:  flavor = self.Eups.flavor
@@ -148,20 +148,20 @@ DIST_URL = %s
             os.unlink(pwdFile)
         except:
             pass
-        
+
         self.setGroupPerms(os.path.join(serverDir, tarball))
 
         return tarball
 
     def packageCreated(self, serverDir, product, version, flavor=None):
-        """return True if a distribution package for a given product has 
-        apparently been deployed into the given server directory.  
-        @param serverDir      a local directory representing the root of the 
+        """return True if a distribution package for a given product has
+        apparently been deployed into the given server directory.
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation.  None means
                                 that the status of a non-flavor-specific package
                                 is of interest, if supported.
@@ -169,19 +169,19 @@ DIST_URL = %s
         location = self.parseDistID(self.getDistIdForPackage(product, version, flavor))
         return os.path.exists(os.path.join(serverDir, location))
 
-    def installPackage(self, location, product, version, productRoot, 
+    def installPackage(self, location, product, version, productRoot,
                        installDir=None, setups=None, buildDir=None):
         """Install a package with a given server location into a given
         product directory tree.
-        @param location     the location of the package on the server.  This 
+        @param location     the location of the package on the server.  This
                                value is a distribution ID (distID) that has
                                been stripped of its build type prefix.
         @param product      the name of the product installed by the package.
-        @param version      the name of the product version.  
-        @param productRoot  the product directory tree under which the 
+        @param version      the name of the product version.
+        @param productRoot  the product directory tree under which the
                                product should be installed
         @param installDir   the preferred sub-directory under the productRoot
-                               to install the directory.  This value, which 
+                               to install the directory.  This value, which
                                should be a relative path name, may be
                                ignored or over-ridden by the pacman scripts
         @param setups       a list of EUPS setup commands that should be run
@@ -201,7 +201,7 @@ DIST_URL = %s
         tfile = "%s/%s" % (buildDir, tarball)
 
         if not self.Eups.noaction:
-            tfile = self.distServer.getFileForProduct(location, product, 
+            tfile = self.distServer.getFileForProduct(location, product,
                                                       version, self.Eups.flavor,
                                                       ftype="dist",
                                                       filename=tfile)
@@ -211,12 +211,12 @@ DIST_URL = %s
         unpackDir = os.path.join(productRoot, self.Eups.flavor)
         if installDir and installDir != "none":
             try:
-                (baseDir, pdir, vdir) = re.search(r"^(\S+)/([^/]+)/([^/]+)$", 
+                (baseDir, pdir, vdir) = re.search(r"^(\S+)/([^/]+)/([^/]+)$",
                                                   installDir).groups()
                 unpackDir = os.path.join(unpackDir,baseDir)
             except AttributeError as e:
                 pass
-                    
+
         if not os.path.exists(unpackDir):
             os.makedirs(unpackDir)
 
@@ -235,7 +235,7 @@ DIST_URL = %s
         if installDir:
             installDir = os.path.join(productRoot, self.Eups.flavor, installDir)
         else:
-            installDir = os.path.join(unpackDir, product, version)            
+            installDir = os.path.join(unpackDir, product, version)
 
         if installDir and os.path.exists(installDir):
             self.setGroupPerms(installDir)
@@ -258,12 +258,12 @@ DIST_URL = %s
     def getDistIdForPackage(self, product, version, flavor=None):
         """return the distribution ID that for a package distribution created
         by this Distrib class (via createPackage())
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation
-        @param tag            the target package collection release; this may 
+        @param tag            the target package collection release; this may
                                 be ignored by the implentation
         """
         if not flavor:  flavor = self.flavor
@@ -274,23 +274,23 @@ DIST_URL = %s
         so as to make it easier to deduce the flavor"""
         kwargs["flavor"] = None
         return eupsDistrib.DefaultDistrib.writeManifest(self, *args, **kwargs)
-        
+
     def getManifestPath(self, serverDir, product, version, flavor=None):
         """return the path where the manifest for a particular product will
-        be deployed on the server.  In this implementation, all manifest 
+        be deployed on the server.  In this implementation, all manifest
         files are deployed into a subdirectory of serverDir called "manifests"
-        with the filename form of "<product>-<version>.manifest".  Since 
-        this implementation produces generic distributions, the flavor 
+        with the filename form of "<product>-<version>.manifest".  Since
+        this implementation produces generic distributions, the flavor
         parameter is ignored.
 
-        @param serverDir      the local directory representing the root of 
-                                 the package distribution tree.  In this 
-                                 implementation, the returned path will 
+        @param serverDir      the local directory representing the root of
+                                 the package distribution tree.  In this
+                                 implementation, the returned path will
                                  start with this directory.
-        @param product        the name of the product that the manifest is 
+        @param product        the name of the product that the manifest is
                                 for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform for the 
+        @param flavor         the flavor of the target platform for the
                                 manifest.  This implementation ignores
                                 this parameter.
         """

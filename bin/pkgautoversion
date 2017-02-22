@@ -17,7 +17,7 @@ usage()
 		If multiple tags are elegible to describe the ref, uses the
 		one that's the lowest when compared per-component (i.e.,
 		given tags "1.2.3", "1.2.4", and "1.12" it will use 1.2.3).
-		
+
 		If --dirty is given, ref must be empty or HEAD.
 	EOF
 }
@@ -78,7 +78,7 @@ _get_best_branch()
 	#
 	local REF="$1"
 	local SHA1=$(git rev-parse "$REF^{}")
-	
+
 	if git show-ref -q --verify refs/heads/"$REF"; then
 		echo "$REF"
 		return
@@ -142,7 +142,7 @@ git_version()
 	# See if any annotated tags matching TAG_PATTERN point to $REF. If yes,
 	# find the tag with the lowest version number (when versions are
 	# interpreted as dot-delimited tuples):
-	
+
 	# get a list of annotated tags pointing to $REF
 	TAGS=( $(for tag in $(git tag -l "$TAG_PATTERN" --points-at $REF); do [[ $(git cat-file -t $tag) == tag ]] && echo -n "$tag "; done) )
 	local RES
@@ -153,7 +153,7 @@ git_version()
 		# No annotated tags found.
 		# Use the branch-gSHA1 notation
 
-		local BRANCH=$(_get_best_branch "$REF") 
+		local BRANCH=$(_get_best_branch "$REF")
 		local ABBRSHA=$(git rev-parse --short=10 "$REF^{}")
 		if [[ -z $BRANCH ]]; then
 			# Commit is not on any branch (orphaned)
@@ -214,7 +214,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 		ut "_earliest_version 1.2.1 1.2a.2" == "1.2.1"
 		ut "_earliest_version 1.2a.2 1.2a.1" == "1.2a.1"
 		ut "_earliest_version 1.2a.2 1.2b.1" == "1.2a.2"
-		
+
 		echo
 	}
 
@@ -235,21 +235,21 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				COMMIT0=$(git rev-parse --short=10 HEAD)
 				_git_add_commit README
 				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
-	
+
 				ut0 Version on dirty commit
 				echo "stuff" >> README
 				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)-dirty"
 				git reset --hard -q
-	
+
 				ut0 Version for commit on branch
 				git checkout -q -b next
 				_git_add_commit next
 				ut "git_version --dirty" == "next-g$(git rev-parse --short=10 HEAD)"
-	
+
 				ut0 Version for commit on two branches
 				git checkout -q master
 				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
-	
+
 				ut0 "Version for commit on branch (2)"
 				git checkout -q next
 				git checkout -q -b next2
@@ -319,7 +319,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut0 Annotated and non-annotated tags on HEAD
 				git tag -a 2.0 -m "Version 2.0"
 				ut "git_version --dirty" == "2.0"
-				
+
 				ut0 Non-conforming annotated tag, on cmdline
 				ut "git_version w.2015.33" == "2.0"
 
@@ -364,7 +364,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				_git_add_commit newfile2
 				git tag -a 3.0 -m "Version 3.0"
 				ut "git_version --dirty" == "3.0"
-				
+
 				ut0 Version of orphaned commit
 				_git_add_commit newfile3
 				REF=$(git rev-parse --short=10 HEAD)

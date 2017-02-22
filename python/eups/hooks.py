@@ -1,5 +1,5 @@
 """
-Module that enables user configuration and hooks.  
+Module that enables user configuration and hooks.
 """
 from __future__ import absolute_import, print_function
 import os
@@ -9,12 +9,12 @@ import eups
 import eups.exceptions
 from .VersionCompare import VersionCompare
 
-# the function to use to compare two version.  The user may reset this 
+# the function to use to compare two version.  The user may reset this
 # to provide a different algorithm.
 version_cmp = VersionCompare()
 
-# a function for setting fallback flavors.  This function is callable by 
-# the user.  
+# a function for setting fallback flavors.  This function is callable by
+# the user.
 setFallbackFlavors = utils.Flavor().setFallbackFlavors
 
 # See after this function for the default definitions of properties
@@ -22,11 +22,11 @@ setFallbackFlavors = utils.Flavor().setFallbackFlavors
 def defineProperties(names, parentName=None):
     """
     return a ConfigProperties instance defined with the given names.
-    @param  names       the names of the properties to define, given as a 
-                          space-delimited string or as a list of strings.  
-    @param  parentName  the fully-qualified name of the parent property.  
+    @param  names       the names of the properties to define, given as a
+                          space-delimited string or as a list of strings.
+    @param  parentName  the fully-qualified name of the parent property.
                           Provide this if this is defining a non-top-level
-                          property.  
+                          property.
     """
     if utils.is_string(names):
         names = names.split()
@@ -80,10 +80,10 @@ config.site.lockDirectoryBase = _defaultLockDirectoryBase
 
 # it is expected that different Distrib classes will have different set-able
 # properties.  The key for looking up Distrib-specific data should be the Distrib
-# name.  
+# name.
 config.distrib = {}
 config.distrib["builder"] = dict(variables = {})
-    
+
 config.Eups.startupFileName = "startup.py"
 
 #
@@ -110,7 +110,7 @@ def loadCustomizationFromDir(customDir, verbose=0, log=utils.stdinfo, execute=Fa
     if not filename:
         filename = config.Eups.startupFileName
 
-    configFiles = [] 
+    configFiles = []
     startup = os.path.join(customDir, filename)
     if not os.path.exists(startup):
         if verbose:
@@ -149,18 +149,18 @@ except NameError:
 def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, path=[], reset=False,
                       filename=None, includeAllFiles=False):
     """
-    load all site and/or user customizations.  Customizations comes from a startup script file.  
+    load all site and/or user customizations.  Customizations comes from a startup script file.
 
-    This function looks for customizations first in a site directory.  By 
-    default this is $EUPS_DIR/site; however, it can be overridden with the 
+    This function looks for customizations first in a site directory.  By
+    default this is $EUPS_DIR/site; however, it can be overridden with the
     $EUPS_SITEDATA.  Next it looks for customizations in a user directory
     with is $HOME/.eups by default but can be overridden with $EUPS_USERDATA.
     In each of these directories a startup script called, "startup.py"
     is searched for and loaded
 
-    Finally, additional startup scripts can be run if $EUPS_STARTUP.  This 
+    Finally, additional startup scripts can be run if $EUPS_STARTUP.  This
     environment variable contains a colon-delimited list of script file.  Each
-    is executed in order.  
+    is executed in order.
 
     @param verbose    the verbosity level
     @param log        where to write log messages
@@ -170,7 +170,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
     @param filename   Name of file to search (default: config.Eups.startupFileName).
     @params includeAllFiles If execute is False, include all the files in the directory in the return list
     """
-        
+
     if not filename:
         filename = config.Eups.startupFileName
 
@@ -193,7 +193,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
 
     for d in path:
         customisationDirs.append(os.path.join(d, "site"))
-        
+
     # ~/.eups can have user configuration stuff in it
     if "EUPS_USERDATA" in os.environ:
         customisationDirs.append(os.environ["EUPS_USERDATA"])
@@ -218,7 +218,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
                     print("Startup file %s doesn't exist" % (startupFile))
             else:
                 try:
-                    if execute: 
+                    if execute:
                         execute_file(startupFile)
 
                     customisationFiles.append(startupFile)
@@ -234,7 +234,7 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
 def execute_file(startupFile):
     import eups
     from eups import hooks
-    from .VersionCompare import VersionCompare    
+    from .VersionCompare import VersionCompare
 
     _globals = {}
     for key in globals().keys():
@@ -267,7 +267,7 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
 
     fd = open(configFile)
     lineno = 0
-    try: 
+    try:
         for line in fd:
             lineno += 1
             line = commre.sub('', line).strip()
@@ -282,7 +282,7 @@ def loadConfigProperties(configFile, verbose=0, log=utils.stdinfo):
             name, op, val = parts
             if op == ":":
                 op = "="
-                
+
             val = re.sub(r"(^['\"]|['\"]\s*$)", "", val) # strip leading/trailing quotes
 
             # turn property name into an attribute of hooks.config

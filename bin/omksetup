@@ -119,7 +119,7 @@ fi
 function setup   { source `$binname setup \$@`; };   export -f setup
 function unsetup { source `$binname unsetup \$@`; }; export -f unsetup
 EOT
-    
+
 if ($aliases[0]) {
    print FILE "alias $aliases[0]=setup\n";
 }

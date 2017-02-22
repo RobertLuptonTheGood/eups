@@ -80,8 +80,8 @@ def getUserName(full=False):
     """
     if 'who' in getUserName.__dict__:
         return getUserName.who[full]
-    # we cache the function output in the dictionary 'who' 
-    
+    # we cache the function output in the dictionary 'who'
+
     euid = os.geteuid()
     try:
         pw = pwd.getpwuid(euid)
@@ -98,12 +98,12 @@ def getUserName(full=False):
             }
     except KeyError:
         print("Warning: getpwuid failed, guessing username from LOGNAME or USER variable", file=stdwarn)
-        key = None 
+        key = None
         if 'LOGNAME' in os.environ:
             key = 'LOGNAME'
         elif 'USER' in os.environ:
             print("Warning: LOGNAME variable undefined, trying USER", file=stdwarn)
-            key = 'USER'    
+            key = 'USER'
         if key is None:
             print("Cannot find out the user name. getpwuid failed and neither LOGNAME nor USER environment variable is defined. Assuming '(unknown user)'", file=stdwarn)
             getUserName.who = dict(zip([False,True],['(unkwnown user)']*2))
@@ -112,7 +112,7 @@ def getUserName(full=False):
 
     return getUserName.who[full]
 
-            
+
 def _svnRevision(file=None, lastChanged=False):
     """Return file's Revision as a string; if file is None return
     a tuple (oldestRevision, youngestRevision, flags) as reported
@@ -151,7 +151,7 @@ def version():
     eups_dir = os.environ.get("EUPS_DIR", ".")
     dot_git = os.path.join(eups_dir, ".git")
     dot_version = os.path.join(eups_dir, "git.version")
-    
+
     if not os.path.exists(dot_git):
         if os.path.exists(dot_version):
             version = open(dot_version).readline().strip()
@@ -171,11 +171,11 @@ def version():
 
 def debug(*args, **kwargs):
     """
-    Print args to stderr; useful while debugging as we source the stdout 
+    Print args to stderr; useful while debugging as we source the stdout
     when setting up.  Specify eol=False to suppress newline"""
 
     print("Debug:", end=' ', file=stdinfo) # make sure that this routine is only used for debugging
-    
+
     for a in args:
         print(a, end=' ', file=stdinfo)
 
@@ -184,10 +184,10 @@ def debug(*args, **kwargs):
 
 def deprecated(msg, quiet=False, strm=None):
     """
-    Inform the user that an deprecated API was employed.  Currently, this is 
+    Inform the user that an deprecated API was employed.  Currently, this is
     done by printing a message, but in the future, it might raise an exception.
     @param msg     the message to print
-    @param quiet   if true, this message will not be printed.  
+    @param quiet   if true, this message will not be printed.
     @param strm    the stream to write to (default: utils.stdinfo)
     """
     # Note quiet as bool converts transparently to int (0 or 1)
@@ -222,7 +222,7 @@ def setupEnvPrefix():
 
 def setupEnvNameFor(productName):
     """
-    return the name of the environment variable that provides the 
+    return the name of the environment variable that provides the
     setup information for a product.  This is of the form "setupEnvPrefix() + prod".
     """
     name = setupEnvPrefix() + productName.upper()
@@ -238,11 +238,11 @@ def setupEnvNameFor(productName):
 
 def userStackCacheFor(eupsPathDir, userDataDir=None):
     """
-    return cache directory for a given EUPS product stack in the user's 
+    return cache directory for a given EUPS product stack in the user's
     data directory.  None is returned if a directory cannot be determined
     @param eupsPathDir   the product stack to return a cache directory for
     @param userDataDir   the user's personal data directory.  If not given,
-                            it is set to the value returned by 
+                            it is set to the value returned by
                             defaultUserDataDir() (by default ~/.eups).
     """
     if not userDataDir:
@@ -254,8 +254,8 @@ def userStackCacheFor(eupsPathDir, userDataDir=None):
 
 def defaultUserDataDir(user=""):
     """
-    return the default user data directory.  This will be the value of 
-    $EUPS_USERDATA if set; otherwise, it is ~/.eups. 
+    return the default user data directory.  This will be the value of
+    $EUPS_USERDATA if set; otherwise, it is ~/.eups.
     """
 
     if not user and "EUPS_USERDATA" in os.environ:
@@ -278,7 +278,7 @@ def ctimeTZ(t=None):
 
 def isRealFilename(filename):
     """
-    Return True iff "filename" is a real filename, not a placeholder.  
+    Return True iff "filename" is a real filename, not a placeholder.
     It need not exist.  The following names are considered placeholders:
     ["none", "???", "(none)"].
     """
@@ -288,12 +288,12 @@ def isRealFilename(filename):
         return False
     else:
         return True
-    
+
 def isDbWritable(dbpath):
     """
     return true if the database is updatable.  A non-existent
     directory is considered not writable.  If the path is not a
-    directory, an exception is raised.  
+    directory, an exception is raised.
 
     The database must be writable to:
       o  declare new products
@@ -303,13 +303,13 @@ def isDbWritable(dbpath):
     return os.access(dbpath, (os.F_OK|os.R_OK|os.W_OK))
 
 def findWritableDb(pathdirs, ups_db):
-    """return the first directory in the eups path that the user can install 
+    """return the first directory in the eups path that the user can install
     stuff into
     """
     if is_string(pathdirs):
         pathdirs = pathdirs.split(':')
     if not isinstance(pathdirs, list):
-        raise TypeError("findWritableDb(): arg is not list or string: " + 
+        raise TypeError("findWritableDb(): arg is not list or string: " +
                         pathdirs)
     for path in pathdirs:
         if isDbWritable(os.path.join(path, ups_db)):
@@ -319,7 +319,7 @@ def findWritableDb(pathdirs, ups_db):
 
 def determineFlavor():
     """Return the current flavor"""
-    
+
     if "EUPS_FLAVOR" in os.environ:
         return os.environ["EUPS_FLAVOR"]
 
@@ -349,8 +349,8 @@ def determineFlavor():
     else:
         raise RuntimeError("Unknown flavor: (%s, %s)" % (uname, mach))
 
-    return flav    
-    
+    return flav
+
 def guessProduct(dir, productName=None):
     """Guess a product name given a directory containing table files.  If you provide productName,
     it'll be chosen if present; otherwise if dir doesn't contain exactly one product we'll raise RuntimeError"""
@@ -368,7 +368,7 @@ def guessProduct(dir, productName=None):
             raise RuntimeError("%s isn't a directory" % dir)
         else:
             raise RuntimeError("%s doesn't seem to exist" % dir)
-            
+
     productNames = [re.sub(r".*/([^/]+)\.table$", r"\1", t) for t in glob.glob(os.path.join(dir, "*.table"))]
 
     if not productNames:
@@ -411,10 +411,10 @@ class Flavor(object):
             Flavor._fallbackFlavors = {}
 
             self.setFallbackFlavors(None)
-        
+
     def setFallbackFlavors(self, flavor=None, fallbackList=None):
         """
-        Set a list of alternative flavors to be used if a product can't 
+        Set a list of alternative flavors to be used if a product can't
         be found with the given flavor.  The defaults are set in hooks.py
         """
         if fallbackList is None:
@@ -423,10 +423,10 @@ class Flavor(object):
 
     def getFallbackFlavors(self, flavor=None, includeMe=False):
         """
-        Return the list of alternative flavors to use if the specified 
+        Return the list of alternative flavors to use if the specified
         flavor is unavailable.  The alternatives to None are always available
 
-        If includeMe is true, include flavor as the first element 
+        If includeMe is true, include flavor as the first element
         of the returned list of flavors
         """
         try:
@@ -439,10 +439,10 @@ class Flavor(object):
 
         return fallbacks
 
-# Note: setFallbackFlavors is made available to our beloved users via 
+# Note: setFallbackFlavors is made available to our beloved users via
 # eups/__init__.py
-# 
-# setFallbackFlavors = Flavor().setFallbackFlavors 
+#
+# setFallbackFlavors = Flavor().setFallbackFlavors
 
 class Quiet(object):
     """A class whose members, while they exist, make Eups quieter"""
@@ -456,21 +456,21 @@ class Quiet(object):
 
 class ConfigProperty(object):
     """
-    This class emulates a properties used in configuration files.  It 
-    represents a set of defined property names that are accessible as 
+    This class emulates a properties used in configuration files.  It
+    represents a set of defined property names that are accessible as
     attributes.  The names of the attributes are locked in at construction
     time.  If an attribute value is itself contains a ConfigProperty, that
     value cannot be over-written.  If one attempts to either over-write a
-    ConfigProperty instance or set a non-existent attribute, an 
-    AttributeError will not be raised; instead, an error message is 
-    written and the operation is otherwise ignored.  
+    ConfigProperty instance or set a non-existent attribute, an
+    AttributeError will not be raised; instead, an error message is
+    written and the operation is otherwise ignored.
     """
     def __init__(self, attrnames, parentName=None):
         """
         define up the properties as attributes.
         @param attrnames    a list of property names to define as attributes
-        @param parentName   a dot-delimited name of the parent property; if 
-                               None (default), the property is assumed to 
+        @param parentName   a dot-delimited name of the parent property; if
+                               None (default), the property is assumed to
                                have no parent.
         @param errstrm      a file stream to write error messages to.
         """
@@ -481,7 +481,7 @@ class ConfigProperty(object):
 
     def setType(self, name, typ):
         if name not in self.__dict__:
-            raise AttributeError(self._errmsg(name, 
+            raise AttributeError(self._errmsg(name,
                                               "No such property name defined"))
         if not callable(typ):
             raise ValueError(self._errmsg(name, "setType(): type not callable"))
@@ -489,10 +489,10 @@ class ConfigProperty(object):
 
     def __setattr__(self, name, value):
         if name not in self.__dict__:
-            raise AttributeError(self._errmsg(name, 
+            raise AttributeError(self._errmsg(name,
                                               "No such property name defined"))
         if isinstance(getattr(self, name), ConfigProperty):
-            raise AttributeError(self._errmsg(name, 
+            raise AttributeError(self._errmsg(name,
                             "Cannot over-write property with sub-properties"))
         types = object.__getattribute__(self,'_types')
         if name in types:
@@ -541,12 +541,12 @@ def canPickle():
 
 def createTempDir(path):
     """
-    Create and return a temporary directory ending in some path.  
+    Create and return a temporary directory ending in some path.
 
     Typically this path will be created under /tmp; however, this base
     directory is controlled by the python module, tempfile.
 
-    @param path  the path to create a temporary directory for. 
+    @param path  the path to create a temporary directory for.
     """
     tmpdir = os.path.dirname(tempfile.NamedTemporaryFile().name) # directory that tempfile's using
     path = re.sub(r"^/", "", path)      # os.path.join won't work if path is an absolute path
@@ -563,7 +563,7 @@ def createTempDir(path):
             if not d: continue
 
             dir = os.path.join(dir, d)
-            
+
             if not os.path.isdir(dir):
                 os.mkdir(dir)
                 os.chmod(dir, 0o777)
@@ -669,7 +669,7 @@ class Color(object):
         suffix = base + "m"
 
         return prefix + self.rawText + suffix
-    
+
 class coloredFile(object):
     """Like sys.stderr, but colourize text first"""
 
@@ -829,7 +829,7 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
             else:
                 s = "s"
             print("Detected cycle%s: %s" % (s, msg), file=stdwarn)
-            
+
         if checkCycles:
             raise RuntimeError("".join(msg))
     #
@@ -900,7 +900,7 @@ class AtomicFile(object):
 
         Constructor arguments:
             fn:      filename (string)
-          mode:      the read/write mode (string), must be equal to 
+          mode:      the read/write mode (string), must be equal to
                      "w" or "wb", for now
 
         Return value:
@@ -915,17 +915,17 @@ class AtomicFile(object):
         (self._fh, self._tmpfn) = tempfile.mkstemp(suffix='.tmp', dir=dir)
         self._fp = os.fdopen(self._fh, mode)
 
-    def __getattr__(self, name): 
+    def __getattr__(self, name):
         try:
             return object.__getattr__(self, name)
         except AttributeError:
             return getattr(self._fp, name)
 
-    def __setattr__(self, name, value): 
+    def __setattr__(self, name, value):
         if name.startswith('_'):
             return object.__setattr__(self, name, value)
         else:
-            return setattr(self._fp, name, value) 
+            return setattr(self._fp, name, value)
 
     def close(self):
         os.fsync(self._fh)  # Needed because fclose() doesn't guarantee fsync()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Tests for selected app functions.  Note that functions from the eups.app 
-module are imported into the eups module.  Note also the most of these 
+Tests for selected app functions.  Note that functions from the eups.app
+module are imported into the eups module.  Note also the most of these
 functions are tested via testCmd.py
 """
 
@@ -33,10 +33,10 @@ class AppTestCase(unittest.TestCase):
         if "SETUP_PYTHON" in os.environ:
             del os.environ["SETUP_PYTHON"]
 
-        self.assert_(eups.productDir("python") is None, 
+        self.assert_(eups.productDir("python") is None,
                      "found unsetup product")
 
-        pdir = os.path.join(testEupsStack, os.environ["EUPS_FLAVOR"], 
+        pdir = os.path.join(testEupsStack, os.environ["EUPS_FLAVOR"],
                             "python", "2.5.2")
         dir = eups.productDir("python", "2.5.2")
         self.assertEquals(dir, pdir)
@@ -121,7 +121,7 @@ class TagSetupTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "8.5a4")
         self.assertIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK not set")
         self.assertIn("TCLTK_DIR", os.environ, "TCLTK_DIR not set")
-        self.assertEquals(os.environ["TCLTK_DIR"], prod.dir)        
+        self.assertEquals(os.environ["TCLTK_DIR"], prod.dir)
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
@@ -148,7 +148,7 @@ class TagSetupTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "8.5a4")
         self.assertIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK not set")
         self.assertIn("TCLTK_DIR", os.environ, "TCLTK_DIR not set")
-        self.assertEquals(os.environ["TCLTK_DIR"], prod.dir)        
+        self.assertEquals(os.environ["TCLTK_DIR"], prod.dir)
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
@@ -178,9 +178,9 @@ class TagSetupTestCase(unittest.TestCase):
 """
 setupRequired(python)
 """
-        self.eups.declare("newprod", "1.0", pdir10, testEupsStack, 
+        self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
                           tablefile=StringIO(newprodtable))
-        self.eups.declare("newprod", "2.0", pdir20, testEupsStack, 
+        self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
                           tablefile=StringIO(newprodtable), tag="beta")
         # test the setup
         self.assert_(self.eups.findProduct("newprod", "1.0") is not None, "newprod 1.0 not declared")
@@ -203,7 +203,7 @@ setupRequired(python)
 
         prod = self.eups.findSetupProduct("python")
         self.assert_(prod is not None, "python not setup")
-        self.assertEquals(prod.version, "2.5.2")  # tagged current 
+        self.assertEquals(prod.version, "2.5.2")  # tagged current
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")
         self.assertEquals(os.environ["PYTHON_DIR"], prod.dir)
@@ -255,9 +255,9 @@ setupRequired(python)
 """
 setupRequired(python)
 """
-        self.eups.declare("newprod", "1.0", pdir10, testEupsStack, 
+        self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
                           tablefile=StringIO(newprodtable), tag="current")
-        self.eups.declare("newprod", "2.0", pdir20, testEupsStack, 
+        self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
                           tablefile=StringIO(newprodtable))
         self.eups.assignTag("beta", "python", "2.6")
 
@@ -308,9 +308,9 @@ setupRequired(python 2.5.2 [>= 2.5])
         pyprod = self.eups.getProduct("python", "2.5.2")
         pytdir = pyprod.dir
 
-        self.eups.declare("newprod", "1.0", pdir10, testEupsStack, 
+        self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
                           tablefile=StringIO(newprodtable), tag="current")
-        self.eups.declare("newprod", "2.0", pdir20, testEupsStack, 
+        self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
                           tablefile=StringIO(newprodtable))
         self.eups.declare("python", "test", pytdir, testEupsStack)
         self.eups.assignTag("rhl", "python", "test")

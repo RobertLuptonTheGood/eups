@@ -118,8 +118,8 @@ class ProductFamilyTestCase(unittest.TestCase):
         self.fam.loadTables()
         prod = self.fam.getProduct("3.1")
         self.assert_(prod._table is not None)
-        
-        
+
+
 
 from eups.stack import ProductStack
 from eups import UnderSpecifiedProduct
@@ -129,13 +129,13 @@ class ProductStackTestCase(unittest.TestCase):
     def setUp(self):
         self.dbpath = os.path.join(testEupsStack, "ups_db")
         self.stack = ProductStack(self.dbpath, autosave=False)
-        self.stack.addProduct(Product("fw", "1.2", "Darwin", 
+        self.stack.addProduct(Product("fw", "1.2", "Darwin",
                                       "/opt/sw/Darwin/fw/1.2", "none"))
 
     def testMisc(self):
         self.assertEquals(ProductStack.persistFilename("Linux"),
                           "Linux.pickleDB1_3_0")
-        self.assertEquals(self.stack.getDbPath(), 
+        self.assertEquals(self.stack.getDbPath(),
                           os.path.join(testEupsStack, "ups_db"))
 
     def testGetProductNames(self):
@@ -143,7 +143,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 1)
         self.assertEquals(prods[0], 'fw')
 
-        self.stack.addProduct(Product("afw", "1.2", "Linux", 
+        self.stack.addProduct(Product("afw", "1.2", "Linux",
                                       "/opt/sw/Linux/afw/1.2", "none"))
         prods = self.stack.getProductNames()
         self.assertEquals(len(prods), 2)
@@ -154,7 +154,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 1)
         self.assertEquals(prods[0], 'afw')
 
-        self.stack.addProduct(Product("fw", "1.2", "Linux", 
+        self.stack.addProduct(Product("fw", "1.2", "Linux",
                                       "/opt/sw/Linux/fw/1.2", "none"))
         prods = self.stack.getProductNames()
         self.assertEquals(len(prods), 2)
@@ -169,7 +169,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(vers), 1)
         self.assertEquals(vers[0], '1.2')
 
-        self.stack.addProduct(Product("fw", "1.3", "Linux", 
+        self.stack.addProduct(Product("fw", "1.3", "Linux",
                                       "/opt/sw/Linux/fw/1.3", "none"))
         vers = self.stack.getVersions("fw")
         self.assertEquals(len(vers), 2)
@@ -181,7 +181,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(len(vers), 1)
         self.assertEquals(vers[0], '1.3')
 
-        self.stack.addProduct(Product("fw", "1.2", "Linux", 
+        self.stack.addProduct(Product("fw", "1.2", "Linux",
                                       "/opt/sw/Linux/fw/1.2", "none"))
         vers = self.stack.getVersions("fw")
         self.assertEquals(len(vers), 2)
@@ -199,10 +199,10 @@ class ProductStackTestCase(unittest.TestCase):
                              ProductStack.persistFilename("Darwin"))
         if os.path.exists(cache):  os.remove(cache)
 
-        stack = ProductStack(os.path.join(testEupsStack, "ups_db"), 
+        stack = ProductStack(os.path.join(testEupsStack, "ups_db"),
                              os.environ["PWD"], autosave=True)
         self.assert_(not stack.saveNeeded())
-        stack.addProduct(Product("fw", "1.2", "Darwin", 
+        stack.addProduct(Product("fw", "1.2", "Darwin",
                                  "/opt/sw/Darwin/fw/1.2", "none"))
         self.assert_(not stack.saveNeeded())
         self.assert_(os.path.exists(cache))
@@ -221,7 +221,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assert_(not self.stack.hasProduct("fw", version="1.3"))
 
     def testAddProduct(self):
-        self.assertRaises(TypeError, 
+        self.assertRaises(TypeError,
                           self.stack.addProduct, "fw", "1.2", "Linux")
         self.assertRaises(TypeError, self.stack.addProduct, "fw")
         prod = Product("fw", "1.2")
@@ -239,9 +239,9 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(p.db, os.path.join(testEupsStack, "ups_db"))
         self.assertEquals(len(p.tags), 0)
 
-        self.assertRaises(ProductNotFound, 
+        self.assertRaises(ProductNotFound,
                           self.stack.getProduct, "afw", "1.2", "Linux")
-        self.assertRaises(ProductNotFound, 
+        self.assertRaises(ProductNotFound,
                           self.stack.getProduct, "afw", "1.3", "Darwin")
 
         self.stack.removeProduct("afw", "Darwin", "1.2")
@@ -301,7 +301,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEqual(prod.flavor, "Linux")
         self.assertEqual(prod.db, self.dbpath)
 
-        self.assertRaises(ProductNotFound, 
+        self.assertRaises(ProductNotFound,
                           self.stack.assignTag, "gurn", "goober", "2")
         self.stack.assignTag("beta", "afw", "1.3")
         tags = self.stack.getTags()
@@ -321,11 +321,11 @@ class ProductStackTestCase(unittest.TestCase):
 
     def testSaveEmptyFlavor(self):
         self.stack.clearCache("Linux")
-        cache = os.path.join(self.dbpath, 
+        cache = os.path.join(self.dbpath,
                              ProductStack.persistFilename("Linux"))
         self.assert_(not os.path.exists(cache))
 
-        try: 
+        try:
             self.stack.save("Linux")
             self.assert_(os.path.exists(cache))
             self.stack.reload("Linux")
@@ -346,7 +346,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.stack.clearCache("Linux Linux64 Darwin DarwinX86 generic".split())
         self.assertEquals(len(ProductStack.findCachedFlavors(self.dbpath)),0)
 
-        cache = os.path.join(self.dbpath, 
+        cache = os.path.join(self.dbpath,
                              ProductStack.persistFilename("Darwin"))
         self.assert_(not os.path.exists(cache))
 
@@ -367,7 +367,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEquals(p.dir, "/opt/sw/Darwin/fw/1.2")
         self.assertEquals(p.tablefile, "none")
         self.assertEquals(p.db, self.dbpath)
-        
+
 
         self.stack.clearCache()
         self.assertEquals(len(ProductStack.findCachedFlavors(self.dbpath)),0)
@@ -375,7 +375,7 @@ class ProductStackTestCase(unittest.TestCase):
 
     def testLoadTable(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
-        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", 
+        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2",
                        tablefile)
         self.stack.addProduct(prod)
 
@@ -385,7 +385,7 @@ class ProductStackTestCase(unittest.TestCase):
 
     def testLoadTables(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
-        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", 
+        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2",
                        tablefile)
         self.stack.addProduct(prod)
 
@@ -395,7 +395,7 @@ class ProductStackTestCase(unittest.TestCase):
 
     def testLoadTablesForFlavor(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
-        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", 
+        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2",
                        tablefile)
         self.stack.addProduct(prod)
 
@@ -409,7 +409,7 @@ class ProductStackTestCase(unittest.TestCase):
 
     def testLoadTablesForProd(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
-        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", 
+        prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2",
                        tablefile)
         self.stack.addProduct(prod)
 
@@ -429,7 +429,7 @@ class CacheTestCase(unittest.TestCase):
 
     def setUp(self):
         self.dbpath = os.path.join(testEupsStack, "ups_db")
-        self.cache = os.path.join(self.dbpath, 
+        self.cache = os.path.join(self.dbpath,
                                   ProductStack.persistFilename("Linux"))
         if os.path.exists(self.cache):
             os.remove(self.cache)
@@ -439,7 +439,7 @@ class CacheTestCase(unittest.TestCase):
             os.remove(self.cache)
 
     def testRegen(self):
-        ps = ProductStack.fromCache(self.dbpath, "Linux", autosave=True, 
+        ps = ProductStack.fromCache(self.dbpath, "Linux", autosave=True,
                                     updateCache=True, verbose=False)
         self.assert_(not ps.hasProduct("afw"))
         prod = Product("afw", "1.2", "Darwin", "/opt/sw/Darwin/afw/1.2", "none")
@@ -447,27 +447,27 @@ class CacheTestCase(unittest.TestCase):
         ps.reload("Linux")
         self.assert_(ps.hasProduct("afw"))
         del ps
-        ps = ProductStack.fromCache(self.dbpath, "Linux", autosave=False, 
+        ps = ProductStack.fromCache(self.dbpath, "Linux", autosave=False,
                                     updateCache=True, verbose=False)
         self.assert_(not ps.hasProduct("afw"))
 
     def testDetectOutOfSync(self):
-        ps1 = ProductStack.fromCache(self.dbpath, "Linux", autosave=False, 
+        ps1 = ProductStack.fromCache(self.dbpath, "Linux", autosave=False,
                                      updateCache=True, verbose=1)
-        ps2 = ProductStack.fromCache(self.dbpath, "Linux", autosave=False, 
+        ps2 = ProductStack.fromCache(self.dbpath, "Linux", autosave=False,
                                      updateCache=True, verbose=1)
         time.sleep(1)
-        ps1.addProduct(Product("fw", "1.2", "Linux", 
+        ps1.addProduct(Product("fw", "1.2", "Linux",
                                "/opt/sw/Darwin/fw/1.2", "none"))
         self.assert_(ps1.cacheIsInSync())
         ps1.save()
         self.assert_(ps1.cacheIsInSync())
 
         self.assert_(not ps2.cacheIsInSync())
-        ps2.addProduct(Product("fw", "1.2", "Linux", 
+        ps2.addProduct(Product("fw", "1.2", "Linux",
                                "/opt/sw/Darwin/fw/1.2", "none"))
         self.assertRaises(CacheOutOfSync, ps2.save)
-        
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def suite(makeSuite=True):

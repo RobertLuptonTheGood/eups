@@ -57,7 +57,7 @@ class EupsTestCase(unittest.TestCase):
                 for file in subdirs:
                     os.rmdir(os.path.join(dir,file))
             os.rmdir(newprod)
-                    
+
         pdir = os.path.join(testEupsStack, "Linux", "newprod")
         pdir20 = os.path.join(pdir, "2.0")
         if os.path.exists(pdir20):
@@ -95,11 +95,11 @@ class EupsTestCase(unittest.TestCase):
         for flav in flavors:
             cache = os.path.join(self.eups._userStackCache(testEupsStack),
                                  ProductStack.persistFilename(flav))
-            self.assert_(os.path.exists(cache), 
+            self.assert_(os.path.exists(cache),
                          "Cache file for %s not written" % flav)
-        
+
     def testPrefTags(self):
-        self.assertRaises(TagNotRecognized, 
+        self.assertRaises(TagNotRecognized,
                           self.eups.setPreferredTags, "goober gurn")
         self.eups.quiet = 1
         orig = self.eups.getPreferredTags()
@@ -134,7 +134,7 @@ class EupsTestCase(unittest.TestCase):
         # look for non-existent name-version combo
         prod = self.eups.findProduct("eigen", "2.0.1")
         self.assert_(prod is None, "Found non-existent version")
-                     
+
         # find by name, version
         prod = self.eups.findProduct("eigen", "2.0.0")
         self.assert_(prod is not None, "Failed to find product")
@@ -198,7 +198,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "2.5.2")
         self.assertEquals(prod.flavor,  "Linux")
 
-        self.assertRaises(EupsException, self.eups.findProduct, 
+        self.assertRaises(EupsException, self.eups.findProduct,
                           "python", "= 2.5.2")
 
         # look for a setup version
@@ -221,7 +221,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertIn("beta", prod.tags)
 
         # test unassign of tag to non-existent product
-        self.assertRaises(ProductNotFound, 
+        self.assertRaises(ProductNotFound,
                           self.eups.unassignTag, "beta", "goober")
 
         # test unassign of tag to wrong version
@@ -361,7 +361,7 @@ class EupsTestCase(unittest.TestCase):
         # test undeclare of tagged product
         self.eups.undeclare("newprod", "1.1")
         chainfile = os.path.join(self.dbpath, "newprod", "beta.chain")
-        self.assert_(not os.path.exists(chainfile), 
+        self.assert_(not os.path.exists(chainfile),
                      "undeclared tag file still exists")
         prod = self.eups.findTaggedProduct("newprod", "beta")
         self.assert_(prod is None, "removed tag still assigned")
@@ -384,11 +384,11 @@ class EupsTestCase(unittest.TestCase):
         self.eups.declare("newprod", "1.1", pdir11, testEupsStack, tableStrm)
         prod = self.eups.findProduct("newprod", "1.1")
         self.assert_(prod is not None, "failed to declare newprod 1.1")
-        self.assertEquals(prod.tablefile, 
+        self.assertEquals(prod.tablefile,
                           os.path.join(self.dbpath, "Linux","newprod","1.1", "ups", "newprod.table"))
 
     def testUserTags(self):
-        self.assert_(self.eups.tags.isRecognized("mine"), 
+        self.assert_(self.eups.tags.isRecognized("mine"),
                      "user:mine not recognized")
         prod = self.eups.getProduct("python", "2.5.2")
         self.assertNotIn("user:mine", prod.tags, "user:mine already assigned")
@@ -408,7 +408,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(prods[0].version, "2.5.2")
         self.assertEquals(prods[1].name, "python")
         self.assertEquals(prods[1].version, "2.6")
-        
+
         prods = self.eups.findProducts("python", tags="latest")
         self.assertEquals(len(prods), 1)
         self.assertEquals(prods[0].name, "python")
@@ -438,7 +438,7 @@ class EupsTestCase(unittest.TestCase):
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']
         prods = self.eups.findProducts()
         self.assertEquals(len(prods), 7)
-        
+
         prods = self.eups.findProducts("python", tags="setup")
         self.assertEquals(len(prods), 0)
 
@@ -449,7 +449,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEquals(len(prods), 1)
         self.assertEquals(prods[0].name, "doxygen")
         self.assertEquals(prods[0].version, "1.5.7.1")
-        prods = self.eups.findProducts("doxygen", 
+        prods = self.eups.findProducts("doxygen",
                                        flavors="Linux Linux64".split())
         self.assertEquals(len(prods), 2)
         self.assertEquals(prods[0].name, "doxygen")
@@ -466,7 +466,7 @@ class EupsTestCase(unittest.TestCase):
         del q
 
     def testSetup(self):
-        # test getSetupProducts(), findSetupProduct(), findProducts(), 
+        # test getSetupProducts(), findSetupProduct(), findProducts(),
         # listProducts(), findSetupVersion()
 
         self.environ0 = os.environ.copy()
@@ -511,7 +511,7 @@ class EupsCacheTestCase(unittest.TestCase):
         os.environ["EUPS_FLAVOR"] = "Linux"
         os.environ["EUPS_USERDATA"] = os.path.join(testEupsStack,"_userdata_")
         self.dbpath = os.path.join(testEupsStack, "ups_db")
-        self.cache = os.path.join(self.dbpath, 
+        self.cache = os.path.join(self.dbpath,
                                   ProductStack.persistFilename("Linux"))
         if os.path.exists(self.cache):
             os.remove(self.cache)
@@ -531,7 +531,7 @@ class EupsCacheTestCase(unittest.TestCase):
                 for file in subdirs:
                     os.rmdir(os.path.join(dir,file))
             os.rmdir(newprod)
-                    
+
         if os.path.exists(self.betachain):
             os.remove(self.betachain)
 

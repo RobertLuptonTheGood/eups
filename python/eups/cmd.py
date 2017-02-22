@@ -1,5 +1,5 @@
 """
-functions for processing the eups command-line.  See in-line comments for 
+functions for processing the eups command-line.  See in-line comments for
 how to add new commands.
 
 To run an eups command from Python, try:
@@ -13,21 +13,21 @@ To run an eups command from Python, try:
 The output of run() is a status code appropriate for passing to sys.exit().
 """
 #######################################################################
-# 
+#
 #  Adding new commands:
-#  1.  Add a new EupsCmd sub-class; see FlavorCmd and ListCmd as 
+#  1.  Add a new EupsCmd sub-class; see FlavorCmd and ListCmd as
 #      examples
 #      a. provide a specialized usage template
 #      b. provide a specialized command description
-#      c. over-ride addOptions() to define additional options beyond 
-#           the common set.  
+#      c. over-ride addOptions() to define additional options beyond
+#           the common set.
 #      d. over-ride the execute() function.  self.opts and self.args
-#           contains the options and arguments following the command, 
+#           contains the options and arguments following the command,
 #           respectively.
-#      (Note that adding additional distrib subcommands is slightly 
+#      (Note that adding additional distrib subcommands is slightly
 #      different.)
-#  2.  Register the class via register().  See REGISTER below (at end 
-#      of file.  
+#  2.  Register the class via register().  See REGISTER below (at end
+#      of file.
 #
 ########################################################################
 
@@ -53,16 +53,16 @@ class EupsCmd(object):
 
     The eups tool is a family of command of the form "eups cmd ..."
     where cmd is the name of an operation to execute.  Each tool has its
-    own set of appropriate command-line options associated with it.  
+    own set of appropriate command-line options associated with it.
 
-    This particular class serves two purposes: to handle tool evocations 
-    that do not include a command, and to serve as a base class for 
-    specializations that handle each command.  
+    This particular class serves two purposes: to handle tool evocations
+    that do not include a command, and to serve as a base class for
+    specializations that handle each command.
     """
 
     usage = "%prog [--debug=OPTS|-h|--help|-V|--version|--vro] command [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = True
 
@@ -73,7 +73,7 @@ Supported commands are:
 	admin		Administer the eups system
 	declare		Declare a product
 	distrib		Install a product from a remote distribution,
-			or create such a distribution 
+			or create such a distribution
 	expandbuild	Expand variables in a build file
 	expandtable	Insert explicit version tags into a table file
 	flags		Show the value of \$EUPS_FLAGS
@@ -87,12 +87,12 @@ Supported commands are:
         startup         List files used (or potentially used) to configure eups
         tags            List information about supported and known tags
 	undeclare	Undeclare a product
-        uses            List everything which depends on the specified product 
+        uses            List everything which depends on the specified product
                         and version
 	vro             Show the Version Resolution Order that would be used
 
-Use -h with a command name to see a detailed description, inluding options, 
-for that command.  
+Use -h with a command name to see a detailed description, inluding options,
+for that command.
 
 Common"""
 
@@ -138,7 +138,7 @@ Common"""
     def execute(self):
         """
         execute this command, returning an exit code.  A successful operation
-        should return 0.  
+        should return 0.
         """
 
         if self.cmd is None:
@@ -177,8 +177,8 @@ Common"""
 
     def __init__(self, args=None, toolname=None, cmd=None, lockType=lock.LOCK_EX):
         """
-        @param args       the list of command-line arguments, in order, and 
-                           including the option switches.  Defaults to 
+        @param args       the list of command-line arguments, in order, and
+                           including the option switches.  Defaults to
                            sys.argv[1:]
         @param toolname   the name to give to the EUPS tool.  Defaults to
                            os.path.basename(sys.argv[0]) or "eups".
@@ -196,12 +196,12 @@ Common"""
             args = sys.argv[1:]
         self.clargs = args[:]
 
-        self.clo = EupsOptionParser(self._errstrm, self.usage, 
-                                    self.description, 
+        self.clo = EupsOptionParser(self._errstrm, self.usage,
+                                    self.description,
                                     not self.noDescriptionFormatting,
                                     self.prog)
 
-        # this allows us to process just the core switches without 
+        # this allows us to process just the core switches without
         # generating an error if command line includes non-core
         if self._issubclass():
             self.clo.enable_interspersed_args()
@@ -255,9 +255,9 @@ Common"""
 
     def err(self, msg, volume=0):
         """
-        print an error message to standard error.  The message will only 
+        print an error message to standard error.  The message will only
         be printed if "-q" was not set and volume <= the number of "-v"
-        arguments provided. 
+        arguments provided.
         """
         if not self.opts.quiet and self.opts.verbose >= volume:
             self._errstrm.write(self.prog)
@@ -267,7 +267,7 @@ Common"""
 
     def deprecated(self, msg, volume=1):
         """
-        indicate that deprecated arguments were used.  This currently is 
+        indicate that deprecated arguments were used.  This currently is
         implemented to print the message to sys.stderr, but in the future,
         it could raise an exception or otherwise cause a fatal error.
         """
@@ -312,8 +312,8 @@ Common"""
         else:
             force = None
 
-        myeups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz, 
-                         readCache=readCache, force=force, 
+        myeups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz,
+                         readCache=readCache, force=force,
                          ignore_versions=ignorever, setupType=setupType, cmdName=self.cmd,
                          keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
@@ -322,16 +322,16 @@ Common"""
             productDir = opts.productDir
         else:
             productDir = None
-            
+
         if hasattr(opts, "tag") and opts.tag:
             tag = opts.tag
             if utils.is_string(tag):
                 tag = [tag]
         else:
             tag = None
-        
+
         myeups.selectVRO(tag, productDir, versionName, opts.dbz)
-        
+
         if True or (tag and myeups.isUserTag(tag[0])): # we always need the local definitions
             myeups.includeUserDataDirInPath()
 
@@ -360,10 +360,10 @@ class CommandCallbacks(object):
     def add(self, callback):
         """
         Add a command callback.
-        
+
         The arguments are the command (e.g. "admin" if you type "eups admin")
         and sys.argv, which you may modify;  cmd == argv[1] if len(argv) > 1 otherwise None
-        
+
         E.g.
         if cmd == "fetch":
             argv[1:2] = ["distrib", "install"]
@@ -391,14 +391,14 @@ try:
     type(commandCallbacks)
 except NameError:
     commandCallbacks = CommandCallbacks()
-        
+
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 class FlavorCmd(EupsCmd):
 
     usage = "%prog flavor [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -411,7 +411,7 @@ is specified, the given flavor will be returned.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", 
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store",
                             help="Assume this target platform flavor (e.g. 'Linux')")
 
     def execute(self):
@@ -425,7 +425,7 @@ class ListCmd(EupsCmd):
 
     usage = "%prog list [-h|--help] [options] [product [version]]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = True
 
@@ -434,11 +434,11 @@ class ListCmd(EupsCmd):
 
 With out any switches or arguments, it will list all of the products
 available from all EUPS product stacks in EUPS_PATH.  The output can
-be restricted to particular stacks via the -Z or -z options.  If the 
+be restricted to particular stacks via the -Z or -z options.  If the
 product argument is provided, only products with that name are listed.
 The listing is further restrict to a specific version by providing the
-version argument.  The -t option allows the listing to be restrict to 
-products that have been tagged with the given name.  
+version argument.  The -t option allows the listing to be restrict to
+products that have been tagged with the given name.
 
 Normally for each product, printed will be the product name, version,
 its currently assigned tags, and whether it is currently setup.  If -v
@@ -466,9 +466,9 @@ will also be printed.
                             help="Follow the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("--name", dest="showName", action="store_true", default=False,
                             help="Print the product's name")
-        self.clo.add_option("-r", "--root", dest="productDir", action="store", 
+        self.clo.add_option("-r", "--root", dest="productDir", action="store",
                             help="root directory where product is installed")
-        self.clo.add_option("--raw", action="store_true", 
+        self.clo.add_option("--raw", action="store_true",
                             help="generate \"raw\" output (suitable for further processing)")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
                             help="List only product's that are setup.")
@@ -492,7 +492,7 @@ will also be printed.
         if len(self.args) > 1:
             version = self.args[1]
 
-        if self.opts.currentTag: 
+        if self.opts.currentTag:
             if not self.opts.tag:
                 self.opts.tag = []
             self.opts.tag.append("current")
@@ -502,13 +502,13 @@ will also be printed.
             print("Ignoring --depth as it only makes sense with --dependencies", file=utils.stdwarn)
 
         try:
-            n = eups.printProducts(sys.stdout, product, version, 
+            n = eups.printProducts(sys.stdout, product, version,
                                    self.createEups(self.opts, versionName=version),
-                                   tags=self.opts.tag, 
-                                   setup=self.opts.setup, 
-                                   tablefile=self.opts.tablefile, 
-                                   directory=self.opts.printdir, 
-                                   dependencies=self.opts.depends, 
+                                   tags=self.opts.tag,
+                                   setup=self.opts.setup,
+                                   tablefile=self.opts.tablefile,
+                                   directory=self.opts.printdir,
+                                   dependencies=self.opts.depends,
                                    showVersion=self.opts.version, showName=self.opts.showName,
                                    depth=self.opts.depth,
                                    productDir=self.opts.productDir, topological=self.opts.topological,
@@ -536,7 +536,7 @@ class FlagsCmd(EupsCmd):
 
     usage = "%prog flags [-h|--help]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -546,10 +546,10 @@ class FlagsCmd(EupsCmd):
 
     def execute(self):
         if not self.opts.quiet:
-            try: 
+            try:
                 print("EUPS_FLAGS == %s" % (os.environ["EUPS_FLAGS"]))
             except KeyError:
-                print("You have no EUPS_FLAGS set") 
+                print("You have no EUPS_FLAGS set")
         return 0
 
 class EnvListCmd(EupsCmd):
@@ -572,7 +572,7 @@ class EnvListCmd(EupsCmd):
                     self.which = int(self.which)
                 elems = [elems[self.which]]
             except IndexError:
-                self.err("%s does not have an element at position %s" % 
+                self.err("%s does not have an element at position %s" %
                          (self.what, self.which))
                 return 1
             except ValueError:
@@ -590,7 +590,7 @@ class PathCmd(EnvListCmd):
 
     usage = "%prog path [-h|--help] [n]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -621,7 +621,7 @@ class StartupCmd(EnvListCmd):
 
     usage = "%prog startup [-h|--help]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -640,7 +640,7 @@ that would be loaded [in brackets].
 
         for f in hooks.loadCustomization(execute=False, verbose=self.opts.verbose,
                                          quiet=self.opts.quiet, path=path, reset=True, includeAllFiles=True):
-            
+
             if not self.opts.verbose and os.stat(f).st_size == 0:
                 continue
 
@@ -656,7 +656,7 @@ class PkgrootCmd(EnvListCmd):
 Deprecated:  Use eups distrib path
 """
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -669,14 +669,14 @@ integer argument, n, will cause just the n-th URL to be listed (where
     def __init__(self, **kwargs):
         EnvListCmd.__init__(self, **kwargs)
         self.deprecated("this command is deprecated; please use eups distrib path")
-        
+
         self._init("EUPS_PKGROOT", "|")
 
 class PkgconfigCmd(EupsCmd):
 
     usage = "%prog pkgconfig [-h|--help] [options] product [version]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -743,13 +743,13 @@ class PkgconfigCmd(EupsCmd):
 
         if product:
             PKG_CONFIG_PATH += [os.path.join(product.dir, "etc")]
-        
+
         if not PKG_CONFIG_PATH:
             if versionName:
                 self.err("Unable to find %s %s" % (productName, versionName))
                 return 3
             else:
-                self.err("No version of %s is either setup or current" % 
+                self.err("No version of %s is either setup or current" %
                          (productName))
                 return 4
 
@@ -790,7 +790,7 @@ class PkgconfigCmd(EupsCmd):
                 mat = re.search(r"^\s*%s\s*:\s*(.*)" % desired, line, re.IGNORECASE)
                 if mat:
                     value = mat.group(1)
-                    
+
                     mat = re.search(r"(?:^|[^$])\${([^\}]+)}", value)
                     if mat:
                         var = mat.group(1)
@@ -811,7 +811,7 @@ class UsesCmd(EupsCmd):
 
     usage = "%prog uses [-h|--help] [options] product [version]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -821,15 +821,15 @@ class UsesCmd(EupsCmd):
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-d", "--depth", dest="depth", action="store", type="int", default=9999, 
+        self.clo.add_option("-d", "--depth", dest="depth", action="store", type="int", default=9999,
                             help="Only search down this many layers of dependency")
-        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Consider the as-installed versions, not the dependencies in the table file ")
-        self.clo.add_option("-o", "--optional", dest="optional", action="store_true", default=False, 
+        self.clo.add_option("-o", "--optional", dest="optional", action="store_true", default=False,
                             help="Show optional setups")
-        self.clo.add_option("--pickle", dest="pickleFile", action="store", 
+        self.clo.add_option("--pickle", dest="pickleFile", action="store",
                             help="Pickle the \"User\" data to pickleFile (or read it if it starts <)")
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
                             help="Look for products that get setup because it has this tag")
 
         # always call the super-version so that the core options are set
@@ -838,9 +838,9 @@ class UsesCmd(EupsCmd):
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
-        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
+        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
                             help="(deprecated)")
-        
+
 
     def execute(self):
         version = None
@@ -852,8 +852,8 @@ class UsesCmd(EupsCmd):
             version = self.args[1]
 
         try:
-            eups.printUses(sys.stdout, product, version, self.createEups(), 
-                           depth=self.opts.depth, 
+            eups.printUses(sys.stdout, product, version, self.createEups(),
+                           depth=self.opts.depth,
                            showOptional=self.opts.optional,
                            tags=self.opts.tag, pickleFile=self.opts.pickleFile)
         except eups.EupsException as e:
@@ -866,7 +866,7 @@ class ExpandbuildCmd(EupsCmd):
 
     usage = "%prog expandbuild [-h|--help] [options] buildFile -V version [outdir]]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -879,13 +879,13 @@ otherwise it'll be written to stdout unless you specify --inplace.
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-c", "--cvs", dest="cvsroot", action="store", 
+        self.clo.add_option("-c", "--cvs", dest="cvsroot", action="store",
                             help="A CVS root URL to find source code under")
-        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true", 
+        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true",
                             help="Modify the given buildfile in situ")
         self.clo.add_option("-p", "--product", dest="prodname", action="store", default="",
                             help="The name of the product that the build file is for")
-        self.clo.add_option("-s", "--svn", dest="svnroot", action="store", 
+        self.clo.add_option("-s", "--svn", dest="svnroot", action="store",
                             help="An SVN root URL to find source code under")
 
         # always call the super-version so that the core options are set
@@ -894,15 +894,15 @@ otherwise it'll be written to stdout unless you specify --inplace.
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
-        self.clo.add_option("-V", "--version", dest="version", action="store", 
+        self.clo.add_option("-V", "--version", dest="version", action="store",
                             help="The version of the product that the build file is for")
 
-        self.clo.add_option("--repoversion", dest="repoversion", action="store", 
+        self.clo.add_option("--repoversion", dest="repoversion", action="store",
                             help="The version name within the repository")
 
-        self.clo.add_option("--cvsroot", dest="cvsroot", action="store", 
+        self.clo.add_option("--cvsroot", dest="cvsroot", action="store",
                             help="same as --cvs")
-        self.clo.add_option("--svnroot", dest="svnroot", action="store", 
+        self.clo.add_option("--svnroot", dest="svnroot", action="store",
                             help="same as --svn")
 
     def execute(self):
@@ -941,7 +941,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
             try:
                 ifd = open(inFile)
             except IOError as e:
-                self.err('Failed to open file "%s" for read: %s' % 
+                self.err('Failed to open file "%s" for read: %s' %
                          (inFile, str(e)))
                 return 6
 
@@ -953,19 +953,19 @@ otherwise it'll be written to stdout unless you specify --inplace.
             try:
                 ofd = open(outfile, "w")
             except IOError as e:
-                self.err('Failed to open file "%s" for write: %s' % 
+                self.err('Failed to open file "%s" for write: %s' %
                          (outfile, str(e)))
                 return 6
 
         elif self.opts.in_situ:
-            tmpout = os.path.join(os.path.dirname(inFile), 
+            tmpout = os.path.join(os.path.dirname(inFile),
                                   "."+os.path.basename(inFile)+".tmp")
             try:
                 ofd = open(tmpout, "w")
             except IOError as e:
                 outfile = os.path.dirname(tmpout)
                 if not outfile:  outfile = "."
-                self.err('Failed to temporary file in "%s" for write: %s' % 
+                self.err('Failed to temporary file in "%s" for write: %s' %
                          (outfile, str(e)))
                 return 6
 
@@ -974,17 +974,17 @@ otherwise it'll be written to stdout unless you specify --inplace.
 
         try:
           try:
-            eups.expandBuildFile(ofd, ifd, self.opts.prodname, 
-                                 self.opts.version, self.opts.svnroot, 
+            eups.expandBuildFile(ofd, ifd, self.opts.prodname,
+                                 self.opts.version, self.opts.svnroot,
                                  self.opts.cvsroot, self.opts.repoversion,
                                  self.createEups())
           finally:
-            if inFile != "-": ifd.close() 
+            if inFile != "-": ifd.close()
             if outdir or self.opts.in_situ:  ofd.close()
           if tmpout:
             os.rename(tmpout, inFile)
         finally:
-          if tmpout and os.path.exists(tmpout):  
+          if tmpout and os.path.exists(tmpout):
               os.unlink(tmpout)
 
         return 0
@@ -993,13 +993,13 @@ class ExpandtableCmd(EupsCmd):
 
     usage = "%prog expandtable [-h|--help] [options] tablefile [outdir]]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = True
 
     description = \
 """Modify a ups table file, replacing setupRequired and setupOptional
-lines which refer to the current version by the actual version number 
+lines which refer to the current version by the actual version number
 of the currently setup product; e.g.
       setupRequired(astroda)
 becomes
@@ -1013,14 +1013,14 @@ there, with the same name as the original; otherwise it is written to
 standard out unless you specify --inplace, in which case the
 substitution will be done in situ.  You may omit file.table, or
 specify it as "-", to read standard input; this implies --inplace.
-    
+
 For example, the make target in a ups directory might contain the line:
       eups expandtable -w iop.table $(IOP_DIR)/ups
 """
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true", 
+        self.clo.add_option("-i", "--inplace", dest="in_situ", default=False, action="store_true",
                             help="Modify the given tablefile in situ")
         self.clo.add_option("-N", "--noVersionExpressions", dest="expandVersions",
                             action="store_false", default=True,
@@ -1032,9 +1032,9 @@ For example, the make target in a ups directory might contain the line:
                             help="The product which owns the table file")
         self.clo.add_option("-p", "--product", dest="prodlist", action="store",
                             help="A set of products of the form 'prod=ver[:...]'")
-        self.clo.add_option("-w", "--warn", dest="warn", action="store_true", default=False, 
+        self.clo.add_option("-w", "--warn", dest="warn", action="store_true", default=False,
                             help="Warn about versions with non-canonical names")
-        self.clo.add_option("-W", "--warnRegexp", dest="warnRegexp", action="store", 
+        self.clo.add_option("-W", "--warnRegexp", dest="warnRegexp", action="store",
                             help="Canonical versions should match this regexp (implies --warn)")
 
         # always call the super-version so that the core options are set
@@ -1068,7 +1068,7 @@ For example, the make target in a ups directory might contain the line:
             for pv in productVersionPair.split(":"):
                 p, v = pv.split("=")
                 productList[p] = v
-        
+
         if self.opts.warn and not self.opts.warnRegexp:
             self.opts.warnRegexp = "^[vV]"
 
@@ -1084,7 +1084,7 @@ For example, the make target in a ups directory might contain the line:
             try:
                 ifd = open(inFile)
             except IOError as e:
-                self.err('Failed to open file "%s" for read: %s' % 
+                self.err('Failed to open file "%s" for read: %s' %
                          (inFile, str(e)))
                 return 6
 
@@ -1096,19 +1096,19 @@ For example, the make target in a ups directory might contain the line:
             try:
                 ofd = open(outfile, "w")
             except IOError as e:
-                self.err('Failed to open file "%s" for write: %s' % 
+                self.err('Failed to open file "%s" for write: %s' %
                          (outfile, str(e)))
                 return 6
 
         elif self.opts.in_situ:
-            tmpout = os.path.join(os.path.dirname(inFile), 
+            tmpout = os.path.join(os.path.dirname(inFile),
                                   "."+os.path.basename(inFile)+".tmp")
             try:
                 ofd = open(tmpout, "w")
             except IOError as e:
                 outfile = os.path.dirname(tmpout)
                 if not outfile:  outfile = "."
-                self.err('Failed to temporary file in "%s" for write: %s' % 
+                self.err('Failed to temporary file in "%s" for write: %s' %
                          (outfile, str(e)))
                 return 6
 
@@ -1138,12 +1138,12 @@ For example, the make target in a ups directory might contain the line:
                     raise
 
             finally:
-                if inFile != "-": ifd.close() 
+                if inFile != "-": ifd.close()
                 if outdir or self.opts.in_situ:  ofd.close()
             if tmpout:
                 os.rename(tmpout, inFile)
         finally:
-            if tmpout and os.path.exists(tmpout):  
+            if tmpout and os.path.exists(tmpout):
                 os.unlink(tmpout)
 
         return 0
@@ -1153,37 +1153,37 @@ class DeclareCmd(EupsCmd):
 
     usage = "%prog declare [-h|--help] [options] product version"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""Declare (i.e. allow EUPS to manage) and/or tag a product.  To fully 
-declare a product, you must specifiy at least the -r in addition to 
+"""Declare (i.e. allow EUPS to manage) and/or tag a product.  To fully
+declare a product, you must specifiy at least the -r in addition to
 specifying the product name and version.  For declaration to succeed, EUPS
-needs to locate a table file; be default, it will look for ups/[product].table 
+needs to locate a table file; be default, it will look for ups/[product].table
 in the product's root directory or it can be specified explicitly via -m or -M.
 (-M is useful when the user cannot write to the product root directory.)
-If there is no table file, give "none" to the -m option.  If the product is 
-already declared, attempts to redeclare will fail unless -F is used.  If you 
-only wish to assign a tag, you should use the -t option but not include 
--r.  
+If there is no table file, give "none" to the -m option.  If the product is
+already declared, attempts to redeclare will fail unless -F is used.  If you
+only wish to assign a tag, you should use the -t option but not include
+-r.
 """
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-r", "--root", dest="productDir", action="store", 
+        self.clo.add_option("-r", "--root", dest="productDir", action="store",
                             help="root directory where product is installed")
         self.clo.add_option("-L", "--import-file", dest="externalFileList", action="append", default=[],
                             help="Import the given file directly into $PRODUCT_DIR_EXTRA")
-        self.clo.add_option("-M", "--import-table", dest="externalTablefile", action="store", 
+        self.clo.add_option("-M", "--import-table", dest="externalTablefile", action="store",
                             help="Import the given table file directly into the database " +
                             "(may be \"-\" for stdin).")
-        self.clo.add_option("-m", "--table", dest="tablefile", action="store", 
+        self.clo.add_option("-m", "--table", dest="tablefile", action="store",
                             help='table file location (may be "none" for no table file)')
-        self.clo.add_option("-t", "--tag", dest="tag", action="append", 
+        self.clo.add_option("-t", "--tag", dest="tag", action="append",
                             help="assign TAG to the specified product")
-        
+
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
@@ -1330,7 +1330,7 @@ only wish to assign a tag, you should use the -t option but not include
                 raise
 
         try:
-            eups.declare(product, version, self.opts.productDir, 
+            eups.declare(product, version, self.opts.productDir,
                          tablefile=tablefile, externalFileList=externalFileList,
                          tag=self.opts.tag, eupsenv=myeups)
         except eups.EupsException as e:
@@ -1339,30 +1339,30 @@ only wish to assign a tag, you should use the -t option but not include
 
         return 0
 
-        
+
 class UndeclareCmd(EupsCmd):
 
     usage = "%prog undeclare [-h|--help] [options] product [version]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""Undeclare a product or unassign a tag to it.  If -t is provided, the 
+"""Undeclare a product or unassign a tag to it.  If -t is provided, the
 given will be unassigned (the product will remain otherwise declared).  If
 no version is provided, the tag will be unassigned from which ever version
-currently has the tag.  Without -t, the product will be "forgotten" by EUPS 
-and all tags assigned to it will be forgotten as well.  Normally when 
-undeclaring a product, a version must be specified unless there is only one 
-version currently declared.  
+currently has the tag.  Without -t, the product will be "forgotten" by EUPS
+and all tags assigned to it will be forgotten as well.  Normally when
+undeclaring a product, a version must be specified unless there is only one
+version currently declared.
 """
 
     def addOptions(self):
         # these are specific to this command
-        self.clo.add_option("-t", "--tag", dest="tag", action="store", 
+        self.clo.add_option("-t", "--tag", dest="tag", action="store",
                             help="unassign TAG to the specified product")
-        
+
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
@@ -1414,7 +1414,7 @@ class RemoveCmd(EupsCmd):
 
     usage = "%prog remove [-h|--help] [options] product version"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1434,7 +1434,7 @@ where it is installed.
         self.clo.add_option("--noInteractive", dest="interactive", action="store_false",
                             help="Don't prompt user before actually removing products")
         self.clo.add_option("-t", "--tag", dest="tag", action="store", help="Delete this tag")
-        
+
         # these options are used to configure the Eups instance
         self.addEupsOptions()
 
@@ -1456,7 +1456,7 @@ where it is installed.
                 self.err("Please specify a product name and version or tag")
                 return 2
             product = self.args[0]
-        
+
             if len(self.args) < 2:
                 if tagName:
                     versions = [p.version for p in myeups.findProducts(product, tags=[tagName])]
@@ -1499,7 +1499,7 @@ where it is installed.
             return 0
         try:
             myeups.remove(product, version, self.opts.recursive,
-                          checkRecursive=not self.opts.noCheck, 
+                          checkRecursive=not self.opts.noCheck,
                           interactive=self.opts.interactive)
         except eups.EupsException as e:
             e.status = 1
@@ -1512,14 +1512,14 @@ class AdminCmd(EupsCmd):
 
     usage = "%prog admin [buildCache|clearCache|listCache|clearLocks|listLocks|clearServerCache|info|show] [-h|--help] [-r root]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""manage eups internals (e.g. cache data).  By default, these operations apply to the 
+"""manage eups internals (e.g. cache data).  By default, these operations apply to the
 user caches; with -A, they will apply to all caches under EUPS_PATH directories
-that are writable by the user.  
+that are writable by the user.
 """
 
     def addOptions(self):
@@ -1559,7 +1559,7 @@ class AdminBuildCacheCmd(EupsCmd):
 
     usage = "%prog admin buildCache [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1570,7 +1570,7 @@ class AdminBuildCacheCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
+        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False,
                             help="apply cache operations to caches under EUPS_PATH")
 
     def execute(self):
@@ -1589,7 +1589,7 @@ class AdminClearCacheCmd(EupsCmd):
 
     usage = "%prog admin clearCache [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1600,7 +1600,7 @@ class AdminClearCacheCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False, 
+        self.clo.add_option("-A", "--admin-mode", dest="asAdmin", action="store_true", default=False,
                             help="apply cache operations to caches under EUPS_PATH")
 
 
@@ -1619,7 +1619,7 @@ class AdminClearLocksCmd(EupsCmd):
 
     usage = "%prog admin clearLocks [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1649,7 +1649,7 @@ class AdminListLocksCmd(EupsCmd):
 
     usage = "%prog admin listLocks [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1679,7 +1679,7 @@ class AdminClearServerCacheCmd(EupsCmd):
 
     usage = "%prog admin clearServerCache [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1690,7 +1690,7 @@ class AdminClearServerCacheCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-r", "--root", "--server-dir", dest="root", action="store", 
+        self.clo.add_option("-r", "--root", "--server-dir", dest="root", action="store",
                             help="Location of manifests/buildfiles/tarballs " +
                             "(may be a URL or scp specification).  Default: find in $EUPS_PKGROOT")
 
@@ -1714,7 +1714,7 @@ class AdminClearServerCacheCmd(EupsCmd):
 class AdminInfoCmd(EupsCmd):
     usage = "%prog admin info [-h|--help] [options] product [version]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1738,7 +1738,7 @@ class AdminInfoCmd(EupsCmd):
 
     def execute(self):
         self.args.pop(0)                # remove the "admin"
-        
+
         if len(self.args) == 0:
             self.err("Please specify a product name")
             return 2
@@ -1761,7 +1761,7 @@ class AdminInfoCmd(EupsCmd):
                 self.err("You may not specify a tag and an explicit version: %s --tag %s %s" %
                          (productName, tag, versionName))
                 return 2
-                
+
             prod = myeups.findTaggedProduct(productName, tag)
             if not prod:
                 self.err("Unable to lookup %s --tag %s" % (productName, tag))
@@ -1774,7 +1774,7 @@ class AdminInfoCmd(EupsCmd):
             else:
                 self.err("Unable to find a default version of %s" % (productName))
                 return 2
-            
+
         if len(self.args) > 2:
             self.err("Unexpected trailing arguments: %s" % self.args[2])
             return 2
@@ -1786,12 +1786,12 @@ class AdminInfoCmd(EupsCmd):
                     vfile = db.getChainFile(tag, productName, searchUserDB=True)
                 except eups.ProductNotFound:
                     vfile = None
-                    
+
                 if vfile:
                     vfile = vfile.file
             else:
                 vfile = db._findVersionFile(productName, versionName)
-                
+
             if vfile:
                 print(vfile)
                 return 0
@@ -1804,14 +1804,14 @@ class AdminInfoCmd(EupsCmd):
         msg = "Unable to find %s file for %s" % (fileType, productName)
         if versionName:
             msg += " %s" % (versionName)
-            
+
         self.err(msg)
         return 1
 
 class AdminShowCmd(EupsCmd):
     usage = "%prog admin show [-h|--help] [options] what"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1832,7 +1832,7 @@ class AdminShowCmd(EupsCmd):
 
     def execute(self):
         self.args.pop(0)                # remove the "show"
-        
+
         if len(self.args) == 0:
             self.err("Please tell me what you're interested in")
             return 2
@@ -1850,7 +1850,7 @@ class AdminListCacheCmd(EupsCmd):
 
     usage = "%prog admin listCache [-h|--help] [options]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1878,13 +1878,13 @@ class DistribCmd(EupsCmd):
 
     usage = "%prog distrib [clean|create|declare|install|list|path] [-h|--help] [options] ..."
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = True
 
     description = \
-"""Interact with package distribution servers either as a user installing 
-packages or as a provider maintaining a server.  
+"""Interact with package distribution servers either as a user installing
+packages or as a provider maintaining a server.
 
 An end-user uses the following sub-commands to install packages:
    list      list the available packages from distribution servers
@@ -1898,7 +1898,7 @@ A server provider uses:
    declare   declare global tags
 To create packages, one must have a write permission to a local server.
 
-Type "eups distrib [subcmd] -h" to get more info on a sub-command.  
+Type "eups distrib [subcmd] -h" to get more info on a sub-command.
 
 Common """
 
@@ -1924,7 +1924,7 @@ Common """
         subcmd = self.args[0]
 
         cmd = "%s %s" % (self.cmd, subcmd)
-        
+
         ecmd = makeEupsCmd(cmd, self)
         if ecmd is None:
             self.err("Unrecognized distrib subcommand: %s" % subcmd)
@@ -1939,7 +1939,7 @@ class DistribDeclareCmd(EupsCmd):
 
     usage = "%prog distrib declare [-h|--help] [options] [product [version] [tagname]]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -1980,7 +1980,7 @@ If no product or version is provided, all defined tags are defined.
         if productName and not versionName:
             if self.opts.tag:
                 prod = myeups.findTaggedProduct(productName, self.opts.tag)
-                
+
                 if prod:
                     versionName = prod.version
 
@@ -2004,7 +2004,7 @@ If no product or version is provided, all defined tags are defined.
         if not pkgroot:
             self.err("Please use --server-dir to specify where you want to declare this tag")
             return 2
-            
+
         server = distrib.Repository(myeups, pkgroot)
         clsname = server.distServer.getConfigProperty('DISTRIB_CLASS', 'eups.distrib.Distrib.DefaultDistrib').split(':')[-1]
         distribClass = importClass(clsname)
@@ -2029,20 +2029,20 @@ If no product or version is provided, all defined tags are defined.
         for productName, versionName in products:
             pl.addProduct(productName, versionName, flavor=self.opts.useFlavor)
             dist.writeTaggedRelease(pkgroot, tagName, pl, self.opts.useFlavor, True)
-        
+
         return 0
 
-        
+
 class DistribListCmd(EupsCmd):
 
     usage = "%prog distrib list [-h|--help] [options] [product [version]]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""List available packages from the package distribution repositories.  
+"""List available packages from the package distribution repositories.
 """
 
     def addOptions(self):
@@ -2069,7 +2069,7 @@ class DistribListCmd(EupsCmd):
     def execute(self):
         myeups = eups.Eups(readCache=False)
         if self.opts.tag:
-            # Note: tag may not yet be registered locally, yet; though it may be 
+            # Note: tag may not yet be registered locally, yet; though it may be
             # defined on a server
             from eups.tags import Tag
             tag = Tag.parse(self.opts.tag)
@@ -2139,19 +2139,19 @@ class DistribListCmd(EupsCmd):
 
         return 0
 
-        
+
 class DistribInstallCmd(EupsCmd):
 
     usage = "%prog distrib install [-h|--help] [options] product [version]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
 """Install a product from a distribution package retrieved from a repository.
-If a version is not specified, the most version with the most preferred 
-tag will be installed.  
+If a version is not specified, the most version with the most preferred
+tag will be installed.
 """
 
     def addOptions(self):
@@ -2204,13 +2204,13 @@ tag will be installed.
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("--recurse", dest="searchDep", action="store_true", default=False, 
+        self.clo.add_option("--recurse", dest="searchDep", action="store_true", default=False,
                             help="don't assume manifests completely specify dependencies")
         self.clo.add_option("--root", dest="root", action="append",
                             help="equivalent to --repository (deprecated)")
-        self.clo.add_option("-C", "--current-all", dest="installCurrent", action="store_true", default=False, 
+        self.clo.add_option("-C", "--current-all", dest="installCurrent", action="store_true", default=False,
                             help="Include current among the server tags that are installed")
-        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False, 
+        self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
                             help="Make top level product current (equivalent to --tag current)")
 
     def execute(self):
@@ -2252,7 +2252,7 @@ tag will be installed.
             else:
                 self.opts.path = "%s:%s" % (self.opts.installStack, self.opts.path)
 
-        if self.opts.current: 
+        if self.opts.current:
             if self.opts.tag:
                 # self.opts.tag += " current"  # list is not supported
                 self.err("--tag is set; ignoring --current")
@@ -2260,7 +2260,7 @@ tag will be installed.
                 self.opts.tag = "current"
 
         if self.opts.tag:
-            # Note: tag may not yet be registered locally, yet; though it may be 
+            # Note: tag may not yet be registered locally, yet; though it may be
             # defined on a server
             from eups.tags import Tag
             tag = Tag.parse(self.opts.tag)
@@ -2330,12 +2330,12 @@ tag will be installed.
             log = open("/dev/null", "w")
 
         try:
-            repos = distrib.Repositories(self.opts.root, dopts, myeups, 
-                                         self.opts.flavor, 
+            repos = distrib.Repositories(self.opts.root, dopts, myeups,
+                                         self.opts.flavor,
                                          verbosity=self.opts.verbose, log=log)
-            repos.install(productName, versionName, self.opts.updateTags, 
+            repos.install(productName, versionName, self.opts.updateTags,
                           self.opts.alsoTag, self.opts.depends,
-                          self.opts.noclean, self.opts.noeups, dopts, 
+                          self.opts.noclean, self.opts.noeups, dopts,
                           self.opts.manifest, self.opts.searchDep)
         except eups.EupsException as e:
             e.status = 1
@@ -2344,14 +2344,14 @@ tag will be installed.
             raise
 
         if self.opts.tag:               # just the top-level product
-            try: 
+            try:
                 myeups.assignTag(self.opts.tag, productName, versionName)
             except eups.ProductNotFound:
                 # this may have been a "pseudo"-package, one that just
                 # ensures the installation of other packages.
-                # It may alternatively have been that the version of the 
+                # It may alternatively have been that the version of the
                 # installed package was requested via a server tag name;
-                # in this case, tag has already been assigned 
+                # in this case, tag has already been assigned
                 #
                 # self.err("Note: product %s %s itself was not installed; ignoring --tag request" %
                 #          (ex.name, ex.version))
@@ -2365,14 +2365,14 @@ class DistribCleanCmd(EupsCmd):
 
     usage = "%prog distrib clean [-h|--help] [options] product version"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
     description = \
-"""Clean out the remnants of a package installation for a given product.  
-This will remove the build directory as well as (if possible) a partially 
-installed product if they exist.  If the -R is provided, the installed 
+"""Clean out the remnants of a package installation for a given product.
+This will remove the build directory as well as (if possible) a partially
+installed product if they exist.  If the -R is provided, the installed
 product will be fully removed, even if its installation was successful.
 """
 
@@ -2392,7 +2392,7 @@ product will be fully removed, even if its installation was successful.
 
         # these options are used to configure the Eups instance
         self.addEupsOptions()
- 
+
         self.clo.add_option("-D", "--distrib-class", dest="distribClasses", action="append",
                             help="register this Distrib class (repeat as needed)")
         self.clo.add_option("-S", "--server-class", dest="serverClasses", action="append",
@@ -2446,10 +2446,10 @@ product will be fully removed, even if its installation was successful.
             raise
 
         try:
-            repos = distrib.Repositories(self.opts.root, dopts, myeups, 
+            repos = distrib.Repositories(self.opts.root, dopts, myeups,
                                          self.opts.flavor, allowEmptyPkgroot=True,
                                          verbosity=self.opts.verbose, log=log)
-            repos.clean(product, version, self.opts.flavor, dopts, 
+            repos.clean(product, version, self.opts.flavor, dopts,
                         self.opts.pdir, self.opts.remove)
 
         except eups.EupsException as e:
@@ -2462,7 +2462,7 @@ class DistribCreateCmd(EupsCmd):
 
     usage = "%prog distrib create [-h|--help] [options] product version"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -2513,7 +2513,7 @@ class DistribCreateCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False, 
+        self.clo.add_option("-C", "--current", dest="current", action="store_true", default=False,
                             help="deprecated (ignored)")
 
     def incrBuildVersion(self, myeups, productName, inVersion):
@@ -2525,7 +2525,7 @@ class DistribCreateCmd(EupsCmd):
             try:
                 outVersion = hooks.config.Eups.versionIncrementer(productName, outVersion)
             except Exception as e:
-                raise RuntimeError("Unable to call hooks.Eups.config.versionIncrementer for %s %s (%s)" % 
+                raise RuntimeError("Unable to call hooks.Eups.config.versionIncrementer for %s %s (%s)" %
                                    (productName, outVersion, e))
             if outVersion in oldVersions:
                 raise RuntimeError("hooks.Eups.config.versionIncrementer for %s %s didn't increment: %s" %
@@ -2596,7 +2596,7 @@ class DistribCreateCmd(EupsCmd):
         if not version:
             if self.opts.tag:
                 prod = myeups.findTaggedProduct(productName, self.opts.tag[0])
-                
+
                 if prod:
                     version = prod.version
                 else:
@@ -2681,7 +2681,7 @@ class DistribCreateCmd(EupsCmd):
             mapping = Mapping()
             mapping.add(inProduct=productName, inVersion=version,
                         outVersion=self.incrBuildVersion(myeups, productName, version))
-            
+
             foundRebuilds = set()
             for p, optional, recursionDepth in myeups.getDependentProducts(topProduct, topological=True):
                 if p.name in rebuildProducts:
@@ -2734,14 +2734,14 @@ class DistribCreateCmd(EupsCmd):
                 if not self.opts.force:
                     repos = distrib.Repositories(self.opts.repos, dopts, myeups,
                                                  self.opts.flavor, allowEmptyPkgroot=True,
-                                                 verbosity=self.opts.verbose, 
+                                                 verbosity=self.opts.verbose,
                                                  log=log)
-                server = distrib.Repository(myeups, self.opts.serverDir, 
-                                            self.opts.useFlavor, options=dopts, 
+                server = distrib.Repository(myeups, self.opts.serverDir,
+                                            self.opts.useFlavor, options=dopts,
                                             verbosity=self.opts.verbose, log=log)
                 server.create(self.opts.distribTypeName, productName,
                               version, nodepend=self.opts.nodepend, options=dopts,
-                              manifest=self.opts.manifest, 
+                              manifest=self.opts.manifest,
                               packageId=self.opts.packageId, repositories=repos)
 
             except eups.EupsException as e:
@@ -2749,12 +2749,12 @@ class DistribCreateCmd(EupsCmd):
                 raise
 
         return 0
-        
+
 class DistribPathCmd(EnvListCmd):
 
     usage = "%prog distrib path [-h|--help] [n]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -2779,7 +2779,7 @@ class TagsCmd(EupsCmd):
     When listing tags, tagname and product may be glob patterns
     """
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -2882,7 +2882,7 @@ class VroCmd(EupsCmd):
 
     usage = "%prog vro [-h|--help] [options] product [version]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -2897,11 +2897,11 @@ same arguments.
 
         self.clo.add_option("-c", "--current", dest="current", action="store_true", default=False,
                             help="same as --postTag=current")
-        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False, 
+        self.clo.add_option("-e", "--exact", dest="exact_version", action="store_true", default=False,
                             help="Consider the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("-F", "--force", dest="force", action="store_true", default=False,
                             help="Force requested behaviour")
-        self.clo.add_option("-r", "--root", dest="productDir", action="store", 
+        self.clo.add_option("-r", "--root", dest="productDir", action="store",
                             help="root directory where product is installed")
         self.clo.add_option("-T", "--postTag", dest="postTag", action="append",
                             help="Put TAG after version(Expr)? in VRO (may be repeated; precedence is left-to-right)")
@@ -2939,7 +2939,7 @@ same arguments.
                                exact_version=self.opts.exact_version)
 
         myeups._processDefaultTags(self.opts)
-        
+
         myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
                          postTag=self.opts.postTag)
 
@@ -2951,7 +2951,7 @@ same arguments.
                     break
         if isUserTag:
             myeups.includeUserDataDirInPath()
-            
+
         print(" ".join(myeups.getVRO()))
 
         return 0
@@ -2960,7 +2960,7 @@ class HelpCmd(EupsCmd):
 
     usage = "%prog help [-h|--help]"
 
-    # set this to True if the description is preformatted.  If false, it 
+    # set this to True if the description is preformatted.  If false, it
     # will be automatically reformatted to fit the screen
     noDescriptionFormatting = False
 
@@ -3012,7 +3012,7 @@ def makeEupsCmd(cmdName, cmd):
 
         if getattr(cmd, k) == dv:       # not set in cmd
             continue
-            
+
         if hasattr(ecmd, k):            # ecmd has the attribute
             ev = getattr(ecmd, k)
 
@@ -3022,22 +3022,22 @@ def makeEupsCmd(cmdName, cmd):
                 setattr(ecmd, k, ev + v)
 
     return ecmd
-    
+
 #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 class EupsOptionParser(optparse.OptionParser):
     """
-    a specialization for parsing the eups command line.  In particular, the 
-    options that appear in the help messages will depend on the command 
-    being accessed.  
+    a specialization for parsing the eups command line.  In particular, the
+    options that appear in the help messages will depend on the command
+    being accessed.
     """
 
-    def __init__(self, helpstrm=None, usage=None, description=None, 
+    def __init__(self, helpstrm=None, usage=None, description=None,
                  formatdesc=True, prog=None):
-                 
-        optparse.OptionParser.__init__(self, usage=usage, 
-                                       description=description, 
-                                       prog=prog, 
+
+        optparse.OptionParser.__init__(self, usage=usage,
+                                       description=description,
+                                       prog=prog,
                                        add_help_option=False,
                                        conflict_handler="resolve")
 
@@ -3094,4 +3094,4 @@ register("distrib path",   DistribPathCmd)
 register("tags",         TagsCmd, lockType=lock.LOCK_SH)
 register("vro",          VroCmd, lockType=None)
 register("help",         HelpCmd, lockType=None)
-    
+

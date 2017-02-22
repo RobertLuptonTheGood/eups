@@ -12,26 +12,26 @@ from . import server as eupsServer
 import eups.hooks
 
 class Distrib(eupsDistrib.DefaultDistrib):
-    """A class to encapsulate product distribution based on Bourne shell 
+    """A class to encapsulate product distribution based on Bourne shell
     builder scripts
 
     OPTIONS:
     The behavior of a Distrib class is fine-tuned via options (a dictionary
-    of named values) that are passed in at construction time.  The options 
+    of named values) that are passed in at construction time.  The options
     supported are:
-       noeups           do not use the local EUPS database for information  
-                          while creating packages.       
-       obeyGroups       when creating files (other on the user side or the 
+       noeups           do not use the local EUPS database for information
+                          while creating packages.
+       obeyGroups       when creating files (other on the user side or the
                           server side), set group ownership and make group
                           writable
-       groupowner       when obeyGroups is true, change the group owner of 
+       groupowner       when obeyGroups is true, change the group owner of
                           to this value
        allowIncomplete  if True, do not stop if we can't create a buildfile
-                          for a specific package.  
+                          for a specific package.
        buildDir         a directory to use to build a package during install.
                           If this is a relative path, the full path will be
                           relative to the product root for the installation.
-       buildFilePath    a colon-delimited set of directories to look for 
+       buildFilePath    a colon-delimited set of directories to look for
                           build file templates in.
     """
 
@@ -64,11 +64,11 @@ class Distrib(eupsDistrib.DefaultDistrib):
         if 'cvsroot' in self.options:
             self.cvsroot = self.options['cvsroot']
 
-        
+
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
-        """Return a valid package location if and only we recognize the 
+        """Return a valid package location if and only we recognize the
         given distribution identifier
 
         This implementation return a location if it starts with "pacman:"
@@ -84,7 +84,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
     parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
-        """Check that self is properly initialised; this matters for subclasses 
+        """Check that self is properly initialised; this matters for subclasses
         with special needs"""
         okay = True
         if not eupsDistrib.Distrib.checkInit(self, forserver):
@@ -126,7 +126,7 @@ MANIFEST_URL = %%(base)s/manifests/%s%%(product)s-%%(version)s.manifest
 BUILD_URL = %%(base)s/builds/%%(path)s
 DIST_URL = %%(base)s/builds/%%(path)s
 """ % (flavorPath)
-            
+
             cf = open(config, 'a')
             try:
                 cf.write(configcontents)
@@ -136,37 +136,37 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
     def getManifestPath(self, serverDir, product, version, flavor=None):
         """return the path where the manifest for a particular product will
-        be deployed on the server.  In this implementation, all manifest 
+        be deployed on the server.  In this implementation, all manifest
         files are deployed into a subdirectory of serverDir called "manifests"
-        with the filename form of "<product>-<version>.manifest".  Since 
-        this implementation produces generic distributions, the flavor 
+        with the filename form of "<product>-<version>.manifest".  Since
+        this implementation produces generic distributions, the flavor
         parameter is ignored.
 
-        @param serverDir      the local directory representing the root of 
-                                 the package distribution tree.  In this 
-                                 implementation, the returned path will 
+        @param serverDir      the local directory representing the root of
+                                 the package distribution tree.  In this
+                                 implementation, the returned path will
                                  start with this directory.
-        @param product        the name of the product that the manifest is 
+        @param product        the name of the product that the manifest is
                                 for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform for the 
+        @param flavor         the flavor of the target platform for the
                                 manifest.  This implementation ignores
                                 this parameter.
         """
-        return os.path.join(serverDir, "manifests", 
+        return os.path.join(serverDir, "manifests",
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
-        """Write a package distribution into server directory tree and 
-        return the distribution ID 
-        @param serverDir      a local directory representing the root of the 
+        """Write a package distribution into server directory tree and
+        return the distribution ID
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation
-        @param overwrite      if True, this package will overwrite any 
+        @param overwrite      if True, this package will overwrite any
                                 previously existing distribution files even if Eups.force is false
         """
         productName = product
@@ -267,44 +267,44 @@ DIST_URL = %%(base)s/builds/%%(path)s
     def getDistIdForPackage(self, product, version, flavor=None):
         """return the distribution ID that for a package distribution created
         by this Distrib class (via createPackage())
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation.  None means
-                                that a non-flavor-specific ID is preferred, 
+                                that a non-flavor-specific ID is preferred,
                                 if supported.
         """
         return "build:%s-%s.build" % (product, version)
 
     def packageCreated(self, serverDir, product, version, flavor=None):
-        """return True if a distribution package for a given product has 
-        apparently been deployed into the given server directory.  
-        @param serverDir      a local directory representing the root of the 
+        """return True if a distribution package for a given product has
+        apparently been deployed into the given server directory.
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation.  None means
                                 that the status of a non-flavor-specific package
                                 is of interest, if supported.
         """
-        location = self.parseDistID(self.getDistIdForPackage(product, version, 
+        location = self.parseDistID(self.getDistIdForPackage(product, version,
                                                              flavor))
         return os.path.exists(os.path.join(serverDir, "builds", location))
 
-    def installPackage(self, location, product, version, productRoot, 
+    def installPackage(self, location, product, version, productRoot,
                        installDir, setups=None, buildDir=None):
         """Install a package with a given server location into a given
         product directory tree.
-        @param location     the location of the package on the server.  This 
+        @param location     the location of the package on the server.  This
                                value is a distribution ID (distID) that has
                                been stripped of its build type prefix.
-        @param productRoot  the product directory tree under which the 
+        @param productRoot  the product directory tree under which the
                                product should be installed
         @param installDir   the preferred sub-directory under the productRoot
-                               to install the directory.  This value, which 
+                               to install the directory.  This value, which
                                should be a relative path name, may be
                                ignored or over-ridden by the pacman scripts
         @param setups       a list of EUPS setup commands that should be run
@@ -314,8 +314,8 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
         builder = location
         tfile = self.distServer.getFileForProduct(builder, product, version,
-                                                  self.Eups.flavor, 
-                                                  ftype="build", 
+                                                  self.Eups.flavor,
+                                                  ftype="build",
                                                   noaction=self.Eups.noaction)
 
         if False:
@@ -408,7 +408,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 eupsServer.system(cmd, self.Eups.noaction)
             except OSError as e:
                 if self.verbose >= 0 and os.path.exists(logfile):
-                    try: 
+                    try:
                         print("BUILD ERROR!  From build log:", file=self.log)
                         eupsServer.system("tail -20 %s 1>&2" % logfile)
                     except:
@@ -431,7 +431,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
         for bd in self.buildFilePath.split(":"):
             bd = os.path.expandvars(os.path.expanduser(bd))
-            
+
             if bd == "":
                 if auxDir:
                     bd = auxDir
@@ -442,11 +442,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 bd = bd[0:-1]
                 if self.verbose > 2:
                     print("Searching %s recursively for %s)" % (bd, fileName))
-                
+
                 for dir, subDirs, files in os.walk(bd):
                     if dir == ".svn":   # don't look in SVN private directories
                         continue
-                    
+
                     for f in files:
                         if f == fileName:
                             full_fileName = os.path.join(dir, fileName)
@@ -468,7 +468,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
 class BuildfilePatchCallbacks(object):
     """Callbacks to modify build files.
-    
+
      E.g. we can define a callback to rewrite SVN root to recognise a tagname
       "svnXXX" as a request for release XXX
       """
@@ -497,7 +497,7 @@ class BuildfilePatchCallbacks(object):
 
     def apply(self, line):
         """Apply all callbacks to a line (system callbacks are applied first"""
-        
+
         for c in BuildfilePatchCallbacks.callbacks + BuildfilePatchCallbacks.user_callbacks:
             line = c(line)
 
@@ -505,7 +505,7 @@ class BuildfilePatchCallbacks(object):
 
     def clear(self, user=True, system=False):
         """Clear the list of buildfile patch callbacks
-        
+
         If user is True, clear  user-defined callbacks
         If system is True, clear system-defined callbacks
         """
@@ -519,7 +519,7 @@ try:
 except NameError:
     buildfilePatchCallbacks = BuildfilePatchCallbacks()
     #
-    # Recognise that a tagname svnXYZ is version XYZ on the trunk 
+    # Recognise that a tagname svnXYZ is version XYZ on the trunk
     #
     buildfilePatchCallbacks.add(lambda line: re.sub(r"/tags/svn", "/trunk -r ", line), system=True)
 
@@ -554,7 +554,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
             except IOError as e:
                 print("Tried to read \"CVS/Root\" but failed: %s" % e, file=sys.stderr)
 
-        return cvsroot    
+        return cvsroot
     #
     # Guess the value of SVNROOT
     #
@@ -593,7 +593,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
         try:
             repoVersion = eups.hooks.config.Eups.repoVersioner(productName, versionName)
         except Exception as e:
-            raise RuntimeError("Unable to call hooks.Eups.config.repoVersioner for %s %s (%s)" % 
+            raise RuntimeError("Unable to call hooks.Eups.config.repoVersioner for %s %s (%s)" %
                                (productName, versionName, e))
 
         if repoVersion is None:
@@ -658,12 +658,12 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                 else:
                     print("Unexpected modifier \"%s\"; ignoring" % op, file=sys.stderr)
 
-                if op and op[0] == ".": 
-                    op = op[1:] 
+                if op and op[0] == ".":
+                    op = op[1:]
 
             if dollar:                  # @$var@ expands to a sh variable with a default value
                 value = "${%s:-%s}" % (var, value)
-                
+
             return value
 
         return "XXX"

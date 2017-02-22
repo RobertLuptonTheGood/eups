@@ -86,7 +86,7 @@ append_pkginfo()
 	fi
 
 	echo $1="'""$VAL_""'" >> "$PKGINFO"
-	
+
 	info "appended $1='$VAL_' to pkginfo."
 }
 
@@ -308,7 +308,7 @@ resolve_repoversion()
 {
 	# Discover the source code revision within the repository
 	#
-	# If REPOVERSION is already set, use it. 
+	# If REPOVERSION is already set, use it.
 	# Else, if SHA1 is set, use it as REPOVERSION.  Othewise, convert the
 	# VERSION into a REPOVERSION by removing +xxxx suffix, any packager-specified
 	# VERSION_PREFIX/VERSION_SUFFIX, and replacing all _ with -.
@@ -438,7 +438,7 @@ _clear_environment()
 _sha1_for_remote_rev()
 {
 	# usage: _sha1_for_remote_rev $REPOSITORY $REPOVERSION
-	# 
+	#
 	# returns the SHA1 corresponding to $REPOVERSION at remote repository
 	# $REPOSITORY.  returns an empty string in case of failiure.
 
@@ -676,7 +676,7 @@ default_prep()
 	# there must be a directory named 'upstream'
 
 	if [[ -d "$UPSTREAM_DIR" ]]; then
-	
+
 		if [[ -f "$UPSTREAM_DIR/prepared" ]]; then
 			msg "package already prepared (found '$UPSTREAM_DIR/prepared' flag file)."
 			return
@@ -712,7 +712,7 @@ default_prep()
 				patch -s -p1 < "$_p"
 			done
 		fi
-		
+
 		touch "$UPSTREAM_DIR/prepared"
 	fi
 }
@@ -829,7 +829,7 @@ evil_setuptools_pth_fix()
 	# See:
 	#   http://stackoverflow.com/questions/5984523/eggs-in-path-before-pythonpath-environment-variable
 	# for details.
-	
+
 	for FN in $(find "$PREFIX" -name "*.pth"); do
 		sed -i~ '/^import.*/d' "$FN"
 	done
@@ -847,9 +847,9 @@ default_usage()
 		  v : set verbosity level (-2 through +3, default 0)
 		  h : show usage instructions
 
-		  e : activate 'developer mode', product name/version is 
+		  e : activate 'developer mode', product name/version is
 		      autodetected
-		  d : in developer mode, don't test for dirty source tree 
+		  d : in developer mode, don't test for dirty source tree
 		      when autodetecting versions
 		  r : in developer mode, make install $PREFIX for the
 		      product point to EUPS binary directory
@@ -878,20 +878,20 @@ default_usage()
 		environment (run `eupspkg -v 2 echo' to see a list).
 
 		DEVELOPER MODE:
-		
+
 		Developer mode is there to facilitate creation and testing
 		of EupsPkg packages.  When active, PRODUCT, VERSION and
 		FLAVOR will be autodetected from git.  Unless -r is given,
-		PREFIX will point to ./_eupspkg/binary/$PRODUCT/$VERSION. 
+		PREFIX will point to ./_eupspkg/binary/$PRODUCT/$VERSION.
 		The verbs will behave as follows:
-		
-		  create   : will create ./_eupspkg/source and run create 
+
+		  create   : will create ./_eupspkg/source and run create
 		             there.
 		  fetch    : will run fetch in ./_eupspkg/source
 		  prep     : will run prep in ./_eupspkg/source
 		  config,  : if ./_eupspkg/source exists, will run the verb
 		  build,     there, otherwise will run it in current dir.
-		  install 
+		  install
 
 		Additional verbs will be available:
 

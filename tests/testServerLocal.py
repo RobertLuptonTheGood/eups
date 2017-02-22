@@ -45,7 +45,7 @@ class LocalTransporterTestCase(unittest.TestCase):
         trx = LocalTransporter(loc)
         trx.cacheToFile(localfile)
         self.assert_(os.path.exists(localfile))
-        
+
         loc = os.path.join(base,"s2")
         trx = LocalTransporter(loc)
         files = trx.listDir()
@@ -53,7 +53,7 @@ class LocalTransporterTestCase(unittest.TestCase):
         self.assertIn("config.txt", files)
         self.assertIn("current.list", files)
 
-from eups.distrib.server import DistribServer 
+from eups.distrib.server import DistribServer
 
 class LocalConfigFileTestCase(unittest.TestCase):
 
@@ -70,7 +70,7 @@ class LocalConfigFileTestCase(unittest.TestCase):
         configFile = ds.getConfigFile(self.configFile)
         self.assert_(os.path.exists(configFile))
 
-        
+
 
 from eups.distrib.server import ServerConf
 
@@ -98,7 +98,7 @@ class LocalDistribServerTestCase(unittest.TestCase):
         pass
 
     def testInit(self):
-        self.assert_(isinstance(self.ds, ConfigurableDistribServer), 
+        self.assert_(isinstance(self.ds, ConfigurableDistribServer),
                      "factory did not return ConfigurableDistribServer")
         self.assertEquals(self.ds.getConfigProperty("PREFER_GENERIC",""), '')
 
@@ -121,7 +121,7 @@ class LocalDistribServerTestCase(unittest.TestCase):
         self.assertIn("current", tags)
 
         # test configurable impl. (method 2)
-        self.ds.setConfigProperty("AVAILABLE_TAGS_URL", 
+        self.ds.setConfigProperty("AVAILABLE_TAGS_URL",
                                   "%(base)s/info/tagnames.txt")
         tags = self.ds.getTagNames()
         self.assertEquals(len(tags), 3)
@@ -316,7 +316,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
 
 
 
-__all__ = "LocalTransporterTestCase LocalConfigFileTestCase LocalServerConfTestCase LocalDistribServerTestCase LocalRepositoryTestCase LocalRepositoriesTestCase".split()        
+__all__ = "LocalTransporterTestCase LocalConfigFileTestCase LocalServerConfTestCase LocalDistribServerTestCase LocalRepositoryTestCase LocalRepositoriesTestCase".split()
 
 if __name__ == "__main__":
     unittest.main()

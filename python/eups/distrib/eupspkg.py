@@ -33,7 +33,7 @@ r"""
             --server-dir=path/to/serverDir \
             -f generic -d eupspkg \
             -S REPOSITORY_PATH='git://git.example.com/myrepos/$PRODUCT.git'
-         
+
     Here, we assume the git repository at git.example.com/myrepos/foo.git
     contains the source of foo (and has a tag corresponding to the version,
     1.2.3).  The resulting package, named foo-1.2.3.eupspkg and residing in
@@ -44,7 +44,7 @@ r"""
     For the end-user, installing the generated product (and its
     dependencies) should be as easy as setting EUPS_PKGROOT to point to the
     distribution server, and running `eups distrib install', e.g.:
-    
+
         eups distrib install foo 1.2.3
 
 
@@ -80,7 +80,7 @@ r"""
     Overview
     --------
 
-    EupsPkg packages are free-formed gzipped tarballs ending in .eupspkg. 
+    EupsPkg packages are free-formed gzipped tarballs ending in .eupspkg.
     They carry all information necessary to install a specific EUPS product
     by building it from source.  They may include the source code itself, or
     information on how to fetch it from a (possibly remote) repository.
@@ -99,11 +99,11 @@ r"""
 
     When provided, ./ups/eupspkg must be executable and define "verbs"
     invocable as:
-    
+
        ./ups/eupspkg [KEY1=VAL1 [KEY2=VAL2 [...]]] <verb>
 
     . The information about the package being created or installed is passed
-    to the script by EUPS via KEY=VAL keyword arguments on the command line. 
+    to the script by EUPS via KEY=VAL keyword arguments on the command line.
     The keyword arguments guaranteed to be present on invocation depend on
     the verb, and are further discussed later in this text.  For forwards
     compatibility, a verb implementation must ignore any unrecognized
@@ -147,7 +147,7 @@ r"""
     temporary directory (hereafter, $pkgdir).  It must copy or otherwise
     generate all files required to be included in the package (including
     ./ups/eupspkg, presumably just a copy of itself).
-    
+
     The arguments to `eupspkg create' are as follows:
 
        $PRODUCT   -- product name, as given to eups distrib create
@@ -158,19 +158,19 @@ r"""
     OPTARGS stands for any KEY=VAL arguments passed via the '-S' option to
     `eups distrib create'.  Two are used often:
 
-       $SOURCE    -- implementation-specific mechanism to retrieve the 
+       $SOURCE    -- implementation-specific mechanism to retrieve the
                      product source (e.g., from git, or include it inline,
                      etc.)
        $VERBOSE   -- implementation-specific verbosity level
 
 
     Once 'eupspkg create' returns, the contents of $pkgdir is tarballed by
-    EUPS and stored to serverDir as $product-$version.eupspkg extension. 
+    EUPS and stored to serverDir as $product-$version.eupspkg extension.
     Metadata (the manifest as well as the table file) are stored to the
     server as well.
 
     EupsPkg distribution servers have the following structure:
-    
+
        /+-- config.txt  -- distribution server configuration
         |-- products    -- directory with .eupspkg packages
         |-- tags        -- directory with .list files (EUPS tags)
@@ -189,7 +189,7 @@ r"""
     $VERBOSE, is completely under the eupspkg script's control.  EUPS has no
     awareness of package contents, beyond assuming './ups/eupspkg' is the
     ``entry point'' for package creation and product installs.
-    
+
     This allows for high degree of customization, as the ./ups/eupspkg
     script that the packager may provide is free to internally organize the
     package as it sees fit, or implement different methods of obtaining the
@@ -198,18 +198,18 @@ r"""
     that there's no requirement that this "eupspkg script" is a shell
     script, as long as it's executable on the end-user's system (e.g., it
     could be written in Python).
-    
-    In practice, as the number of build systems commonly in use is small. 
+
+    In practice, as the number of build systems commonly in use is small.
     Furthermore, as most adhere to accepted conventions (e.g.,
     "./configure"/"make"/"make install" idioms for autoconf, etc.), a
     reasonable, base, default, eupspkg script can be written that works for
-    most products out of the box and can be extended to support others. 
+    most products out of the box and can be extended to support others.
     EupsPkg provides such a default, extensible, implementation, written in
     bash.  This greatly simplify the writing of custom eupspkg scripts, and,
     in a number of cases, obviates the need for them entirely.
 
     The default eupspkg implementation can be found in:
-    
+
        $EUPS_DIR/lib/eupspkg.sh
 
     It is guaranteed to be present on any system running EUPS more recent
@@ -232,7 +232,7 @@ r"""
 
        # ... verb or variable overrides, e.g.:
        CONFIGURE_OPTIONS="--prefix=$PREFIX --disable-shared"
-   
+
        ================================================================
 
     The script above overrides the CONFIGURE_OPTIONS variable to add the
@@ -242,9 +242,9 @@ r"""
     Similarly, the behavior can be customized on a site-wide basis by
     providing a :-delimited list of scripts to source in an EUPSPKG_SCRIPTS
     environment variable. E.g.:
-    
+
        EUPSPKG_SCRIPTS="/a/b/custom1.sh:/b/c/custom2.sh:..."
-       
+
     These will be sourced, in sequence, just before ./ups/eupspkg.cfg.sh is
     sourced.
 
@@ -260,7 +260,7 @@ r"""
 
     The following variables, passed via the '-S' option to 'eups distrib
     create', may be used to control aspects package creation:
-    
+
        SOURCE           -- select the source fetching mechanism
 
        REPOSITORY_PATH  -- '|'-delimited list of patterns used to construct
@@ -273,7 +273,7 @@ r"""
     The default create verb implementation interprets the SOURCE variable as
     the mechanism by which the source code will be obtained when the package
     is installed.  The following are presently defined:
-    
+
        git-archive  -- use 'git archive' to fetch the source. The $VERSION
                        will be interpreted[*] as a named git ref (tag or
                        branch name) to be checked out.  Note that
@@ -314,7 +314,7 @@ r"""
     argument.  The $REPOSITORY_PATH is a '|'-delimited list of patterns
     expanding to repositories where the source may be found.  An example of
     a typical invocation is as follows:
- 
+
        eups distrib create .... \
          -S REPOSITORY_PATH='git://server1/dir1/$PRODUCT|git://server2/dir2/$PRODUCT'
 
@@ -323,7 +323,7 @@ r"""
        export EUPSPKG_REPOSITORY_PATH='git://server1/dir1/$PRODUCT|git://server2/dir2/$PRODUCT'
        eups distrib create ....
 
-    Elements of the path are separated by | (instead of the usual colon). 
+    Elements of the path are separated by | (instead of the usual colon).
     Also note how the path has been enclosed in single quotes, to prevent
     variable expansion on the command line, and the interpretation of |
     by the shell.
@@ -358,14 +358,14 @@ r"""
     to ./ups/pkginfo in the package itself.  To restore it, this file is
     sourced by eupspkg.sh at 'eups distrib install' time (see the note about
     the sequence of variable loading near the end of this text).
-    
+
 
     eupspkg.sh: implementations of install-time verbs
     -------------------------------------------------
 
     At install time, the default verb implementations will try to detect the
     build system (in the order given below), and handle it as follows:
-    
+
        scons       -- if 'SConstruct' exists in package root, assume the
                       build system is scons. Run 'scons opt=3 prefix=$PREFIX
                       version=$VERSION' to build.
@@ -405,7 +405,7 @@ r"""
 
     Default implementation of prep() does TaP package detection and
     extraction.
-    
+
     For details, and before writing customizations of their own, the
     packagers are *strongly* advised to learn from the implementations of
     these and other verbs in $EUPS_DIR/lib/eupspkg.sh.
@@ -427,7 +427,7 @@ r"""
     For the full list of variables that can be overridden, see the bottom of
     the $EUPS_DIR/lib/eupspkg.cfg.sh file, as well as the implementations of
     the verbs.  Here we only list a few of the more commonly used ones:
-    
+
        $REPOSITORY              -- The URL to git repository with the
                                    source. Can use any protocol git
                                    understands (e.g. git://, http://, etc.).
@@ -440,7 +440,7 @@ r"""
                                    "--prefix=$PREFIX". If you override this,
                                    don't forget to explicitly specify
                                    --prefix!
-       $MAKE_BUILD_TARGETS      -- Targets to make in build step (if 
+       $MAKE_BUILD_TARGETS      -- Targets to make in build step (if
                                    Makefiles are in use). Not set by
                                    default.
        $MAKE_INSTALL_TARGETS    -- Targets to pass to make in install step.
@@ -451,12 +451,12 @@ r"""
     As mentioned, the verbs themselves can also be overridden. For example,
     the eupspkg.cfg.sh file for Boost C++ library overrides the config verb
     as follows:
-    
+
        ================================================================
        config()
        {
            detect_compiler
-       
+
            if [[ "$COMPILER_TYPE" == clang ]]; then
                WITH_TOOLSET="--with-toolset clang"
            fi
@@ -469,7 +469,7 @@ r"""
     options if running with the clang compiler.  detect_compiler() is a
     utility function defined in eupspkg.sh, defining $COMPILER_TYPE based
     on the detected compiler.  See the source code of the library for the
-    list of available functions and their typical usage. 
+    list of available functions and their typical usage.
 
     There are many other subroutines and options that are present in the
     function library but not documented here.  Browse through the library
@@ -487,9 +487,9 @@ r"""
     ./ups/eupspkg if it exists, and to $EUPS_DIR/lib/eupspkg.sh
     otherwise.  It gives the developer the convenience of being able to
     write:
-    
+
        eupspkg PRODUCT=a VERSION=b FLAVOR=c config
-       
+
     in the root product directory, and be confident that it will work
     irrespective of whether ./ups/eupspkg or the default eupspkg
     implementation is being used.  This script supports the -h switch (to
@@ -498,7 +498,7 @@ r"""
 
 
     To assist the development of eupspkg.cfg.sh scripts, eupspkg.sh
-    provides a 'developer mode', activated by the -e command line switch. 
+    provides a 'developer mode', activated by the -e command line switch.
     When run in developer mode, eupspkg must be invoked from the root of the
     setup-ed product source code, i.e.:
 
@@ -506,7 +506,7 @@ r"""
         [mjuric@gamont pex_config]$ eupspkg -e create
 
     When developer mode is active:
-    
+
         * if PRODUCT, VERSION or FLAVOR are not set, they're autodetected
           from git. The PRODUCT is deduced from the name of the 'origin'
           remote, and VERSION is similar to the output of git describe.
@@ -516,7 +516,7 @@ r"""
           the EupsPkg package contents will be created) in the
           ./_eupspkg/source subdirectory.  The PREFIX will be set to the
           source directory.
-          
+
           Note: you only need to run 'create' to test actual package
           creation. To just build the checked out (and potentially modified)
           source tree, you can start with 'fetch' (see examples below).
@@ -531,7 +531,7 @@ r"""
             ./_eupspkg/source exists, and immediately chdir to it before
             continuing execution.  This way, a throw-away test build can
             easily be made w/o polluting the source environment.
-          
+
         * a 'decl' verb is made available, that declares an installed
           package to EUPS (and tags it, if asked).
 
@@ -631,24 +631,24 @@ r"""
     not to pollute the real product stack.  If the build/install had the -r
     flag specified, the install destination would be the EUPS product stack
     root.
-    
+
     If that was the case, we could run:
-    
+
         [mjuric@gamont pex_config]$ eupspkg -e decl -t current
-        
+
     to declare the package to EUPS and tag it as 'current'.
 
     Appendix: Echoing messages to console
     -------------------------------------
-    
+
     To echo a message to console, redirect it to file descriptor 4.
-    
+
     When 'eupspkg distrib install' is run, all output by ups/eupspkg (to
     stdout and stderr; fds 0 and 2) is redirected to a log file and is not
     shown to the user unless there's an error.  If you want to show a
     message to a user, echo it to file description 4. To make this easier,
     eupspkg.sh provides an eups_console() function to be used as:
-    
+
         echo "The user will see this message" | eups_console
 
 
@@ -679,7 +679,7 @@ issued_sconsflags_warning = False
 
 class Distrib(eupsDistrib.DefaultDistrib):
     """A class to implement product distribution based on packages
-    ("EupsPkg packages") constructed by builder scripts implementing 
+    ("EupsPkg packages") constructed by builder scripts implementing
     verbs not unlike RPM's %xxxx macros.
     """
 
@@ -707,7 +707,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
-        """Return a valid package location if and only we recognize the 
+        """Return a valid package location if and only we recognize the
         given distribution identifier
 
         This implementation return a location if it starts with "eupspkg:"
@@ -751,47 +751,47 @@ TAGLIST_DIR = tags
 
 
     def getTaggedReleasePath(self, tag, flavor=None):
-        """get the file path relative to a server root that will be used 
+        """get the file path relative to a server root that will be used
         store the product list that makes up a tagged release.
         @param tag        the name of the tagged release of interest
-        @param flavor         the target flavor for this release.  An 
-                                  implementation may ignore this variable.  
+        @param flavor         the target flavor for this release.  An
+                                  implementation may ignore this variable.
         """
         return "tags/%s.list" % tag
 
     def getManifestPath(self, serverDir, product, version, flavor=None):
         """return the path where the manifest for a particular product will
-        be deployed on the server.  In this implementation, all manifest 
+        be deployed on the server.  In this implementation, all manifest
         files are deployed into a subdirectory of serverDir called "manifests"
-        with the filename form of "<product>-<version>.manifest".  Since 
-        this implementation produces generic distributions, the flavor 
+        with the filename form of "<product>-<version>.manifest".  Since
+        this implementation produces generic distributions, the flavor
         parameter is ignored.
 
-        @param serverDir      the local directory representing the root of 
-                                 the package distribution tree.  In this 
-                                 implementation, the returned path will 
+        @param serverDir      the local directory representing the root of
+                                 the package distribution tree.  In this
+                                 implementation, the returned path will
                                  start with this directory.
-        @param product        the name of the product that the manifest is 
+        @param product        the name of the product that the manifest is
                                 for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform for the 
+        @param flavor         the flavor of the target platform for the
                                 manifest.  This implementation ignores
                                 this parameter.
         """
-        return os.path.join(serverDir, "manifests", 
+        return os.path.join(serverDir, "manifests",
                             "%s-%s.manifest" % (product, version))
 
     def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
-        """Write a package distribution into server directory tree and 
-        return the distribution ID 
-        @param serverDir      a local directory representing the root of the 
+        """Write a package distribution into server directory tree and
+        return the distribution ID
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation
-        @param overwrite      if True, this package will overwrite any 
+        @param overwrite      if True, this package will overwrite any
                                 previously existing distribution files even if Eups.force is false
         """
         distid = self.getDistIdForPackage(product, version)
@@ -864,25 +864,25 @@ TAGLIST_DIR = tags
     def getDistIdForPackage(self, product, version, flavor=None):
         """return the distribution ID that for a package distribution created
         by this Distrib class (via createPackage())
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation.  None means
-                                that a non-flavor-specific ID is preferred, 
+                                that a non-flavor-specific ID is preferred,
                                 if supported.
         """
         return "eupspkg:%s-%s.eupspkg" % (product, version)
 
     def packageCreated(self, serverDir, product, version, flavor=None):
-        """return True if a distribution package for a given product has 
-        apparently been deployed into the given server directory.  
-        @param serverDir      a local directory representing the root of the 
+        """return True if a distribution package for a given product has
+        apparently been deployed into the given server directory.
+        @param serverDir      a local directory representing the root of the
                                   package distribution tree
-        @param product        the name of the product to create the package 
+        @param product        the name of the product to create the package
                                 distribution for
         @param version        the name of the product version
-        @param flavor         the flavor of the target platform; this may 
+        @param flavor         the flavor of the target platform; this may
                                 be ignored by the implentation.  None means
                                 that the status of a non-flavor-specific package
                                 is of interest, if supported.
@@ -890,17 +890,17 @@ TAGLIST_DIR = tags
         location = self.parseDistID(self.getDistIdForPackage(product, version, flavor))
         return os.path.exists(os.path.join(serverDir, "products", location))
 
-    def installPackage(self, location, product, version, productRoot, 
+    def installPackage(self, location, product, version, productRoot,
                        installDir, setups=None, buildDir=None):
         """Install a package with a given server location into a given
         product directory tree.
-        @param location     the location of the package on the server.  This 
+        @param location     the location of the package on the server.  This
                                value is a distribution ID (distID) that has
                                been stripped of its build type prefix.
-        @param productRoot  the product directory tree under which the 
+        @param productRoot  the product directory tree under which the
                                product should be installed
         @param installDir   the preferred sub-directory under the productRoot
-                               to install the directory.  This value, which 
+                               to install the directory.  This value, which
                                should be a relative path name, may be
                                ignored or over-ridden by the pacman scripts
         @param setups       a list of EUPS setup commands that should be run
@@ -913,7 +913,7 @@ TAGLIST_DIR = tags
             print("[dl]", end=' ', file=self.log); self.log.flush()
         tfname = self.distServer.getFileForProduct(pkg, product, version,
                                                    self.Eups.flavor,
-                                                   ftype="eupspkg", 
+                                                   ftype="eupspkg",
                                                    noaction=self.Eups.noaction)
 
         logfile = os.path.join(buildDir, "build.log") # we'll log the build to this file
@@ -1004,7 +1004,7 @@ eups list -s
 # setup the package being built. note we're using -k
 # to ensure setup-ed dependencies aren't overridden by
 # the table file. we could've used -j instead, but then
-# 'eups distrib install -j ...' installs would fail as 
+# 'eups distrib install -j ...' installs would fail as
 # these don't traverse and setup the dependencies.
 setup --type=build -k -r .
 
@@ -1060,7 +1060,7 @@ setup --type=build -k -r .
 
         except OSError as e:
             if self.verbose >= 0 and os.path.exists(logfile):
-                try: 
+                try:
                     print("\n\n***** error: from %s:" % logfile, file=self.log)
                     eupsServer.system("tail -20 %s 1>&2" % q(logfile))
                 except:

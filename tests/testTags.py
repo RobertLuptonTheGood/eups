@@ -18,20 +18,20 @@ class TagsTestCase(unittest.TestCase):
 
     def testRecognized(self):
         self.assert_(self.tags.isRecognized("stable"), "stable not recognized")
-        self.assert_(self.tags.isRecognized("global:stable"), 
+        self.assert_(self.tags.isRecognized("global:stable"),
                      "global:stable not recognized")
-        self.assert_(not self.tags.isRecognized("user:stable"), 
+        self.assert_(not self.tags.isRecognized("user:stable"),
                      "stable recognized as user tag")
         self.assert_(self.tags.isRecognized("rlp"), "rlp not recognized")
-        self.assert_(self.tags.isRecognized("user:rlp"), 
+        self.assert_(self.tags.isRecognized("user:rlp"),
                      "user:rlp not recognized")
-        self.assert_(not self.tags.isRecognized("global:rlp"), 
+        self.assert_(not self.tags.isRecognized("global:rlp"),
                      "rlp recognized as global tag")
 
     def testGroupFor(self):
         self.assertEquals(self.tags.groupFor("stable"), Tags.global_)
         self.assertEquals(self.tags.groupFor("rlp"), Tags.user)
-        self.assert_(self.tags.groupFor("goober") is None, 
+        self.assert_(self.tags.groupFor("goober") is None,
                      "Found group for undefined tag")
 
     def testTagNames(self):
@@ -93,7 +93,7 @@ class TagsTestCase(unittest.TestCase):
         if os.path.exists(file):  os.remove(file)
         self.assert_(not os.path.exists(file))
 
-        try: 
+        try:
             self.tags.registerTag("current")
             self.tags.registerTag("beta")
             self.tags.save(self.tags.global_, file)
@@ -119,7 +119,7 @@ class TagsTestCase(unittest.TestCase):
         self.assertEqual(len(self.tags.getTagNames()), 2)
         self.assert_(not os.path.exists(file))
 
-        try: 
+        try:
             self.tags.saveUserTags(dir)
             self.assert_(os.path.exists(file), "cache file not found: " + file)
 

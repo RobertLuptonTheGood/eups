@@ -71,7 +71,7 @@ See Appendix \ref{AppInstalling} if you want to know how to install your own cop
 \footnote{%
   The name comes from \code{UPS} (\code{Unix Product Support}), a
   tool written at Fermi National Accelerator Laboratory, FNAL. \eups (pronounced ``E-ups'',
-  or just ``ups'', or sometimes even ``eeups'' as a single word) 
+  or just ``ups'', or sometimes even ``eeups'' as a single word)
   was basically a reimplementation first in perl and now python of those parts of \code{UPS}
   that we have found especially valuable;  we have now made extensive extensions.}
 achieves all of these goals. A component (refered to as a `product')
@@ -95,7 +95,7 @@ When we attempt to \code{setup} the product \code{photo}, this
 table file leads to the following actions:
 \begin{description}
 \item
-  The environment variable \code{PHOTO\_DIR} is automatically set to 
+  The environment variable \code{PHOTO\_DIR} is automatically set to
   the root of the directory tree for product \code{photo} (how this
   is determined is described in the next section)
 \item
@@ -480,7 +480,7 @@ install :
 
 declare :
         eups declare -r $(prefix) $(PRODUCT) $(VERSION)
-        
+
 current : declare
         eups declare $(PRODUCT) $(VERSION) --current --force
 \end{verbatim}
@@ -529,49 +529,49 @@ The functions in \code{eups.app} define the supported API:
 \begin{description}
   \item[clearCache]
         remove the product cache for given stacks/databases and flavors
-    
+
   \item[declare]
-        Declare a product.  That is, make this product known to EUPS.  
-    
+        Declare a product.  That is, make this product known to EUPS.
+
   \item[expandBuildFile]
-        expand the template variables in a .build script to produce an 
-        explicitly executable shell scripts.  
-    
+        expand the template variables in a .build script to produce an
+        explicitly executable shell scripts.
+
   \item[expandTableFile]
-        expand the version specifications in a table file.  When a version in 
-        the original table file is expressed as an expression, the expression is 
-        enclosed in brackets and the actual product version used to build the 
-        table file's product is added.  
-    
+        expand the version specifications in a table file.  When a version in
+        the original table file is expressed as an expression, the expression is
+        enclosed in brackets and the actual product version used to build the
+        table file's product is added.
+
   \item[getDependencies]
         Return a list of productName's dependent products
-    
+
   \item[getDependentProducts]
         Return a list of Product topProduct's dependent products
-    
+
   \item[getSetupVersion]
         return the version name for the currently setup version of a given product.
-    
+
   \item[listCache]
-        List the contents of the cache    
+        List the contents of the cache
 
   \item[printProducts]
         print out a listing of products.  Returned is the number of products listed.
-    
+
   \item[printUses]
-        print a listing of products that make use of a given product.  
-    
+        print a listing of products that make use of a given product.
+
   \item[productDir]
         return the installation directory (PRODUCT\_DIR) for the specified product
-    
+
   \item[setup]
-        Return a set of shell commands which, when sourced, will setup a product.  
-    
+        Return a set of shell commands which, when sourced, will setup a product.
+
   \item[undeclare]
         Undeclare a product.  That is, remove knowledge of this
         product from EUPS.  This method can also be used to just
         remove a tag from a product without fully undeclaring it.
-    
+
   \item[unsetup]
         Return a set of shell commands which, when sourced, will unsetup a product.
 \end{description}
@@ -624,11 +624,11 @@ are existed are also listed.  \footnote{Once upon a time there were two sorts of
 
 For example if \code{\$EUPS\_STARTUP=\$HOME/Python/foo.py} and \code{\$EUPS\_PATH=/u/lsst/products:/u/lsst/coreProducts}, then \code{eups -v startup} reports
 \begin{verbatim}
-/u/lsst/products/eups/site/startup.py             
+/u/lsst/products/eups/site/startup.py
 /u/lsst/products/site/startup.py
 [/u/lsst/coreProducts/site/startup.py]
-/Users/rhl/.eups/startup.py             
-/Users/rhl/Python/foo.py                
+/Users/rhl/.eups/startup.py
+/Users/rhl/Python/foo.py
 \end{verbatim}
 These files are processed in the order listed (i.e. \code{\$EUPS\_STARTUP} last)
 
@@ -744,7 +744,7 @@ Supported commands are:
         admin           Administer the eups system
         declare         Declare a product
         distrib         Install a product from a remote distribution,
-                        or create such a distribution 
+                        or create such a distribution
         expandbuild     Expand variables in a build file
         expandtable     Insert explicit version tags into a table file
         flags           Show the value of \$EUPS_FLAGS
@@ -757,7 +757,7 @@ Supported commands are:
         remove          Remove an eups product from the system
         tags            List information about supported and known tags
         undeclare       Undeclare a product
-        uses            List everything which depends on the specified product 
+        uses            List everything which depends on the specified product
                         and version
         vro             Show the Version Resolution Order that would be used
 
@@ -766,7 +766,7 @@ Use
 for help with command "cmd"
 \end{verbatim}
 				% $ for emacs
-  
+
 A consistent front-end to all the other \eups commands.
 
 There's no \code{eups setup} or \code{eups unsetup} as these actions
@@ -933,8 +933,8 @@ product it's automatically made current.
 \begin{verbatim}
 Usage: eups distrib [clean|create|declare|install|list|path] [-h|--help] [options] ...
 
-Interact with package distribution servers either as a user installing 
-packages or as a provider maintaining a server.  
+Interact with package distribution servers either as a user installing
+packages or as a provider maintaining a server.
 
 An end-user uses the following sub-commands to install packages:
    list      list the available packages from distribution servers
@@ -948,9 +948,9 @@ A server provider uses:
    declare   declare global tags
 To create packages, one must have a write permission to a local server.
 
-Type "eups distrib [subcmd] -h" to get more info on a sub-command.  
+Type "eups distrib [subcmd] -h" to get more info on a sub-command.
 
-Common 
+Common
 Options:
   --debug=DEBUG         turn on specified debugging behaviors (allowed: debug,
                         profile, raise)
@@ -986,7 +986,7 @@ package is a set of tarballs (i.e. gzipped tar archives), a set of build files\f
 }
 caches and
 a file (ending in \code{.manifest})
-listing a product's dependencies, including the names of the proper tarballs/caches. 
+listing a product's dependencies, including the names of the proper tarballs/caches.
 
 Subcommand options are:
 \begin{itemize}
@@ -1221,7 +1221,7 @@ installed all the products into \eups, as opposed to simple declaring them, but
 relying on files installed in e.g. \code{/usr/local}; more precisely, it assumes
 that all product directories start with a directory listed in \code{EUPS\_PATH}.
 This is probably a good idea, as otherwise \code{eups distrib} would tar up
-all of /usr/local for you.  
+all of /usr/local for you.
 
 \textit{N.b.} A decent description of the \code{-d builder -S buildFilePath=D:D:} version of this command
 needs to be written!  This would include the \code{-S noeups=True} option, and its use
@@ -1441,7 +1441,7 @@ Usage:
 
 Print the value of EUPS_FLAGS
 \end{verbatim}
-  
+
 Print the value of \code{EUPS\_FLAGS}
 
 %------------------------------------------------------------------------------
@@ -1451,7 +1451,7 @@ Print the value of \code{EUPS\_FLAGS}
 Usage:
    eups flavor
 \end{verbatim}
-  
+
 Print your machine/operating system's flavor.  In simple cases, this'll
 be the same as \code{uname -m}, but in reality it has to worry about things
 like 32/64 bit libraries and os/x running on both PPC and X86 architectures.
@@ -1538,7 +1538,7 @@ searches \code{\$PRODUCT\_DIR/etc} for the \code{.pc} file.  It also
 works around the problem that quoted variables \code{\$\$\{...\}}
 in \code{.pc} files appear as \code{\%\{...\}} in \code{pkg-config} output.\footnote{
   Yes; I filed a Debian bug report (378570) and it's fixed in the next release, 0.21-1}
-  
+
 %------------------------------------------------------------------------------
 
 \subsubsection{\code{eups remove}}
@@ -1563,7 +1563,7 @@ an added safeguard, \code{eups remove --recursive} will prompt you before doing 
 (you can bypass this check with \code{--noInteractive}.
 
 You can use \code{eups uses} to check whether a product's in use.
-  
+
 %------------------------------------------------------------------------------
 
 \subsubsection{\code{eups startup}}
@@ -1616,7 +1616,7 @@ Options:
    -c, --current           Stop version from being current
    -t, --tag        arg    Undeclare versions with this tag (e.g. current or stable)
 \end{verbatim}
-  
+
 Undeclares \code{version} of \code{product} from the database. Also removes any tags attached to version; if
 you just want to delete a tag, use \code{--tag XXX} (as a special case rooted in history, \code{--current} is
 equivalent to \code{-t current}).
@@ -1791,7 +1791,7 @@ Usage:
 Options:
 (same as setup)
 \end{verbatim}
-  
+
 All the notes under \code{setup} apply to
 \code{unsetup}. Unsetting up a product relies on the environment
 variable \code{\$SETUP\_<product>}, so it fails if the variable
@@ -1912,7 +1912,7 @@ specified by three types of files:
     Table files use a series of commands to specify the dependencies. These are
     discussed in the next subsection.
 
-    NOTE: See Section 5 for a note on the search algorithm that \eups uses for 
+    NOTE: See Section 5 for a note on the search algorithm that \eups uses for
     locating table files.
 
   \item Cache files
@@ -1967,7 +1967,7 @@ alias or an environment variable - clear from the context.)
      addAlias(foo, source `${PRODUCT_DIR}/bin/eups_setup setup \"$@\"`;);
      \end{verbatim}
      Don't forget to escape the quotes.
-    
+
    \item \code{envAppend(<Name>, <Value> [,<delimiter>])}
      Appends \code{<Value>} to \code{<Name>}. The default delimiter is~`:'; the value may not contain an
      embedded delimiter (use two separate \code{envAppend} commands instead).
@@ -1982,13 +1982,13 @@ alias or an environment variable - clear from the context.)
      envAppend(MANPATH, :${PRODUCT_DIR}/man)
      \end{verbatim}		% $
 
-     
+
    \item \code{envPrepend(<Name>,<Value> [,<delimiter>])}
      Similar to envAppend, but put the value at the beginning
-     
+
    \item \code{envSet(<Name>, <Value>)}
      Set \code{<Name>} to \code{<Value>}.
-     
+
    \item \code{envUnset(<Name>)}
      It might sound as if this directive unsets the environment variable \code{<Name>}, and it
      would be possible to implement this if you have a use for it.  However, at present the
@@ -1997,12 +1997,12 @@ alias or an environment variable - clear from the context.)
      \eups from setting \code{\$PRODUCT\_DIR}.
      For example, \code{git} uses \code{GIT\_DIR} for its own purposes,
      but yet it's useful to use \eups to manage \code{git} versions.
-     
+
    \item \code{print(<String>)}
    \item \code{print(<Dest>, <String>)}
      Print the string to stdout; if \code{<Dest>} is provided it must be one of
      \code{stdout}, \code{stderr}, \code{stdok}, \code{stdinfo}, and \code{stdwarn}.
-     
+
    \item \code{setupRequired(<Name> [options] [<Version>])}
      Setup \code{<Name>}.  If no \code{<Version>} is specified, the current
      version is used. Fails if unable to setup.
@@ -2139,16 +2139,16 @@ than V2; 0 if they're equal; +1 if V1 \code{>} V2).
 \begin{itemize}
    \item \code{pathAppend}, \code{pathPrepend}, \code{pathRemove}, \code{pathSet}
      Aliases for the \code{env} commands.
-     
+
    \item \code{prodDir()}
      Sets \code{<PRODUCT>\_DIR} to the directory where the product is installed;
      this directive is ignored as \code{<PRODUCT>\_DIR} is automatically set for you.
-     
+
    \item \code{setupEnv()}
      Sets \code{SETUP\_<PRODUCT>} so that product can be unsetup.
      this directive is ignored as \code{<PRODUCT>\_DIR} is automatically set for you.
 \end{itemize}
-        
+
 \subsubsection{Variables}
 
 The arguments to these UPS commands can be variables. All environment
@@ -2162,24 +2162,24 @@ In addition, the following special variables are defined;
 \begin{itemize}
   \item \code{\$\{PRODUCTS\}}
     The database
-    
+
   \item \code{\$\{PRODUCT\_DIR\}}
     Where the product is installed.
-    
+
   \item \code{\$\{PRODUCT\_DIR\_EXTRA\}}
     Where the product's extra files are installed; only set if there actually are
     any extra files (as provided by \code{eups declare}'s \code{-L} and \code{-M} options;
     \ref{eups declare})
-    
+
   \item \code{\$\{PRODUCT\_FLAVOR\}}
     The product flavor.
-    
+
   \item \code{\$\{PRODUCT\_NAME\}}
     The product name
-    
+
   \item \code{\$\{PRODUCT\_VERSION\}}
     The product version
-    
+
   \item \code{\$\{UPS\_DIR\}}
     The ups directory of the product (distinct from the directory
     in \code{\$\{PRODUCTS\}} - this is often where the table file will be stored).
@@ -2209,7 +2209,7 @@ In addition, the following special variables are defined;
     \code{/u/dss/products:/u/act/products} then the default prefix is
     \code{/u/dss/products}, but with \code{\--with-eups-db=act} the
     prefix becomes \code{/u/act/products}.
-    
+
 	\item{\code{--with-flavor=XXX}}
         Set the value of \code{EUPS\_FLAVOR}
         (default: \code{\$EUPS\_FLAVOR}, or the value returned by \code{eups flavor}
@@ -2226,10 +2226,10 @@ CC = cc -std=c99
 CFLAGS = -g -Wall
 RANLIB = ranlib
 \end{verbatim}
-  
+
    \item{etc/installdefs}
      Supports the \code{make install} and \code{make declare} targets.
-  
+
    \item{etc/makedefs}
      Supports building and linking products (GSL in this case). After
      expansion, the file will look like:
@@ -2238,7 +2238,7 @@ GSL_CFLAGS = -I$(GSL_DIR)/include
 GSL_LIBS = -L$(GSL_DIR)/lib -lgsl -lgslcblas -lm
 \end{verbatim}
 \end{itemize}
-  
+
 \section{Installing \eups}
 \label{AppInstalling}
 
@@ -2280,7 +2280,7 @@ with a name such as
 which will make \eups commands available to you; csh users should
 use \code{setups.csh}.  You'll probably want to add this line to your
 shell startup file (.bashrc or .tcshrc).
-  
+
 \subsection{Details, details...}
 
 You can use \code{make show} to show you where things are
@@ -2317,7 +2317,7 @@ If you don't explicitly choose a \code{EUPS\_DIR} with
 environment will be adopted. If you don't have \code{EUPS\_DIR} set,
 the first component of the \code{PATH} will be used, with \code{/eups}
 appended.
-  
+
 As an alternative to
 \begin{verbatim}
 ./configure --with-eups=/foo/bar/share
@@ -2435,7 +2435,7 @@ highlights are:
 
   \item \code{eups uses} to list everything that depends on a given product
     % Up to date as of 2008/04/11
-    
+
 \end{itemize}
 
 \subsection{Obsolete features}
@@ -2526,7 +2526,7 @@ How did your \file{configure.ac} file achieve this magic?
 
   \item\code{AC\_PROG\_CC(cc)}
 
-    Find the C compiler    
+    Find the C compiler
 
   \item\code{EUPS\_WITH\_CONFIGURE([gsl])}
 
@@ -2554,7 +2554,7 @@ How did your \file{configure.ac} file achieve this magic?
     to find the include files and libraries.  More specifically, it
     checks that it can find \code{fftw3.h} and that \code{-lfftw3f} provides the symbol
     \code{fftwf\_plan\_dft\_2d}.
-    
+
   \item\code{AC\_CONFIG\_FILES}
   \item\code{AC\_OUTPUT}
 
@@ -2576,7 +2576,7 @@ AC\_INIT([myProduct], [X.Y], [rhl@astro.princeton.edu])
 dnl --------- UPS directories and how to install --------------------------
 \vspace{5pt}
 EUPS\_DEFINE\_ROOT(\${Name}:  \$)
-EUPS\_INSTALL\_DIRS   
+EUPS\_INSTALL\_DIRS
 \vspace{5pt}
 
 dnl --------- Build environment -------------------------------------------
@@ -2607,7 +2607,7 @@ AC\_OUTPUT
 \label{pacman}
 
 \pacman{} is a package used by the HEP community (e.g. Atlas) to distribute
-software.  It doesn't solve the same problem as \eups (supporting 
+software.  It doesn't solve the same problem as \eups (supporting
 multiple simultaneous versions of the same package), but it does nicely
 support building packages from source.  The home page is \code{http://physics.bu.edu/pacman/}.
 
@@ -2725,7 +2725,7 @@ the installed version (assuming that \code{\$(VERSION)} is
     cd prod1-v1_0_1
 
     setup -r .
-    make install  
+    make install
 \end{verbatim}
 and everyone's happy.  \footnote{
 There's a subtlety here.  Imagine that we had a product \code{prod2}

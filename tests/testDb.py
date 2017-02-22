@@ -51,7 +51,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(len(flavors), 2)
 
     def testAddFlavor(self):
-        self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2", 
+        self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2",
                           "/opt/sw/Linux/fw/1.2/ups/fw.table")
         flavors = self.vf.getFlavors()
         self.assertEquals(len(flavors), 3)
@@ -96,7 +96,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEquals(len(prod.tags), 0)
         self.assert_(prod.db is None)
 
-        self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2", 
+        self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2",
                           "/opt/sw/Linux/fw/1.2/ups/fw.table", "ups")
         prod = self.vf.makeProduct("Linux:rhel")
         self.assertEquals(prod.name, "fw")
@@ -115,7 +115,7 @@ class VersionFileTestCase(unittest.TestCase):
             self.assert_(isinstance(p, Product))
 
     def testWrite(self):
-        self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2", 
+        self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2",
                           "/opt/sw/Linux/fw/1.2/ups/fw.table", "ups")
 
         self.assertEquals(len(self.vf.getFlavors()), 3)
@@ -162,7 +162,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
 
         # test use in table path
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0", 
+        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0",
                      "$PROD_ROOT/Linux/fw/1.0/fw.table", "ups")
         prod = vf.makeProduct("Linux", "/opt")
         self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
@@ -170,7 +170,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
 
         # test use in ups_dir
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0", 
+        vf.addFlavor("Linux", "$PROD_ROOT/Linux/fw/1.0",
                      "fw.table", "$PROD_ROOT/Linux/fw/1.0/UPS")
         prod = vf.makeProduct("Linux", "/opt")
         self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
@@ -182,7 +182,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
         prod = vf.makeProduct("LinuxARM", "/opt")
         self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
         self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/ups/fw.table")
-        
+
     def testFLAVOR(self):
 
         # test use in product dir
@@ -198,21 +198,21 @@ class MacroSubstitutionTestCase(unittest.TestCase):
         prod = vf.makeProduct("LinuxARM")
         self.assertEquals(prod.dir, "LinuxARM/fw/1.0")
         self.assertEquals(prod.tablefile, "LinuxARM/fw/1.0/fw.table")
-        
+
         prod = vf.makeProduct("LinuxARM", "/opt")
         self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
         self.assertEquals(prod.tablefile, "/opt/LinuxARM/fw/1.0/fw.table")
 
         # test use in table path
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$FLAVOR/fw.table", 
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$FLAVOR/fw.table",
                      "/opt/eups/tables")
         prod = vf.makeProduct("LinuxARM")
         self.assertEquals(prod.dir, "Linux/fw/1.0")
         self.assertEquals(prod.tablefile, "/opt/eups/tables/LinuxARM/fw.table")
-        
+
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "$FLAVOR/fw.table", 
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "$FLAVOR/fw.table",
                      "/opt/eups/tables")
         prod = vf.makeProduct("LinuxARM", "/opt")
         self.assertEquals(prod.dir, "/opt/LinuxARM/fw/1.0")
@@ -252,7 +252,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
         self.assertEquals(prod.tablefile, "/opt/Linux/fw/1.0/fw.table")
 
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$PROD_DIR/fw.table", 
+        vf.addFlavor("LinuxARM", "Linux/fw/1.0", "$PROD_DIR/fw.table",
                      "$FLAVOR/ups")
         prod = vf.makeProduct("LinuxARM", "/opt")
         self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
@@ -294,7 +294,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
 
         # test use in table path
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("Linux", "/opt/Linux/fw/1.0", 
+        vf.addFlavor("Linux", "/opt/Linux/fw/1.0",
                      "$UPS_DB/Linux/fw/1.0/fw.table", "ups")
         prod = vf.makeProduct("Linux", "/opt")
         self.assertEquals(prod.db, "/opt/ups_db")
@@ -303,7 +303,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
 
         # test use in ups_dir
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("Linux", "Linux/fw/1.0", 
+        vf.addFlavor("Linux", "Linux/fw/1.0",
                      "fw.table", "$UPS_DB/Linux/fw/1.0/UPS")
         prod = vf.makeProduct("Linux", "/opt")
         self.assertEquals(prod.db, "/opt/ups_db")
@@ -312,7 +312,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
 
         # test in combination with FLAVOR
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "fw.table", 
+        vf.addFlavor("LinuxARM", "$FLAVOR/fw/1.0", "fw.table",
                      "$UPS_DB/$FLAVOR/ups")
         prod = vf.makeProduct("LinuxARM", "/opt")
         self.assertEquals(prod.db, "/opt/ups_db")
@@ -322,7 +322,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
     def testUPS_DIR(self):
         # test use in table path
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("Linux", "/opt/Linux/fw/1.0", 
+        vf.addFlavor("Linux", "/opt/Linux/fw/1.0",
                      "$UPS_DIR/fw.table", "UPS")
         prod = vf.makeProduct("Linux", "/opt")
         self.assertEquals(prod.dir, "/opt/Linux/fw/1.0")
@@ -337,7 +337,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
 
         # test use in product dir
         vf = VersionFile(None, readFile=False)
-        vf.addFlavor("Linux", "$UPS_DIR/Linux/fw/1.0", "fw.table", 
+        vf.addFlavor("Linux", "$UPS_DIR/Linux/fw/1.0", "fw.table",
                      "$PROD_ROOT/ups")
         prod = vf.makeProduct("Linux", "/opt")
         self.assertEquals(prod.dir, "/opt/ups/Linux/fw/1.0")
@@ -404,7 +404,7 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertNotIn('modifier', flavor)
         self.assertNotIn('modified', flavor)
         who = flavor['declarer']
-    
+
         self.cf.setVersion("2.1", "Linux64")
 
         flavors = self.cf.getFlavors()
@@ -437,11 +437,11 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEquals(len(flavors), 2)
         self.assertIn("DarwinX86", flavors)
         self.assertIn("Linux", flavors)
-        
+
         self.cf.removeVersion()
         flavors = self.cf.getFlavors()
         self.assertEquals(len(flavors), 0)
-        
+
         self.assert_(self.cf.hasNoAssignments())
 
     def testWrite(self):
@@ -489,7 +489,7 @@ class DatabaseTestCase(unittest.TestCase):
             os.rename(self.pycur+".bak", self.pycur)
 
         if os.path.exists(self.userdb) and self.userdb.endswith("user_ups_db"):
-            
+
             os.system("rm -rf " + self.userdb)
 
     def testFindProductNames(self):
@@ -526,7 +526,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(len(flavs), 0)
 
     def testFindTags(self):
-        self.assertRaises(ProductNotFound, self.db.findTags, 
+        self.assertRaises(ProductNotFound, self.db.findTags,
                           "goober", "1.5.9", "Linux64")
 
         tags = self.db.findTags("doxygen", "1.5.10", "Linux64")
@@ -555,7 +555,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "1.5.9")
         self.assertEquals(prod.flavor, "Linux64")
         self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
-        self.assertEquals(prod.dir, 
+        self.assertEquals(prod.dir,
                 "/lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9")
         self.assertEquals(prod.tablefile, "/lsst/DC3/stacks/gcc433/04jun/Linux64/external/doxygen/1.5.9/ups/doxygen.table")
         self.assertEquals(len(prod.tags), 0)
@@ -566,7 +566,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEquals(prod.version, "1.5.7.1")
         self.assertEquals(prod.flavor, "Linux")
         self.assertEquals(prod.db, os.path.join(testEupsStack, "ups_db"))
-        self.assertEquals(prod.dir, 
+        self.assertEquals(prod.dir,
                 "/home/rplante/wrk/NCSA/LSST/devlp/stacks/21mar/Linux/external/doxygen/1.5.7.1")
         self.assertEquals(prod.tablefile, "none")
         self.assertEquals(len(prod.tags), 1)
@@ -582,7 +582,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assert_(os.path.exists(prod.tablefile))
 
         # test autonormalization of product install directories.
-        # The install directory (PROD_DIR) for this python is given 
+        # The install directory (PROD_DIR) for this python is given
         # as a relative directory
         prod = self.db.findProduct("python", "2.5.2", "Linux")
         self.assert_(prod is not None)
@@ -658,7 +658,7 @@ class DatabaseTestCase(unittest.TestCase):
 
         vers = self.db.getTaggedVersion("current", "python", "Linux")[1]
         self.assertEquals(vers, "2.5.2")
-        self.assertRaises(ProductNotFound, 
+        self.assertRaises(ProductNotFound,
                           self.db.assignTag, "current", "python", "2.7")
 
         self.db.assignTag("current", "python", "2.6")
@@ -683,7 +683,7 @@ class DatabaseTestCase(unittest.TestCase):
 
         tfile = self.db._tagFile("doxygen", "beta")
         if os.path.exists(tfile):  os.remove(tfile)
-        try: 
+        try:
             self.db.assignTag("beta", "doxygen", "1.5.9")
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
@@ -691,14 +691,14 @@ class DatabaseTestCase(unittest.TestCase):
                               "1.5.9")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
                                                        "Linux")[1],
-                              "1.5.7.1")        
+                              "1.5.7.1")
             self.db.unassignTag("beta", "doxygen", "Linux64")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
                                                        "Linux")[1],
-                              "1.5.7.1")        
+                              "1.5.7.1")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
                                                        "Linux64")[1],
-                              None)        
+                              None)
             self.db.assignTag("beta", "doxygen", "1.5.9")
             self.db.unassignTag("beta", "doxygen", "Linux")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
@@ -706,7 +706,7 @@ class DatabaseTestCase(unittest.TestCase):
                               "1.5.9")
             self.assertEquals(self.db.getTaggedVersion("beta","doxygen",
                                                        "Linux")[1],
-                              None)        
+                              None)
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.db.unassignTag("beta", "doxygen")
             self.assert_(not os.path.exists(tfile))
@@ -724,10 +724,10 @@ class DatabaseTestCase(unittest.TestCase):
                 if os.path.isfile(f):
                     os.remove(f)
             os.removedirs(pdir)
-        try: 
+        try:
             self.assert_(not os.path.exists(pdir))
             baseidir = os.path.join(testEupsStack,"Linux/base/1.0")
-            base = Product("base", "1.0", "Linux", baseidir, 
+            base = Product("base", "1.0", "Linux", baseidir,
                            os.path.join(baseidir, "ups/base.table"),
                            tags=["current"])
             self.db.declare(base)
@@ -740,7 +740,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.assertEquals(prods[0].version, "1.0")
             self.assertEquals(prods[0].flavor, "Linux")
             self.assertEquals(prods[0].dir, baseidir)
-            self.assertEquals(prods[0].tablefile, 
+            self.assertEquals(prods[0].tablefile,
                               os.path.join(baseidir, "ups/base.table"))
             self.assertEquals(len(prods[0].tags), 1)
             self.assertEquals(prods[0].tags[0], "current")
@@ -749,13 +749,13 @@ class DatabaseTestCase(unittest.TestCase):
             base2.version = "2.0"
             base2.tags = []
             self.db.declare(base2)
-            self.assertEquals(self.db.getTaggedVersion("current", "base", 
+            self.assertEquals(self.db.getTaggedVersion("current", "base",
                                                        "Linux"),
                               ("base", "1.0"))
             base3 = prods[0].clone()
             base3.version = "3.0"
             self.db.declare(base3)
-            self.assertEquals(self.db.getTaggedVersion("current", "base", 
+            self.assertEquals(self.db.getTaggedVersion("current", "base",
                                                        "Linux"),
                               ("base", "3.0"))
 
@@ -765,12 +765,12 @@ class DatabaseTestCase(unittest.TestCase):
             self.assertEquals(self.db.findProduct("base","1.0","Linux"), None)
             self.assertEquals(len(self.db.findProducts("base")), 2)
             self.assert_(not os.path.exists(os.path.join(pdir,"1.0.version")))
-            
+
             self.db.undeclare(base3)
             self.assertEquals(self.db.findProduct("base","3.0","Linux"), None)
             self.assertEquals(len(self.db.findProducts("base")), 1)
             self.assert_(not os.path.exists(os.path.join(pdir,"3.0.version")))
-            self.assertEquals(self.db.getTaggedVersion("current", "base", 
+            self.assertEquals(self.db.getTaggedVersion("current", "base",
                                                        "Linux")[1],
                               None)
             self.assert_(not os.path.exists(os.path.join(pdir,"current.chain")))
@@ -787,7 +787,7 @@ class DatabaseTestCase(unittest.TestCase):
                           os.remove(f)
                   os.removedirs(pdir)
             raise
-                           
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def suite(makeSuite=True):

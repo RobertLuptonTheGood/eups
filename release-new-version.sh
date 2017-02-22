@@ -35,7 +35,7 @@ cat > Release_Notes.tmp  <<-EOT
 	#
 	# All lines beginning with '#' are considered to be comments and
 	# will be stripped.
-	
+
 EOT
 echo "$(date "+%Y-%m-%d") $USER ($VERSION)" >> Release_Notes.tmp
 git log --first-parent --oneline $LASTVER.. | cut -d' ' -f 2- | sed 's/^/    - /' >> Release_Notes.tmp

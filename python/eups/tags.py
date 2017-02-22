@@ -14,9 +14,9 @@ commRe = re.compile(r"\s*#.*$")
 
 class Tags(object):
     """
-    a manager of a set of known tag names.  Tags are organized into 
-    groups; however, the same name may not be allowed in more than one 
-    group.  Three groups are handled by default: global, pseudo, and user.  
+    a manager of a set of known tag names.  Tags are organized into
+    groups; however, the same name may not be allowed in more than one
+    group.  Three groups are handled by default: global, pseudo, and user.
     """
 
     # the group string name indicating the global tag group
@@ -30,7 +30,7 @@ class Tags(object):
 
     def __init__(self, globals=None, groups=[]):
 
-        # a lookup of recognized tag names.  These are separated into groups 
+        # a lookup of recognized tag names.  These are separated into groups
         # of which three are generally used:
         #   "_"    global tags
         #   "_p"   pseudo tags used by the VRO
@@ -54,13 +54,13 @@ class Tags(object):
 
     def isRecognized(self, tag):
         """
-        return true if given item is recognized as a tag.  It either may 
-        be a string or of type Tag.  In either case, the tag must be 
+        return true if given item is recognized as a tag.  It either may
+        be a string or of type Tag.  In either case, the tag must be
         registered with this Tags instance.
 
-        @param tag :   the item to check.  This can be a string or of 
+        @param tag :   the item to check.  This can be a string or of
                          type Tag
-        @return bool 
+        @return bool
         """
         if utils.is_string(tag) and tag.find(':') >= 0:
             # parse a qualified name
@@ -69,9 +69,9 @@ class Tags(object):
 
     def groupFor(self, tag):
         """
-        return the group that this tag is registered under or None if it 
-        is not recognized.  If the input tag is a string, it should be 
-        an unqualified tag name.  
+        return the group that this tag is registered under or None if it
+        is not recognized.  If the input tag is a string, it should be
+        an unqualified tag name.
         """
         if isinstance(tag, Tag):
             try:
@@ -79,9 +79,9 @@ class Tags(object):
                     return tag.group
             except KeyError:
                 pass
-        else: 
+        else:
             for k in self.bygrp.keys():
-                if tag in self.bygrp[k]:  
+                if tag in self.bygrp[k]:
                     return k
         return None
 
@@ -109,7 +109,7 @@ class Tags(object):
 
     def getTag(self, tag):
         """
-        return a Tag instance for a given tag name or Tag instance.  
+        return a Tag instance for a given tag name or Tag instance.
         TagNotRecognized is thrown if the name is not registered.
 
         @param tag :    the name as a string or a Tag instance
@@ -131,10 +131,10 @@ class Tags(object):
 
     def registerTag(self, name, group=None, force=False):
         """
-        register a tag so that it is recognized.  
+        register a tag so that it is recognized.
 
         @param name :  the name of the tag, or a tuple (tag, user) where user declared tag
-        @param group : the class of tag to register it as.  If null, it 
+        @param group : the class of tag to register it as.  If null, it
                        will be registered as a global tag.
         @param force : Allows the tag to be redefined, maybe in a different group
 
@@ -191,11 +191,11 @@ class Tags(object):
             self.bygrp[group].append(name)
             if owner:
                 self.owners[name] = owner
-            
+
     def registerUserTag(self, name, force=False):
         """
-        register a user tag.  This is equivalent to 
-        registerTag(name, Tags.user).  
+        register a user tag.  This is equivalent to
+        registerTag(name, Tags.user).
 
         @param string name : the name of the tag
         @throws TagNameConflict  if the name has already been registered.
@@ -214,13 +214,13 @@ class Tags(object):
         load registered tag names in from a file.
 
         @param group : the group to load the tags into
-        @param file :  the file to load the tags from.  If null, load them 
+        @param file :  the file to load the tags from.  If null, load them
                           from configured location.
         """
 
         try:
             fd = open(file)
-            if group not in self.bygrp: 
+            if group not in self.bygrp:
                 self.bygrp[group] = []
             for line in fd:
                 line.strip()
@@ -237,8 +237,8 @@ class Tags(object):
         save the registered tag names to a cache file.
 
         @param group : the group to save
-        @param file :  the file to save tags to.  If null, use the 
-                          configured location. 
+        @param file :  the file to save tags to.  If null, use the
+                          configured location.
         """
         if group not in self.bygrp.keys():
             raise RuntimeError("Group not supported: " + group)
@@ -256,10 +256,10 @@ class Tags(object):
 
     def loadFromEupsPath(self, eupsPath, verbosity=0):
         """
-        load tag names of all groups cached in the given eups product 
-        stacks.  Return True if tags were found to be loaded.  
-        @param eupsPath   the list product root directories (product 
-                            stacks) given either as a list of strings 
+        load tag names of all groups cached in the given eups product
+        stacks.  Return True if tags were found to be loaded.
+        @param eupsPath   the list product root directories (product
+                            stacks) given either as a list of strings
                             or a single colon-separated string.
         """
         if utils.is_string(eupsPath):
@@ -310,15 +310,15 @@ class Tags(object):
 
     def loadUserTags(self, userPersistDir):
         """
-        load the user tags whose names are persisted in a given directory.  
-        That is, find the user tag file in the given directory and load its 
+        load the user tags whose names are persisted in a given directory.
+        That is, find the user tag file in the given directory and load its
         contents.
-        @param userPersistDir   the directory containing the standard file 
-                                   (as given by persistFilename()) 
+        @param userPersistDir   the directory containing the standard file
+                                   (as given by persistFilename())
                                    containing the user tags.
         """
         if not os.path.isdir(userPersistDir):
-            raise IOError("Tag cache not an existing directory: " + 
+            raise IOError("Tag cache not an existing directory: " +
                           userPersistDir)
         fileName = os.path.join(userPersistDir, self.persistFilename("user"))
         if not os.path.exists(fileName):
@@ -331,7 +331,7 @@ class Tags(object):
     def saveGroup(self, group, dir):
         """
         save the user tags cached to a given directory.
-        The tag names are assumed to be persisted in 
+        The tag names are assumed to be persisted in
         Tags.persistFilename(group).
         """
         if group in (self.global_, self.pseudo) :  group = "group"
@@ -350,36 +350,36 @@ class Tags(object):
     def saveUserTags(self, userPersistDir):
         """
         save the user tags cached to a given directory.
-        The tag names are assumed to be persisted in 
+        The tag names are assumed to be persisted in
         Tags.persistFilename("user").
         """
         self.saveGroup("user", userPersistDir)
-        
+
     def saveGlobalTags(self, persistDir):
         """
-        save global tag names to a  given directory.  The tag names are 
-        assumed to be persisted in Tags.persistFilename("global").  The 
-        directory can either be a ups_db directory or its parent (as 
+        save global tag names to a  given directory.  The tag names are
+        assumed to be persisted in Tags.persistFilename("global").  The
+        directory can either be a ups_db directory or its parent (as
         taken from the EUPS_PATH).
         """
         if not os.path.isdir(persistDir):
-            raise IOError("Tag cache not an existing directory: " + 
+            raise IOError("Tag cache not an existing directory: " +
                           persistDir)
 
         dir = os.path.join(persistDir, "ups_db")
         if os.path.isdir(dir):  persistDir = dir
-            
+
         file = os.path.join(persistDir, self.persistFilename("global"))
         self.save(self.global_, file)
-        
+
 
 class Tag(object):
 
     """
     a representation of a Tag.  This implementation supports == and != with
-    other Tag instances and strings.  When compared with other Tags, they 
-    are equal if both the group and name are identical.  It is considered 
-    equal to a string if the string is identical to the tag name. 
+    other Tag instances and strings.  When compared with other Tags, they
+    are equal if both the group and name are identical.  It is considered
+    equal to a string if the string is identical to the tag name.
     """
 
     def __init__(self, name, group=None):
@@ -431,13 +431,13 @@ class Tag(object):
             return self.name
         else:
             return "%s:%s" % (self.group, self.name)
-    
+
     def __eq__(self, that):
         if isinstance(that, Tag):
             return (self.name == that.name and self.group == that.group)
         else:
-            # allow either a qualified string ("user:beta") if the group matches or 
-            # an unqualified string ("beta").  
+            # allow either a qualified string ("user:beta") if the group matches or
+            # an unqualified string ("beta").
             return str(self) == that or self.name == that
 
     def __ne__(self, that):
@@ -447,10 +447,10 @@ class Tag(object):
     def parse(name, defGroup=Tags.global_):
         """
         create a Tag instance from a fully specified tag name string.
-        
+
         A substring prior to a colon is assumed to be the group name.  If
         there is not group name, it is assumed to be of the group given by
-        defGroup (which defaults to global).  
+        defGroup (which defaults to global).
         """
         # This is requires python 2.4
         #   parts = name.rsplit(':', 1)
@@ -477,16 +477,16 @@ class Tag(object):
 
 def UserTag(name):
     """
-    Instantiate a user-defined tag.  This a Tag with the group equal to 
-    Tags.user.  
+    Instantiate a user-defined tag.  This a Tag with the group equal to
+    Tags.user.
     """
     return Tag.parse(name, Tags.user)
 
 
 def GlobalTag(name):
     """
-    Instantiate a global tag.  This a Tag with the group equal to 
-    Tags.global_.  
+    Instantiate a global tag.  This a Tag with the group equal to
+    Tags.global_.
     """
     return Tag.parse(name, Tags.global_)
 
@@ -527,7 +527,7 @@ class TagNameConflict(EupsException):
         EupsException.__init__(self, "Tag \"%s\" is already present in group %s" % (name, found))
         self.name = name,
         self.found = found
-            
+
 def checkTagsList(eupsenv, tagList):
     """Check that all tags in list are valid"""
     badtags = [t for t in tagList if not eupsenv.tags.isRecognized(t)]
@@ -538,9 +538,9 @@ def checkTagsList(eupsenv, tagList):
             if eupsenv.verbose > 1:
                 print("File %s defines a tag" % fileName, file=utils.stdinfo)
             badtags.remove(tag)
-            
+
     if badtags:
-        raise TagNotRecognized(str(badtags), 
+        raise TagNotRecognized(str(badtags),
                                msg="Unsupported tag(s): %s" % ", ".join([str(t) for t in badtags]))
     #
     # Warn if any tag files shadow tagnames
@@ -563,7 +563,7 @@ def getUserDefinedTags(user):
 
     class Foo(list):                    # a place to put attributes
         def __getattr__(self, attr): return self
-        
+
     myGlobals["hooks"] = Foo()
     myGlobals["hooks"].config = Foo()
     myGlobals["hooks"].config.distrib = dict(builder = dict(variables = {}))
