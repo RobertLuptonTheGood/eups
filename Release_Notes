@@ -1,3 +1,13 @@
+2017-02-23 timj (2.1.1)
+    - Handle "generic" flavour in eups distrib tags files
+    - Support --server-dir as an option to specify EUPS_PKGROOT for all "eups distrib" commands
+    - Improve error message if an invalid tag is provided to "eups distrib create"
+    - Fix Python 3 problem with eups declare
+
+    dev stats:
+      - 74 files changed, 2611 insertions(+), 2591 deletions(-)
+      - contributors: Robert Lupton the Good, John Swinbank, Mario Juric, Tim Jenness
+
 2017-02-21 (rhl)
     - Interpret "generic" as "current flavor" in .tags files
     - Don't allow a --flavor argument to "eups distrib declare" as it doesn't work
