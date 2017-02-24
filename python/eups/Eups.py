@@ -2546,8 +2546,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if not os.path.exists(pathOut):
                         differences += ["Adding %s" % pathOut]
                     else:
-                        crcOld = zlib.crc32("".join(open(fileNameIn).readlines()))
-                        crcNew = zlib.crc32("".join(open(pathOut).readlines()))
+                        crcOld = zlib.crc32(open(fileNameIn, "rb").read())
+                        crcNew = zlib.crc32(open(pathOut, "rb").read())
 
                         if crcOld != crcNew:
                             differences += ["%s's CRC32 changed" % pathOut]

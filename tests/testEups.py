@@ -12,6 +12,7 @@ import os
 import sys
 import shutil
 import unittest
+import tempfile
 import time
 from eups.utils import StringIO
 from testCommon import testEupsStack
@@ -284,6 +285,20 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(prod is not None, "Failed to declare product")
         self.assertEquals(len(prod.tags), 1)
         self.assertEquals(prod.tags[0], "beta")
+
+        # test redeclaration with external file & "current" tag
+        # We force a redclaration by adding the tag, but our primary aim here
+        # is to check the machinery for handling external files.
+        with tempfile.NamedTemporaryFile(delete=True) as extFile:
+            extFileBaseName = os.path.basename(extFile.name)
+            # We can't normally issue two identical declarations, but adding
+            # the tag makes EUPS accept it.
+            self.eups.declare("newprod", "1.0", pdir10, tag="current",
+                              externalFileList=[(extFile.name, extFileBaseName)])
+            self.eups.declare("newprod", "1.0", pdir10, tag="current",
+                              externalFileList=[(extFile.name, extFileBaseName)])
+            os.unlink(os.path.join(prod.extraProductDir(), extFileBaseName))
+        self.eups.unassignTag("current", "newprod")
 
         # test 2nd declare, w/ transfer of tag
         self.eups.declare("newprod", "1.1", pdir11, None, table, tag="beta")
