@@ -451,7 +451,7 @@ class Distrib(object):
         #
         def byDepth(a):
             """Sort by recursion depth"""
-            return a[2]
+            return -a[2]
         dependencies.sort(key=byDepth)
 
         for (dprod, dopt, recursionDepth) in dependencies:
