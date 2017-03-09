@@ -1,3 +1,10 @@
+2017-03-09 timj (2.1.2)
+    - Fix depth sorting of dependencies (broken for 2.1.0)
+
+    dev stats:
+      - 1 file changed, 1 insertion(+), 2 deletions(-)
+      - contributors: #
+
 2017-02-23 timj (2.1.1)
     - Handle "generic" flavour in eups distrib tags files
     - Support --server-dir as an option to specify EUPS_PKGROOT for all "eups distrib" commands

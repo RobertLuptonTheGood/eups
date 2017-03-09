@@ -957,4 +957,3 @@ def findInstallableRoot(Eups):
             return ep
 
     return None
-
