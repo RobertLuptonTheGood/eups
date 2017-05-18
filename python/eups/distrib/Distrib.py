@@ -776,7 +776,7 @@ class DefaultDistrib(Distrib):
             tablefile_for_distrib = os.path.join(tabledir, dep.tablefile)
             return fulltablename, tablefile_for_distrib
 
-        def copyTableFile(fulltablename, tablefile_for_distrib):
+        def copyTableFile(productName, fulltablename, tablefile_for_distrib):
             if os.access(tablefile_for_distrib, os.R_OK) and not force:
                 if self.Eups.verbose > 1:
                     print("Not recreating", tablefile_for_distrib, file=sys.stderr)
@@ -794,7 +794,7 @@ class DefaultDistrib(Distrib):
             productList = dict([(p.product, p.version) for p in productDeps])
 
             eups.table.expandTableFile(self.Eups, outTable, inTable, productList,
-                                       toplevelName=product, recurse=False, force=force)
+                                       toplevelName=productName, recurse=False, force=force)
             return True
 
         #
@@ -807,13 +807,13 @@ class DefaultDistrib(Distrib):
                 continue
 
             fulltablename, tablefile_for_distrib = getTableFile(product, version)
-            if not copyTableFile(fulltablename, tablefile_for_distrib):
+            if not copyTableFile(product, fulltablename, tablefile_for_distrib):
                 # Try the repository version
                 haveTable = False
                 repoVersion = hooks.config.Eups.repoVersioner(product, version)
                 if repoVersion != version:
                     fulltablename, tablefile_for_distrib = getTableFile(product, repoVersion)
-                    if copyTableFile(fulltablename, tablefile_for_distrib):
+                    if copyTableFile(product, fulltablename, tablefile_for_distrib):
                         haveTable = True
                 if not haveTable:
                     print("Tablefile %s doesn't exist; omitting" % (fulltablename), file=sys.stderr)

@@ -1426,11 +1426,11 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         else:
             try:
                 version = eups.getSetupVersion(productName, eupsenv=Eups)
-            except ProductNotFound:
+            except ProductNotFound as e:
                 notFound[productName] = True
                 if not optional:
                     if not force:
-                        raise
+                        raise RuntimeError("Expanding table for %s: %s" % (toplevelName, e))
                 continue
 
         NVOL.append((productName, version, optional, None))
