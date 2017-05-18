@@ -145,7 +145,18 @@ def _svnRevision(file=None, lastChanged=False):
 
     raise RuntimeError("svnversion returned unexpected result \"%s\"" % res[:-1])
 
+__version = None                        # the eups version
+
 def version():
+    """Get the eups version from git; if this isn't available consult git.version in $EUPS_DIR"""
+
+    global __version
+    if __version is None:
+        __version = __getVersion()
+
+    return __version
+
+def __getVersion():
     """Get the eups version from git; if this isn't available consult git.version in $EUPS_DIR"""
 
     eups_dir = os.environ.get("EUPS_DIR", ".")
