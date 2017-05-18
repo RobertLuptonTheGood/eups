@@ -133,6 +133,8 @@ class Distrib(object):
 
         self.buildDir = self.getOption('buildDir', 'EupsBuildDir')
 
+        self._alwaysExpandTableFiles = True # returned by self.alwaysExpandTableFiles()
+
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
@@ -947,6 +949,10 @@ class DefaultDistrib(Distrib):
 
         See tarball.py for an example"""
         pass
+
+    def alwaysExpandTableFiles(self):
+        """Should I always expand table files, even if they are already expanded?"""
+        return self._alwaysExpandTableFiles
 
 def findInstallableRoot(Eups):
     """return the first directory in the eups path that the user can install
