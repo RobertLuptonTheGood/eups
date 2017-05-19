@@ -40,6 +40,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         eupsDistrib.Distrib.__init__(self, Eups, distServ, flavor, tag, options,
                                      verbosity, log)
 
+        self._alwaysExpandTableFiles = False # expand table files after installation
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):

@@ -633,7 +633,8 @@ class Repositories(object):
 
         if not self.eups.noaction:
             try:
-                self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot, setups)
+                self._ensureDeclare(pkgroot, prod, instflavor, root, productRoot,
+                                    setups if distrib.alwaysExpandTableFiles() else None)
             except RuntimeError as e:
                 print(e, file=sys.stderr)
                 return
@@ -737,6 +738,16 @@ class Repositories(object):
         return (distId, pkgroot)
 
     def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot, setups):
+        """Make sure that the product is installed
+
+        \param pkgroot  Source of package being installed
+        \param mprod    A eups.distrib.server.Dependency (e.g. with product name and version)
+        \param flavor   Installation flavor
+        \param rootdir
+        \param productRoot  Element of EUPS_PATH that we are installing into
+        \param setups       Products that are already setup, used in expanding tablefile
+                            May be None to skip expanding tablefile
+        """
 
         flavor = self.eups.flavor
 
@@ -783,7 +794,8 @@ class Repositories(object):
                                                            mprod.product,
                                                            mprod.version,
                                                            flavor)
-                    expandTableFile(tablefile)
+                    if setups is not None:
+                        expandTableFile(tablefile)
                     tablefile = open(tablefile, "r")
                 else:
                     if upsdir and not os.path.exists(upsdir):
@@ -795,7 +807,8 @@ class Repositories(object):
                                                                  filename=tablefile)
                     if not os.path.exists(tablefile):
                         raise EupsException("Failed to find table file %s" % tablefile)
-                    expandTableFile(tablefile)
+                    if setups is not None:
+                        expandTableFile(tablefile)
 
         self.eups.declare(mprod.product, mprod.version, rootdir,
                           eupsPathDir=productRoot, tablefile=tablefile)
