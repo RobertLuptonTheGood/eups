@@ -131,7 +131,7 @@ git_version()
 	fi
 
 	local REF=${1:-HEAD}
-	local TAG_PATTERN=${2:-'[0-9]*'}	# The pattern defining eligible tags
+	local TAG_PATTERN=${2:-'[0-9,s]*'}	# The pattern defining eligible tags
 
 	# Check if this ref is already an annotated tag matching the tag pattern; if yes, we're done.
 	if [[ "$REF" == $TAG_PATTERN && $(git cat-file -t "$REF" 2>/dev/null) == tag ]]; then
