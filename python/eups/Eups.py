@@ -2366,7 +2366,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 eupsPathDir = None
         else:                           # look for proper home on self.path
             for d in self.path:
-                if utils.isSubpath(d, productDir):
+                if utils.isSubpath(productDir, d):
                     eupsPathDir = d
                     eupsPathDirForRead = d
                     break
