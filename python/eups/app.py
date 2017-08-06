@@ -83,8 +83,6 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         eupsenv.setup(productName, versionName, productRoot=os.path.abspath(productDir))
         setup = True                    # only list this version
 
-    productNameIsGlob = productName and re.search(r"[\[\]?*]", productName) # is productName actually a glob?
-
     productList = eupsenv.findProducts(productName, versionName, tags)
     if not productList:
         if productName:
@@ -237,7 +235,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                     info += "|"
                 info += name + "|" + version
             else:
-                if productName and not productNameIsGlob:
+                if productName and not utils.isGlob(productName):
                     info += "   "
                 else:
                     info += "%-21s " % (name)

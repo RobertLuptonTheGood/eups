@@ -162,7 +162,7 @@ class Tags(object):
                 self.registerTag(n, group, force)
             return
         else:
-            if set(name).intersection(["*", "?", "[", "]"]):         # a glob
+            if utils.isGlob(name):
                 globPattern = name
                 if not owner:
                     raise RuntimeError(\

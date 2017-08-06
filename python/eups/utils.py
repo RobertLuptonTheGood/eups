@@ -962,6 +962,10 @@ def isSubpath(path, root):
     # append trailing slash to root to avoid "/a/bbb" being treated as a subpath of "a/b"
     return path.startswith(os.path.join(root, ""))
 
+def isGlob(string):
+    """!Return true iff string is a glob pattern"""
+    return set(string).intersection(["*", "?", "[", "]"])
+
 def uniq(seq):
     """
         Returns only unique elements in a sequence, preserving the order. The input
