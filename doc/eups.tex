@@ -1496,13 +1496,13 @@ and thus \code{depth <= 2}.  E.g. the first-level dependencies may be displayed 
 indicate the indirectness of the dependency unless you specify an exact depth (i.e. with \code{==}).
 
 The command \code{setup list --current} will list all products that
-are declared current. Adding the \code{--verbose} option will also
+are declared current, or \code{setup list --tag} will list any tag that you're interested in (\code{tag}
+may be a glob, \textit{e.g.} \code{--tag w\_2017\_2?}. Adding the \code{--verbose} option will also
 list the database root and product root paths.  If you only want the product's
 directory, you can use \code{--directory}.
 The product name may be a glob expression (i.e. \code{*}, \code{?},
 and \code{[]} are special, just like the shell).  Note that you may
 need to quote them to protect them from the shell; e.g. \code{eups list $\backslash$* svn$\backslash$*}
-This command is deprecated; use \code{eups list} instead.
 
 %------------------------------------------------------------------------------
 

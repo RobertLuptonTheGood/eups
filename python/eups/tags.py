@@ -538,6 +538,22 @@ def checkTagsList(eupsenv, tagList):
             if eupsenv.verbose > 1:
                 print("File %s defines a tag" % fileName, file=utils.stdinfo)
             badtags.remove(tag)
+        elif utils.isGlob(tag):         # expand the glob
+            expandedTags = []           # list of expanded tags (excluding those in tagList)
+            matched = False             # did at least one tag match
+            allTags = eupsenv.tags.getTagNames()
+            for t in allTags:
+                if fnmatch.fnmatch(t, tag):
+                    matched = True
+                    if t not in tagList:
+                        expandedTags.append(t)
+
+            if expandedTags == []:
+                raise TagNotRecognized(str(badtags), msg="Pattern %s doesn't match any tag" % tag)
+
+            i = tagList.index(tag)
+            tagList[i:i + 1] = expandedTags # replace the glob by the expanded list
+            badtags.remove(tag)
 
     if badtags:
         raise TagNotRecognized(str(badtags),

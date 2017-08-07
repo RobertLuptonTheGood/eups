@@ -277,7 +277,7 @@ Common"""
                 preamble += " %s" % self.cmd
             utils.deprecated("%s: %s" % (preamble, msg), strm=self._errstrm)
 
-    def createEups(self, opts=None, versionName=None, readCache=None):
+    def createEups(self, opts=None, versionName=None, readCache=None, quiet=0):
         if opts is None:
             opts = self.opts
 
@@ -315,7 +315,7 @@ Common"""
         myeups = eups.Eups(flavor=flavor, path=opts.path, dbz=opts.dbz,
                          readCache=readCache, force=force,
                          ignore_versions=ignorever, setupType=setupType, cmdName=self.cmd,
-                         keep=keep, verbose=opts.verbose, quiet=opts.quiet, vro=self.opts.vro,
+                         keep=keep, verbose=opts.verbose, quiet=opts.quiet + quiet, vro=self.opts.vro,
                          noaction=opts.noaction, asAdmin=asAdmin, exact_version=exact_version)
 
         if hasattr(opts, "productDir"):
@@ -503,7 +503,7 @@ will also be printed.
 
         try:
             n = eups.printProducts(sys.stdout, product, version,
-                                   self.createEups(self.opts, versionName=version),
+                                   self.createEups(self.opts, versionName=version, quiet=1),
                                    tags=self.opts.tag,
                                    setup=self.opts.setup,
                                    tablefile=self.opts.tablefile,
