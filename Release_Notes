@@ -1,4 +1,5 @@
 2017-08-07 rhl
+    - Support eups list --showTags glob (-S glob) to specify which tags to list
     - Allow eups list -t to accept a glob pattern
 
 2017-05-19 timj (2.1.3)

@@ -3,6 +3,7 @@ common high-level EUPS functions appropriate for calling from an application.
 """
 
 from __future__ import absolute_import, print_function
+import fnmatch
 import re
 import os
 try:
@@ -22,7 +23,7 @@ from .utils import cmp_or_key, cmp
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                   tags=None, setup=False, tablefile=False, directory=False,
-                  dependencies=False, showVersion=False, showName=False,
+                  dependencies=False, showVersion=False, showName=False, showTagsGlob="*",
                   depth=None, productDir=None, topological=False, checkCycles=False, raw=False):
     """
     print out a listing of products.  Returned is the number of products listed.
@@ -39,6 +40,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     @param dependencies    print the product's dependencies
     @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
     @param showName        Only print the product{'s,s'} name[s] (e.g. eups list --name -t rhl)
+    @param showTagsGlob    Only print the product{'s,s'} tags if they match this tag
     @param depth           a string giving an expression for determining
                              whether a dependency of a certain depth should
                              be included.  This string can be a simple integer
@@ -60,6 +62,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         checkTagsList(eupsenv, tags)
     elif setup and not dependencies:
         tags = ["setup"]
+
+    if showTagsGlob == "*":
+        showTagsGlob = None
 
     # If productDir is provided only list its dependencies;  we do this by setting it up
     if productDir:
@@ -173,6 +178,12 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 tagsSeen[t][pi.name] = 0
 
             tagsSeen[t][pi.name] += 1
+
+    if showTagsGlob:
+        tagsSeen0 = tagsSeen.keys()
+        for t in tagsSeen0:
+            if not fnmatch.fnmatch(Tag(t).name, showTagsGlob):
+                del tagsSeen[t]
     #
     # Actually list the products
     #
@@ -255,12 +266,23 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 else:
                     info += "%-20s %-55s" % (root, pi.dir)
 
-                extra = pi.tags
+                del tags
+                tags = pi.tags
+                if showTagsGlob:
+                    tags = [t for t in tags if not fnmatch.fnmatch(Tag(t).name, showTagsGlob)]
+
+                extra = tags
             else:
                 extra = []
                 for t in pi.tags:
+                    tName = Tag(t).name # get the bare tag name, not e.g. user:foo
+
+                    if showTagsGlob:
+                        if not fnmatch.fnmatch(tName, showTagsGlob):
+                            continue
+
                     if not eupsenv.verbose:
-                        t = Tag(t).name # get the bare tag name, not e.g. user:foo
+                        t = tName
                     if tagsSeen.get(t) and tagsSeen[t].get(pi.name) > 1:
                         t = "%s[%s]" % (t, root)
                     extra.append(t)

@@ -472,6 +472,8 @@ will also be printed.
                             help="generate \"raw\" output (suitable for further processing)")
         self.clo.add_option("-s", "--setup", dest="setup", action="store_true", default=False,
                             help="List only product's that are setup.")
+        self.clo.add_option("-S", "--showTags", dest="showTagsGlob", metavar="glob", default="*",
+                            help="Only show tags that match this glob")
         self.clo.add_option("-m", "--table", dest="tablefile", action="store_true", default=False,
                             help="Print the name of the product's table file")
         self.clo.add_option("-t", "--tag", dest="tag", action="append",
@@ -510,6 +512,7 @@ will also be printed.
                                    directory=self.opts.printdir,
                                    dependencies=self.opts.depends,
                                    showVersion=self.opts.version, showName=self.opts.showName,
+                                   showTagsGlob=self.opts.showTagsGlob,
                                    depth=self.opts.depth,
                                    productDir=self.opts.productDir, topological=self.opts.topological,
                                    checkCycles=self.opts.checkCycles,
