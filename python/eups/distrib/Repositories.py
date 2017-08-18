@@ -268,7 +268,7 @@ class Repositories(object):
 
         return self.repos[pkg[3]]
 
-    def install(self, product, version=None, updateTags=True, alsoTag=None,
+    def install(self, product, version=None, updateTags=None, alsoTag=None,
                 depends=DEPS_ALL, noclean=False, noeups=False, options=None,
                 manifest=None, searchDep=None):
         """
@@ -278,11 +278,11 @@ class Repositories(object):
                             be a version string or an instance of Tag.  If
                             not provided (or None) the most preferred version
                             will be installed.
-        @param updateTags  when True (default), server-assigned tags will
+        @param updateTags  when None (default), server-assigned tags will
                             be updated for this product and all its dependcies
                             to match those recommended on the server (even if
-                            a product is already installed); if False, tags
-                            will not be changed.
+                            a product is already installed); otherwise it's the
+                            name of the tag that should be updated (so e.g. '' => none)
         @param alsoTag     A list of tags to assign to all installed products
                             (in addition to server tags).  This can either be
                             a space-delimited list, a list of string names,
@@ -358,7 +358,7 @@ class Repositories(object):
                                depends, noclean, noeups)
 
     def _recursiveInstall(self, recursionLevel, manifest, product, version,
-                          flavor, pkgroot, productRoot, updateTags=False,
+                          flavor, pkgroot, productRoot, updateTags=None,
                           alsoTag=None, opts=None, depends=DEPS_ALL,
                           noclean=False, noeups=False, searchDep=None,
                           setups=None, installed=None, tag=None, ances=None):
@@ -558,8 +558,8 @@ class Repositories(object):
             setups.append("setup --just --type=build %s %s" % (prod.product, prod.version))
 
             # ...update the tags
-            if updateTags:
-                self._updateServerTags(prod, productRoot, instflavor, installCurrent=opts["installCurrent"])
+            self._updateServerTags(prod, productRoot, instflavor, installCurrent=opts["installCurrent"],
+                                   desiredTag=updateTags)
             if alsoTag:
                 if self.verbose > 1:
                     print("Assigning Tags to %s %s: %s" % \
@@ -650,18 +650,24 @@ class Repositories(object):
         else:
             self.clean(prod.product, prod.version, options=opts)
 
-    def _updateServerTags(self, prod, stackRoot, flavor, installCurrent):
+    def _updateServerTags(self, prod, stackRoot, flavor, installCurrent, desiredTag=None):
         #
         # We have to be careful.  If the first pkgroot doesn't choose to set a product current, we don't
         # some later pkgroot to do it anyway
+        #
+        # If desiredTag is None include all tags, otherwise only desiredTag
         #
         tags = []			# tags we want to set
         processedTags = []		# tags we've already seen
         if not installCurrent:
             processedTags.append("current") # pretend we've seen it, so we won't process it again
 
+        if desiredTag is not None:
+            desiredTag = [desiredTag]
+
         for pkgroot in self.repos.keys():
-            ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor)
+            ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor,
+                                                                      tags=desiredTag)
             ptags = [t for t in ptags if t not in processedTags]
             tags += ptags
 

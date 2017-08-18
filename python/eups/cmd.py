@@ -2331,11 +2331,12 @@ tag will be installed.
         if self.opts.quiet:
             log = open("/dev/null", "w")
 
+        updateTags = None if self.opts.updateTags else self.opts.tag
         try:
             repos = distrib.Repositories(self.opts.root, dopts, myeups,
                                          self.opts.flavor,
                                          verbosity=self.opts.verbose, log=log)
-            repos.install(productName, versionName, self.opts.updateTags,
+            repos.install(productName, versionName, updateTags,
                           self.opts.alsoTag, self.opts.depends,
                           self.opts.noclean, self.opts.noeups, dopts,
                           self.opts.manifest, self.opts.searchDep)
