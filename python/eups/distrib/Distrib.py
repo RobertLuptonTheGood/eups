@@ -481,7 +481,7 @@ class Distrib(object):
             if self.noeups and productName == dprod.product:
                 basedir, dprod.instDir = None, "/dev/null"
             else:
-                (basedir, instDir) = self.getProductInstDir(dprod.product, dprod.version, dprod.flavor)
+                basedir, dprod.instDir = self.getProductInstDir(dprod.product, dprod.version, dprod.flavor)
 
         return productList
 
