@@ -2325,7 +2325,9 @@ The what argument tells us what sort of state is expected (allowed values are de
                         productDir = "none"
                     break
 
-        if not productDir or productDir == "/dev/null":
+        if productDir == "/dev/null":
+            productDir = None
+        if not productDir:
             #
             # Look for productDir on self.path
             #

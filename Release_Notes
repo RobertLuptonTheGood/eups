@@ -1,3 +1,5 @@
+2017-08-18 rhl
+    - You should now be able to install to a mixed readonly/readwrite EUPS_PATH
 2017-08-07 rhl
     - Support eups list --showTags glob (-S glob) to specify which tags to list
     - Allow eups list -t to accept a glob pattern
