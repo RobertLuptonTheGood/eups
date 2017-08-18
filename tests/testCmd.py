@@ -16,6 +16,7 @@ from testCommon import testEupsStack
 import eups.cmd
 import eups.hooks as hooks
 from eups import Tag, TagNotRecognized
+from eups.exceptions import ProductNotFound
 
 prog = "eups"
 
@@ -167,21 +168,17 @@ tcltk                 8.5a4      \tcurrent
         # test the printing of the helpful message
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list goober".split(), toolname=prog)
-        self.assertEqual(cmd.run(), 1)
-        self.assertEquals(self.out.getvalue(), "")
-        self.assertEquals(self.err.getvalue(), prog + ' list: Unable to find product goober\n')
+        try:
+            self.assertEqual(cmd.run(), 1)
+        except ProductNotFound as e:
+            self.assertEquals(str(e), 'Unable to find product goober')
 
         self._resetOut()
         cmd = eups.cmd.EupsCmd(args="list distrib goober".split(), toolname=prog)
-        self.assertEqual(cmd.run(), 1)
-        self.assertEquals(self.out.getvalue(), "")
-        self.assertEquals(self.err.getvalue(), prog + ' list: Unable to find product distrib goober; Maybe you meant "eups distrib list"?\n')
-
-        self._resetOut()
-        cmd = eups.cmd.EupsCmd(args="list -q goober".split(), toolname=prog)
-        self.assertEqual(cmd.run(), 1)
-        self.assertEquals(self.out.getvalue(), "")
-        self.assertEquals(self.err.getvalue(), "")
+        try:
+            self.assertEqual(cmd.run(), 1)
+        except ProductNotFound as e:
+            self.assertEquals(str(e), 'Unable to find product distrib goober; Maybe you meant "eups distrib list"?')
 
         # test listing of LOCAL products
         self._resetOut()
