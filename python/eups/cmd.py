@@ -2053,7 +2053,8 @@ class DistribListCmd(EupsCmd):
 
         self.clo.add_option("-f", "--flavor", dest="flavor", action="store", default=None,
                             help="Specifically list for this flavor")
-        self.clo.add_option("-s", "--server-dir", dest="root", action="append", metavar="PKGURL",
+        self.clo.add_option("-r", "--repository", "-s", "--server-dir",
+                            dest="root", action="append", metavar="PKGURL",
                             help="Servers to query (Default: $EUPS_PKGROOT)")
         self.clo.add_option("-S", "--server-option", dest="serverOpts", action="append",
                             help="pass a customized option to all repositories " +
@@ -2064,8 +2065,6 @@ class DistribListCmd(EupsCmd):
         # always call the super-version so that the core options are set
         EupsCmd.addOptions(self)
 
-        self.clo.add_option("--repository", dest="root", action="append",
-                            help="equivalent to --server-dir (deprecated)")
         self.clo.add_option("--root", dest="root", action="append",
                             help="equivalent to --server-dir (deprecated)")
 
