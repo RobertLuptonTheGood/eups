@@ -525,9 +525,9 @@ will also be printed.
         except eups.ProductNotFound as e:
             msg = e.getMessage()
             if product == "distrib":
-                msg += '; Maybe you meant "eups distrib list"?'
-            self.err(msg)
-            return 1
+                e.msg += '; Maybe you meant "eups distrib list"?'
+            e.status = 1
+            raise
 
         except eups.EupsException as e:
             e.status = 2
