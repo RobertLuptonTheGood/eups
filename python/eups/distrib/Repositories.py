@@ -835,15 +835,50 @@ class Repositories(object):
         @param flavor         the product flavor.  If None, assume the current
                                 default flavor
         """
-        buildRoot = "EupsBuildDir"
+        buildDir = "EupsBuildDir"
         if options and 'buildDir' in options:
-            buildRoot = self.options['buildDir']
+            buildDir = self.options['buildDir']
         if not flavor:  flavor = self.eups.flavor
 
         pdir = "%s-%s" % (product, version)
-        if os.path.isabs(buildRoot):
-            return os.path.join(buildRoot, flavor, pdir)
-        return os.path.join(productRoot, buildRoot, flavor, pdir)
+        if os.path.isabs(buildDir):
+            buildRoot = buildDir
+        else:
+            buildRoot = os.path.join(productRoot, buildDir)            
+        #
+        # Can we write to that directory?
+        #
+        try:
+            os.makedirs(buildRoot)      # make sure it exists if we have the power to do so
+        except OSError:                 # already exists, or failed; we don't care which
+            pass
+
+        if not os.access(buildRoot, (os.F_OK|os.R_OK|os.W_OK)):
+            # Oh dear.  Look on EUPS_PATH
+            #
+            # N.b. if the user specified a buildDir option we may not have tried any of its elements yet,
+            # so don't special-case productRoot
+            
+            buildRoot, obuildRoot = None, buildRoot
+            for d in self.eups.path:
+                bd = os.path.join(d, buildDir)
+
+                if os.access(bd, (os.F_OK|os.R_OK|os.W_OK)):
+                    buildRoot = bd
+                else:
+                    try:
+                        os.makedirs(bd)
+                    except Exception as e:
+                        pass
+                    else:
+                        buildRoot = bd
+
+                if buildRoot is not None:
+                    print("Unable to write to %s, using %s instead" % (obuildRoot, buildRoot),
+                          file=utils.stdwarn)
+                    break
+                        
+        return os.path.join(buildRoot, flavor, pdir)
 
     def makeBuildDirFor(self, productRoot, product, version, options=None,
                         flavor=None):

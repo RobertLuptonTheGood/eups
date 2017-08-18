@@ -499,7 +499,8 @@ Group:
 
                     if os.path.isabs(info[k]):
                         if info[k] != trimDir:
-                            print("Warning: path %s is absolute, not relative to EUPS_PATH" % info[k], file=eups.utils.stdwarn)
+                            print("Warning: path %s is absolute, not relative to location on EUPS_PATH" %
+                                  info[k], file=eups.utils.stdwarn)
 
             for field in self._fields:
                 if field == "PROD_DIR":

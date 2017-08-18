@@ -1897,7 +1897,7 @@ Additional mappings can be provided.
         #
         products = []
         for p in self.products:
-            if self.verbose > 1:
+            if self.verbose > 2:
                 print("Looking for mapping for %s %s %s" % (p.product, p.version, flavor), file=self.log)
             productName, versionName = mapping.apply(p.product, p.version, flavor)
             if versionName is None:

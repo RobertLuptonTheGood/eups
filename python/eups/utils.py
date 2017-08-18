@@ -300,10 +300,11 @@ def isRealFilename(filename):
     else:
         return True
 
-def isDbWritable(dbpath):
+def isDbWritable(dbpath, create=False):
     """
     return true if the database is updatable.  A non-existent
-    directory is considered not writable.  If the path is not a
+    directory is considered not writable unless create is True (in which case an
+    attempt to create the directory).  If the path is not a
     directory, an exception is raised.
 
     The database must be writable to:
@@ -311,11 +312,23 @@ def isDbWritable(dbpath):
       o  set or update global tags
       o  update the product cache
     """
-    return os.access(dbpath, (os.F_OK|os.R_OK|os.W_OK))
+    dbExists = os.access(dbpath, (os.F_OK|os.R_OK|os.W_OK))
 
-def findWritableDb(pathdirs, ups_db):
+    if not dbExists and create:
+        try:
+            os.makedirs(dbpath)
+        except Exception as e:
+            pass
+        else:
+            dbExists = True
+
+    return dbExists
+
+def findWritableDb(pathdirs, ups_db, create=False):
     """return the first directory in the eups path that the user can install
     stuff into
+
+    If create is True, make an attempt to create the directory
     """
     if is_string(pathdirs):
         pathdirs = pathdirs.split(':')
@@ -323,7 +336,7 @@ def findWritableDb(pathdirs, ups_db):
         raise TypeError("findWritableDb(): arg is not list or string: " +
                         pathdirs)
     for path in pathdirs:
-        if isDbWritable(os.path.join(path, ups_db)):
+        if isDbWritable(os.path.join(path, ups_db), create):
             return path
 
     return None

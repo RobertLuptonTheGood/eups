@@ -1126,6 +1126,20 @@ REPOSITORY=${REPOSITORY:-}					# URL to git repository
 MAKE_BUILD_TARGETS=${MAKE_BUILD_TARGETS:-}		# Targets for invocation of make in build phase
 MAKE_INSTALL_TARGETS=${MAKE_INSTALL_TARGETS:-"install"}	# Targets for invocation of make in test phase
 
+#
+# If PRODUCTS_ROOT isn't set, set it from the first writeable element on EUPS_PATH 
+#
+if [ X$PRODUCTS_ROOT = X ]; then
+    for d in $(eups path); do
+	PRODUCTS_ROOT="$d/$(eups flavor)"
+	mkdir -p $PRODUCTS_ROOT &&
+	    touch $PRODUCTS_ROOT/.foo > /dev/null 2>&1 &&
+	    rm $PRODUCTS_ROOT/.foo &&
+	    break
+	unset PRODUCTS_ROOT
+    done
+fi
+    
 PRODUCTS_ROOT=${PRODUCTS_ROOT:-"$(eups path 0)/$(eups flavor)"}		# Root directory of EUPS-managed stack.
 PREFIX=${PREFIX:-"$PRODUCTS_ROOT/$PRODUCT/$VERSION"}			# Directory to which the product will be installed
 

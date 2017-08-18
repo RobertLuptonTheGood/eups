@@ -2374,8 +2374,13 @@ The what argument tells us what sort of state is expected (allowed values are de
             if not eupsPathDirForRead:
                 eupsPathDirForRead = eupsPathDir
 
-            if not eupsPathDir or not utils.isDbWritable(self.getUpsDB(eupsPathDir)):
+            if not eupsPathDir:
                 eupsPathDir = utils.findWritableDb(self.path, self.ups_db)
+            elif not utils.isDbWritable(self.getUpsDB(eupsPathDir)):
+                __eupsPathDir = utils.findWritableDb(self.path, self.ups_db)
+
+                print("%s is not writeable; using %s" % (eupsPathDir, __eupsPathDir), file=utils.stdwarn)
+                eupsPathDir = __eupsPathDir; del __eupsPathDir
 
             if not eupsPathDirForRead:
                 eupsPathDirForRead = eupsPathDir
