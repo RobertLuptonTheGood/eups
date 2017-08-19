@@ -1640,9 +1640,13 @@ class AdminClearLocksCmd(EupsCmd):
             self.err("Unexpected arguments: %s" % " ".join(self.args))
             return 2
 
+        path = self.createEups(self.opts, readCache=False).path
+        for d in path:
+            if lock.getLockPath(d) is None:
+                print("Locks are disabled for %s" % (d), file=utils.stdinfo)
+
         try:
-            lock.clearLocks(self.createEups(self.opts, readCache=False).path,
-                            self.opts.verbose, self.opts.noaction)
+            lock.clearLocks(path, self.opts.verbose, self.opts.noaction)
         except IOError:
             pass
 
@@ -1670,9 +1674,13 @@ class AdminListLocksCmd(EupsCmd):
             self.err("Unexpected arguments: %s" % " ".join(self.args))
             return 2
 
+        path = self.createEups(self.opts, readCache=False).path
+        for d in path:
+            if lock.getLockPath(d) is None:
+                print("Locks are disabled for %s" % (d), file=utils.stdinfo)
+
         try:
-            lock.listLocks(self.createEups(self.opts, readCache=False).path,
-                           self.opts.verbose, self.opts.noaction)
+            lock.listLocks(path, self.opts.verbose, self.opts.noaction)
         except IOError:
             pass
 

@@ -1,3 +1,6 @@
+2017-08-19 rhl
+    - Make eups admin {clear,list}Locks warn if locks are disabled
+
 2017-08-18 rhl
     - You should now be able to install to a mixed readonly/readwrite EUPS_PATH
     - Specifying --no-server-tags (or -U) to eups distrib install will now set a tag
