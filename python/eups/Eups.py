@@ -432,6 +432,10 @@ class Eups(object):
                     print("Using name \"toolchain\" for default product, not \"%s\"" % \
                         defaultProduct, file=utils.stdwarn)
                 hooks.config.Eups.defaultProduct["name"] = "toolchain"
+        #
+        # Allow us to control repetitive warning messages
+        #
+        self._warned = {}
 
     def pushStack(self, what, value=None):
         """Push some state onto a stack; see also popStack() and dropStack()
@@ -2127,13 +2131,33 @@ The what argument tells us what sort of state is expected (allowed values are de
         product = self.getProduct(productName, versionName, eupsPathDirForRead)
         root = product.stackRoot()
 
+        writeableDB = product.db
         if tag.isGlobal() and not utils.isDbWritable(product.db):
-            raise EupsException(
-                "You don't have permission to assign a global tag %s in %s" % (tag, product.db))
+            #
+            # We'll try to find another location to write the tags file
+            #
+            msg = "You don't have permission to assign a global tag %s in %s" % (tag, product.db)
+
+            writeableDB = None
+            for db in [self.getUpsDB(_) for _ in self.path]:
+                if utils.isDbWritable(db):
+                    writeableDB = db
+                    break
+
+            if not writeableDB:
+                raise EupsException(msg)
+            else:
+                warningName = "_cannotWriteGlobalTag"
+                if not warningName in self._warned:
+                    self._warned[warningName] = -1
+                self._warned[warningName] += 1
+
+                if self.verbose > 2 or self._warned[warningName] == 0:
+                    print("%s; writing to %s" % (msg, writeableDB), file=utils.stdwarn)
 
         # update the database.  If it's a user tag,
         db = Database(product.db, self._userStackCache(root))
-        db.assignTag(tag, productName, versionName, self.flavor)
+        db.assignTag(tag, productName, versionName, self.flavor, writeableDB=writeableDB)
 
         # update the cache
         if root in self.versions and self.versions[root]:

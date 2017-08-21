@@ -564,7 +564,7 @@ class _Database(object):
         else:
             return productName, None
 
-    def assignTag(self, tag, productName, version, flavors=None):
+    def assignTag(self, tag, productName, version, flavors=None, writeableDB=None):
         """
         assign a tag to a given product.
 
@@ -575,6 +575,7 @@ class _Database(object):
         @param version :     the version to tag
         @param flavors :     the flavors of the product to be tagged.
                                 If None, tag all available flavors.
+        @param writeableDB   database to write the tag too
         """
 
         if is_string(tag):
@@ -604,11 +605,15 @@ class _Database(object):
                                msg="Requested flavors not declared for %s %s"
                                    % (productName, version))
 
-        if tag.isUser():
+        if not writeableDB and tag.isUser():
             if not self._getUserTagDb():
                 raise RuntimeError("Unable to assign user tags (user db not available)")
 
-            pdir = self._productDir(productName, self._getUserTagDb())
+            writeableDB = self._getUserTagDb()
+
+        if writeableDB:
+            pdir = self._productDir(productName, writeableDB)
+
             if not os.path.exists(pdir):
                 os.makedirs(pdir)
         else:
