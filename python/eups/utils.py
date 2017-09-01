@@ -131,7 +131,9 @@ def _svnRevision(file=None, lastChanged=False):
     if lastChanged:
         raise RuntimeError("lastChanged makes no sense if file is None")
 
-    res = os.popen("svnversion . 2>&1").readline()
+    p = os.popen("svnversion . 2>&1").readline()
+    res = p.readline()
+    p.close()
 
     if res == "exported\n":
         raise RuntimeError("No svn revision information is available")
@@ -171,9 +173,12 @@ def __getVersion():
             print("Cannot guess version without .git directory or git.version file; version will be set to \"%s\"" % version, file=stderr)
         return version
 
-    version = os.popen("(cd %s; git describe --tags --always)" % eups_dir).readline().strip()
-
-    status = os.popen("(cd %s; git status --porcelain --untracked-files=no)" % eups_dir).readline()
+    p = os.popen("(cd %s; git describe --tags --always)" % eups_dir)
+    version = p.readline().strip()
+    p.close()
+    p = os.popen("(cd %s; git status --porcelain --untracked-files=no)" % eups_dir)
+    status = p.readline()
+    p.close()
     if status.strip():
         print("Warning: EUPS source has uncommitted changes (you are using an undefined eups version)", file=stdwarn)
         version += "M"
