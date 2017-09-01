@@ -744,7 +744,7 @@ class Repositories(object):
         return (distId, pkgroot)
 
     def _ensureDeclare(self, pkgroot, mprod, flavor, rootdir, productRoot, setups):
-        """Make sure that the product is installed
+        r"""Make sure that the product is installed
 
         \param pkgroot  Source of package being installed
         \param mprod    A eups.distrib.server.Dependency (e.g. with product name and version)

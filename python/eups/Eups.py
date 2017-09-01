@@ -939,11 +939,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                         indent = ""
 
                     msg = "%sVRO [%s] failed to match for %s version %s" % \
-                          (indent, ", ".join([x for x in preVro if not re.search("^warn(:\d+)?$", x)]),
+                          (indent, ", ".join([x for x in preVro if not re.search(r"^warn(:\d+)?$", x)]),
                            name, vname,)
                     if postVro:
                         msg += "; trying [%s]" % \
-                               (", ".join([x for x in postVro if not re.search("^warn(:\d+)?$", x)]))
+                               (", ".join([x for x in postVro if not re.search(r"^warn(:\d+)?$", x)]))
                     if flavor:
                         msg += " (Flavor: %s)" % flavor
 
@@ -1228,8 +1228,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         lineNo = 0                      # for diagnostics
         for line in fd.readlines():
             lineNo += 1
-            line = re.sub("^[|\s]*", "", line)
-            line = re.sub("\s*$", "", line)
+            line = re.sub(r"^[|\s]*", "", line)
+            line = re.sub(r"\s*$", "", line)
 
             if not line or re.search(r"^#", line):
                 continue

@@ -684,7 +684,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
         # HACK:  replace "scons .* install" with "scons .* install version=@VERSION@
         # The right thing to do is to update the build files
         if re.search(r"^\s*scons\s+.*install", line):
-            line = re.sub("\sversion=\S+", "", line)
+            line = re.sub(r"\sversion=\S+", "", line)
             line += " version=@VERSION@"
 
         # NOTE: if you want to use build files created before the above HACKs were effective, you'll need to
