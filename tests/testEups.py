@@ -69,16 +69,16 @@ class EupsTestCase(unittest.TestCase):
         os.environ = self.environ0
 
     def testInit(self):
-        self.assertEquals(len(self.eups.path), 2)
-        self.assertEquals(self.eups.path[0], testEupsStack)
-        self.assertEquals(self.eups.path[1], os.environ["EUPS_USERDATA"])
-        self.assertEquals(self.eups.getUpsDB(testEupsStack), self.dbpath)
-        self.assertEquals(len(self.eups.versions), 2)
+        self.assertEqual(len(self.eups.path), 2)
+        self.assertEqual(self.eups.path[0], testEupsStack)
+        self.assertEqual(self.eups.path[1], os.environ["EUPS_USERDATA"])
+        self.assertEqual(self.eups.getUpsDB(testEupsStack), self.dbpath)
+        self.assertEqual(len(self.eups.versions), 2)
         self.assertIn(testEupsStack, self.eups.versions)
         self.assert_(self.eups.versions[testEupsStack] is not None)
 
         flavors = self.eups.versions[testEupsStack].getFlavors()
-        self.assertEquals(len(flavors), 3)
+        self.assertEqual(len(flavors), 3)
         for flav in "Linux64 Linux generic".split():
             self.assertIn(flav, flavors)
 
@@ -87,7 +87,7 @@ class EupsTestCase(unittest.TestCase):
         for tag in exptags.split():
             self.assertIn(tag, tags)
 
-        self.assertEquals(len(self.eups.preferredTags), 5)
+        self.assertEqual(len(self.eups.preferredTags), 5)
         for tag in "version versionExpr stable current latest".split():
             self.assertIn(tag, self.eups.preferredTags)
 
@@ -109,13 +109,13 @@ class EupsTestCase(unittest.TestCase):
         self.eups._kindlySetPreferredTags("goober gurn")
         prefs = self.eups.getPreferredTags()
         prefs.sort()
-        self.assertEquals(orig, " ".join(prefs))
+        self.assertEqual(orig, " ".join(prefs))
         self.eups._kindlySetPreferredTags("goober stable gurn")
-        self.assertEquals(" ".join(self.eups.getPreferredTags()), "stable")
+        self.assertEqual(" ".join(self.eups.getPreferredTags()), "stable")
         self.eups._kindlySetPreferredTags("stable beta")
         prefs = self.eups.getPreferredTags()
         prefs.sort()
-        self.assertEquals(" ".join(prefs), "beta stable")
+        self.assertEqual(" ".join(prefs), "beta stable")
 
     def testFindProduct(self):
 
@@ -128,9 +128,9 @@ class EupsTestCase(unittest.TestCase):
         # find by name, version, flavor
         prod = self.eups.findProduct("eigen", "2.0.0", flavor="Linux")
         self.assert_(prod is not None, "Failed to find product")
-        self.assertEquals(prod.name,    "eigen")
-        self.assertEquals(prod.version, "2.0.0")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "eigen")
+        self.assertEqual(prod.version, "2.0.0")
+        self.assertEqual(prod.flavor,  "Linux")
 
         # look for non-existent name-version combo
         prod = self.eups.findProduct("eigen", "2.0.1")
@@ -139,65 +139,65 @@ class EupsTestCase(unittest.TestCase):
         # find by name, version
         prod = self.eups.findProduct("eigen", "2.0.0")
         self.assert_(prod is not None, "Failed to find product")
-        self.assertEquals(prod.name,    "eigen")
-        self.assertEquals(prod.version, "2.0.0")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "eigen")
+        self.assertEqual(prod.version, "2.0.0")
+        self.assertEqual(prod.flavor,  "Linux")
 
         # find by name
         prod = self.eups.findProduct("eigen")
         self.assert_(prod is not None, "Failed to find product")
-        self.assertEquals(prod.name,    "eigen")
-        self.assertEquals(prod.version, "2.0.0")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "eigen")
+        self.assertEqual(prod.version, "2.0.0")
+        self.assertEqual(prod.flavor,  "Linux")
         self.assertIn("current", prod.tags)
 
         # find by name, preferring tagged version
         prod = self.eups.findProduct("python")
         self.assert_(prod is not None, "Failed to find python product")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.5.2")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.5.2")
+        self.assertEqual(prod.flavor,  "Linux")
         self.assertIn("current", prod.tags)
 
         # find by name, preferring latest version
         tag = self.eups.tags.getTag("latest")
         prod = self.eups.findProduct("python", tag)
         self.assert_(prod is not None, "Failed to find python product")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.6")
-        self.assertEquals(prod.flavor,  "Linux")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.6")
+        self.assertEqual(prod.flavor,  "Linux")
+        self.assertEqual(len(prod.tags), 0)
 
         # find by name, expression
         prod = self.eups.findProduct("python", "< 2.6")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.5.2")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.5.2")
+        self.assertEqual(prod.flavor,  "Linux")
 
         prod = self.eups.findProduct("python", ">= 2.6")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.6")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.6")
+        self.assertEqual(prod.flavor,  "Linux")
 
         prod = self.eups.findProduct("python", ">= 2.5.2")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.5.2")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.5.2")
+        self.assertEqual(prod.flavor,  "Linux")
 
         self.eups.setPreferredTags("latest")
         prod = self.eups.findProduct("python", ">= 2.5.2")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.6")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.6")
+        self.assertEqual(prod.flavor,  "Linux")
         prod = self.eups.findProduct("python")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.6")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.6")
+        self.assertEqual(prod.flavor,  "Linux")
 
         prod = self.eups.findProduct("python", "== 2.5.2")
-        self.assertEquals(prod.name,    "python")
-        self.assertEquals(prod.version, "2.5.2")
-        self.assertEquals(prod.flavor,  "Linux")
+        self.assertEqual(prod.name,    "python")
+        self.assertEqual(prod.version, "2.5.2")
+        self.assertEqual(prod.flavor,  "Linux")
 
         self.assertRaises(EupsException, self.eups.findProduct,
                           "python", "= 2.5.2")
@@ -258,15 +258,15 @@ class EupsTestCase(unittest.TestCase):
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack, table)
         prod = self.eups.findProduct("newprod")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(prod.name,    "newprod")
-        self.assertEquals(prod.version, "1.0")
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], 'current')
+        self.assertEqual(prod.name,    "newprod")
+        self.assertEqual(prod.version, "1.0")
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], 'current')
         prod = self.eups.findProduct("newprod", noCache=True)
-        self.assertEquals(prod.name,    "newprod")
-        self.assertEquals(prod.version, "1.0")
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], 'current')
+        self.assertEqual(prod.name,    "newprod")
+        self.assertEqual(prod.version, "1.0")
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], 'current')
         self.assert_(os.path.exists(os.path.join(self.dbpath,
                                                  "newprod", "1.0.version")))
 
@@ -283,8 +283,8 @@ class EupsTestCase(unittest.TestCase):
         self.eups.declare("newprod", "1.0", pdir10, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", eupsPathDirs=testEupsStack)
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], "beta")
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], "beta")
 
         # test redeclaration with external file & "current" tag
         # We force a redclaration by adding the tag, but our primary aim here
@@ -304,27 +304,27 @@ class EupsTestCase(unittest.TestCase):
         self.eups.declare("newprod", "1.1", pdir11, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", "1.1")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(prod.dir, pdir11)
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], "beta")
+        self.assertEqual(prod.dir, pdir11)
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], "beta")
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEqual(len(prod.tags), 0)
 
         # test redeclare w/change of product dir
         prod = self.eups.findProduct("newprod", "1.1")
         self.assertRaises(EupsException, self.eups.declare, "newprod", "1.1", pdir10, None, table)
         # we can move the tag but not the directory
         self.eups.declare("newprod", "1.0", pdir11, None, table, tag="beta")
-        self.assertEquals(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir10)
+        self.assertEqual(self.eups.findProduct("newprod", self.eups.tags.getTag("beta")).dir, pdir10)
         # ...unless we force it
         self.eups.force = True
         self.eups.declare("newprod", "1.1", pdir10, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", "1.1")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(prod.dir, pdir10)
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], "beta")
+        self.assertEqual(prod.dir, pdir10)
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], "beta")
 
         # test ambiguous undeclare
         self.assertRaises(EupsException, self.eups.undeclare, "newprod")
@@ -335,15 +335,15 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], "current")
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], "current")
 
         # test unassign of tag via undeclare
         self.eups.undeclare("newprod", "1.0", tag="current")
         self.assert_(not os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Unintentionally undeclared product")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEqual(len(prod.tags), 0)
 
         # test deprecated declareCurrent
         q = Quiet(self.eups)
@@ -351,26 +351,26 @@ class EupsTestCase(unittest.TestCase):
         self.assert_(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], "current")
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], "current")
         self.eups.undeclare("newprod", "1.0", undeclareCurrent=True)
         self.assert_(not os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Unintentionally undeclared product")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEqual(len(prod.tags), 0)
 
         # test deprecated declareCurrent
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack, table, True)
         self.assert_(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Failed to declare product")
-        self.assertEquals(len(prod.tags), 1)
-        self.assertEquals(prod.tags[0], "current")
+        self.assertEqual(len(prod.tags), 1)
+        self.assertEqual(prod.tags[0], "current")
         self.eups.undeclare("newprod", "1.0", testEupsStack, True)
         self.assert_(not os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assert_(prod is not None, "Unintentionally undeclared product")
-        self.assertEquals(len(prod.tags), 0)
+        self.assertEqual(len(prod.tags), 0)
         del q
 
         # test undeclare of tagged product
@@ -399,7 +399,7 @@ class EupsTestCase(unittest.TestCase):
         self.eups.declare("newprod", "1.1", pdir11, testEupsStack, tableStrm)
         prod = self.eups.findProduct("newprod", "1.1")
         self.assert_(prod is not None, "failed to declare newprod 1.1")
-        self.assertEquals(prod.tablefile,
+        self.assertEqual(prod.tablefile,
                           os.path.join(self.dbpath, "Linux","newprod","1.1", "ups", "newprod.table"))
 
     def testUserTags(self):
@@ -411,73 +411,73 @@ class EupsTestCase(unittest.TestCase):
         prod = self.eups.getProduct("python", "2.5.2")
         self.assertIn("user:mine", prod.tags, "user:mine not assigned")
         prod = self.eups.findProducts("python", tags="mine")
-        self.assertEquals(len(prod), 1, "failed to find user-tagged product")
-        self.assertEquals(prod[0].version, "2.5.2")
+        self.assertEqual(len(prod), 1, "failed to find user-tagged product")
+        self.assertEqual(prod[0].version, "2.5.2")
 
     def testList(self):
 
         # basic find
         prods = self.eups.findProducts("python")
-        self.assertEquals(len(prods), 2)
-        self.assertEquals(prods[0].name, "python")
-        self.assertEquals(prods[0].version, "2.5.2")
-        self.assertEquals(prods[1].name, "python")
-        self.assertEquals(prods[1].version, "2.6")
+        self.assertEqual(len(prods), 2)
+        self.assertEqual(prods[0].name, "python")
+        self.assertEqual(prods[0].version, "2.5.2")
+        self.assertEqual(prods[1].name, "python")
+        self.assertEqual(prods[1].version, "2.6")
 
         prods = self.eups.findProducts("python", tags="latest")
-        self.assertEquals(len(prods), 1)
-        self.assertEquals(prods[0].name, "python")
-        self.assertEquals(prods[0].version, "2.6")
+        self.assertEqual(len(prods), 1)
+        self.assertEqual(prods[0].name, "python")
+        self.assertEqual(prods[0].version, "2.6")
 
         prods = self.eups.findProducts("py*", "2.*",)
-        self.assertEquals(len(prods), 2)
-        self.assertEquals(prods[0].name, "python")
-        self.assertEquals(prods[0].version, "2.5.2")
+        self.assertEqual(len(prods), 2)
+        self.assertEqual(prods[0].name, "python")
+        self.assertEqual(prods[0].version, "2.5.2")
 
         prods = self.eups.findProducts("python", "3.*",)
-        self.assertEquals(len(prods), 0)
+        self.assertEqual(len(prods), 0)
 
         # version and tags conflict; mutually exclusive
         prods = self.eups.findProducts("python", "2.5.2", tags="latest")
-        self.assertEquals(len(prods), 0)
+        self.assertEqual(len(prods), 0)
 
         prods = self.eups.findProducts("python", ">= 2.5.2")
-        self.assertEquals(len(prods), 2)
+        self.assertEqual(len(prods), 2)
 
         prods = self.eups.findProducts("python", ">= 2.5.2", tags="latest")
-        self.assertEquals(len(prods), 1)
+        self.assertEqual(len(prods), 1)
 
         prods = self.eups.findProducts("python", "<= 2.5.2", tags="latest")
-        self.assertEquals(len(prods), 0)
+        self.assertEqual(len(prods), 0)
 
         # find all: ['cfitsio','mpich2','eigen','python:2','doxygen','tcltk']
         prods = self.eups.findProducts()
-        self.assertEquals(len(prods), 7)
+        self.assertEqual(len(prods), 7)
 
         prods = self.eups.findProducts("python", tags="setup")
-        self.assertEquals(len(prods), 0)
+        self.assertEqual(len(prods), 0)
 
         prods = self.eups.findProducts("python", tags="current latest".split())
-        self.assertEquals(len(prods), 2)
+        self.assertEqual(len(prods), 2)
 
         prods = self.eups.findProducts("doxygen")
-        self.assertEquals(len(prods), 1)
-        self.assertEquals(prods[0].name, "doxygen")
-        self.assertEquals(prods[0].version, "1.5.7.1")
+        self.assertEqual(len(prods), 1)
+        self.assertEqual(prods[0].name, "doxygen")
+        self.assertEqual(prods[0].version, "1.5.7.1")
         prods = self.eups.findProducts("doxygen",
                                        flavors="Linux Linux64".split())
-        self.assertEquals(len(prods), 2)
-        self.assertEquals(prods[0].name, "doxygen")
-        self.assertEquals(prods[0].version, "1.5.7.1")
-        self.assertEquals(prods[1].name, "doxygen")
-        self.assertEquals(prods[1].version, "1.5.9")
+        self.assertEqual(len(prods), 2)
+        self.assertEqual(prods[0].name, "doxygen")
+        self.assertEqual(prods[0].version, "1.5.7.1")
+        self.assertEqual(prods[1].name, "doxygen")
+        self.assertEqual(prods[1].version, "1.5.9")
 
         # test deprecated function:
         q = Quiet(self.eups)
         prods = self.eups.listProducts("python", current=True)
-        self.assertEquals(len(prods), 1)
-        self.assertEquals(prods[0].name, "python")
-        self.assertEquals(prods[0].version, "2.5.2")
+        self.assertEqual(len(prods), 1)
+        self.assertEqual(prods[0].name, "python")
+        self.assertEqual(prods[0].version, "2.5.2")
         del q
 
     def testSetup(self):

@@ -24,10 +24,10 @@ class UtilsTestCase(unittest.TestCase):
         gen.gamma = 'c'
         gen.beta = 'b'   # should fail
         msg = "gen.beta: Cannot over-write property with sub-properties\n"
-        self.assertEquals(err.getvalue(), msg)
+        self.assertEqual(err.getvalue(), msg)
         gen.beta.zeta = 'bz'  # should fail
         msg += "gen.beta.zeta: No such property name defined\n"
-        self.assertEquals(err.getvalue(), msg)
+        self.assertEqual(err.getvalue(), msg)
 
 
 __all__ = "UtilsTestCase".split()

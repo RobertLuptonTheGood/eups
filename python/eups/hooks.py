@@ -99,9 +99,9 @@ config.Eups.repoVersioner = lambda p, v: re.sub(r"\+\d+$", "", v)
 # callback receives the product name and version name and should return the incremented version name.
 #
 def defaultVersionIncrementer(product, version):
-    if not re.search("\+\d+$", version):
+    if not re.search(r"\+\d+$", version):
         return version + "+1"
-    return re.sub("\+(\d+)$", lambda m: "+%d" % (int(m.group(1)) + 1), version)
+    return re.sub(r"\+(\d+)$", lambda m: "+%d" % (int(m.group(1)) + 1), version)
 config.Eups.versionIncrementer = defaultVersionIncrementer
 
 
@@ -250,7 +250,8 @@ def execute_file(startupFile):
               ]:
         checkDictKeys[dname] = (d, d.keys())
 
-    exec(compile(open(startupFile).read(), startupFile, 'exec'), _globals, locals())
+    with open(startupFile) as fd:
+        exec(compile(fd.read(), startupFile, 'exec'), _globals, locals())
 
     for dname, v  in checkDictKeys.items():
         d, keys0 = v

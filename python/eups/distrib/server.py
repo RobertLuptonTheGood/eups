@@ -690,7 +690,7 @@ class ConfigurableDistribServer(DistribServer):
             return False
 
     def getTagNames(self, flavor=None, noaction=False):
-        """
+        r"""
         return the names of the tags supported by this server as a list.
 
         This implementation three possible ways of retrieving this
@@ -2131,8 +2131,8 @@ class ServerConf(object):
 
     def readConfFile(self, file):
         """"read the configuration file and return the data as a dictionary"""
-        paramre = re.compile("\s*=\s*")
-        commre = re.compile("\s*#");
+        paramre = re.compile(r"\s*=\s*")
+        commre = re.compile(r"\s*#");
         out = {}
 
         try:

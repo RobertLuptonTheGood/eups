@@ -593,7 +593,8 @@ def getUserDefinedTags(user):
         setattr(myEups, c, [])
 
     try:
-        exec(compile(open(startupFile).read(), startupFile, 'exec'), myGlobals, myLocals)
+        with open(startupFile) as fd:
+            exec(compile(fd.read(), startupFile, 'exec'), myGlobals, myLocals)
     except Exception as e:
         print("Error processing %s's startup file: %s" % (user, e), file=utils.stderr)
         return []
@@ -636,4 +637,3 @@ def deleteTag(eupsenv, tag):
         eupsenv.undeclare(p.name, p.version, tag=tag)
 
 __all__ = "Tags Tag TagNotRecognized TagNameConflict cloneTag deleteTag".split()
-

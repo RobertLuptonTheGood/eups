@@ -76,7 +76,7 @@ Supported commands are:
 			or create such a distribution
 	expandbuild	Expand variables in a build file
 	expandtable	Insert explicit version tags into a table file
-	flags		Show the value of \$EUPS_FLAGS
+	flags		Show the value of $EUPS_FLAGS
 	flavor		Return the current flavor
         help            Provide help on eups commands
 	list            List some or all products
@@ -3105,4 +3105,3 @@ register("distrib path",   DistribPathCmd)
 register("tags",         TagsCmd, lockType=lock.LOCK_SH)
 register("vro",          VroCmd, lockType=None)
 register("help",         HelpCmd, lockType=None)
-

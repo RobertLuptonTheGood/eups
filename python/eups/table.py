@@ -263,6 +263,7 @@ but no other interpretation is applied
             raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
+        fd.close()
         contents = self._rewrite(contents)
 
         logical = "True"                # logical condition required to execute block
@@ -1530,5 +1531,3 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     finalBlock.pop(0)                   # drop logical
     for line in finalBlock[0]:
         output(ofd, 0, line)
-
-

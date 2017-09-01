@@ -22,11 +22,11 @@ class ProductFamilyTestCase(unittest.TestCase):
 
     def testAddVersion(self):
         self.fam.addVersion("3.1", "/opt/LInux/magnum/3.1")
-        self.assertEquals(len(self.fam.getVersions()), 1)
+        self.assertEqual(len(self.fam.getVersions()), 1)
         self.assert_(not self.fam.hasVersion("1.0"))
         self.assert_(self.fam.hasVersion("3.1"))
         self.fam.addVersion("3.2", "/opt/LInux/magnum/3.2")
-        self.assertEquals(len(self.fam.getVersions()), 2)
+        self.assertEqual(len(self.fam.getVersions()), 2)
         self.assert_(self.fam.hasVersion("3.1"))
         self.assert_(not self.fam.removeVersion("1.0"))
         self.assert_(self.fam.removeVersion("3.1"))
@@ -43,28 +43,28 @@ class ProductFamilyTestCase(unittest.TestCase):
     def testAssignTag(self):
         self.fam.addVersion("3.1", "/opt/LInux/magnum/3.1")
         self.fam.addVersion("3.2", "/opt/LInux/magnum/3.2")
-        self.assertEquals(len(self.fam.getTags()), 0)
+        self.assertEqual(len(self.fam.getTags()), 0)
         tag = "stable"
         self.assert_(not self.fam.isTagAssigned(tag))
         self.fam.assignTag(tag, "3.1")
-        self.assertEquals(len(self.fam.getTags()), 1)
+        self.assertEqual(len(self.fam.getTags()), 1)
         self.assert_(self.fam.isTagAssigned(tag))
         self.fam.assignTag("beta", "3.2")
         self.fam.assignTag("current", "3.1")
-        self.assertEquals(len(self.fam.getTags()), 3)
+        self.assertEqual(len(self.fam.getTags()), 3)
         self.assert_(self.fam.isTagAssigned("beta"))
         self.assert_(self.fam.isTagAssigned("current"))
         p = self.fam.getProduct("3.1")
-        self.assertEquals(len(p.tags), 2)
+        self.assertEqual(len(p.tags), 2)
         self.assertIn(tag, p.tags)
         self.assertIn("current", p.tags)
         p = self.fam.getTaggedProduct("beta")
-        self.assertEquals(p.version, "3.2")
-        self.assertEquals(len(p.tags), 1)
+        self.assertEqual(p.version, "3.2")
+        self.assertEqual(len(p.tags), 1)
         self.assertIn("beta", p.tags)
         p = self.fam.getTaggedProduct(tag)
-        self.assertEquals(p.version, "3.1")
-        self.assertEquals(len(p.tags), 2)
+        self.assertEqual(p.version, "3.1")
+        self.assertEqual(len(p.tags), 2)
         self.assertIn(tag, p.tags)
         self.assertIn("current", p.tags)
 
@@ -81,18 +81,18 @@ class ProductFamilyTestCase(unittest.TestCase):
         self.fam.assignTag("current", "3.1")
 
         prods = self.fam.export(flavor="Linux")
-        self.assertEquals(len(prods.keys()), 2)
+        self.assertEqual(len(prods.keys()), 2)
         p = prods["3.1"]
-        self.assertEquals(p.name, "magnum")
-        self.assertEquals(p.flavor, "Linux")
+        self.assertEqual(p.name, "magnum")
+        self.assertEqual(p.flavor, "Linux")
         self.assert_(p.db is None)
-        self.assertEquals(len(p.tags), 2)
+        self.assertEqual(len(p.tags), 2)
         self.assertIn("current", p.tags)
         p.name = "helpful"
 
         fam = ProductFamily("helpful")
         fam.import_(prods)
-        self.assertEquals(len(fam.getVersions()), 1)
+        self.assertEqual(len(fam.getVersions()), 1)
         self.assert_(fam.hasVersion("3.1"))
 
     def testLoadTable(self):
@@ -133,62 +133,62 @@ class ProductStackTestCase(unittest.TestCase):
                                       "/opt/sw/Darwin/fw/1.2", "none"))
 
     def testMisc(self):
-        self.assertEquals(ProductStack.persistFilename("Linux"),
+        self.assertEqual(ProductStack.persistFilename("Linux"),
                           "Linux.pickleDB1_3_0")
-        self.assertEquals(self.stack.getDbPath(),
+        self.assertEqual(self.stack.getDbPath(),
                           os.path.join(testEupsStack, "ups_db"))
 
     def testGetProductNames(self):
         prods = self.stack.getProductNames()
-        self.assertEquals(len(prods), 1)
-        self.assertEquals(prods[0], 'fw')
+        self.assertEqual(len(prods), 1)
+        self.assertEqual(prods[0], 'fw')
 
         self.stack.addProduct(Product("afw", "1.2", "Linux",
                                       "/opt/sw/Linux/afw/1.2", "none"))
         prods = self.stack.getProductNames()
-        self.assertEquals(len(prods), 2)
+        self.assertEqual(len(prods), 2)
         expected = "fw afw".split()
         for prod in expected:
             self.assertIn(prod, prods)
         prods = self.stack.getProductNames("Linux")
-        self.assertEquals(len(prods), 1)
-        self.assertEquals(prods[0], 'afw')
+        self.assertEqual(len(prods), 1)
+        self.assertEqual(prods[0], 'afw')
 
         self.stack.addProduct(Product("fw", "1.2", "Linux",
                                       "/opt/sw/Linux/fw/1.2", "none"))
         prods = self.stack.getProductNames()
-        self.assertEquals(len(prods), 2)
+        self.assertEqual(len(prods), 2)
         for prod in expected:
             self.assertIn(prod, prods)
 
     def testGetVersions(self):
         vers = self.stack.getVersions("afw")
-        self.assertEquals(len(vers), 0)
+        self.assertEqual(len(vers), 0)
 
         vers = self.stack.getVersions("fw")
-        self.assertEquals(len(vers), 1)
-        self.assertEquals(vers[0], '1.2')
+        self.assertEqual(len(vers), 1)
+        self.assertEqual(vers[0], '1.2')
 
         self.stack.addProduct(Product("fw", "1.3", "Linux",
                                       "/opt/sw/Linux/fw/1.3", "none"))
         vers = self.stack.getVersions("fw")
-        self.assertEquals(len(vers), 2)
+        self.assertEqual(len(vers), 2)
         expected = "1.2 1.3".split()
         for ver in expected:
             self.assertIn(ver, vers)
 
         vers = self.stack.getVersions("fw", "Linux")
-        self.assertEquals(len(vers), 1)
-        self.assertEquals(vers[0], '1.3')
+        self.assertEqual(len(vers), 1)
+        self.assertEqual(vers[0], '1.3')
 
         self.stack.addProduct(Product("fw", "1.2", "Linux",
                                       "/opt/sw/Linux/fw/1.2", "none"))
         vers = self.stack.getVersions("fw")
-        self.assertEquals(len(vers), 2)
+        self.assertEqual(len(vers), 2)
         for ver in expected:
             self.assertIn(ver, vers)
         vers = self.stack.getVersions("fw", "Linux")
-        self.assertEquals(len(vers), 2)
+        self.assertEqual(len(vers), 2)
         for ver in expected:
             self.assertIn(ver, vers)
 
@@ -231,13 +231,13 @@ class ProductStackTestCase(unittest.TestCase):
         self.stack.addProduct(prod)
         self.assert_(self.stack.hasProduct("afw"))
         p = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertEquals(p.name, prod.name)
-        self.assertEquals(p.version, prod.version)
-        self.assertEquals(p.flavor, prod.flavor)
-        self.assertEquals(p.dir, prod.dir)
-        self.assertEquals(p.tablefile, prod.tablefile)
-        self.assertEquals(p.db, os.path.join(testEupsStack, "ups_db"))
-        self.assertEquals(len(p.tags), 0)
+        self.assertEqual(p.name, prod.name)
+        self.assertEqual(p.version, prod.version)
+        self.assertEqual(p.flavor, prod.flavor)
+        self.assertEqual(p.dir, prod.dir)
+        self.assertEqual(p.tablefile, prod.tablefile)
+        self.assertEqual(p.db, os.path.join(testEupsStack, "ups_db"))
+        self.assertEqual(len(p.tags), 0)
 
         self.assertRaises(ProductNotFound,
                           self.stack.getProduct, "afw", "1.2", "Linux")
@@ -250,50 +250,50 @@ class ProductStackTestCase(unittest.TestCase):
 
     def testGetFlavors(self):
         flavors = self.stack.getFlavors()
-        self.assertEquals(len(flavors), 1)
-        self.assertEquals(flavors[0], "Darwin")
+        self.assertEqual(len(flavors), 1)
+        self.assertEqual(flavors[0], "Darwin")
         prod = Product("afw", "1.2", "Linux", "/opt/sw/Linux/afw/1.2", "none")
         self.stack.addProduct(prod)
         flavors = self.stack.getFlavors()
-        self.assertEquals(len(flavors), 2)
+        self.assertEqual(len(flavors), 2)
         expected = "Darwin Linux".split()
         for flav in expected:
             self.assertIn(flav, flavors)
 
     def testAddFlavor(self):
         flavors = self.stack.getFlavors()
-        self.assertEquals(len(flavors), 1)
-        self.assertEquals(flavors[0], "Darwin")
+        self.assertEqual(len(flavors), 1)
+        self.assertEqual(flavors[0], "Darwin")
         self.stack.addFlavor("Darwin")
 
         flavors = self.stack.getFlavors()
-        self.assertEquals(len(flavors), 1)
-        self.assertEquals(flavors[0], "Darwin")
+        self.assertEqual(len(flavors), 1)
+        self.assertEqual(flavors[0], "Darwin")
         self.assert_(self.stack.lookup["Darwin"])
 
         self.stack.addFlavor("Linux")
         flavors = self.stack.getFlavors()
-        self.assertEquals(len(flavors), 2)
+        self.assertEqual(len(flavors), 2)
         expected = "Darwin Linux".split()
         for flav in expected:
             self.assertIn(flav, flavors)
-        self.assertEquals(len(self.stack.getProductNames("Linux")), 0)
+        self.assertEqual(len(self.stack.getProductNames("Linux")), 0)
         self.assert_(not self.stack.lookup["Linux"])
 
     def testTags(self):
-        self.assertEquals(len(self.stack.getTags()), 0)
+        self.assertEqual(len(self.stack.getTags()), 0)
 
         prod = Product("afw", "1.2", "Linux", "/opt/sw/Linux/afw/1.2", "none")
         prod.tags = ["current", "beta"]
         self.stack.addProduct(prod)
-        self.assertEquals(len(self.stack.getTags()), 2)
+        self.assertEqual(len(self.stack.getTags()), 2)
         prod.version = "1.3"
         prod.tags = []
         self.stack.addProduct(prod)
         tags = self.stack.getTags()
-        self.assertEquals(len(tags), 2)
-        self.assertEquals(tags[0], "beta")
-        self.assertEquals(tags[1], "current")
+        self.assertEqual(len(tags), 2)
+        self.assertEqual(tags[0], "beta")
+        self.assertEqual(tags[1], "current")
         prod = self.stack.getTaggedProduct("afw", "Linux", "stable")
         self.assert_(prod is None)
         prod = self.stack.getTaggedProduct("afw", "Linux", "beta")
@@ -305,9 +305,9 @@ class ProductStackTestCase(unittest.TestCase):
                           self.stack.assignTag, "gurn", "goober", "2")
         self.stack.assignTag("beta", "afw", "1.3")
         tags = self.stack.getTags()
-        self.assertEquals(len(tags), 2)
-        self.assertEquals(tags[0], "beta")
-        self.assertEquals(tags[1], "current")
+        self.assertEqual(len(tags), 2)
+        self.assertEqual(tags[0], "beta")
+        self.assertEqual(tags[1], "current")
         prod = self.stack.getTaggedProduct("afw", "Linux", "beta")
         self.assertEqual(prod.version, "1.3")
         self.assertEqual(prod.flavor, "Linux")
@@ -316,8 +316,8 @@ class ProductStackTestCase(unittest.TestCase):
         self.assert_(not self.stack.unassignTag("gurn", "afw", "Linux"))
         self.assert_(self.stack.unassignTag("beta", "afw"))
         tags = self.stack.getTags()
-        self.assertEquals(len(tags), 1)
-        self.assertEquals(tags[0], "current")
+        self.assertEqual(len(tags), 1)
+        self.assertEqual(tags[0], "current")
 
     def testSaveEmptyFlavor(self):
         self.stack.clearCache("Linux")
@@ -330,11 +330,11 @@ class ProductStackTestCase(unittest.TestCase):
             self.assert_(os.path.exists(cache))
             self.stack.reload("Linux")
             flavors = self.stack.getFlavors()
-            self.assertEquals(len(flavors), 2)
+            self.assertEqual(len(flavors), 2)
             expected = "Darwin Linux".split()
             for flav in expected:
                 self.assertIn(flav, flavors)
-            self.assertEquals(len(self.stack.getProductNames("Linux")), 0)
+            self.assertEqual(len(self.stack.getProductNames("Linux")), 0)
 
         finally:
             if os.path.exists(cache):
@@ -344,7 +344,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assert_(self.stack.saveNeeded())
 
         self.stack.clearCache("Linux Linux64 Darwin DarwinX86 generic".split())
-        self.assertEquals(len(ProductStack.findCachedFlavors(self.dbpath)),0)
+        self.assertEqual(len(ProductStack.findCachedFlavors(self.dbpath)),0)
 
         cache = os.path.join(self.dbpath,
                              ProductStack.persistFilename("Darwin"))
@@ -355,22 +355,22 @@ class ProductStackTestCase(unittest.TestCase):
         self.assert_(os.path.exists(cache))
 
         saved = ProductStack.findCachedFlavors(self.dbpath)
-        self.assertEquals(len(saved), 1)
-        self.assertEquals(saved[0], "Darwin")
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0], "Darwin")
 
         self.stack.reload("Darwin")
-        self.assertEquals(len(self.stack.getProductNames("Darwin")), 1)
+        self.assertEqual(len(self.stack.getProductNames("Darwin")), 1)
         p = self.stack.getProduct("fw", "1.2", "Darwin")
-        self.assertEquals(p.name, "fw")
-        self.assertEquals(p.version, "1.2")
-        self.assertEquals(p.flavor, "Darwin")
-        self.assertEquals(p.dir, "/opt/sw/Darwin/fw/1.2")
-        self.assertEquals(p.tablefile, "none")
-        self.assertEquals(p.db, self.dbpath)
+        self.assertEqual(p.name, "fw")
+        self.assertEqual(p.version, "1.2")
+        self.assertEqual(p.flavor, "Darwin")
+        self.assertEqual(p.dir, "/opt/sw/Darwin/fw/1.2")
+        self.assertEqual(p.tablefile, "none")
+        self.assertEqual(p.db, self.dbpath)
 
 
         self.stack.clearCache()
-        self.assertEquals(len(ProductStack.findCachedFlavors(self.dbpath)),0)
+        self.assertEqual(len(ProductStack.findCachedFlavors(self.dbpath)),0)
         self.assert_(not os.path.exists(cache))
 
     def testLoadTable(self):
