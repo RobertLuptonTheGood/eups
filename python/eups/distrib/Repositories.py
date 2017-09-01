@@ -850,7 +850,7 @@ class Repositories(object):
         if os.path.isabs(buildDir):
             buildRoot = buildDir
         else:
-            buildRoot = os.path.join(productRoot, buildDir)            
+            buildRoot = os.path.join(productRoot, buildDir)
         #
         # Can we write to that directory?
         #
@@ -864,7 +864,7 @@ class Repositories(object):
             #
             # N.b. if the user specified a buildDir option we may not have tried any of its elements yet,
             # so don't special-case productRoot
-            
+
             buildRoot, obuildRoot = None, buildRoot
             for d in self.eups.path:
                 bd = os.path.join(d, buildDir)
@@ -883,7 +883,7 @@ class Repositories(object):
                     print("Unable to write to %s, using %s instead" % (obuildRoot, buildRoot),
                           file=utils.stdwarn)
                     break
-                        
+
         return os.path.join(buildRoot, flavor, pdir)
 
     def makeBuildDirFor(self, productRoot, product, version, options=None,
@@ -1060,4 +1060,3 @@ class Repositories(object):
         location = distrib.parseDistID(distId)
         productRoot = self.getInstallRoot()
         return distrib.cleanPackage(product, version, productRoot, location)
-

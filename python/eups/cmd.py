@@ -3105,4 +3105,3 @@ register("distrib path",   DistribPathCmd)
 register("tags",         TagsCmd, lockType=lock.LOCK_SH)
 register("vro",          VroCmd, lockType=None)
 register("help",         HelpCmd, lockType=None)
-

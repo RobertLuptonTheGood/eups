@@ -637,4 +637,3 @@ def deleteTag(eupsenv, tag):
         eupsenv.undeclare(p.name, p.version, tag=tag)
 
 __all__ = "Tags Tag TagNotRecognized TagNameConflict cloneTag deleteTag".split()
-

@@ -1531,5 +1531,3 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
     finalBlock.pop(0)                   # drop logical
     for line in finalBlock[0]:
         output(ofd, 0, line)
-
-
