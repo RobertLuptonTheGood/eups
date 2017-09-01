@@ -20,12 +20,12 @@ class TableTestCase1(unittest.TestCase):
         self.table = Table(self.tablefile)
 
     def testInit(self):
-        self.assertEquals(self.table.file, self.tablefile)
+        self.assertEqual(self.table.file, self.tablefile)
         # Note: we add one to account for the default product
-        self.assertEquals(len(self.table.actions("Darwin")), 14)
-        self.assertEquals(len(self.table.actions("Linux")), 13)
-        self.assertEquals(len(self.table.actions("Linux+2.1.2")), 14)
-        self.assertEquals(len(self.table.actions("DarwinX86")), 14)
+        self.assertEqual(len(self.table.actions("Darwin")), 14)
+        self.assertEqual(len(self.table.actions("Linux")), 13)
+        self.assertEqual(len(self.table.actions("Linux+2.1.2")), 14)
+        self.assertEqual(len(self.table.actions("DarwinX86")), 14)
 
 class TableTestCase2(unittest.TestCase):
     """test the Table class"""
@@ -50,12 +50,12 @@ class TableTestCase2(unittest.TestCase):
         for action in actions:
             action.execute(self.eups, 1, True, True)
         self.assertIn("GOOBPATH", os.environ)
-        self.assertEquals(os.environ["GOOBPATH"],
+        self.assertEqual(os.environ["GOOBPATH"],
                           "/home/user/goob:/usr/goob:/usr/local/goob")
         self.assertNotIn("FOO", os.environ)
         self.assertNotIn("BAR", os.environ)
         self.assertIn("longls", self.eups.aliases)
-        self.assertEquals(self.eups.aliases["longls"], "ls -l")
+        self.assertEqual(self.eups.aliases["longls"], "ls -l")
 
         # undo
         for action in actions:
@@ -63,7 +63,7 @@ class TableTestCase2(unittest.TestCase):
         self.assertNotIn("FOO", os.environ)
         self.assertNotIn("BAR", os.environ)
         self.assertIn("GOOBPATH", os.environ)
-        self.assertEquals(os.environ["GOOBPATH"], '')
+        self.assertEqual(os.environ["GOOBPATH"], '')
 
     def testIfFlavor(self):
         actions = self.table.actions("DarwinX86")
@@ -71,7 +71,7 @@ class TableTestCase2(unittest.TestCase):
             action.execute(self.eups, 1, True, True)
         self.assertIn("GOOBPATH", os.environ)
         self.assertIn("FOO", os.environ)
-        self.assertEquals(os.environ["FOO"], "1")
+        self.assertEqual(os.environ["FOO"], "1")
         self.assertNotIn("BAR", os.environ)
 
         # undo
@@ -80,7 +80,7 @@ class TableTestCase2(unittest.TestCase):
         self.assertNotIn("FOO", os.environ)
         self.assertNotIn("BAR", os.environ)
         self.assertIn("GOOBPATH", os.environ)
-        self.assertEquals(os.environ["GOOBPATH"], '')
+        self.assertEqual(os.environ["GOOBPATH"], '')
 
 
     def testIfType(self):
@@ -89,7 +89,7 @@ class TableTestCase2(unittest.TestCase):
             action.execute(self.eups, 1, True, True)
         self.assertIn("GOOBPATH", os.environ)
         self.assertIn("FOO", os.environ)
-        self.assertEquals(os.environ["FOO"], "1")
+        self.assertEqual(os.environ["FOO"], "1")
         self.assertIn("BAR", os.environ)
 
         # undo
@@ -98,8 +98,8 @@ class TableTestCase2(unittest.TestCase):
         self.assertNotIn("FOO", os.environ)
         self.assertIn("GOOBPATH", os.environ)
         self.assertIn("BAR", os.environ)
-        self.assertEquals(os.environ["GOOBPATH"], '')
-        self.assertEquals(os.environ["BAR"], '')
+        self.assertEqual(os.environ["GOOBPATH"], '')
+        self.assertEqual(os.environ["BAR"], '')
 
     def testSetup(self):
         actions = self.table.actions("Linux")

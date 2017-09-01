@@ -40,7 +40,7 @@ class WebTransporterTestCase(unittest.TestCase):
         loc = self.base+"s2"
         trx = WebTransporter(loc)
         files = trx.listDir()
-        self.assertEquals(len(files), 2)
+        self.assertEqual(len(files), 2)
         self.assertIn("config.txt", files)
         self.assertIn("current.list", files)
 
@@ -93,12 +93,12 @@ class WebDistribServerTestCase(unittest.TestCase):
     def testGetTagNames(self):
         # test default implementation
         tags = DistribServer.getTagNames(self.ds)
-        self.assertEquals(len(tags), 1)
+        self.assertEqual(len(tags), 1)
         self.assertIn("current", tags)
 
         # test configurable implementation (method 3)
         tags = self.ds.getTagNames()
-        self.assertEquals(len(tags), 1)
+        self.assertEqual(len(tags), 1)
         self.assertIn("current", tags)
 
 

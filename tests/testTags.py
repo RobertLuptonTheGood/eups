@@ -29,37 +29,37 @@ class TagsTestCase(unittest.TestCase):
                      "rlp recognized as global tag")
 
     def testGroupFor(self):
-        self.assertEquals(self.tags.groupFor("stable"), Tags.global_)
-        self.assertEquals(self.tags.groupFor("rlp"), Tags.user)
+        self.assertEqual(self.tags.groupFor("stable"), Tags.global_)
+        self.assertEqual(self.tags.groupFor("rlp"), Tags.user)
         self.assert_(self.tags.groupFor("goober") is None,
                      "Found group for undefined tag")
 
     def testTagNames(self):
         tags = self.tags.getTagNames()
-        self.assertEquals(len(tags), 2)
+        self.assertEqual(len(tags), 2)
         self.assertIn("stable", tags)
         self.assertIn("user:rlp", tags)
 
     def testGetTag(self):
         tag = self.tags.getTag("stable")
         self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
-        self.assertEquals(tag.name, "stable")
-        self.assertEquals(tag.group, Tags.global_)
+        self.assertEqual(tag.name, "stable")
+        self.assertEqual(tag.group, Tags.global_)
 
         tag = self.tags.getTag("global:stable")
         self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
-        self.assertEquals(tag.name, "stable")
-        self.assertEquals(tag.group, Tags.global_)
+        self.assertEqual(tag.name, "stable")
+        self.assertEqual(tag.group, Tags.global_)
 
         tag = self.tags.getTag("rlp")
         self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
-        self.assertEquals(tag.name, "rlp")
-        self.assertEquals(tag.group, Tags.user)
+        self.assertEqual(tag.name, "rlp")
+        self.assertEqual(tag.group, Tags.user)
 
         tag = self.tags.getTag("user:rlp")
         self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
-        self.assertEquals(tag.name, "rlp")
-        self.assertEquals(tag.group, Tags.user)
+        self.assertEqual(tag.name, "rlp")
+        self.assertEqual(tag.group, Tags.user)
 
         self.assertRaises(TagNotRecognized, self.tags.getTag, "goob")
 
@@ -67,26 +67,26 @@ class TagsTestCase(unittest.TestCase):
 
     def testContents(self):
         tags = self.tags.getTagNames()
-        self.assertEquals(len(tags), 2)
-        self.assertEquals(tags[0], "stable")
-        self.assertEquals(tags[1], "user:rlp")
+        self.assertEqual(len(tags), 2)
+        self.assertEqual(tags[0], "stable")
+        self.assertEqual(tags[1], "user:rlp")
 
     def testInit(self):
         t = Tags("setup latest")
         tags = t.getTagNames()
-        self.assertEquals(len(tags), 2)
-        self.assertEquals(tags[0], "latest")
-        self.assertEquals(tags[1], "setup")
+        self.assertEqual(len(tags), 2)
+        self.assertEqual(tags[0], "latest")
+        self.assertEqual(tags[1], "setup")
 
     def testCmp(self):
         stable = self.tags.getTag("stable")
-        self.assertEquals(stable, "stable")
-        self.assertEquals(stable, stable)
+        self.assertEqual(stable, "stable")
+        self.assertEqual(stable, stable)
         stable2 = self.tags.getTag("stable")
-        self.assertEquals(stable, stable2)
+        self.assertEqual(stable, stable2)
         rlp = self.tags.getTag("rlp")
         self.assertNotEquals(stable, rlp)
-        self.assertEquals("rlp", rlp)
+        self.assertEqual("rlp", rlp)
 
     def testSaveLoad(self):
         file = os.path.join(testEupsStack, "ups_db", "test.tags")
@@ -102,7 +102,7 @@ class TagsTestCase(unittest.TestCase):
             tags = Tags()
             tags.load(tags.global_, file)
             names = tags.getTagNames()
-            self.assertEquals(len(names), 3)
+            self.assertEqual(len(names), 3)
             for tag in "stable current beta".split():
                 self.assertIn(tag, names, tag+" not found amoung loaded names")
 
@@ -126,7 +126,7 @@ class TagsTestCase(unittest.TestCase):
             tags = Tags()
             tags.loadUserTags(dir)
             names = tags.getTagNames()
-            self.assertEquals(len(names), 1)
+            self.assertEqual(len(names), 1)
             for tag in "user:rlp".split():
                 self.assertIn(tag, names, tag+" not found amoung loaded names")
         finally:
@@ -145,7 +145,7 @@ class TagsTestCase(unittest.TestCase):
         tags = Tags()
         tags.loadFromEupsPath(dir, 1)
         names = tags.getTagNames()
-        self.assertEquals(len(names), 3)
+        self.assertEqual(len(names), 3)
         for tag in "stable current beta".split():
             self.assertIn(tag, names, tag+" not found amoung loaded names")
 

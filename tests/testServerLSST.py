@@ -74,7 +74,7 @@ class LsstDistribServerTestCase(unittest.TestCase):
     def testInit(self):
         self.assert_(isinstance(self.ds, ConfigurableDistribServer),
                      "factory did not return ConfigurableDistribServer")
-        self.assertEquals(self.ds.getConfigProperty("PREFER_GENERIC",""), '')
+        self.assertEqual(self.ds.getConfigProperty("PREFER_GENERIC",""), '')
 
     def testListAvailProds(self):
         prods = self.ds.listAvailableProducts()
@@ -84,12 +84,12 @@ class LsstDistribServerTestCase(unittest.TestCase):
         # test default implementation
         tags = DistribServer.getTagNames(self.ds)
 #        print "tags:", tags
-        self.assertEquals(len(tags), 3)
+        self.assertEqual(len(tags), 3)
         self.assertIn("current", tags)
 
         # test configurable implementation (method 3)
         tags = self.ds.getTagNames()
-        self.assertEquals(len(tags), 3)
+        self.assertEqual(len(tags), 3)
         self.assertIn("current", tags)
         self.assertIn("active", tags)
         self.assertIn("alpha", tags)
@@ -97,25 +97,25 @@ class LsstDistribServerTestCase(unittest.TestCase):
     def testGetManifest(self):
         man = self.ds.getManifest("doxygen", "1.5.9", "generic")
         self.assert_(man is not None)
-        self.assertEquals(man.product, "doxygen")
-        self.assertEquals(man.version, "1.5.9")
-        self.assertEquals(len(man.getProducts()), 1)
+        self.assertEqual(man.product, "doxygen")
+        self.assertEqual(man.version, "1.5.9")
+        self.assertEqual(len(man.getProducts()), 1)
         man.getDependency("doxygen", "1.5.9")
-        self.assertEquals(man.product, "doxygen")
-        self.assertEquals(man.version, "1.5.9")
+        self.assertEqual(man.product, "doxygen")
+        self.assertEqual(man.version, "1.5.9")
 
     def testGetTaggedProductInfo(self):
         info = self.ds.getTaggedProductInfo("cfitsio", "generic",tag="current")
-        self.assertEquals(info[0], "cfitsio")
-        self.assertEquals(info[2], "3006.2")
+        self.assertEqual(info[0], "cfitsio")
+        self.assertEqual(info[2], "3006.2")
         info = self.ds.getTaggedProductInfo("cfitsio", "generic",tag="current")
-        self.assertEquals(info[0], "cfitsio")
-        self.assertEquals(info[2], "3006.2")
+        self.assertEqual(info[0], "cfitsio")
+        self.assertEqual(info[2], "3006.2")
 
     def testGetTagNamesFor(self):
         tags = self.ds.getTagNamesFor("cfitsio", "3006.2")
-        self.assertEquals(len(tags), 1)
-        self.assertEquals(tags[0], "current")
+        self.assertEqual(len(tags), 1)
+        self.assertEqual(tags[0], "current")
 
 from eups.distrib.Repository import Repository
 from eups.Eups import Eups
@@ -155,7 +155,7 @@ class LsstRepositoryTestCase(unittest.TestCase):
 
     def testGetSupportedTags(self):
         tags = self.repos.getSupportedTags()
-        self.assertEquals(len(tags), 3)
+        self.assertEqual(len(tags), 3)
         self.assertIn("current", tags)
         self.assertIn("active", tags)
         self.assertIn("alpha", tags)
@@ -163,15 +163,15 @@ class LsstRepositoryTestCase(unittest.TestCase):
     def testFindPackage(self):
         pkg = self.repos.findPackage("doxygen")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.4")
-        self.assertEquals(pkg[2], "generic")
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.4")
+        self.assertEqual(pkg[2], "generic")
 
         pkg = self.repos.findPackage("doxygen", "1.5.9")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
 
         pkg = self.repos.findPackage("doxygen", "1.5.0")
         self.assert_(pkg is None)
@@ -181,16 +181,16 @@ class LsstRepositoryTestCase(unittest.TestCase):
 
         pkg = self.repos.findPackage("doxygen", "1.5.9", "generic")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
 
         tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
 
 from eups.distrib.Repositories import Repositories
 
@@ -212,28 +212,28 @@ class LsstRepositoriesTestCase(unittest.TestCase):
     def testFindPackage1(self):
         self.repos = Repositories([self.localroot, self.lsstroot],
                                   eupsenv=self.eups, options=self.opts)
-        self.assertEquals(len(self.repos.pkgroots), 2)
+        self.assertEqual(len(self.repos.pkgroots), 2)
 
         pkg = self.repos.findPackage("doxygen")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
-        self.assertEquals(pkg[3], self.lsstroot)
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
+        self.assertEqual(pkg[3], self.lsstroot)
 
         pkg = self.repos.findPackage("doxygen", "1.5.9")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
-        self.assertEquals(pkg[3], self.lsstroot)
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
+        self.assertEqual(pkg[3], self.lsstroot)
 
         pkg = self.repos.findPackage("doxygen", "1.5.8")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.8")
-        self.assertEquals(pkg[2], "generic")
-        self.assertEquals(pkg[3], self.localroot)
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.8")
+        self.assertEqual(pkg[2], "generic")
+        self.assertEqual(pkg[3], self.localroot)
 
         pkg = self.repos.findPackage("doxygen", "1.5.0")
         self.assert_(pkg is None)
@@ -243,53 +243,53 @@ class LsstRepositoriesTestCase(unittest.TestCase):
 
         pkg = self.repos.findPackage("doxygen", "1.5.9", "generic")
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
-        self.assertEquals(pkg[3], self.lsstroot)
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
+        self.assertEqual(pkg[3], self.lsstroot)
 
         tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
         self.assert_(pkg is not None)
-        self.assertEquals(pkg[0], "doxygen")
-        self.assertEquals(pkg[1], "1.5.9")
-        self.assertEquals(pkg[2], "generic")
-        self.assertEquals(pkg[3], self.lsstroot)
+        self.assertEqual(pkg[0], "doxygen")
+        self.assertEqual(pkg[1], "1.5.9")
+        self.assertEqual(pkg[2], "generic")
+        self.assertEqual(pkg[3], self.lsstroot)
 
     def testListPackages(self):
         self.repos = Repositories([self.localroot, self.lsstroot],
                                   eupsenv=self.eups, options=self.opts)
-        self.assertEquals(len(self.repos.pkgroots), 2)
+        self.assertEqual(len(self.repos.pkgroots), 2)
 
         pkgs = self.repos.listPackages()
         self.assert_(pkgs is not None)
         self.assert_(isinstance(pkgs, list))
-        self.assertEquals(len(pkgs), 2)           # the # of repositories
-        self.assertEquals(len(pkgs[0]), 2)        # (pkgroot, pkg-list)
-        self.assertEquals(len(pkgs[1]), 2)        # (pkgroot, pkg-list)
-        self.assertEquals(len(pkgs[0][1]), 1)     # # of products per repos.
-        self.assertEquals(len(pkgs[0][1][0]), 3)  # # of attrs per product
-        self.assertEquals(pkgs[0][1][0][0], "doxygen")
-        self.assertEquals(pkgs[0][1][0][1], "1.5.8")
-        self.assertEquals(pkgs[0][1][0][2], "generic")
+        self.assertEqual(len(pkgs), 2)           # the # of repositories
+        self.assertEqual(len(pkgs[0]), 2)        # (pkgroot, pkg-list)
+        self.assertEqual(len(pkgs[1]), 2)        # (pkgroot, pkg-list)
+        self.assertEqual(len(pkgs[0][1]), 1)     # # of products per repos.
+        self.assertEqual(len(pkgs[0][1][0]), 3)  # # of attrs per product
+        self.assertEqual(pkgs[0][1][0][0], "doxygen")
+        self.assertEqual(pkgs[0][1][0][1], "1.5.8")
+        self.assertEqual(pkgs[0][1][0][2], "generic")
         self.assert_(len(pkgs[1][1]) > 300)       # # of products per repos.
 
         pkgs = self.repos.listPackages("doxygen")
         pkgs = self.repos.listPackages("doxygen")
         self.assert_(pkgs is not None)
         self.assert_(isinstance(pkgs, list))
-        self.assertEquals(len(pkgs), 2)
-        self.assertEquals(len(pkgs[0][1]), 1)     # # of products per repos.
-        self.assertEquals(pkgs[0][1][0][0], "doxygen")
-        self.assertEquals(pkgs[0][1][0][1], "1.5.8")
-        self.assertEquals(pkgs[0][1][0][2], "generic")
-        self.assertEquals(len(pkgs[1][1]), 5)     # # of products per repos.
-        self.assertEquals(pkgs[1][1][0][0], "doxygen")
-        self.assertEquals(pkgs[1][1][0][1], "1.5.4")
-        self.assertEquals(pkgs[1][1][1][1], "1.5.7.1")
-        self.assertEquals(pkgs[1][1][4][1], "1.5.9")
-        self.assertEquals(pkgs[1][1][2][1], "1.5.8")
-        self.assertEquals(pkgs[1][1][3][1], "1.5.8+1")
+        self.assertEqual(len(pkgs), 2)
+        self.assertEqual(len(pkgs[0][1]), 1)     # # of products per repos.
+        self.assertEqual(pkgs[0][1][0][0], "doxygen")
+        self.assertEqual(pkgs[0][1][0][1], "1.5.8")
+        self.assertEqual(pkgs[0][1][0][2], "generic")
+        self.assertEqual(len(pkgs[1][1]), 5)     # # of products per repos.
+        self.assertEqual(pkgs[1][1][0][0], "doxygen")
+        self.assertEqual(pkgs[1][1][0][1], "1.5.4")
+        self.assertEqual(pkgs[1][1][1][1], "1.5.7.1")
+        self.assertEqual(pkgs[1][1][4][1], "1.5.9")
+        self.assertEqual(pkgs[1][1][2][1], "1.5.8")
+        self.assertEqual(pkgs[1][1][3][1], "1.5.8+1")
 
 class LsstCmdTestCase(unittest.TestCase):
 
@@ -326,7 +326,7 @@ class LsstCmdTestCase(unittest.TestCase):
 
         prod = Eups().findProduct("lssteups")
         self.assert_(prod is not None)
-        self.assertEquals(prod.version, "1.1")
+        self.assertEqual(prod.version, "1.1")
         self.assert_(prod.dir.endswith("lssteups/1.1"))
         self.assert_(os.path.exists(prod.dir))
         pdir = prod.dir
