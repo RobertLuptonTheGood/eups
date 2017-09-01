@@ -263,6 +263,7 @@ but no other interpretation is applied
             raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
+        fd.close()
         contents = self._rewrite(contents)
 
         logical = "True"                # logical condition required to execute block

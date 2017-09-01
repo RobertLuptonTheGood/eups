@@ -250,7 +250,8 @@ def execute_file(startupFile):
               ]:
         checkDictKeys[dname] = (d, d.keys())
 
-    exec(compile(open(startupFile).read(), startupFile, 'exec'), _globals, locals())
+    with open(startupFile) as fd:
+        exec(compile(fd.read(), startupFile, 'exec'), _globals, locals())
 
     for dname, v  in checkDictKeys.items():
         d, keys0 = v
