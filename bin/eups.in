@@ -3,7 +3,8 @@
 # The main eups programme
 #
 from __future__ import print_function
-import sys, os, re
+import sys
+import os
 
 sys.argv[0] = "eups"
 
@@ -12,7 +13,7 @@ try:
     import eups.cmd
 except ImportError:
     eupsdir = None
-    if os.environ.has_key("EUPS_DIR"):
+    if "EUPS_DIR" in os.environ:
         eupsdir = os.environ["EUPS_DIR"]
     else:
         # the first item on sys.path is the script directory (bin)
@@ -52,7 +53,8 @@ try:
             import profile
         profile.run("status = cmd.run()", eups.Eups.profile)
         if verbosity > 0:
-            print("You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile, file=utils.stdinfo)
+            print("You can use \"python -m pstats %s\" to examine this profile" % eups.Eups.profile,
+                  file=utils.stdinfo)
     else:
         status = cmd.run()
 except Exception as e:
