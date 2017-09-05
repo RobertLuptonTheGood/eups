@@ -1,3 +1,8 @@
+2017-09-05 timj (2.1.4)
+    - Fix python3 bug with eups main script
+    - Fix many DeprecationWarning and ResourceWarning warnings.
+    - Make eups distrib install handle new tags on readonly products
+
 2017-08-19 rhl
     - Make eups admin {clear,list}Locks warn if locks are disabled
 
