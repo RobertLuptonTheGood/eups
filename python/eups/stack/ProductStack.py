@@ -152,7 +152,10 @@ class ProductStack(object):
         if flavor is None:
             return _uniquify(_lol2l(list(z.keys()) for z in self.lookup.values()))
         else:
-            return list(self.lookup[flavor].keys())
+            if flavor in self.lookup:
+                return list(self.lookup[flavor].keys())
+            else:
+                return []
 
     def getVersions(self, productName, flavor=None):
         """
