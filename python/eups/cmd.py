@@ -1781,7 +1781,7 @@ class AdminInfoCmd(EupsCmd):
 
             prod = myeups.findTaggedProduct(productName, tag)
             if not prod:
-                self.err("Unable to lookup %s --tag %s" % (productName, tag))
+                self.err("Unable to lookup %s --tag %s" % (productName, tag.name))
                 return 2
 
         if not (versionName or tag):
