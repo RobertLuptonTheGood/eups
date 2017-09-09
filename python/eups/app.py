@@ -615,24 +615,34 @@ def listCache(path=None, verbose=0, flavor=None):
         cache = ProductStack.fromCache(dbpath, flavor, updateCache=False,
                                        autosave=False)
 
-        productNames = cache.getProductNames()
+        productNames = cache.getProductNames(flavor)
         productNames.sort()
 
         colon = ""
         if verbose:
             colon = ":"
 
-        print("%-30s (%-3d products) [cache verison %s]%s" % \
+        print("%-30s (%-3d products) [cache version %s]%s" % \
             (p, len(productNames), cacheVersion, colon))
 
         if not verbose:
             continue
 
         for productName in productNames:
-            versionNames = cache.getVersions(productName)
+            versionNames = cache.getVersions(productName, flavor)
+            if not versionNames:
+                continue
             versionNames.sort(**cmp_or_key(hooks.version_cmp))
 
-            print("  %-20s %s" % (productName, " ".join(versionNames)))
+            versionInfo = []
+            for v in versionNames:
+                prod = cache.getProduct(productName, v, flavor)
+                vinfo = v
+                if verbose > 1 and prod.tags:
+                    vinfo += " [%s]" % ",".join(prod.tags)
+                versionInfo.append("%s" % vinfo)
+
+            print("  %-20s %s" % (productName, " ".join(versionInfo)))
 
 def Current():
     """
