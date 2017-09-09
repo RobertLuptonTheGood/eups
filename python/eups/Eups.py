@@ -2692,7 +2692,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 # Delete all old occurrences of this tag
                 #
                 for p in self.findProducts(productName, None, tag):
-                    self.unassignTag(tag[0], productName, None, p.stackRoot(), eupsPathDir)
+                    self.unassignTag(tag[0], productName, p.version, p.stackRoot(), eupsPathDir)
                 #
                 # And set it in the Proper Place
                 #
