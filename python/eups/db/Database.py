@@ -524,6 +524,7 @@ class _Database(object):
         @param tag          the string name for the tag.  A user tag must be
                               prepended by a "user:" label to be found
         @param productName  the name of the product
+        @param searchUserDB Include the userDB at the front of the search path
         """
         pdir = self._productDir(productName)
         if not os.path.exists(pdir):
@@ -537,8 +538,7 @@ class _Database(object):
             for d in self._getUserTagDb(values=True):
                 if d:
                     pdirs.append(self._productDir(productName, d))
-        else:
-            pdirs.append(pdir)
+        pdirs.append(pdir)
 
         for pdir in pdirs:
             tfile = self._tagFileInDir(pdir, tag.name)
