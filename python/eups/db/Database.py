@@ -641,12 +641,6 @@ class _Database(object):
                                  flavors.
         @return bool : False if tag was not assigned to any of the products.
         """
-        dbroot = self.dbpath
-        if tag.startswith("user:"):
-            dbroot = self._getUserTagDb(upsdb=self.defStackRoot)
-            if not dbroot:
-                return False
-            tag = tag[len("user:"):]
 
         if not productNames:
             raise RuntimeError("No products names given: " + str(productNames))
@@ -656,8 +650,13 @@ class _Database(object):
             flavors = [flavors]
 
         unassigned = False
-        for prod in productNames:
-            tfile = self._tagFileInDir(self._productDir(prod,dbroot), tag)
+        for pname in productNames:
+            cf = self.getChainFile(tag, pname, searchUserDB=True)
+            if cf:
+                tfile = cf.file         # The chain file's name
+            else:
+                continue
+
             if not os.path.exists(tfile):
                 continue
 
