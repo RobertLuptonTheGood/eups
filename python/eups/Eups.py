@@ -1111,7 +1111,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         @param noCache       if true, the software inventory cache should not
                                 be used to find products; otherwise, it will
                                 be used to the extent it is available.
-        @throws TagNotRecongized  if the given tag is not valid
+        @throws TagNotRecognized  if the given tag is not valid
         """
         if not flavor:
             flavor = self.flavor

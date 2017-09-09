@@ -109,6 +109,20 @@ class Product(object):
         # product.
         self._prodStack = None
 
+    @property
+    def tags(self):
+        #
+        # We look up tags lazily; the list is passed as a lambda that's only called upon dereference
+        #
+        if callable(self._tags):
+            self._tags = self._tags()
+
+        return self._tags
+
+    @tags.setter
+    def tags(self, value):
+        self._tags = value
+
     def __hash__(self):                 # needed for set operations (such as toplogicalSort)
         return (hash(self.name) ^
                 hash(self.version) ^

@@ -178,7 +178,7 @@ class _Database(object):
         try:
             product = verdata.makeProduct(flavor, self.defStackRoot,
                                           self.dbpath)
-            product.tags = self.findTags(name, version, flavor)
+            product.tags = lambda : self.findTags(name, version, flavor) # we'll call this if we need it
         except ProductNotFound:
             return None
 
