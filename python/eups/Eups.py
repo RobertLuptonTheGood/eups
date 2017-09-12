@@ -2191,50 +2191,46 @@ The what argument tells us what sort of state is expected (allowed values are de
         if not eupsPathDir and self.isUserTag(tag):
             assert self.userDataDir in self.path
 
+        product = self.getProduct(productName, versionName, eupsPathDirForRead)
+        dbpath = product.db
+        root = product.stackRoot()
+
         msg = None
         if versionName:
-            # user asked for a specific version
-            prod = self.findProduct(productName, versionName, eupsPathDir, self.flavor)
-            if prod is None:
+            if product is None:
                 raise ProductNotFound(productName, versionName, self.flavor, eupsPathDir)
-            dbpath = prod.db
-            eupsPathDir = prod.stackRoot()
+            eupsPathDir = root
 
-            if str(tag) not in prod.tags:
+            if str(tag) not in product.tags:
                 msg = "Product %s is not tagged \"%s\"" % (productName, tag.name)
                 if eupsPathDir:
                     msg += " in [%s]" % " ".join(self.path)
 
         elif not eupsPathDir or isinstance(eupsPathDir, list):
-            prod = self.findProduct(productName, tag, eupsPathDir, self.flavor)
-            if prod is None:
+            if product is None:
                 # This tag is not assigned to this product.  Is it
                 # because the product doesn't exist?
-                prod = self.findProduct(productName, versionName)
-                if prod is None:
+                if self.findProduct(productName, versionName) is None:
                     raise ProductNotFound(productName, versionName, self.flavor)
                 msg = "Tag %s is not assigned to product %s" % (tag.name, productName)
                 if eupsPathDir:
                     msg += " within %s" % str(eupsPathDir)
 
-            versionName = prod.version
-            dbpath = prod.db
-            eupsPathDir = prod.stackRoot()
-        else:
-            dbpath = self.getUpsDB(eupsPathDir)
+            versionName = product.version
+            eupsPathDir = root
 
         if msg is not None:
             if self.quiet <= 0:
                 print(msg, file=utils.stdwarn)
             return
 
+        db = self._databaseFor(eupsPathDir, dbpath)
         if tag.isGlobal():
             if not utils.isDbWritable(dbpath):
                 raise EupsException(
                     "You don't have permission to unassign a global tag %s in %s" % (str(tag), eupsPathDir))
         else:
             userId = self.tags.owners.get(tag.name, None)
-            db = self._databaseFor(eupsPathDir, dbpath)
             dbpath = db._getUserTagDb(userId=userId, upsdb=db.defStackRoot)
 
             if not utils.isDbWritable(dbpath):
@@ -2245,7 +2241,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             return
 
         # update the database
-        if not self._databaseFor(eupsPathDir,dbpath).unassignTag(str(tag), productName, self.flavor):
+        if not db.unassignTag(str(tag), productName, self.flavor):
             if self.verbose:
                 print("Tag %s is not assigned to %s %s" % \
                     (tag, productName, versionName), file=utils.stdwarn)
