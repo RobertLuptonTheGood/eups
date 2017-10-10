@@ -927,7 +927,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 if self.quiet:
                     debugLevel += 0
 
-                if self.verbose >= debugLevel:
+                if self.verbose >= debugLevel and name != "":
                     if version:
                         vname = version
                     else:
