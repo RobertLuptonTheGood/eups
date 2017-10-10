@@ -2951,9 +2951,6 @@ same arguments.
 
         myeups._processDefaultTags(self.opts)
 
-        myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
-                         postTag=self.opts.postTag)
-
         isUserTag = False
         if self.opts.tag:
             for t in self.opts.tag:
@@ -2962,6 +2959,9 @@ same arguments.
                     break
         if isUserTag:
             myeups.includeUserDataDirInPath()
+
+        myeups.selectVRO(self.opts.tag, self.opts.productDir, versionName, self.opts.dbz,
+                         postTag=self.opts.postTag)
 
         print(" ".join(myeups.getVRO()))
 
