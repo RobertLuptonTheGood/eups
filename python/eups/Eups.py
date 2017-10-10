@@ -3699,13 +3699,13 @@ The what argument tells us what sort of state is expected (allowed values are de
         #
         # The VRO used to be called the "preferredTags";  for now use the old name
         #
-        q = None # utils.Quiet(self)
         self._kindlySetPreferredTags(self._vro)
-        del q
         #
         # Look up a product to exercise the type:XXX processing in the VRO
         #
         self.findProductFromVRO("", optional=False)
+
+        self._vro = self.preferredTags  # we should get rid of preferredTags; it's left over from Ray Plante
 
     # staticmethod;  would use a decorator if we knew we had a new enough python
     def __mergeWarnings(vro):
