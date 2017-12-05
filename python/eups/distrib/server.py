@@ -12,8 +12,10 @@ import fnmatch
 import tempfile
 try:
     from urllib2 import urlopen, HTTPError, URLError
+    from urllib import unquote 
 except ImportError:
     from urllib.request import urlopen
+    from urllib.parse import unquote
     from urllib.error import HTTPError, URLError
 import eups
 import eups.hooks as hooks
@@ -1056,7 +1058,7 @@ class WebTransporter(Transporter):
             url = urlopen(self.loc)
             encoding = utils.get_content_charset(url)
             for line in url:
-                p.feed(utils.decode(line, encoding))
+                p.feed(unquote(utils.decode(line, encoding)))
 
             url.close()
             if not p.is_apache and self.verbose >= 0:
