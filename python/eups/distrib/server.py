@@ -1023,7 +1023,8 @@ class WebTransporter(Transporter):
                 self.is_apache = False # are we reading data from apache?
 
             def handle_starttag(self, tag, attributes):
-                if tag == "pre":  # now in file listing portion (Apache)
+                # Apache uses tables. But other servers might, too.
+                if tag == "pre":  # now in file listing portion (Apache, at least)
                     self.nrow = 0
 
                 if tag == "tr": # count rows in table
@@ -1033,6 +1034,14 @@ class WebTransporter(Transporter):
                 if tag == "img" and self.nrow >= 0:
                     self.nrow += 1
 
+                # This chunk is for servers which use lists instead of tables.
+                # I think it is safe to apply both schemes.
+                #
+                if tag == "ul":  # now in file listing portion (not Apache)
+                    self.nrow = 1  # Hack: the test below if to accept nrow > 1, not >= 1
+                if tag == "li":  # now in file listing portion (not Apache)
+                    self.nrow += 1
+                        
                 if tag == "address":
                     self.is_attribute = True
 
