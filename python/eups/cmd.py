@@ -2794,6 +2794,89 @@ integer argument, n, will cause just the n-th URL to be listed (where
 
         self._init("EUPS_PKGROOT", "|")
 
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+class DistribTagsCmd(EupsCmd):
+
+    usage = "%prog distrib tags [-h|--help] [options] [tagname]"
+
+    # set this to True if the description is preformatted.  If false, it
+    # will be automatically reformatted to fit the screen
+    noDescriptionFormatting = False
+
+    description = \
+"""List available tags from the package distribution repositories.
+
+The tagname may be a glob pattern.
+"""
+
+    def addOptions(self):
+        self.clo.enable_interspersed_args()
+
+        self.clo.add_option("-f", "--flavor", dest="flavor", action="store", default=None,
+                            help="Specifically list for this flavor")
+        self.clo.add_option("-r", "--repository", "-s", "--server-dir",
+                            dest="root", action="append", metavar="PKGURL",
+                            help="Servers to query (Default: $EUPS_PKGROOT)")
+
+        # always call the super-version so that the core options are set
+        EupsCmd.addOptions(self)
+
+        self.clo.add_option("--root", dest="root", action="append",
+                            help="equivalent to --server-dir (deprecated)")
+
+    def execute(self):
+        myeups = eups.Eups(readCache=False)
+
+        # get rid of sub-command arg
+        self.args.pop(0)
+
+        if len(self.args):
+            import fnmatch
+            globPattern = self.args.pop(0)
+        else:
+            globPattern = None
+
+        if self.opts.root:
+            pkgroots = "|".join(self.opts.root)
+        else:
+            pkgroots = os.environ.get("EUPS_PKGROOT")
+
+        if not pkgroots:
+            self.err("Please specify a repository with --server-dir or $EUPS_PKGROOT")
+            return 2
+
+        options = None
+        repos = distrib.Repositories(pkgroots, options, myeups, verbosity=self.opts.verbose)
+
+        tags = {}
+        for pkgroot in repos.pkgroots:
+            tags[pkgroot] = []
+
+            for tag in repos.repos[pkgroot].distServer.getTagNames(flavor=None, noaction=False):
+                if not globPattern or fnmatch.fnmatch(tag, globPattern):
+                    tags[pkgroot].append(tag)
+
+        if len(repos.pkgroots) == 1 and len(tags.values()[0]) == 1:
+            indent = ""
+        else:
+            indent = "  "
+
+        primary = "primary"
+        for pkgroot in repos.pkgroots:
+            if len(tags[pkgroot]) > 0:
+                print("Available tags from %s server: %s" % (primary, pkgroot))
+                for name in tags[pkgroot]:
+                    print("%s%-20s" % (indent, name))
+            else:
+                print("No matching tags available from %s server (%s)" % (primary, pkgroot))
+
+            primary = "secondary"
+
+        return 0
+
+#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+        
 class TagsCmd(EupsCmd):
 
     usage = """%prog tags [-h|--help] [options] [tagname] [product]
@@ -3112,7 +3195,8 @@ register("distrib create",  DistribCreateCmd)
 register("distrib declare", DistribDeclareCmd)
 register("distrib install", DistribInstallCmd)
 register("distrib list",    DistribListCmd, lockType=lock.LOCK_SH)
-register("distrib path",   DistribPathCmd)
+register("distrib path",    DistribPathCmd)
+register("distrib tags",    DistribTagsCmd)
 register("tags",         TagsCmd, lockType=lock.LOCK_SH)
 register("vro",          VroCmd, lockType=None)
 register("help",         HelpCmd, lockType=None)

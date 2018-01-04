@@ -1,6 +1,7 @@
 2018-03-04 rhl
     - Fixed eups distrib list to support -t
       N.b. specify --precise to ensure that the listed flavors are correct; slower.
+    - Added eups distrib tags [glob] to list available tags
 
 2017-09-05 timj (2.1.4)
     - Fix python3 bug with eups main script
