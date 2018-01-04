@@ -1155,6 +1155,11 @@ product[:version]  noReinstall
 \end{verbatim}
 and is useful if you have local declarations of e.g. python.
 
+Due to restrictions on the server side (e.g. \textbf{robots.txt} files) checking all the possible tags
+can be annoyingly slow, and it's especially annoying if you have specified an explicit tag.  You might
+want to consider using \texttt{--no-server-tags} (equivalent to \texttt{-U}) to avoid this; the specified
+tag will still be installed.
+
 \item\code{path}
 \begin{verbatim}
 Usage: eups distrib path [-h|--help] [n]
@@ -1177,6 +1182,13 @@ only current products are listed.  E.g.
 eups distrib list --root http://www.astro/~rhl/LSST/packages --tag current mwi 2.4
 \end{verbatim}
 (or you could use any other tag of your choice).
+
+Note that there isn't enough information in any single file on the 
+server to tell us which products are available for which flavor, so
+to get accurate listings we have to do another round-trip query for
+each product/version/flavor.  This is slow, so is only implemented
+if you specify \texttt{eups distrib list --precise} (or \texttt{--verbose} --- but that'll also
+list the dependencies).
 
 Once you've created a package with \code{eups distrib create} you can log on to
 another machine and use \code{eups distrib install} to

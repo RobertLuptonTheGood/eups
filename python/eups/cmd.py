@@ -2054,6 +2054,10 @@ class DistribListCmd(EupsCmd):
 
     description = \
 """List available packages from the package distribution repositories.
+
+N.b. The flavors available may be imprecise unless you specify --precise
+(or --verbose);  in this case the command will run significantly more
+slowly as each product's availability will be checked.
 """
 
     def addOptions(self):
@@ -2061,6 +2065,8 @@ class DistribListCmd(EupsCmd):
 
         self.clo.add_option("-f", "--flavor", dest="flavor", action="store", default=None,
                             help="Specifically list for this flavor")
+        self.clo.add_option("-p", "--precise", dest="precise", action="store_true",
+                            help="Check that the flavor information is correct (slows things down)")
         self.clo.add_option("-r", "--repository", "-s", "--server-dir",
                             dest="root", action="append", metavar="PKGURL",
                             help="Servers to query (Default: $EUPS_PKGROOT)")
@@ -2137,9 +2143,14 @@ class DistribListCmd(EupsCmd):
                     print("Available products from %s server: %s" % \
                         (primary, pkgroot))
                 for (name, ver, flav) in pkgs:
+                    if self.opts.precise or self.opts.verbose:
+                        try:
+                            man = repos.repos[pkgroot].getManifest(name, ver, flav)
+                        except RuntimeError: # unavailable with that flavor
+                            continue
+
                     print("%s%-20s %-10s %s" % (indent, name, flav, ver))
                     if self.opts.verbose:
-                        man = repos.repos[pkgroot].getManifest(name, ver, flav)
                         for dep in man.getProducts():
                             print("%s  %-18s %-10s %s" % (indent, dep.product, dep.version, dep.flavor))
             else:

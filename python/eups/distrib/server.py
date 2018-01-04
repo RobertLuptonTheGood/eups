@@ -169,8 +169,9 @@ class DistribServer(object):
                              be generated.
         @param noaction    if True, simulate the retrieval
         """
-        if tag in self.tagged and self.tagged[tag]:
-            return self.tagged[tag]
+        key = (tag, flavor)
+        if key in self.tagged and self.tagged[key]:
+            return self.tagged[key]
 
         if noaction:
             if flavor is None:  flavor = "generic"
@@ -178,11 +179,11 @@ class DistribServer(object):
         else:
             try:
                 file = self.getFile("", flavor, tag, "list", noaction=noaction)
-                self.tagged[tag] = \
+                self.tagged[key] = \
                     TaggedProductList.fromFile(file, tag, flavor=flavor,
                                                verbosity=self.verbose-1,
                                                log=self.log)
-                return self.tagged[tag]
+                return self.tagged[key]
 
             except RemoteFileNotFound as e:
                 if flavor is None:
@@ -797,8 +798,16 @@ class ConfigurableDistribServer(DistribServer):
         @param tag         an optional name for a tag assigned to the product
         @param noaction    if True, simulate the retrieval
         """
-        if flavor and tag:
-            return DistribServer.listAvailableProducts(self, product, version, flavor, tag, noaction)
+        if tag:
+            if flavor:
+                flavors = set([flavor])
+            else:
+                flavors = set([utils.determineFlavor(), "generic"])
+
+            products = []
+            for flavor in flavors:
+                products += DistribServer.listAvailableProducts(self, product, version, flavor, tag, noaction)
+            return products
 
         data = { "base":   self.base,
                  "flavor": flavor,
