@@ -180,7 +180,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
             tagsSeen[t][pi.name] += 1
 
     if showTagsGlob:
-        tagsSeen0 = tagsSeen.keys()
+        tagsSeen0 = list(tagsSeen.keys())
         for t in tagsSeen0:
             if not fnmatch.fnmatch(Tag(t).name, showTagsGlob):
                 del tagsSeen[t]
