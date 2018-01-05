@@ -2727,7 +2727,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                     print("Copying %s to %s" % (fileNameIn, pathOut), file=utils.stdinfo)
 
     def undeclare(self, productName, versionName=None, eupsPathDir=None, tag=None,
-                  undeclareCurrent=None):
+                  undeclareVersionAndTag=False, undeclareCurrent=None):
         """
         Undeclare a product.  That is, remove knowledge of this
         product from EUPS.  This method can also be used to just
@@ -2757,6 +2757,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                                is not installed into this stack.
         @param tag           if not None, only unassign this tag; product
                                 will not be undeclared.
+        @param undeclareVersionAndTag Undeclare the version as well as the tag
         @param undeclareCurrent  DEPRECATED; if True, and tag is None, this
                                 is equivalent to tag="current".
         """
@@ -2766,15 +2767,18 @@ The what argument tells us what sort of state is expected (allowed values are de
             utils.deprecated("Eups.undeclare(): undeclareCurrent param is deprecated; use tag param.", self.quiet)
 
         if tag:
-            undeclareVersion = False
-            if not versionName and self.isUserTag(tag): # all we have is a tag
+            undeclareVersion = undeclareVersionAndTag
+            if not versionName and self.isTag(tag): # all we have is a tag
                 # We may have automatically declared this version as tag:XXX when we tagged it
                 versions = [p.version for p in
                             self.findProducts(productName, tags=[tag], eupsPathDirs=eupsPathDir)]
 
-                if len(versions) == 1 and versions[0] == ("tag:%s" % str(tag)):
-                    versionName = versions[0]
-                    undeclareVersion = True
+                if len(versions) == 1:
+                    if undeclareVersionAndTag:
+                        versionName = versions[0]
+                    elif versions[0] == ("tag:%s" % str(tag)):
+                        versionName = versions[0]
+                        undeclareVersion = True
 
             if not undeclareVersion:    # this is all we need to do
                 return self.unassignTag(tag, productName, versionName, eupsPathDir)
@@ -3574,9 +3578,19 @@ The what argument tells us what sort of state is expected (allowed values are de
         if isInternal and abort:
             raise RuntimeError("Error: tag \"%s\" is reserved to the implementation" % tagName)
 
+    def isGlobalTag(self, tagName):
+        """Is tagName the name of a user tag?"""
+        return self.tags.groupFor(tagName) == self.tags.global_
+
     def isUserTag(self, tagName):
         """Is tagName the name of a user tag?"""
         return self.tags.groupFor(tagName) == self.tags.user
+
+    def isTag(self, tagName):
+        """Is tagName the name of a tag?
+
+        N.b. we don't check for internal tags"""
+        return self.isGlobalTag(tagName) or self.isReservedTag(tagName) or self.isUserTag(tagName)
 
     def selectVRO(self, tag=None, productDir=None, versionName=None, dbz=None, inexact_version=False,
                   postTag=None):

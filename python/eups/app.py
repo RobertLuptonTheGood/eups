@@ -510,7 +510,7 @@ def declare(productName, versionName, productDir=None, eupsPathDir=None,
                            tablefile, externalFileList=externalFileList, tag=tag)
 
 def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
-              eupsenv=None):
+              eupsenv=None, undeclareVersionAndTag=False):
     """
     Undeclare a product.  That is, remove knowledge of this
     product from EUPS.  This method can also be used to just
@@ -542,10 +542,12 @@ def undeclare(productName, versionName=None, eupsPathDir=None, tag=None,
                             will not be undeclared.
     @param eupsenv       the Eups instance to assume.  If None, a default
                            will be created.
+    @param undeclareVersionAndTag Undeclare the version as well as the tag
     """
     if not eupsenv:
         eupsenv = Eups()
-    return eupsenv.undeclare(productName, versionName, eupsPathDir, tag)
+    return eupsenv.undeclare(productName, versionName, eupsPathDir, tag,
+                             undeclareVersionAndTag=undeclareVersionAndTag)
 
 def clearCache(path=None, flavors=None, inUserDir=False, verbose=0):
     """

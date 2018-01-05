@@ -1374,6 +1374,8 @@ version currently declared.
 
         self.clo.add_option("-c", "--current", dest="tag", action="store_const", const="current",
                             help="same as --tag=current")
+        self.clo.add_option("-U", "--undeclareVersion", action="store_true",
+                            help="Declare the version as well as the tag")
 
     def execute(self):
         if len(self.args) == 0:
@@ -1403,9 +1405,13 @@ version currently declared.
             except eups.TagNotRecognized:
                 self.err("%s: Unsupported tag name" % self.opts.tag)
                 return 1
+        elif self.opts.undeclareVersion:
+            self.err("--undeclareVersion only makes sense when you specify a tag")
+            return 1
 
         try:
-            eups.undeclare(product, version, tag=self.opts.tag, eupsenv=myeups)
+            eups.undeclare(product, version, tag=self.opts.tag, eupsenv=myeups,
+                           undeclareVersionAndTag=self.opts.undeclareVersion)
         except eups.EupsException as e:
             e.status = 2
             raise

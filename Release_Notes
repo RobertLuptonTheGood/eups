@@ -1,3 +1,7 @@
+2018-03-05 rhl
+    - Support -U in eups undeclare -U -t XXX product to undeclare the product as well as the tag
+      equivalent to --undeclareVersion
+
 2018-03-04 rhl
     - Fixed eups distrib list to support -t
       N.b. specify --precise to ensure that the listed flavors are correct; slower.
