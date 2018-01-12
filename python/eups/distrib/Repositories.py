@@ -604,7 +604,7 @@ class Repositories(object):
         except RuntimeError as e:
             raise RuntimeError("Installing %s %s: %s" % (prod.product, prod.version, e))
 
-        if self.verbose > 1 and 'NAME' in dir(distrib):
+        if self.verbose > 1 and hasattr(distrib, 'NAME'):
             print("Using Distrib type:", distrib.NAME, file=self.log)
 
         try:
