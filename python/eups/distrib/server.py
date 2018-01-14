@@ -187,7 +187,7 @@ class DistribServer(object):
 
             except RemoteFileNotFound as e:
                 if flavor is None:
-                    flavor = "a generic platform"
+                    flavor = "generic"
 
                 msg = 'Product tag "%s" for %s not found on server' % (tag, flavor)
                 raise RemoteFileNotFound(msg, e)
@@ -899,6 +899,9 @@ class TransporterError(ServerError):
         @param exc        a caught exception representing underlying symptom
         """
         ServerError.__init__(self, message, exc)
+    def __str__(self):
+        return self.msg
+
 class RemoteFileNotFound(TransporterError):
     """an error indicating that a requested file was not found on the server"""
     def __init__(self, message, exc=None):
@@ -907,8 +910,16 @@ class RemoteFileNotFound(TransporterError):
         @param exc        a caught exception representing underlying symptom
         """
         TransporterError.__init__(self, message, exc)
-    def __str__(self):
-        return self.msg
+
+class RemoteFileInvalid(TransporterError):
+    """an error indicating that a requested file was corrupted or not of the expected format"""
+    def __init__(self, message, exc=None):
+        """create a server error exception
+        @param message    the reason for the error
+        @param exc        a caught exception representing underlying symptom
+        """
+        TransporterError.__init__(self, message, exc)
+
 class ServerNotResponding(TransporterError):
     """an error indicating a problem connecting to the server"""
     def __init__(self, message, exc=None):
@@ -1365,8 +1376,9 @@ class TaggedProductList(object):
         line = fd.readline()
         mat = re.search(r"^EUPS distribution %s version list. Version (\S+)\s*$" % self.tag, line)
         if not mat:
-            raise RuntimeError("First line of %s version file %s is corrupted:\n\t%s" %
-                               (self.tag, filename, line))
+            import pdb; pdb.set_trace() 
+            raise RemoteFileInvalid("First line of %s version file %s is corrupted:\n\t%s" %
+                                    (self.tag, filename, line))
         version = mat.groups()[0]
         if version != self.fmtversion:
            print("WARNING. Saw version %s; expected %s" % (version, self.fmtversion), file=self.log)
