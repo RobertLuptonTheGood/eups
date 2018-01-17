@@ -662,8 +662,9 @@ class ConfigurableDistribServer(DistribServer):
                          % (param, str(e)), file=self.log)
                 continue
 
-            if self.verbose > 0:
-                print("Looking on server for", src, file=self.log)
+            if self.verbose > 1:
+                print("Looking on server for %s %s" % (ftype if ftype else "directory listing", src),
+                      file=self.log)
             try:
                 return self.cacheFile(filename, src, noaction)
             except RemoteFileNotFound as e:
@@ -678,15 +679,15 @@ class ConfigurableDistribServer(DistribServer):
         # final try
         try:
             src = self.getConfigProperty("%s_URL" % ftype) % data
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print("Failed to find %s in %s; looking on server" % (src, locations), file=self.log)
             return self.cacheFile(filename, src, noaction)
         except RemoteFileNotFound as e:
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print("no appropriate template found for %s, checking path directly" % ftype, file=self.log)
             return False
         except KeyError as e:
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print("no appropriate template found for %s, checking path directly" % ftype, file=self.log)
             return False
 
@@ -1376,7 +1377,6 @@ class TaggedProductList(object):
         line = fd.readline()
         mat = re.search(r"^EUPS distribution %s version list. Version (\S+)\s*$" % self.tag, line)
         if not mat:
-            import pdb; pdb.set_trace() 
             raise RemoteFileInvalid("First line of %s version file %s is corrupted:\n\t%s" %
                                     (self.tag, filename, line))
         version = mat.groups()[0]
