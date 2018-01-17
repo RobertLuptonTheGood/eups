@@ -9,6 +9,7 @@ import os
 import re
 import atexit
 import fnmatch
+import shutil
 import tempfile
 try:
     from urllib2 import urlopen, HTTPError, URLError
@@ -45,6 +46,7 @@ class DistribServer(object):
     This base implementation assumes a simple set of URLs for retrieving files
     from a server with no special support for flavors or tags.
     """
+    _fileCache = {}
     NOCACHE = False
 
     def __init__(self, packageBase, config=None, verbosity=0, log=sys.stderr):
@@ -366,6 +368,18 @@ class DistribServer(object):
         @param source      the name of the remote file to obtain a copy of
         @param noaction    if True, simulate the retrieval
         """
+        if not self.NOCACHE and source in self._fileCache:
+            if self.verbose > 1:
+                msg = "%s has already been retrieved" % source
+                if self.verbose > 2:
+                    msg += " into %s" % filename
+
+                print(msg, file=utils.stdinfo)
+
+            shutil.copy(self._fileCache[source], filename)
+
+            return filename
+
         trx = makeTransporter(source, self.verbose-1, self.log)
 
         # make sure we can write to destination
@@ -373,7 +387,10 @@ class DistribServer(object):
         if parent and not os.path.isdir(parent):
             os.makedirs(parent)
 
-        trx.cacheToFile(filename, noaction=noaction)
+        trx.cacheToFile(filename, noaction=noaction) # this is not a cache! It's "copy to local file"
+
+        self._fileCache[source] = filename
+
         return filename
 
     def getConfigFile(self, filename=None, noaction=False):
