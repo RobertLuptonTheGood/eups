@@ -6,6 +6,20 @@
 # performs common initialization.
 #
 
+# Magic tarball-and-patch (TaP) environment variables that can be set in
+# eupspkg.cfg.sh files:
+#
+# TAP_PACKAGE: Set to 1 if the package is TaP, bypassing the heuristics in
+#              default_prep()
+# TAP_TAR_OPTIONS: Options that can be added to the tar command that extracts
+#                  files from the tarball. For example, this can be used to
+#                  exclude specific files from being extracted (such as a
+#                  ups directory).
+# TAP_USE_BUILD_DIR: Set to 1 to untar the files into a subdirectory (_build
+#                    by default). This can be used to simplify the resulting
+#                    directory structure so that files from the git repository
+#                    are not confused with files from the tarball.
+
 set -e
 
 ##################### ---- UTILITY FUNCTIONS ---- #####################
