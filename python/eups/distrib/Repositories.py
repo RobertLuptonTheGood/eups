@@ -16,7 +16,7 @@ from .Repository     import Repository
 from eups.utils     import Flavor
 from .Distrib        import findInstallableRoot
 from .DistribFactory import DistribFactory
-from .server         import Manifest, ServerError
+from .server         import Manifest, ServerError, RemoteFileInvalid
 import eups.hooks as hooks
 
 class Repositories(object):
@@ -666,8 +666,11 @@ class Repositories(object):
             desiredTag = [desiredTag]
 
         for pkgroot in self.repos.keys():
-            ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor,
-                                                                      tags=desiredTag)
+            try:
+                ptags, availableTags = self.repos[pkgroot].getTagNamesFor(prod.product, prod.version, flavor,
+                                                                          tags=desiredTag)
+            except RemoteFileInvalid:
+                continue
             ptags = [t for t in ptags if t not in processedTags]
             tags += ptags
 
