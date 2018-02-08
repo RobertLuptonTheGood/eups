@@ -6,6 +6,20 @@
 # performs common initialization.
 #
 
+# Magic tarball-and-patch (TaP) environment variables that can be set in
+# eupspkg.cfg.sh files:
+#
+# TAP_PACKAGE: Set to 1 if the package is TaP, bypassing the heuristics in
+#              default_prep()
+# TAP_TAR_OPTIONS: Options that can be added to the tar command that extracts
+#                  files from the tarball. For example, this can be used to
+#                  exclude specific files from being extracted (such as a
+#                  ups directory).
+# TAP_USE_BUILD_DIR: Set to 1 to untar the files into a subdirectory (_build
+#                    by default). This can be used to simplify the resulting
+#                    directory structure so that files from the git repository
+#                    are not confused with files from the tarball.
+
 set -e
 
 ##################### ---- UTILITY FUNCTIONS ---- #####################
@@ -424,6 +438,7 @@ _clear_environment()
 		VERSION_PREFIX VERSION_SUFFIX \
 		\
 		PATCHES_DIR UPSTREAM_DIR \
+		BUILD_DIR \
 		PRODUCTS_ROOT \
 		REPOSITORY REPOSITORY_PATH \
 		SHA1 REPOVERSION \
@@ -689,8 +704,15 @@ default_prep()
 			die "files found in root directory; guessing this is not a TaP package."
 		fi
 
+		reldir="."
+		if [[ "$TAP_USE_BUILD_DIR" == 1 ]]; then
+			reldir=".."
+			mkdir "$BUILD_DIR"
+			cd "$BUILD_DIR"
+		fi
+
 		# untar the contents of upstream
-		for _tb in "$UPSTREAM_DIR"/*; do
+		for _tb in "$reldir/$UPSTREAM_DIR"/*; do
 			if [[ -d "$_tb" ]]; then
 				continue;
 			fi
@@ -706,12 +728,14 @@ default_prep()
 		# *.patch.  subdirectories are _NOT_ searched -- it is
 		# safe for overrides to place patches they plan to apply
 		# into subdirs.
-		if [[ -d "$PATCHES_DIR" ]]; then
-			for _p in $(find "$PATCHES_DIR" -maxdepth 1 -mindepth 1 -name "*.patch" ! -type d | sort); do
+		if [[ -d "$reldir/$PATCHES_DIR" ]]; then
+			for _p in $(find "$reldir/$PATCHES_DIR" -maxdepth 1 -mindepth 1 -name "*.patch" ! -type d | sort); do
 				msg "applying $_p ..."
 				patch -s -p1 < "$_p"
 			done
 		fi
+
+		cd "$reldir"
 
 		touch "$UPSTREAM_DIR/prepared"
 	fi
@@ -730,9 +754,15 @@ default_config()
 	# Typical override:
 	#   run custom configuration scripts
 
+	reldir="."
+	if [[ "$TAP_USE_BUILD_DIR" == 1 ]]; then
+		reldir=".."
+		cd "$BUILD_DIR"
+	fi
+
 	if [[ -f configure ]]; then
 
-		if [[ ! -d "$UPSTREAM_DIR" ]]; then
+		if [[ ! -d "$reldir/$UPSTREAM_DIR" ]]; then
 			# fix timestamps only if this wasn't a TaP package
 			fix_autoconf_timestamps
 		fi
@@ -741,6 +771,8 @@ default_config()
 		# expand properly (e.g. --prefix="$PREFIX")
 		eval ./configure $CONFIGURE_OPTIONS
 	fi
+
+	cd "$reldir"
 }
 
 default_build()
@@ -756,6 +788,12 @@ default_build()
 	die_if_empty PRODUCT
 	die_if_empty VERSION
 
+	reldir="."
+	if [[ "$TAP_USE_BUILD_DIR" == 1 ]]; then
+		reldir=".."
+		cd "$BUILD_DIR"
+	fi
+
 	#
 	# Attempt to autodetect the build system
 	#
@@ -770,6 +808,8 @@ default_build()
 	else
 		msg "no build system detected; assuming no build needed."
 	fi
+
+	cd "$reldir"
 }
 
 default_install()
@@ -786,6 +826,12 @@ default_install()
 	die_if_empty VERSION
 
 	clean_old_install
+
+	reldir="."
+	if [[ "$TAP_USE_BUILD_DIR" == 1 ]]; then
+		reldir=".."
+		cd "$BUILD_DIR"
+	fi
 
 	#
 	# Attempt to autodetect the build system
@@ -809,6 +855,8 @@ default_install()
 		rm -rf "$PREFIX/ups"
 		msg "Copied the product into '$PREFIX'"
 	fi
+
+	cd "$reldir"
 
 	# Install ups if the native build system hasn't done it already.
 	# We do this check to avoid expanding the table file twice (EUPS has a bug there)
@@ -1111,6 +1159,7 @@ else
 	NJOBS=${EUPSPKG_NJOBS}
 fi
 
+BUILD_DIR=${EUPSPKG_BUILD_DIR:-_build}			# Subdir to use if we are building in a sub dir.
 UPSTREAM_DIR=${UPSTREAM_DIR:-upstream}			# For "tarball-and-patch" packages (see default_prep()). Default location of source tarballs.
 PATCHES_DIR=${PATCHES_DIR:-patches}			# For "tarball-and-patch" packages (see default_prep()). Default location of patches.
 
@@ -1127,7 +1176,7 @@ MAKE_BUILD_TARGETS=${MAKE_BUILD_TARGETS:-}		# Targets for invocation of make in 
 MAKE_INSTALL_TARGETS=${MAKE_INSTALL_TARGETS:-"install"}	# Targets for invocation of make in test phase
 
 #
-# If PRODUCTS_ROOT isn't set, set it from the first writeable element on EUPS_PATH 
+# If PRODUCTS_ROOT isn't set, set it from the first writeable element on EUPS_PATH
 #
 if [ X$PRODUCTS_ROOT = X ]; then
     for d in $(eups path); do
@@ -1139,7 +1188,7 @@ if [ X$PRODUCTS_ROOT = X ]; then
 	unset PRODUCTS_ROOT
     done
 fi
-    
+
 PRODUCTS_ROOT=${PRODUCTS_ROOT:-"$(eups path 0)/$(eups flavor)"}		# Root directory of EUPS-managed stack.
 PREFIX=${PREFIX:-"$PRODUCTS_ROOT/$PRODUCT/$VERSION"}			# Directory to which the product will be installed
 
@@ -1194,6 +1243,7 @@ dumpvar debug PWD
 dumpvar debug VERBOSE
 dumpvar debug PRODUCT VERSION FLAVOR
 dumpvar debug NJOBS UPSTREAM_DIR PATCHES_DIR SOURCE REPOSITORY REPOSITORY_PATH MAKE_BUILD_TARGETS MAKE_INSTALL_TARGETS
+dumpvar debug BUILD_DIR
 dumpvar debug PRODUCTS_ROOT PREFIX CONFIGURE_OPTIONS PYSETUP_INSTALL_OPTIONS
 dumpvar debug REPOVERSION SHA1
 dumpvar debug CC CXX SCONSFLAGS
