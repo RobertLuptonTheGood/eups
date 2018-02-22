@@ -109,11 +109,11 @@ detect_compiler()
 	#
 	# Properly detects C and C++ compiler types. Dies if the two are not
 	# the same. Detects the flag to use with the C++ compiler to enable
-	# C++11 support.
+	# best available approximations of C++11 and C++14 support.
 	#
 	# Defines:
 	#	COMPILER_TYPE, CXX_COMP_TYPE, C_COMP_TYPE
-	#	CXX_CXX11_FLAG
+	#	CXX_CXX11_FLAG, CXX_CXX14_FLAG
 	#
 
 	# Construct test source files
@@ -160,12 +160,19 @@ detect_compiler()
 
 	COMPILER_TYPE="$CXX_COMP_TYPE"
 
-	# Test if the C++ compiler recognizes -std=c++11 or -std=c++0x
-	if   "$CXX1" "$SCXX" -std=c++11 -o "$OCXX" 2>/dev/null; then
+	# Test C++ compiler for upper bound of -std argument, and set flags to be
+	# used for best available approximations of C++11 and C++14 support
+	if "$CXX1" "$SCXX" -std=c++14 -o "$OCXX" 2>/dev/null; then
+		CXX_CXX14_FLAG="-std=c++14"
+		CXX_CXX11_FLAG="-std=c++11"
+	elif "$CXX1" "$SCXX" -std=c++11 -o "$OCXX" 2>/dev/null; then
+		CXX_CXX14_FLAG="-std=c++11"
 		CXX_CXX11_FLAG="-std=c++11"
 	elif "$CXX1" "$SCXX" -std=c++0x -o "$OCXX" 2>/dev/null; then
+		CXX_CXX14_FLAG="-std=c++0x"
 		CXX_CXX11_FLAG="-std=c++0x"
 	else
+		CXX_CXX14_FLAG=
 		CXX_CXX11_FLAG=
 	fi
 }
