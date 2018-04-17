@@ -647,6 +647,53 @@ class Repositories(object):
             # clean-up
             self._recordDistID(prod.distId, root, pkgroot)
 
+        #
+        # Run after-burner hook, if defined.
+        #
+        # This can be used for things like fixing up #! lines on os/x to defeat SIP
+        #
+        distribInstallPostHookFile = "distribInstallPostHook.py"
+        if not self.eups.noaction:
+            postHookFile = None         # full path to distribInstallPostHookFile
+            
+            for dirname in hooks.customisationDirs: # Search the Usual Places (locally) first
+                filename = os.path.join(dirname, distribInstallPostHookFile)
+                if os.path.exists(filename):
+                    postHookFile = filename
+                    break
+
+            if postHookFile is None:    # not found; try the server
+                try:
+                    postHookFile = self.repos[pkgroot].distServer.getFile(distribInstallPostHookFile,
+                                                                          instflavor, tag)
+                except server.RemoteFileNotFound as e:
+                    pass
+
+            if postHookFile is None:
+                if self.verbose > 1:
+                    print("Unable to locate a %s file; skipping" % distribInstallPostHookFile,
+                          file=utils.stdinfo)
+            else:
+                import types
+                _myMod = types.ModuleType("<distribInstallPostHook>")
+                try:
+                    with open(postHookFile) as fd:
+                        exec(compile(fd.read(), distribInstallPostHookFile, 'exec'), _myMod.__dict__)
+                except Exception as e:
+                    print("Problem compiling distribInstallPostHookFile: %s" % e, file=utils.stderr)
+                    _myMod = None
+
+                if _myMod is not None:
+                    if self.verbose > 0:
+                        print("Calling distribInstallPostHook for %s %s" % (prod.product, prod.version),
+                              file=utils.stdinfo)
+
+                    try:
+                        _myMod.distribInstallPostHook(root, self.verbose) # root is of installed product
+                    except Exception as e:
+                        print("Problem calling distribInstallPostHookFile for %s %s: %s" %
+                              (prod.product, prod.version, e), file=utils.stderr)
+
         # clean up the build directory
         if noclean:
             if self.verbose:
