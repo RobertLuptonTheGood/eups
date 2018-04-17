@@ -201,9 +201,13 @@ class Repository(object):
                              be searched.
         """
         if prefFlavors is None:
-            prefFlavors = Flavor().getFallbackFlavors(self.flavor, True)
+            prefFlavors = []
         elif not isinstance(prefFlavors, list):
             prefFlavors = [prefFlavors]
+
+        for f in Flavor().getFallbackFlavors(self.flavor, True):
+            if f not in prefFlavors:
+                prefFlavors.append(f)
 
         versions = [version]
         supportedTags = self.getSupportedTags() + ["latest"]
