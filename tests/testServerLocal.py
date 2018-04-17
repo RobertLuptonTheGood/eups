@@ -205,7 +205,7 @@ class LocalRepositoryTestCase(unittest.TestCase):
         self.assertTrue(pkg is None)
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "Linux")
-        self.assertTrue(pkg is None)
+        self.assertTrue(pkg[2] == 'generic')
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "generic")
         self.assertTrue(pkg is not None)
@@ -297,7 +297,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
         self.assertTrue(pkg is None)
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "Linux")
-        self.assertTrue(pkg is None)
+        self.assertTrue(pkg[2] == 'generic')
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "generic")
         self.assertTrue(pkg is not None)
