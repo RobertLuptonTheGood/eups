@@ -413,7 +413,23 @@ class EupsTestCase(unittest.TestCase):
         prod = self.eups.findProducts("python", tags="mine")
         self.assertEqual(len(prod), 1, "failed to find user-tagged product")
         self.assertEqual(prod[0].version, "2.5.2")
+        self.eups.unassignTag("mine", "python", "2.5.2")
+        #
+        # unassignTag doesn't actually remove the file.  It probably should, but here it's
+        # critical as otherwise the tests aren't idempotent
+        #
+        for eupsDb in self.eups.versions.keys():
+            db = self.eups._databaseFor(eupsDb)
+            try:
+                vfile = db.getChainFile("mine", "python")
+            except eups.ProductNotFound:
+                continue
 
+            try:
+                os.unlink(vfile.file)
+            except FileNotFoundError:
+                pass
+                
     def testList(self):
 
         # basic find
