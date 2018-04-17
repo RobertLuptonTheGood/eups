@@ -1753,11 +1753,12 @@ class Manifest(object):
         if shouldRecurse is None:
             shouldRecurse = False
 
-        fd = open(file)
+        fd = open(file)                 # "with" is too modern.  I should reconsider this!
 
         line = fd.readline()
         mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
         if not mat:
+            fd.close()
             raise RuntimeError("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
         manifest_product, manifest_product_version, version = mat.groups()
 
@@ -1811,8 +1812,11 @@ class Manifest(object):
                 self.addDependency(info[0], info[2], info[1], info[3],
                                    info[4], info[5], info[6], info[7], info[8:])
             except Exception as e:
+                fd.close()
                 raise RuntimeError("Failed to parse line: (%s): %s" %
                                    (str(e), line))
+
+        fd.close()
 
 
     def write(self, filename, noOptional=True, flavor=None, noaction=False):
