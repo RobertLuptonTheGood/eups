@@ -15,7 +15,9 @@
       N.b. specify --precise to ensure that the listed flavors are correct; slower.
     - Added eups distrib tags [glob] to list available tags
 
-2017-09-05 timj (2.1.4)
+2017-09-05 rhl
+    - Support ${FOO:-default} as well as ${FOO-default}
+017-09-05 timj (2.1.4)
     - Fix python3 bug with eups main script
     - Fix many DeprecationWarning and ResourceWarning warnings.
     - Make eups distrib install handle new tags on readonly products

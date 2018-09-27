@@ -961,9 +961,9 @@ class Action(object):
 
     def expandEnvironmentalVariable(self, value, verbose=0):
         # look for values that are optional environment variables: ${XXX} or $?{XXX}
-        # If desired, specify a default value as e.g. ${XXX-value}
+        # If desired, specify a default value as e.g. ${XXX-value} or ${XXX:-value}
         # if they don't exist, ignore the entire line if marked optional; raise an error otherwise
-        varRE = r"\$(\?)?{([^-}]*)(?:-([^}]+))?}"
+        varRE = r"\$(\?)?{([^-:}]*)(?::?-([^}]+))?}"
         mat = re.search(varRE, value)
         if not mat:
             return value

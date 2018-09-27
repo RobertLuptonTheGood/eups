@@ -1977,7 +1977,8 @@ By default the test may use \code{FLAVOR} or \code{TYPE} (\textit{e.g.} \code{se
 If a value looks like \code{\$?\{NAME\}}, and there is no such environment variable, the entire line is
 ignored (As a special case, \code{PRODUCT\_DIR} is considered undefined if its value is \code{none}).
 If you omit the \code{?} it's an error for \code{NAME} not to exist.
-Additionally, \code{\$\{NAME:-XXX\}} expands to \code{\$NAME} if defined, and to \code{XXX} otherwise.
+Additionally, \code{\$\{NAME:-XXX\}} or \code{\$\{NAME-XXX\}} expands to \code{\$NAME} if defined,
+and to \code{XXX} otherwise.
 
 The following table commands are supported by \eups: (\code{<Name>} either specifies an
 alias or an environment variable - clear from the context.)
