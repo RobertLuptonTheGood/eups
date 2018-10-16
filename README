@@ -39,7 +39,7 @@ or
 
 ## Legal
 
-Copyright (C) 2003-2016 Nikhil Padmanabhan and Robert Lupton
+Copyright (C) 2003-2018 Nikhil Padmanabhan and Robert Lupton
 npadmana@princeton.edu and rhl@astro.princeton.edu
 
 This program is free software; you can redistribute it and/or
@@ -59,4 +59,3 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 Note that this package is distributed free of cost, and the user is
 free to update any/all parts of the code.  This is with the implicit
 assumption that the original code will be acknowledged.
-
