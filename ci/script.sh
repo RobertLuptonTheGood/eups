@@ -5,7 +5,7 @@
 
 # configure
 PREFIX=$(mktemp -d -t "eupstest XXXXXX")
-./configure --prefix="$PREFIX" --with-python=$(which python)
+./configure --prefix="$PREFIX" --with-python=$(command -v python)
 
 # build, test, and install
 make

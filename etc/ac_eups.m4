@@ -145,7 +145,7 @@ AC_DEFUN([EUPS_WITH_CONFIGURE],[
 		   ac_eups_PROD[]_FROM_UPS=1
 		   ac_eups_PROD[]_CONFIG="[$]ac_eups_PROD[]_DIR/bin/ac_eups_prod-config"
 		else
-		   ac_eups_PROD[]_CONFIG=$(which ac_eups_prod-config)
+		   ac_eups_PROD[]_CONFIG=$(command -v ac_eups_prod-config)
 	   	fi])])
 
 	if test -z $ac_eups_PROD[]_CONFIG; then
