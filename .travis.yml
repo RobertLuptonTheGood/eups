@@ -1,3 +1,5 @@
+sudo: true
+dist: trusty
 language: python
 
 matrix:
@@ -13,7 +15,9 @@ matrix:
     - os: linux
       python: 3.5
     - os: linux
-      python: 2.7
+      python: 3.6
+    - os: linux
+      python: 3.6
       env: CI_WITH_CSH=1
     - os: osx
       language: generic
