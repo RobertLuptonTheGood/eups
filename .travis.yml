@@ -19,6 +19,10 @@ matrix:
     - os: linux
       python: 3.6
       env: CI_WITH_CSH=1
+      addons:
+        apt:
+          packages:
+            - csh
     - os: osx
       language: generic
 
