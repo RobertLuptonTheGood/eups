@@ -28,10 +28,10 @@ dnl
 AC_ARG_WITH(python,
    [AS_HELP_STRING(--with-python=PYTHON, [Use python interpreter PYTHON (e.g. /usr/local/bin/python) to run eups])],
    [EUPS_PYTHON=$(echo $withval)],
-   [EUPS_PYTHON=$(which python)
+   [EUPS_PYTHON=$(command -v python)
     if [[ "$EUPS_PYTHON" != /usr/bin/python ]]; then
       AC_MSG_ERROR([Your current python version isn't /usr/bin/python, please rerun configure specifying --with-python.
---with-python=$(which python) will force eups to use your current python version,
+--with-python=$(command -v python) will force eups to use your current python version,
 --with-python=/usr/bin/python will force eups to use system-installed python])
     fi
    ])

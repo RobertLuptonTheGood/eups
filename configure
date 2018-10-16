@@ -1730,10 +1730,10 @@ fi
 if test "${with_python+set}" = set; then :
   withval=$with_python; EUPS_PYTHON=$(echo $withval)
 else
-  EUPS_PYTHON=$(which python)
+  EUPS_PYTHON=$(command -v python)
     if [ "$EUPS_PYTHON" != /usr/bin/python ]; then
       as_fn_error $? "Your current python version isn't /usr/bin/python, please rerun configure specifying --with-python.
---with-python=$(which python) will force eups to use your current python version,
+--with-python=$(command -v python) will force eups to use your current python version,
 --with-python=/usr/bin/python will force eups to use system-installed python" "$LINENO" 5
     fi
 
