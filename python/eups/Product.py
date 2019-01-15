@@ -3,10 +3,6 @@ from __future__ import absolute_import, print_function
 import os
 import re
 try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-try:
     from configparser import ConfigParser
 except ImportError:
     from ConfigParser import ConfigParser
