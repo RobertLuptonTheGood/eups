@@ -1,3 +1,6 @@
+2019-01-15 rhl
+    - Added hook Eups.disablePickleCache to disable reading/writing the pickle ProductStack cache
+
 2018-10-16 timj (2.1.5)
     dev stats:
       - 23 files changed, 644 insertions(+), 113 deletions(-)

@@ -174,12 +174,13 @@ class Eups(object):
                 raise EupsException("No element of EUPS_PATH matches \"%s\"" % dbz)
             else:
                 raise EupsException("No EUPS_PATH is defined")
-
         #
         # Load local customisations
         #
         path = self.path[:]; path.reverse()  # the first elements on EUPS_PATH have the highest priority
         hooks.loadCustomization(verbose, path=path)
+
+        self.disablePickleCache = hooks.config.Eups.disablePickleCache
 
         utils.Color.colorize(hooks.config.Eups.colorize)
 
@@ -1494,7 +1495,8 @@ The what argument tells us what sort of state is expected (allowed values are de
                                                         persistDir=cacheDir,
                                                         userTagDir=userCacheDir,
                                                         updateCache=True, autosave=False,
-                                                        verbose=self.verbose)
+                                                        verbose=self.verbose,
+                                                        disablePickleCache=self.disablePickleCache)
 
     def getSetupProducts(self, requestedProductName=None):
         """Return a list of all Products that are currently setup (or just the specified product)"""

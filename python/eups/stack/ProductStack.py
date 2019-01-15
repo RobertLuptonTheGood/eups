@@ -56,10 +56,7 @@ class ProductStack(object):
     # static variable: regexp for cache file names
     persistFileRe = re.compile(r'^(\w\S*)\.%s$' % persistFileExt)
 
-    # static variable: name of file extension to use to persist data
-    userTagFileExt = "pickleTag%s" % dotre.sub('_', persistVersionName)
-
-    def __init__(self, dbpath, persistDir=None, autosave=True):
+    def __init__(self, dbpath, persistDir=None, autosave=True, disablePickleCache=False):
         """
         create the stack with a given database
         @param dbpath             the path to the ups_db directory
@@ -68,6 +65,8 @@ class ProductStack(object):
                                      directory.
         @param autosave           if true (default), all updates will be
                                      saved to disk.
+        @param disablePickleCache if True (default is False) disable the
+                                  cache, overriding all other options
         """
         # the path to the ups_db directory
         self.dbpath = dbpath
@@ -84,6 +83,9 @@ class ProductStack(object):
         # The values at the bottom of the hierarchy are ProductFamily
         # instances
         self.lookup = {}
+
+        # Entirely disable the use of the pickled cache
+        self.disablePickleCache = disablePickleCache
 
         # if true, the product data automatically will be cached on each update
         self.autosave = autosave
@@ -228,6 +230,9 @@ class ProductStack(object):
                            None, save all flavors that appear to need updating
         @param file     the file to save it to.
         """
+        if self.disablePickleCache:
+            return
+
         if flavors is None:
             if not self.updated: return
             return self.save(self.updated)
@@ -735,28 +740,9 @@ class ProductStack(object):
             for tag, version, flavor in db.getTagAssignments(pname, glob=False):
                 self.assignTag(tag, pname, version, flavor)
 
-
-    # @staticmethod   # requires python 2.4
-    def fromDatabase(dbpath, persistDir=None, userTagDir=None, autosave=True):
-        """
-        return a ProductStack that has all products loaded in from an EUPS
-        database.  If a userTagDir is provided, user tag assignments will be
-        loaded in as well.
-        @param dbpath      the full path to the database directory ("ups_db")
-        @param persistDir  the directory to persist to.  If None, the dbpath
-                              value will be used as the directory.
-        @param userTagDir  the directory where user tag data is persisted.
-        @param autosave    if true (default), all updates will be saved to
-                              disk.
-        """
-        out = ProductStack(dbpath, persistDir, autosave)
-        out.refreshFromDatabase(userTagDir)
-        return out
-    fromDatabase = staticmethod(fromDatabase)    # works since python2.2
-
     # @staticmethod   # requires python 2.4
     def fromCache(dbpath, flavors, persistDir=None, userTagDir=None,
-                  updateCache=True, autosave=True, verbose=0):
+                  updateCache=True, autosave=True, verbose=0, disablePickleCache=False):
         """
         return a ProductStack that has all products loaded in from the
         available caches.  If they are out of date (or non-existent), this
@@ -783,6 +769,8 @@ class ProductStack(object):
                                appear out of date
         @param autosave     if true (default), all updates will be
                                saved to disk.
+        @param disablePickleCache if True (default is False) disable the
+                                  cache, overriding all other options
         """
         if not flavors:
             raise RuntimeError("ProductStack.fromCache(): at least one flavor needed as input" +
@@ -790,7 +778,7 @@ class ProductStack(object):
         if not isinstance(flavors, list):
             flavors = [flavors]
 
-        out = ProductStack(dbpath, persistDir, False)
+        out = ProductStack(dbpath, persistDir, False, disablePickleCache=disablePickleCache)
 
         cacheOkay = out._tryCache(dbpath, persistDir, flavors, verbose=verbose)
         if not cacheOkay:
@@ -809,7 +797,7 @@ class ProductStack(object):
     fromCache = staticmethod(fromCache)    # works since python2.2
 
     def _tryCache(self, dbpath, cacheDir, flavors, verbose=0):
-        if not cacheDir or not os.path.exists(cacheDir):
+        if self.disablePickleCache or not cacheDir or not os.path.exists(cacheDir):
             return False
 
         cacheOkay = True

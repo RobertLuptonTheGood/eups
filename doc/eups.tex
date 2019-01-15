@@ -811,7 +811,7 @@ Options:
 There are a number of subcommands:
 \begin{itemize}
   \item{\code{buildCache|clearCache|listCache}}
-    Manipulate \eups's caches
+    Manipulate \eups's caches.  You can disable the use of caches entirely with an entry \code{hooks.config.Eups.disablePickleCache = True} in a \file{startup.py} file
 
   \item{\code{clearServerCache}}
     Clear the \code{eups distrib} cache
@@ -1670,7 +1670,7 @@ Options:
 Go through the \eups databases and return every product that depends upon the specified product and version;
 if the version's omitted then everything that depends on product is returned, along with the version
 required. \textit{N.b.  this will be quite slow if you've disabled the cache --- it'll need to read every table
-  file that \eups knows about.}
+  file that \eups knows about.}.  This cache is unrelated to the one that \text{e.g.} \code{eups admin clearCache} uses.
 
 Unless you specify \code{--quiet} you'll be warned if a product depends on
 more than one version;  this may sound unlikely but can happen if you setup
@@ -1954,7 +1954,9 @@ specified by three types of files:
 
     We are thinking of providing an option to disable the cache, either because
     you don't have write permission, or because the risk of cache corruption is
-    more important to you than speed considerations.
+    more important to you than speed considerations.  In the absence of such an option,
+    you can put \code{hooks.config.Eups.disablePickleCache = True} into a \file{startup.py} file
+    to disable the cache.
 \end{itemize}
 
 \subsubsection{\eups table format}

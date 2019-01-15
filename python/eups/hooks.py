@@ -34,7 +34,7 @@ def defineProperties(names, parentName=None):
 
 # various configuration properties settable by the user
 config = defineProperties("Eups distrib site user")
-config.Eups = defineProperties("userTags preferredTags globalTags reservedTags defaultTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer colorize", "Eups")
+config.Eups = defineProperties("userTags preferredTags globalTags reservedTags defaultTags verbose asAdmin setupTypes setupCmdName VRO fallbackFlavors defaultProduct startupFileName repoVersioner versionIncrementer colorize disablePickleCache", "Eups")
 config.Eups.setType("verbose", int)
 
 config.Eups.userTags = []
@@ -44,6 +44,7 @@ config.Eups.globalTags = ["current", "stable",]
 config.Eups.reservedTags = ["commandLine", "keep", "type",]
 config.Eups.verbose = 0
 config.Eups.asAdmin = None
+config.Eups.disablePickleCache = False
 config.Eups.setupTypes = ["exact", "build",]
 config.Eups.setupCmdName = "setup"
 if True:
