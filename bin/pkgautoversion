@@ -50,7 +50,7 @@ _earliest_version()
 	#
 	# Returns via STDOUT
 
-	_lex_normalize "$@" | sort -t '|' -k1,1 | head -n 1 | cut -d'|' -f 2
+	_lex_normalize "$@" | LC_COLLATE=C sort -t '|' -k1,1 | head -n 1 | cut -d'|' -f 2
 }
 
 _eups_compat_version()
