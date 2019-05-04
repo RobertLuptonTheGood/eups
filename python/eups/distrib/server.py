@@ -1023,7 +1023,11 @@ class WebTransporter(Transporter):
                 try:                               # for python 2.4 compat
                     url = urlopen(self.loc)
                     out = open(filename, 'wb')
-                    out.write(url.read())
+                    while True:
+                        chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
+                        if not chunk:
+                            break
+                        out.write(chunk)
                 except HTTPError as e:
                     raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
                 except URLError as e:
