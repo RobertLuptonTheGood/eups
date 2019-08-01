@@ -103,7 +103,7 @@ def takeLocks(cmdName, path, lockType, nolocks=False, ntry=10, verbose=0):
                         if not os.path.exists(lockDir):
                             if verbose:
                                 print("Unable to lock %s; proceeding with trepidation" % d, file=utils.stdwarn)
-                            return []
+                            return locks
 
                 if not makeLock:
                     continue
