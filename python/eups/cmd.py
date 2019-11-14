@@ -2862,7 +2862,7 @@ The tagname may be a glob pattern.
                 if not globPattern or fnmatch.fnmatch(tag, globPattern):
                     tags[pkgroot].append(tag)
 
-        if len(repos.pkgroots) == 1 and len(tags.values()[0]) == 1:
+        if len(repos.pkgroots) == 1 and len(list(tags.values())[0]) == 1:
             indent = ""
         else:
             indent = "  "
