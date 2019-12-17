@@ -853,7 +853,17 @@ default_install()
 		PYDEST="$PREFIX/lib/python"
 		mkdir -p "$PYDEST"
 		# eval is needed to allow $PYSETUP_INSTALL_OPTIONS to include double quotes
-		PYTHONPATH="$PYDEST:$PYTHONPATH" eval python setup.py install $PYSETUP_INSTALL_OPTIONS
+		{
+			# the extra options here prevent the installation of dependencies via
+			# eups - the installation will error with the name of the package that is needed
+			# this only works for setuptools-based packages
+			PYTHONPATH="$PYDEST:$PYTHONPATH" \
+				eval python setup.py install --single-version-externally-managed --record record.txt  $PYSETUP_INSTALL_OPTIONS
+		} || {
+			# this block catches distutils-only packages that don't install their
+			# dependencies anyways
+			PYTHONPATH="$PYDEST:$PYTHONPATH" eval python setup.py install $PYSETUP_INSTALL_OPTIONS
+		}
 		evil_setuptools_pth_fix "$PYDEST"
 	else
 		# just copy everything, except for the ups directory
