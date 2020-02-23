@@ -322,7 +322,10 @@ but no other interpretation is applied
             #
             # Is line of the form action(...)?
             #
-            mat = re.search(r'^(\w+)\s*\(([^)]*)\)', line, re.IGNORECASE)
+            # N.b. the eups.table itself has a ; at the end of the line.  This
+            # was never advertised, but we might as well support it in case
+            # it was copied in the real world
+            mat = re.search(r'^(\w+)\s*\((.*)\)\s*;?\s*$', line, re.IGNORECASE)
             if mat:
                 cmd = mat.group(1).lower()
                 args = re.sub(r'^"(.*)"$', r'\1', mat.group(2))
