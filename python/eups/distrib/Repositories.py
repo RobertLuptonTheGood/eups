@@ -775,7 +775,7 @@ class Repositories(object):
                     fd.close()
             except:
                 if self.verbose >= 0:
-                    print("Warning: Failed to write distID to %s: %s" (file, traceback.format_exc(0)), file=self.log)
+                    print("Warning: Failed to write distID to %s: %s" % (file, traceback.format_exc(0)), file=self.log)
 
     def _readDistIDFile(self, file):
         distId = None
