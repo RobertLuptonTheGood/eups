@@ -88,7 +88,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         eupsenv.setup(productName, versionName, productRoot=os.path.abspath(productDir))
         setup = True                    # only list this version
 
-    productList = eupsenv.findProducts(productName, versionName, tags)
+    productList = eupsenv.getSetupProducts(productName) if setup else \
+                  eupsenv.findProducts(productName, versionName, tags)
     if not productList:
         if productName:
             msg = productName
@@ -105,11 +106,13 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
         recursionDepth, indent = 0, ""
 
         if len(productList) > 1:
-            if setup:
-                productList = eupsenv.getSetupProducts(productName)
+            if productName:
+                raise EupsException("Please choose the version of %s that you want (%s)" %
+                                    (productName, ", ".join(p.version for p in productList)))
             else:
-                raise EupsException("Please choose the version you want listed (%s)" %
-                                    (", ".join(p.version for p in productList)))
+                raise EupsException("Please choose the product and maybe version that you want (%s)" %
+                                    (", ".join(("%s:%s" % (p.name, p.version)) for p in productList)))
+
     else:
         if topological:
             raise EupsException("--topological only makes sense with --dependencies")
@@ -136,6 +139,9 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
     if dependencies:
         recursionDepth = 0
+
+        if not productList:
+            return 0
 
         product = productList[0]
 
