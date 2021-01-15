@@ -218,6 +218,7 @@ class Tags(object):
                           from configured location.
         """
 
+        fd = None
         try:
             fd = open(file)
             if group not in self.bygrp:
@@ -228,7 +229,8 @@ class Tags(object):
                 line = [t for t in line.split() if t not in self.bygrp[group]]
                 self.bygrp[group].extend(line)
         finally:
-            fd.close()
+            if fd:
+                fd.close()
 
         return [self.getTag(t) for t in self.bygrp[group]]
 
