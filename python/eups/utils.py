@@ -87,9 +87,10 @@ def getUserName(full=False):
         pw = pwd.getpwuid(euid)
 
         # If pw_gecos field is empty, default to username
+        fullname = ""
         if pw[4] != "":
             fullName = re.sub(r",.*", "", pw[4])
-        else:
+        if fullname == "":
             fullName = pw[0]
 
         getUserName.who = {
