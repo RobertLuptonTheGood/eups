@@ -1,3 +1,14 @@
+2021-01-19 timj (2.2.0)
+    - This release drops support for python versions before 3.6.
+    - Parallelize download of information from remote server
+    - Fix bug in "eups list -s -d"
+    - Minor fixes to locking, table file parsing, and tag sorting.
+    - Download packages incrementally in chunks.
+
+    dev stats:
+      - 13 files changed, 107 insertions(+), 57 deletions(-)
+      - contributors: Tim Jenness, Robert Lupton the Good, Kian-Tat Lim, Matthias Wittgen, Craig Loomis, John Swinbank, Matthew R Becker
+
 2018-10-16 timj (2.1.5)
     dev stats:
       - 23 files changed, 644 insertions(+), 113 deletions(-)
