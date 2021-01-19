@@ -35,3 +35,15 @@ jobs:
     - name: Run CI
       run: |
         ./ci/script.sh
+
+  ci-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Run CI
+      run: |
+        ./ci/script.sh
