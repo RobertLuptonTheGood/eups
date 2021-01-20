@@ -1172,11 +1172,7 @@ SCRIPTS=${SCRIPTS:-"$EUPSPKG_SCRIPTS"}		# ':'-delimited list of scripts to sourc
 if [[ -z ${EUPSPKG_NJOBS} ]]; then
 	if [[ -e /sys/fs/cgroup/cpuset/cpuset.cpus ]]; then
 		# Use cgroups information
-		cpulist=()
-		for n in $(cat /sys/fs/cgroup/cpuset/cpuset.cpus | awk '/-/{for (i=$1; i<=$2; i++)printf "%s%s",i,ORS;next} 1' RS=, FS=-); do
-			cpulist+=("$n")
-		done
-		NJOBS="${#cpulist[@]}"
+		NJOBS=$(awk '/-/{i+=$2-$1} {i++} END{print i}' RS=, FS=- /sys/fs/cgroup/cpuset/cpuset.cpus)
 	else
 		# number of cores on the machine (Darwin & Linux)
 		NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)
