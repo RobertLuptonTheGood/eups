@@ -1,3 +1,10 @@
+2021-01-20 timj (2.2.1)
+    - Make NJOBS check cgroups-aware
+
+    dev stats:
+      - 1 file changed, 7 insertions(+), 1 deletion(-)
+      - contributors: Brian Van Klaveren, K-T Lim
+
 2021-01-19 timj (2.2.0)
     - This release drops support for python versions before 3.6.
     - Parallelize download of information from remote server
