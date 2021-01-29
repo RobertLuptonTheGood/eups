@@ -1066,8 +1066,13 @@ class WebTransporter(Transporter):
                 if tag == "pre":  # now in file listing portion (Apache)
                     self.nrow = 0
 
-                if tag == "tr": # count rows in table
-                    if self.nrow < 0:  self.nrow = 0
+                if tag in ("tr", ): # count rows in table
+                    if self.nrow < 0:
+                        self.nrow = 1
+                    self.nrow += 1
+                elif tag in ("li",): # count rows in list
+                    if self.nrow < 0:
+                        self.nrow = 0
                     self.nrow += 1
 
                 if tag == "img" and self.nrow >= 0:
@@ -1076,7 +1081,7 @@ class WebTransporter(Transporter):
                 if tag == "address":
                     self.is_attribute = True
 
-                if self.nrow <= 1 or tag != "a":
+                if self.nrow <= 0 or tag != "a":
                     return
 
                 for name, value in attributes:
