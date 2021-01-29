@@ -1097,6 +1097,9 @@ class WebTransporter(Transporter):
                         for o in [old.lower(), old.upper()]:
                             value = value.replace(o, new)
 
+                    if re.search(r"^https?://", value): # some servers return a full URL
+                        value = os.path.basename(value)
+
                     self.files += [value]
 
             def handle_data(self, data):
