@@ -1099,6 +1099,13 @@ class WebTransporter(Transporter):
                     if re.search(r"/$", value): # a directory
                         continue
 
+                    for old, new in [("%2B", '+'),
+                                     ("%3A", ':'),
+                                     ("%40", "@"),                                     
+                                     ]:
+                        for o in [old.lower(), old.upper()]:
+                            value = value.replace(o, new)
+
                     self.files += [value]
 
             def handle_data(self, data):
