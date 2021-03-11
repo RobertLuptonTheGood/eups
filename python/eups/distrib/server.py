@@ -11,6 +11,8 @@ import atexit
 import fnmatch
 import shutil
 import tempfile
+from pathlib import Path
+import concurrent.futures
 try:
     from urllib2 import urlopen, HTTPError, URLError
 except ImportError:
@@ -24,6 +26,7 @@ from eups.exceptions import EupsException
 
 serverConfigFilename = "config.txt"
 BASH = "/bin/bash"    # see end of this module where we look for bash
+dirCache = dict()     # cache listDir results
 
 class DistribServer(object):
     """a class that encapsulates the communication with a package server.
@@ -143,10 +146,13 @@ class DistribServer(object):
             tags = tags.split()
 
         out = []
-        for tag in tags:
-            info = self.getTaggedProductInfo(product, flavor, tag)
-            if info[2] == version:
-                out.append(tag)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            tag_workers = {executor.submit(self.getTaggedProductInfo,product, flavor, tag): tag for tag in tags}
+            for w in concurrent.futures.as_completed(tag_workers):
+                tag = tag_workers[w]
+                info=w.result()
+                if info[2] == version:
+                    out.append(tag)
         return out, tags
 
     def getTaggedProductList(self, tag="current", flavor=None, noaction=False):
@@ -995,6 +1001,8 @@ class WebTransporter(Transporter):
     """a class that can return files via an HTTP or FTP URL"""
 
     # @staticmethod   # requires python 2.4
+    global poolManager
+
     def canHandle(source):
         """return True if this source location is recognized as one that
         can be handled by this Transporter class"""
@@ -1014,7 +1022,7 @@ class WebTransporter(Transporter):
 
         if noaction:
             if self.verbose > 0:
-                system("touch " + filename)
+                Path(filename).touch()
                 print("Simulated web retrieval from", self.loc, file=self.log)
         else:
             url = None
@@ -1046,7 +1054,8 @@ class WebTransporter(Transporter):
         url = None
         if noaction:
             return []
-
+        if self.loc in dirCache:
+            return dirCache[self.loc]
         try:
             from html.parser import HTMLParser
         except ImportError:
@@ -1103,7 +1112,7 @@ class WebTransporter(Transporter):
             url.close()
             if not p.is_apache and self.verbose >= 0:
                 print("Warning: URL does not look like a directory listing from an Apache web server", file=self.log)
-
+            dirCache[self.loc]=p.files
             return p.files
 
           except HTTPError as e:
@@ -1158,7 +1167,7 @@ class SshTransporter(Transporter):
             raise TransporterError("Failed to retrieve %s" % self.loc)
 
         if noaction:
-            system("touch %s" % filename)
+            Path(filename).touch()
 
         if self.verbose > 0:
             if noaction:
@@ -1221,7 +1230,7 @@ class LocalTransporter(Transporter):
         @param noaction      if True, simulate the result (default: False)
         """
         if noaction:
-            system("touch %s" % filename)
+            Path(filename).touch()
             if self.verbose > 0:
                 print("Simulated cp from", self.loc, file=self.log)
         else:

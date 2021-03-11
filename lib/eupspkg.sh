@@ -1170,7 +1170,13 @@ fi
 SCRIPTS=${SCRIPTS:-"$EUPSPKG_SCRIPTS"}		# ':'-delimited list of scripts to source at the end of this script. Used to mass-customize package creation.
 
 if [[ -z ${EUPSPKG_NJOBS} ]]; then
-	NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)   # number of cores on the machine (Darwin & Linux)
+	if [[ -e /sys/fs/cgroup/cpuset/cpuset.cpus ]]; then
+		# Use cgroups information
+		NJOBS=$(awk '/-/{i+=$2-$1} {i++} END{print i}' RS=, FS=- /sys/fs/cgroup/cpuset/cpuset.cpus)
+	else
+		# number of cores on the machine (Darwin & Linux)
+		NJOBS=$((sysctl -n hw.ncpu || (test -r /proc/cpuinfo && grep processor /proc/cpuinfo | wc -l) || echo 2) 2>/dev/null)
+	fi
 	[[ $NJOBS -gt 32 ]] && NJOBS=32		# limit the auto-detected number of jobs to 32 (otherwise we run into problems on massively multicore machines)
 else
 	NJOBS=${EUPSPKG_NJOBS}

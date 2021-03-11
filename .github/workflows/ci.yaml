@@ -1,0 +1,49 @@
+name: EUPS Build CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  ci:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Run CI
+      run: |
+        ./ci/script.sh
+
+  ci-csh:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install csh
+      run: sudo apt install csh
+    - name: Run CI
+      run: |
+        ./ci/script.sh
+
+  ci-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Run CI
+      run: |
+        ./ci/script.sh
