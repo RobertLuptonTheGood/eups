@@ -1,3 +1,10 @@
+2021-03-24 timj (2.2.2)
+    - Improve server interactions (rhl)
+
+    dev stats:
+      - 2 files changed, 20 insertions(+), 3 deletions(-)
+-n       - contributors: 
+
 2021-01-20 timj (2.2.1)
     - Make NJOBS check cgroups-aware
 
