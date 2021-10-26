@@ -1,3 +1,10 @@
+2021-10-26 timj (2.2.3)
+    - Improve detection of version tags in packages
+
+    dev stats:
+      - 1 file changed, 1 insertion(+), 1 deletion(-)
+      - contributors: #
+
 2021-03-24 timj (2.2.2)
     - Improve server interactions (rhl)
 
