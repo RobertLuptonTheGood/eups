@@ -144,7 +144,7 @@ git_version()
 	# interpreted as dot-delimited tuples):
 
 	# get a list of annotated tags pointing to $REF
-	TAGS=( $(for tag in $(git tag -l "$TAG_PATTERN" --points-at $REF); do [[ $(git cat-file -t $tag) == tag ]] && echo -n "$tag "; done) )
+	TAGS=( $(for tag in $(git tag -l "$TAG_PATTERN" --points-at $(git rev-parse "$REF^{commit}") ); do [[ $(git cat-file -t $tag) == tag ]] && echo -n "$tag "; done) )
 	local RES
 	if [[ ! -z $TAGS ]]; then
 		# Tag found. Use the tag as version
