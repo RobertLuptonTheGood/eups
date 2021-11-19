@@ -311,7 +311,7 @@ resolve_repository()
 	for PAT in "${REPOSITORY_PATH_ARRAY[@]}"; do
 		eval "_REPOSITORY=\"$PAT\""
 		info "trying $_REPOSITORY"
-		if git ls-remote "$_REPOSITORY" master >/dev/null 2>&1; then
+		if git ls-remote "$_REPOSITORY" HEAD >/dev/null 2>&1; then
 			info "repository resolved to $_REPOSITORY."
 			REPOSITORY="$_REPOSITORY"
 			return

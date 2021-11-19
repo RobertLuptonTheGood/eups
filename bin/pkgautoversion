@@ -65,6 +65,24 @@ _eups_compat_version()
 	echo
 }
 
+_get_default_branch()
+{
+	# Determine the default branch.
+	# If in a clone, use the origin remote's HEAD as the default.
+	# If not, look for "main" and then "master".
+	# If none of those exist, this is likely a brand-new repo.
+	# In that case, use the current (initial) branch.
+
+	local origin_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null)
+	if [[ -n "$origin_branch" ]]; then
+		basename "$origin_branch"
+		return
+	fi
+	git show-ref -q --heads main && echo main && return
+	git show-ref -q --heads master && echo master && return
+	git branch --show-current
+}
+
 _get_best_branch()
 {
 	# Usage: _get_best_branch <ref> <sha1>
@@ -72,7 +90,7 @@ _get_best_branch()
 	# If commit $1 is on the currently checked out branch,
 	# return it as best.
 	#
-	# If it's on master, return master as best.
+	# If it's on the default branch, return that as best.
 	#
 	# Otherwise, return the branch where $1 is the closest to the tip.
 	#
@@ -95,18 +113,20 @@ _get_best_branch()
 	#   next2
 	local BRANCHES=$(git branch --contains $SHA1 | cut -b 3- | grep -v '^(')
 
+	local default_branch=$(_get_default_branch)
 	# is it on current branch?
 	local _B
 	for _B in ${BRANCHES[@]}; do
 		case "$_B" in
 			$CUR_BRANCH)	echo $CUR_BRANCH; return ;;
-			master)		local _IN_MASTER=1 ;;
+			# Don't immediately return, as we prefer current branch
+			$default_branch) local _IN_DEFAULT=1 ;;
 		esac
 	done
 
-	# Is it on master?
-	if [[ $_IN_MASTER == 1 ]]; then
-		echo master;
+	# Is it on default branch?
+	if [[ $_IN_DEFAULT == 1 ]]; then
+		echo $default_branch
 		return
 	fi
 
@@ -154,11 +174,12 @@ git_version()
 		# Use the branch-gSHA1 notation
 
 		local BRANCH=$(_get_best_branch "$REF")
+		local default_branch=$(_get_default_branch)
 		local ABBRSHA=$(git rev-parse --short=10 "$REF^{}")
 		if [[ -z $BRANCH ]]; then
 			# Commit is not on any branch (orphaned)
 			RES=($ABBRSHA $DIRTY)
-		elif [[ $BRANCH = master ]]; then
+		elif [[ $BRANCH = $default_branch ]]; then
 			local DESC=$(git describe --first-parent --match "$TAG_PATTERN" 2>/dev/null)
 			if [[ -z $DESC ]]; then
 				RES=($BRANCH g$ABBRSHA $DIRTY )
@@ -187,6 +208,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 		mkdir $1
 		cd $1
 		git init > /dev/null
+		git branch --show-current
 	}
 
 	_git_add_commit()
@@ -230,15 +252,16 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 
 			(
 				ut0 Version w/o no tag
-				_git_create_repo A
+				local default_branch=$(_git_create_repo A)
+				cd A
 				_git_add_commit README
 				COMMIT0=$(git rev-parse --short=10 HEAD)
 				_git_add_commit README
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "${default_branch}-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Version on dirty commit
 				echo "stuff" >> README
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)-dirty"
+				ut "git_version --dirty" == "${default_branch}-g$(git rev-parse --short=10 HEAD)-dirty"
 				git reset --hard -q
 
 				ut0 Version for commit on branch
@@ -247,8 +270,8 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut "git_version --dirty" == "next-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Version for commit on two branches
-				git checkout -q master
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				git checkout -q ${default_branch}
+				ut "git_version --dirty" == "${default_branch}-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 "Version for commit on branch (2)"
 				git checkout -q next
@@ -275,7 +298,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut "git_version next" == "next-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Ver from SHA1, non-tip
-				ut "git_version $COMMIT0" == "master-g$COMMIT0"
+				ut "git_version $COMMIT0" == "${default_branch}-g$COMMIT0"
 
 				ut0 Ver from SHA1, tip
 				ut "git_version $(git rev-parse --short=10 a/b/c/d)" == "a.b.c.d-g$(git rev-parse --short=10 a/b/c/d)"
@@ -305,16 +328,16 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 
 
 				ut0 Single non-annotated tag on HEAD
-				git checkout -q master
+				git checkout -q ${default_branch}
 				git tag 1.0
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "${default_branch}-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Non-conforming annotated tag
 				git tag -a w.2015.33 -m "Weekly 2015.33"
-				ut "git_version --dirty" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version --dirty" == "${default_branch}-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Non-conforming annotated tag, on cmdline
-				ut "git_version w.2015.33" == "master-g$(git rev-parse --short=10 HEAD)"
+				ut "git_version w.2015.33" == "${default_branch}-g$(git rev-parse --short=10 HEAD)"
 
 				ut0 Annotated and non-annotated tags on HEAD
 				git tag -a 2.0 -m "Version 2.0"
@@ -372,7 +395,7 @@ if [[ "$RUN_UNIT" == 1 ]]; then
 				ut "git_version $REF" == "$REF"
 
 				ut0 Where --first-parent makes a difference
-				git checkout -q master > /dev/null
+				git checkout -q ${default_branch} > /dev/null
 				git merge next2 -m "Merge" > /dev/null
 				ut "git_version --dirty" == "1.1-3-g$(git rev-parse --short=7 HEAD)"
 
