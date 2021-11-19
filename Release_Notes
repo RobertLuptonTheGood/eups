@@ -1,16 +1,23 @@
+2021-11-19 timj (2.2.4)
+    - Detect master or main as default branch (ktlim)
+
+    dev stats:
+      - 2 files changed, 41 insertions(+), 18 deletions(-)
+      - contributors: K-T Lim
+
 2021-10-26 timj (2.2.3)
-    - Improve detection of version tags in packages
+    - Improve detection of version tags in packages (ktl)
 
     dev stats:
       - 1 file changed, 1 insertion(+), 1 deletion(-)
-      - contributors: #
+      - contributors: K-T Lim
 
 2021-03-24 timj (2.2.2)
     - Improve server interactions (rhl)
 
     dev stats:
       - 2 files changed, 20 insertions(+), 3 deletions(-)
--n       - contributors: 
+      - contributors: Robert Lupton
 
 2021-01-20 timj (2.2.1)
     - Make NJOBS check cgroups-aware
