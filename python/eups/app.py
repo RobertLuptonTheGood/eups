@@ -289,7 +289,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
                     if not eupsenv.verbose:
                         t = tName
-                    if tagsSeen.get(t) and tagsSeen[t].get(pi.name) > 1:
+                    if tagsSeen.get(t) and tagsSeen[t].get(pi.name, 0) > 1:
                         t = "%s[%s]" % (t, root)
                     extra.append(t)
 
