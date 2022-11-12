@@ -1850,18 +1850,22 @@ class AdminShowCmd(EupsCmd):
     def execute(self):
         self.args.pop(0)                # remove the "show"
 
+        options = ["python"]
+
         if len(self.args) == 0:
             self.err("Please tell me what you're interested in")
             return 2
         what = self.args[0]
 
-        if what == "python":
-            print(sys.executable)
-            return 0
+        if what in options:
+            if what == "python":
+                print(sys.executable)
+                return 0
         else:
-            msg = "I don't know anything about \"%s\"" % (what)
+            msg = "I don't know anything about \"%s\" (please choose from \"%s\")" % \
+                (what, ','.join(options))
             self.err(msg)
-            return 1
+            return 0
 
 class AdminListCacheCmd(EupsCmd):
 
