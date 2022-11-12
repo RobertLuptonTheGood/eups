@@ -2523,8 +2523,11 @@ The what argument tells us what sort of state is expected (allowed values are de
                     else:
                         full_tablefile = tablefile
 
-            if not os.path.isfile(full_tablefile):
+            if not os.path.exists(full_tablefile):
                 raise EupsException("I'm unable to declare %s as tablefile %s does not exist" %
+                                     (productName, full_tablefile))
+            elif not os.path.isfile(full_tablefile):
+                raise EupsException("I'm unable to declare %s as tablefile %s is not a regular file" %
                                      (productName, full_tablefile))
         else:
             full_tablefile = None
