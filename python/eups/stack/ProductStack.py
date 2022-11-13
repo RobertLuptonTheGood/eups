@@ -119,6 +119,8 @@ class ProductStack(object):
         # True if python is new enough to pickle the cache data
         self.canCache = utils.canPickle()
 
+    def __repr__(self):
+        return "ProductStack: %s (%d products)" % (self.dbpath, len(self.getProductNames()))
 
     def getDbPath(self):
         """

@@ -29,6 +29,10 @@ class ProductFamily(object):
         # value is the version name assigned to the tag.
         self.tags = {}
 
+    def __repr__(self):
+        nVersion = len(self.versions)
+        return "ProductFamily: %s (%d version%s)" % (self.name, nVersion, ('' if nVersion == 1 else 's'))
+
     def getVersions(self):
         """
         return a list containing the verison names in this product family

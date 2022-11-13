@@ -100,6 +100,9 @@ class _Database(object):
 
         self.addUserTagDb(None, defStackRoot)
 
+    def __repr__(self):
+        return "Database: %s (%d products)" % (self.dbpath, len(self.findProductNames()))
+
     def addUserTagDb(self, userTagRoot, upsdb, userId=None):
         """Add a user tag database for products in upsdb; userId == None means me"""
 
