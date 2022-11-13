@@ -535,18 +535,18 @@ class _Database(object):
         if is_string(tag):
             tag = eups.tags.Tag(tag)
 
-        pdirs = []
+        tfile = self._tagFileInDir(pdir, tag.name)
+        if os.path.exists(tfile):
+            return ChainFile(tfile)
+
+        # not found; user tags may be in the userDB
         if searchUserDB and tag.isUser():
             for d in self._getUserTagDb(values=True):
                 if d:
-                    pdirs.append(self._productDir(productName, d))
-        else:
-            pdirs.append(pdir)
-
-        for pdir in pdirs:
-            tfile = self._tagFileInDir(pdir, tag.name)
-            if os.path.exists(tfile):
-                return ChainFile(tfile)
+                    pdir = self._productDir(productName, d)
+                    tfile = self._tagFileInDir(pdir, tag.name)
+                    if os.path.exists(tfile):
+                        return ChainFile(tfile)
 
         return None
 
