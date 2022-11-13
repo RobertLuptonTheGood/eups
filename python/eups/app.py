@@ -638,7 +638,16 @@ def listCache(path=None, verbose=0, flavor=None):
             versionNames = cache.getVersions(productName)
             versionNames.sort(**cmp_or_key(hooks.version_cmp))
 
-            print("  %-20s %s" % (productName, " ".join(versionNames)))
+            msg = "%-20s" % (productName)
+            if verbose <= 1:
+                msg += " %s" % (" ".join(versionNames))
+            else:
+                msg += " %-40s" % (" ".join(versionNames))
+                tags = cache.getTags(productName=productName)
+                if len(tags) > 0:
+                    msg += "  tags: %s" % (" ".join(tags))
+
+            print("  " + msg)
 
 def Current():
     """

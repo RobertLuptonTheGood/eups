@@ -136,14 +136,19 @@ class ProductStack(object):
         """
         return list(self.lookup.keys())
 
-    def getTags(self, flavor=None):
+    def getTags(self, flavor=None, productName=None):
         """
         return all assigned tags assigned on this stack
+        @param flavor   Only return tags with this flavor
+        @param productName  If not None, only return tags assigned to this product
         """
         if flavor is None:
             prods = _lol2l(self.lookup.values(), lambda y: y.values())
         else:
             prods = self.lookup[flavor].values()
+
+        if productName is not None:
+            prods = [p for p in prods if p.name == productName]
 
         return _uniquify(_lol2l(z.getTags() for z in prods))
 

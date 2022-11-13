@@ -7,6 +7,9 @@
       - 2 files changed, 17 insertions(+), 13 deletions(-)
       - contributors: #
 
+2022-11-13 rhl
+    - Add tags to `eups admin listCache` if verbose >= 2
+
 2021-11-19 timj (2.2.4)
     - Detect master or main as default branch (ktlim)
 
