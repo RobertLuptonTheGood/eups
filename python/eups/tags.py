@@ -49,8 +49,8 @@ class Tags(object):
             for tag in globals:
                 self.registerTag(tag)
 
-    def __str__(self):
-        return "(Tags [%s])" % (" ".join(self.getTagNames()))
+    def __repr__(self):
+        return "Tags: [%s]" % (" ".join(self.getTagNames()))
 
     def isRecognized(self, tag):
         """
