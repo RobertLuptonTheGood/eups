@@ -628,7 +628,7 @@ def listCache(path=None, verbose=0, flavor=None):
         if verbose:
             colon = ":"
 
-        print("%-30s (%-3d products) [cache verison %s]%s" % \
+        print("%-30s (%-3d products) [cache version %s]%s" % \
             (p, len(productNames), cacheVersion, colon))
 
         if not verbose:

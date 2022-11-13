@@ -35,7 +35,7 @@ class ProductFamily(object):
 
     def getVersions(self):
         """
-        return a list containing the verison names in this product family
+        return a list containing the version names in this product family
         """
         return list(self.versions.keys())
 
