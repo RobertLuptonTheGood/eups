@@ -671,7 +671,7 @@ r"""
 """
 
 from __future__ import absolute_import, print_function
-import sys, os, shutil, tempfile, pipes, stat
+import sys, os, shutil, tempfile, shlex, stat
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
 
@@ -703,7 +703,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         # Prepare the string with all unrecognized options, to be passed to eupspkg on the command line
         # FIXME: This is not the right way to do it. -S options should be preserved in a separate dict()
         knownopts = set(['config', 'nobuild', 'noclean', 'noaction', 'exact', 'allowIncomplete', 'buildDir', 'noeups', 'installCurrent']);
-        self.qopts = " ".join( "%s=%s" % (k.upper(), pipes.quote(str(v))) for k, v in self.options.items() if k not in knownopts )
+        self.qopts = " ".join( "%s=%s" % (k.upper(), shlex.quote(str(v))) for k, v in self.options.items() if k not in knownopts )
 
     # @staticmethod   # requires python 2.4
     def parseDistID(distID):
@@ -812,7 +812,7 @@ TAGLIST_DIR = tags
         pkgdir = os.path.join(pkgdir0, prodSubdir)
         os.mkdir(pkgdir)
 
-        q = pipes.quote
+        q = shlex.quote
         try:
             # Execute 'eupspkg <create>'
             cmd = ("cd %(pkgdir)s && " + \
@@ -948,7 +948,7 @@ TAGLIST_DIR = tags
             issued_sconsflags_warning = True
 
         # Construct the build script
-        q = pipes.quote
+        q = shlex.quote
         try:
             buildscript = os.path.join(buildDir, "build.sh")
             fp = open(buildscript, 'w')
