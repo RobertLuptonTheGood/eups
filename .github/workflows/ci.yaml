@@ -1,8 +1,12 @@
 name: EUPS Build CI
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
 
 jobs:
   ci:
