@@ -1,3 +1,12 @@
+2023-06-28 timj (2.2.5)
+    - Replace usages of pipes.quote with shlex.quote.
+      The former was deprecated very early in the transition
+      to python 3.
+
+    dev stats:
+      - 2 files changed, 17 insertions(+), 13 deletions(-)
+      - contributors: #
+
 2021-11-19 timj (2.2.4)
     - Detect master or main as default branch (ktlim)
 
