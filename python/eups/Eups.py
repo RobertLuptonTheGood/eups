@@ -1515,7 +1515,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             except IndexError:
                 versionName = None
 
-            if requestedProductName and productName != requestedProductName:
+            if requestedProductName and not fnmatch.fnmatch(productName, requestedProductName):
                 continue
 
             try:

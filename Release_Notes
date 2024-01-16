@@ -1,3 +1,6 @@
+2024-01-16 rhl
+    - Make `eups list \*` work (I thought it did already; the manual says that it does)
+
 2023-06-28 timj (2.2.5)
     - Replace usages of pipes.quote with shlex.quote.
       The former was deprecated very early in the transition
