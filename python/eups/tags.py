@@ -452,16 +452,7 @@ class Tag:
         there is not group name, it is assumed to be of the group given by
         defGroup (which defaults to global).
         """
-        # This is requires python 2.4
-        #   parts = name.rsplit(':', 1)
-        # replaced with:
-        parts = name.split(':')
-        if len(parts) > 2:
-            try:
-                parts = ":".join(parts[:-1], parts[-1])
-            except Exception as e:
-                import eups; eups.debug(e)
-
+        parts = name.rsplit(':', 1)
         if len(parts) == 1:
             return Tag(name, defGroup)
         else:
