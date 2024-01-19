@@ -258,7 +258,7 @@ but no other interpretation is applied
 
         try:
             fd = open(tableFile)
-        except IOError as e:
+        except OSError as e:
             raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()

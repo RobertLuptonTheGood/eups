@@ -302,7 +302,7 @@ class Tags:
                     print("Reading tags from", file, file=utils.stdinfo)
                 try:
                     loaded = self.load(group, file)
-                except IOError as e:
+                except OSError as e:
                     if verbosity >= 0:
                         print("Skipping troublesome tag file (%s): %s" % \
                             (str(e), file), file=utils.stdwarn)
@@ -319,7 +319,7 @@ class Tags:
                                    containing the user tags.
         """
         if not os.path.isdir(userPersistDir):
-            raise IOError("Tag cache not an existing directory: " +
+            raise OSError("Tag cache not an existing directory: " +
                           userPersistDir)
         fileName = os.path.join(userPersistDir, self.persistFilename("user"))
         if not os.path.exists(fileName):
@@ -339,7 +339,7 @@ class Tags:
         if group == self.user:     group = "user"
 
         if not os.path.isdir(dir):
-            raise IOError("Tag cache not an existing directory: " + dir)
+            raise OSError("Tag cache not an existing directory: " + dir)
         file = os.path.join(dir, self.persistFilename(group))
 
         if group == "global":
@@ -364,7 +364,7 @@ class Tags:
         taken from the EUPS_PATH).
         """
         if not os.path.isdir(persistDir):
-            raise IOError("Tag cache not an existing directory: " +
+            raise OSError("Tag cache not an existing directory: " +
                           persistDir)
 
         dir = os.path.join(persistDir, "ups_db")

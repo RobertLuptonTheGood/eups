@@ -233,11 +233,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 else:
                     try:
                         ifd = open(buildFile)
-                    except IOError as e:
+                    except OSError as e:
                         raise RuntimeError("Failed to open file \"%s\" for read" % buildFile)
                     try:
                         ofd = open(full_builder, "w")
-                    except IOError as e:
+                    except OSError as e:
                         raise RuntimeError("Failed to open file \"%s\" for write" % full_builder)
 
                     builderVars = eups.hooks.config.distrib["builder"]["variables"]
@@ -254,7 +254,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                         raise RuntimeError("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
                     del ifd; del ofd
-        except IOError as param:
+        except OSError as param:
             try:
                 os.unlink(full_builder)
             except OSError:
@@ -352,7 +352,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         else:
             try:
                 fd = open(tfile)
-            except IOError as e:
+            except OSError as e:
                 raise RuntimeError("Failed to open %s: %s" % (tfile, e))
 
             for line in fd:
@@ -550,7 +550,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                 rfd = open("CVS/Root")
                 cvsroot = re.sub(r"\n$", "", rfd.readline())
                 del rfd
-            except IOError as e:
+            except OSError as e:
                 print("Tried to read \"CVS/Root\" but failed: %s" % e, file=sys.stderr)
 
         return cvsroot
@@ -580,7 +580,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                             break
 
                 del rfd
-            except IOError as e:
+            except OSError as e:
                 print("Tried to read \".svn\" but failed: %s" % e, file=sys.stderr)
 
         return svnroot

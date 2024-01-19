@@ -71,7 +71,7 @@ class ProductStack:
             raise RuntimeError("Empty/None given as EUPS database path: " +
                                str(dbpath))
         if not os.path.exists(self.dbpath):
-            raise IOError(dbpath + ": EUPS database directory not found")
+            raise OSError(dbpath + ": EUPS database directory not found")
 
         # a hierarchical dictionary for looking up products.  The dimensions
         # of the hierarchy (from left to right, general to specific) are:

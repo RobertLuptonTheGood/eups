@@ -42,7 +42,7 @@ class ChainFile:
         if readFile:
             try:
                 self._read(self.file, verbosity)
-            except IOError as e:
+            except OSError as e:
                 # It's not an error if the file didn't exist
                 if e.errno != errno.ENOENT:
                     raise

@@ -1171,7 +1171,7 @@ class SshTransporter(Transporter):
         try:
             system("scp -q %s %s 2>/dev/null" % (self.remfile, filename),
                    noaction, self.verbose)
-        except IOError as e:
+        except OSError as e:
             if e.errno == 2:
                 raise RemoteFileNotFound("%s: file not found" % self.loc)
             else:
@@ -1255,7 +1255,7 @@ class LocalTransporter(Transporter):
                 copyfile(self.loc, filename)
                 if self.verbose > 0:
                     print("cp from", self.loc, file=self.log)
-            except IOError as e:
+            except OSError as e:
                 if e.errno == 2:
                     dir = os.path.dirname(filename)
                     if dir and not os.path.exists(dir):
@@ -2206,7 +2206,7 @@ class ServerConf:
 
         try:
             fd = open(file);
-        except IOError as e:
+        except OSError as e:
             raise RuntimeError("%s: %s" % (file, str(e)))
         if self.verbose > 1:
             print("Reading configuration data from", file, file=self.log)

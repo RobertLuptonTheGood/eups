@@ -1216,7 +1216,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         try:
             fd = open(fileName, "r")
-        except IOError:
+        except OSError:
             raise TagNotRecognized(str(fileName))
 
         version = None
