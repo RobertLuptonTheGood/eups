@@ -5,10 +5,7 @@ common high-level EUPS functions appropriate for calling from an application.
 import fnmatch
 import re
 import os
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 from .distrib import builder
 from .Eups           import Eups
 from .exceptions     import ProductNotFound

@@ -531,10 +531,7 @@ def canPickle():
     cache product info.
     """
     try:
-        try:
-            import cPickle as pickle
-        except ImportError:
-            import pickle
+        import pickle
         return pickle.HIGHEST_PROTOCOL >= 2
     except (ImportError, AttributeError):
         return False
