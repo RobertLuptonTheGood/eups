@@ -395,7 +395,8 @@ DIST_URL = %%(base)s/builds/%%(path)s
             print("Issuing commands:")
             print("\t", str.join("\n\t", cmd))
 
-        print(str.join("\n\t", cmd), file=file(logfile, "w"))
+        with open(logfile, "w") as fd:
+            print(str.join("\n\t", cmd), file=fd)
 
         if False:
             cmd = "(%s) 2>&1 | tee >> %s" % (str.join("\n", cmd), logfile)
