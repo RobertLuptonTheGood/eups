@@ -1,10 +1,8 @@
 # from Table import *
 import os
 import re
-try:
-    from configparser import ConfigParser
-except ImportError:
-    from ConfigParser import ConfigParser
+from configparser import ConfigParser
+
 from . import table as mod_table
 from . import utils
 from .exceptions import ProductNotFound, TableFileNotFound
