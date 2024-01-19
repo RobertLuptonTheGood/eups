@@ -490,7 +490,7 @@ class DatabaseTestCase(unittest.TestCase):
 
         if os.path.exists(self.userdb) and self.userdb.endswith("user_ups_db"):
 
-            os.system("rm -rf " + self.userdb)
+            shutil.rmtree(self.userdb, ignore_errors=True)
 
     def testFindProductNames(self):
         prods = self.db.findProductNames()

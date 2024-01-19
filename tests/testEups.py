@@ -46,7 +46,7 @@ class EupsTestCase(unittest.TestCase):
 
         usercachedir = os.path.join(testEupsStack,"_userdata_","_caches_")
         if os.path.exists(usercachedir):
-            os.system('rm -rf "%s"' % usercachedir)
+            shutil.rmtree(usercachedir, ignore_errors=True)
 
         if os.path.exists(self.betachain):  os.remove(self.betachain)
 
@@ -552,7 +552,7 @@ class EupsCacheTestCase(unittest.TestCase):
     def tearDown(self):
         usercachedir = os.path.join(testEupsStack,"_userdata_","_caches_")
         if os.path.exists(usercachedir):
-            os.system("rm -rf " + usercachedir)
+            shutil.rmtree(usercachedir, ignore_errors=True)
 
         newprod = os.path.join(self.dbpath,"newprod")
         if os.path.exists(newprod):
