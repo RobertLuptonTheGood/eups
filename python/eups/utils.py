@@ -11,66 +11,39 @@ import shutil
 import tempfile
 import pwd
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# Python 2/3 compatibility layer
 
-# load the correct StringIO module (StringIO in 2, io in 3)
-if sys.version_info[0] == 2:
-    # Python 2.x versions
-    import cStringIO as StringIO
+# Python 3.x versions
+import io as StringIO
 
-    xrange = xrange
+xrange = range
 
-    def cmp_or_key(cmp):
-        return { 'cmp': cmp }
+import functools
+def cmp_or_key(cmp):
+    return { 'key': functools.cmp_to_key(cmp) }
 
-    reload = reload
+import importlib
+try:
+    # Python 3.4 and newer
+    reload = importlib.reload
+except AttributeError:
+    # Python 3.3 and older
+    import imp
+    reload = imp.reload
 
-    cmp = cmp
+def cmp(a, b):
+    return (a > b) - (a < b)
 
-    reduce = reduce
+import functools
+reduce = functools.reduce
 
-    def get_content_charset(response):
-        return "ascii"
+def get_content_charset(response):
+    return response.headers.get_content_charset(failobj='utf-8')
 
-    def decode(string, encoding):
-        return string
+def decode(string, encoding):
+    return string.decode(encoding)
 
-    def is_string(string):
-        return isinstance(string, basestring)
-else:
-    # Python 3.x versions
-    import io as StringIO
-
-    xrange = range
-
-    import functools
-    def cmp_or_key(cmp):
-        return { 'key': functools.cmp_to_key(cmp) }
-
-    import importlib
-    try:
-        # Python 3.4 and newer
-        reload = importlib.reload
-    except AttributeError:
-        # Python 3.3 and older
-        import imp
-        reload = imp.reload
-
-    def cmp(a, b):
-        return (a > b) - (a < b)
-
-    import functools
-    reduce = functools.reduce
-
-    def get_content_charset(response):
-        return response.headers.get_content_charset(failobj='utf-8')
-
-    def decode(string, encoding):
-        return string.decode(encoding)
-
-    def is_string(string):
-        return isinstance(string, str)
+def is_string(string):
+    return isinstance(string, str)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
