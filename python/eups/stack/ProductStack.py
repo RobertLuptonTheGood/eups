@@ -215,10 +215,9 @@ class ProductStack:
         except KeyError:
             raise ProductNotFound(name, version, flavor)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def persistFilename(flavor):
         return "%s.%s" % (flavor, ProductStack.persistFileExt)
-    persistFilename = staticmethod(persistFilename)  # works since python 2.2
 
     def save(self, flavors=None, dir=None):
         """
@@ -739,7 +738,7 @@ class ProductStack:
                 self.assignTag(tag, pname, version, flavor)
 
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def fromDatabase(dbpath, persistDir=None, userTagDir=None, autosave=True):
         """
         return a ProductStack that has all products loaded in from an EUPS
@@ -755,9 +754,8 @@ class ProductStack:
         out = ProductStack(dbpath, persistDir, autosave)
         out.refreshFromDatabase(userTagDir)
         return out
-    fromDatabase = staticmethod(fromDatabase)    # works since python2.2
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def fromCache(dbpath, flavors, persistDir=None, userTagDir=None,
                   updateCache=True, autosave=True, verbose=0):
         """
@@ -808,8 +806,6 @@ class ProductStack:
 
         out.autosave = autosave
         return out
-
-    fromCache = staticmethod(fromCache)    # works since python2.2
 
     def _tryCache(self, dbpath, cacheDir, flavors, verbose=0):
         if not cacheDir or not os.path.exists(cacheDir):

@@ -463,7 +463,7 @@ class Product:
         return config
 
     # this replaces from initFromDirectory()
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def createLocal(productName, productDir, flavor=None, checkForTable=True, tablefile=None):
         localDir = Product._decode_dir(productDir)
         if localDir:
@@ -481,8 +481,6 @@ class Product:
             if not os.path.exists(out.tablefile):
                 out.tablefile = "none"
         return out
-    createLocal = staticmethod(createLocal)  # should work as of python 2.2
-
 
     def envarDirName(self):
         return utils.dirEnvNameFor(self.name)

@@ -958,13 +958,11 @@ class Transporter:
 
     This is an abstract class with an implementation that raises exeptions
     """
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def canHandle(source):
         """return True if this source location is recognized as one that
         can be handled by this Transporter class"""
         return False;
-
-    canHandle = staticmethod(canHandle)  # should work as of python 2.2
 
     def __init__(self, source, verbosity=0, log=sys.stderr):
         """create the transporter.
@@ -999,17 +997,15 @@ class Transporter:
 class WebTransporter(Transporter):
     """a class that can return files via an HTTP or FTP URL"""
 
-    # @staticmethod   # requires python 2.4
     global poolManager
 
+    @staticmethod
     def canHandle(source):
         """return True if this source location is recognized as one that
         can be handled by this Transporter class"""
         return bool(re.search(r'^http://', source)) or \
                bool(re.search(r'^https://', source)) or \
                bool(re.search(r'^ftp://', source))
-
-    canHandle = staticmethod(canHandle)  # should work as of python 2.2
 
     def cacheToFile(self, filename, noaction=False):
         """cache the source to a local file
@@ -1152,13 +1148,11 @@ class SshTransporter(Transporter):
         Transporter.__init__(self, source, verbosity, log);
         self.remfile = re.sub(r'^scp:', '', self.loc)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def canHandle(source):
         """return True if this source location is recognized as one that
         can be handled by this Transporter class"""
         return bool(re.search(r'^scp:', source))
-
-    canHandle = staticmethod(canHandle)  # should work as of python 2.2
 
     def cacheToFile(self, filename, noaction=False):
         """cache the source to a local file
@@ -1229,14 +1223,12 @@ class LocalTransporter(Transporter):
     def __init__(self, source, verbosity=0, log=sys.stderr):
         Transporter.__init__(self, source, verbosity, log);
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def canHandle(source):
         """return True if this source location is recognized as one that
         can be handled by this Transporter class"""
         return os.path.isabs(source) or os.path.exists(source) or \
                not re.match(r'^\w\w+:', source)
-
-    canHandle = staticmethod(canHandle)  # should work as of python 2.2
 
     def cacheToFile(self, filename, noaction=False):
         """cache the source to a local file
@@ -1290,11 +1282,11 @@ class DreamTransporter(Transporter):
     dream:/path/to/buildFiles
     """
 
+    @staticmethod
     def canHandle(source):
         # We only want to handle the configuration file, as that involves the set up
         # Everything else can be shoved off to another transport
         return bool(source.startswith("dream:") and source.endswith("config.txt"))
-    canHandle = staticmethod(canHandle)  # should work as of python 2.2
 
     def cacheToFile(self, filename, noaction=False):
         # We know we're getting the configuration file, because that's all we handle.
@@ -1525,7 +1517,7 @@ EUPS distribution %s version list. Version %s
 
         return out
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def fromFile(filename, tag="current", flavor=None, verbosity=0, log=sys.stderr):
         """create a TaggedProductList from the contents of a product list file
         @param filename   the file to read
@@ -1536,7 +1528,6 @@ EUPS distribution %s version list. Version %s
         out.read(filename)
         return out
 
-    fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
 class Dependency:
     """a container for information about a product required by another product.
@@ -1898,7 +1889,7 @@ EUPS distribution manifest for %s (%s). Version %s
             if not noaction:
                 ofd.close()
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def fromFile(filename, eupsenv=None, shouldRecurse=None,
                  verbosity=0, log=sys.stderr):
         """
@@ -1917,8 +1908,6 @@ EUPS distribution manifest for %s (%s). Version %s
         out.read(filename, setproduct=True, shouldRecurse=shouldRecurse)
         out.remapEntries()
         return out
-
-    fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
     def remapEntries(self, mapping=Mapping(), mode=None):
         """Allow the user to modify entries in the Manifest
@@ -2251,7 +2240,7 @@ class ServerConf:
         finally:
             fd.close()
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def clearConfigCache(eups, servers=None, verbosity=0, log=sys.stderr):
         """clear the cached configuration data for each of the server URLs
         provided, or all of them if none are provided
@@ -2297,9 +2286,6 @@ class ServerConf:
                                     pkgroot, "in %s: %s" % (stack, str(e)), file=log)
                             pass
 
-    clearConfigCache = staticmethod(clearConfigCache)
-
-
     def createDistribServer(self, verbosity=0, log=sys.stderr):
         """
         create a DistribServer instance based on this configuration
@@ -2327,7 +2313,7 @@ class ServerConf:
         """
         return importClass(classname)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def makeServer(packageBase, save=True, eupsenv=None, override=None,
                    verbosity=0, log=sys.stderr):
         """create a DistribServer class for a give package base
@@ -2348,7 +2334,6 @@ class ServerConf:
                           verbosity=verbosity, log=log)
         return conf.createDistribServer(verbosity=verbosity, log=log)
 
-    makeServer = staticmethod(makeServer)  # should work as of python 2.2
 
 def makeTempFile(prefix):
     (fd, filename) = tempfile.mkstemp("", prefix, utils.createTempDir("distrib"))

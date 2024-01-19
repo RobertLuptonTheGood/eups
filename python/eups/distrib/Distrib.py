@@ -134,7 +134,7 @@ class Distrib:
 
         self._alwaysExpandTableFiles = True # returned by self.alwaysExpandTableFiles()
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -142,8 +142,6 @@ class Distrib:
         This implementation always returns None
         """
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
         """Check that self is properly initialised; this matters for subclasses

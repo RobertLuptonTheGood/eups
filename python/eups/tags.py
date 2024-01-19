@@ -201,12 +201,11 @@ class Tags:
         """
         return self.registerTag(name, self.user, force)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def persistFilename(group):
         if group in (Tags.global_, Tags.pseudo):  group = "global"
         if group == Tags.user:     group = "user"
         return tagListFileTmpl % group
-    persistFilename = staticmethod(persistFilename) #should work as'f python 2.2
 
     def load(self, group, file):
         """
@@ -444,7 +443,7 @@ class Tag:
     def __ne__(self, that):
         return not (self == that)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parse(name, defGroup=Tags.global_):
         """
         create a Tag instance from a fully specified tag name string.
@@ -474,7 +473,6 @@ class Tag:
                 return Tag(parts[1])    # unknown tag, probably from a version name
 
             return Tag(parts[1], parts[0])
-    parse = staticmethod(parse) #should work as of python 2.2
 
 def UserTag(name):
     """

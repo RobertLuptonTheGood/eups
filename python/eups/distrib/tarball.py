@@ -41,7 +41,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         self._alwaysExpandTableFiles = False # expand table files after installation
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only if we recognize the
         given distribution identifier
@@ -55,8 +55,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def initServerTree(self, serverDir):
         """initialize the given directory to serve as a package distribution

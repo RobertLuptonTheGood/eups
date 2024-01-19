@@ -42,7 +42,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 self.distServer is not None:
             self.options['pacmanCache'] = self.distServer.base + "/pm"
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -56,8 +56,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID[len(prefix):]
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
         """Check that self is properly initialised; this matters for subclasses

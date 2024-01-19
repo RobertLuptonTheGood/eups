@@ -704,7 +704,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         knownopts = set(['config', 'nobuild', 'noclean', 'noaction', 'exact', 'allowIncomplete', 'buildDir', 'noeups', 'installCurrent']);
         self.qopts = " ".join( "%s=%s" % (k.upper(), shlex.quote(str(v))) for k, v in self.options.items() if k not in knownopts )
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -718,8 +718,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID[len(prefix):]
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def initServerTree(self, serverDir):
         """initialize the given directory to serve as a package distribution

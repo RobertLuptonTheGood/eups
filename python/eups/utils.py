@@ -634,6 +634,7 @@ class Color:
         if bold:
             self._code += ";1"
 
+    @staticmethod
     def colorize(val=None):
         """Should I colour strings?  With an argument, set the value"""
         if val is not None:
@@ -655,8 +656,6 @@ class Color:
                     print("Unknown colourizing class found in hooks: %s" % " ".join(unknown), file=stderr)
 
         return Color._colorize
-
-    colorize = staticmethod(colorize)
 
     def __str__(self):
         if not self.colorize():

@@ -44,7 +44,7 @@ class Eups:
     #  managed software stack
     ups_db = "ups_db"
 
-    # staticmethod;  would use a decorator if we knew we had a new enough python
+    @staticmethod
     def setEupsPath(path=None, dbz=None):
         if not path:
             path = os.environ.get("EUPS_PATH", [])
@@ -70,9 +70,7 @@ class Eups:
         os.environ["EUPS_PATH"] = ":".join(eups_path)
         return eups_path
 
-    setEupsPath = staticmethod(setEupsPath)
-
-    # staticmethod;  would use a decorator if we knew we had a new enough python
+    @staticmethod
     def _processDefaultTags(opts):
         """Handle any default tags defined as hooks"""
         if opts.tag in (["None"], [""]):
@@ -102,8 +100,6 @@ class Eups:
 
                 if not (hasattr(opts, "unsetup") and opts.unsetup):
                     print(msg, "; ".join(tagMsg), file=utils.stdinfo)
-
-    _processDefaultTags = staticmethod(_processDefaultTags)
 
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=0, quiet=0,
@@ -3722,7 +3718,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         self._vro = self.preferredTags  # we should get rid of preferredTags; it's left over from Ray Plante
 
-    # staticmethod;  would use a decorator if we knew we had a new enough python
+    @staticmethod
     def __mergeWarnings(vro):
         """Replace consecutive sequences of warn:X by warn:min (otherwise we may get repeated warnings);
 such sequences can be generated while rewriting the VRO"""
@@ -3753,8 +3749,6 @@ such sequences can be generated while rewriting the VRO"""
                 cleanedVro.append(e)
 
         return cleanedVro
-
-    __mergeWarnings = staticmethod(__mergeWarnings)
 
     def makeVroExact(self):
         """Modify the VRO to support setup --exact even if the table files don't have an
