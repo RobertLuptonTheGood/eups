@@ -295,7 +295,7 @@ class ProductStack:
             dir = self.persistDir
             if not dir:
                 dir = self.dbpath
-            file = os.path.join(dir, persistFilename(flavor))
+            file = os.path.join(dir, self.persistFilename(flavor))
 
         if flavor not in self.lookup:
             self.lookup[flavor] = {}
