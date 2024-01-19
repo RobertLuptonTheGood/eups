@@ -179,9 +179,9 @@ class TagSetupTestCase(unittest.TestCase):
 setupRequired(python)
 """
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
-                          tablefile=StringIO(newprodtable))
+                          tablefile=StringIO.StringIO(newprodtable))
         self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
-                          tablefile=StringIO(newprodtable), tag="beta")
+                          tablefile=StringIO.StringIO(newprodtable), tag="beta")
         # test the setup
         self.assertTrue(self.eups.findProduct("newprod", "1.0") is not None, "newprod 1.0 not declared")
         self.assertTrue(self.eups.findProduct("newprod", "2.0") is not None, "newprod 2.0 not declared")
@@ -256,9 +256,9 @@ setupRequired(python)
 setupRequired(python)
 """
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
-                          tablefile=StringIO(newprodtable), tag="current")
+                          tablefile=StringIO.StringIO(newprodtable), tag="current")
         self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
-                          tablefile=StringIO(newprodtable))
+                          tablefile=StringIO.StringIO(newprodtable))
         self.eups.assignTag("beta", "python", "2.6")
 
         # test the setup
@@ -309,9 +309,9 @@ setupRequired(python 2.5.2 [>= 2.5])
         pytdir = pyprod.dir
 
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
-                          tablefile=StringIO(newprodtable), tag="current")
+                          tablefile=StringIO.StringIO(newprodtable), tag="current")
         self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
-                          tablefile=StringIO(newprodtable))
+                          tablefile=StringIO.StringIO(newprodtable))
         self.eups.declare("python", "test", pytdir, testEupsStack)
         self.eups.assignTag("rhl", "python", "test")
 
