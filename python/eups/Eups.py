@@ -22,7 +22,7 @@ from .Uses       import Uses
 from .utils      import cmp_or_key, xrange, cmp
 from . import hooks
 
-class Eups(object):
+class Eups:
     """
     An application interface to EUPS functionality.
 
@@ -3820,7 +3820,7 @@ such sequences can be generated while rewriting the VRO"""
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 
 
-class _TagSet(object):
+class _TagSet:
     def __init__(self, eups, tags):
         self.eups = eups
         self.lu = {}

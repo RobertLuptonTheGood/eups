@@ -12,7 +12,7 @@ from .server         import LocalTransporter
 from .DistribFactory import DistribFactory
 from .Distrib        import Distrib, DefaultDistrib
 
-class Repository(object):
+class Repository:
     """
     an interface into a distribution server for handling package
     installation and creation requests.

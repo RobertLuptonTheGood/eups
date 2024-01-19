@@ -52,7 +52,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None, owner=None):
 
     return _databases[key]
 
-class _Database(object):
+class _Database:
     """
     An interface to the product database recorded on disk.  This interface will
     enforce restrictions on product names, flavors, and versions.

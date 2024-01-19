@@ -465,7 +465,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class BuildfilePatchCallbacks(object):
+class BuildfilePatchCallbacks:
     """Callbacks to modify build files.
 
      E.g. we can define a callback to rewrite SVN root to recognise a tagname

@@ -18,7 +18,7 @@ from .DistribFactory import DistribFactory
 from .server         import Manifest, ServerError, RemoteFileInvalid
 import eups.hooks as hooks
 
-class Repositories(object):
+class Repositories:
 
     DEPS_NONE = 0
     DEPS_ALL  = 1

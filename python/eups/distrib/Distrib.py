@@ -14,7 +14,7 @@ from eups.VersionParser import VersionParser
 from eups.exceptions import EupsException
 from . import server
 
-class Distrib(object):
+class Distrib:
     """A class to encapsulate product distribution
 
     This class is an abstract base class with some default implementation.

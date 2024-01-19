@@ -11,7 +11,7 @@ tagListFileTmpl = "%s." + tagListFileExt
 tagListFileRe = re.compile(r"^(\w\S*).%s$" % tagListFileExt)
 commRe = re.compile(r"\s*#.*$")
 
-class Tags(object):
+class Tags:
     """
     a manager of a set of known tag names.  Tags are organized into
     groups; however, the same name may not be allowed in more than one
@@ -374,7 +374,7 @@ class Tags(object):
         self.save(self.global_, file)
 
 
-class Tag(object):
+class Tag:
 
     """
     a representation of a Tag.  This implementation supports == and != with

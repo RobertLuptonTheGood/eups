@@ -21,7 +21,7 @@ userPrefix = "user:"
 dotre = re.compile(r'\.')
 who = utils.getUserName()
 
-class ProductStack(object):
+class ProductStack:
     """
     a lookup for products installed into a software "stack" managed by
     EUPS via a single ups_db database.

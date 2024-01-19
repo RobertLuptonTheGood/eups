@@ -403,7 +403,7 @@ def decodePath(encodedPath):
     """Decode a directory path that was encoded by encodePath()."""
     return encodedPath.replace(SPACE_TO_STRING, " ")
 
-class Flavor(object):
+class Flavor:
     """A class to handle flavors"""
 
     def __init__(self):
@@ -446,7 +446,7 @@ class Flavor(object):
 #
 # setFallbackFlavors = Flavor().setFallbackFlavors
 
-class Quiet(object):
+class Quiet:
     """A class whose members, while they exist, make Eups quieter"""
 
     def __init__(self, Eups):
@@ -456,7 +456,7 @@ class Quiet(object):
     def __del__(self):
         self.Eups.quiet -= 1
 
-class ConfigProperty(object):
+class ConfigProperty:
     """
     This class emulates a properties used in configuration files.  It
     represents a set of defined property names that are accessible as
@@ -595,7 +595,7 @@ def copyfile(file1, file2):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Color(object):
+class Color:
     classes = dict(
         OK    = "green",
         WARN  = "yellow",
@@ -669,7 +669,7 @@ class Color(object):
 
         return prefix + self.rawText + suffix
 
-class coloredFile(object):
+class coloredFile:
     """Like sys.stderr, but colourize text first"""
 
     def __init__(self, fileObj, cclass):
@@ -884,7 +884,7 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
         raise RuntimeError("A cyclic dependency exists amongst %s" %
                            " ".join(sorted([name([x for x in p]) for p in graph.keys()])))
 
-class AtomicFile(object):
+class AtomicFile:
     """
         A file to which all the changes (writes) are committed all at once,
         or not at all.  Useful for avoiding race conditions where a reader

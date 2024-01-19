@@ -5,7 +5,7 @@ import eups.tags
 from eups.exceptions import ProductNotFound, TableFileNotFound
 from eups.table import Table
 
-class ProductFamily(object):
+class ProductFamily:
     """
     a set of different versions of a named product.  When this refers to
     installed products, it is assumed that all versions are of the same flavor.

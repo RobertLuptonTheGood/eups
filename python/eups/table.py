@@ -14,7 +14,7 @@ from .VersionParser import VersionParser
 from . import utils
 from . import hooks
 
-class Table(object):
+class Table:
     """A class that represents a eups table file"""
 
     def __init__(self, tableFile, topProduct=None, addDefaultProduct=None, verbose=0):
@@ -705,7 +705,7 @@ but no other interpretation is applied
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Action(object):
+class Action:
     """
     An action in a table file
 

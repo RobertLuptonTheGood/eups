@@ -8,7 +8,7 @@ import eups.utils
 who = eups.utils.getUserName(full=True)
 defaultProductUpsDir = "ups"
 
-class VersionFile(object):
+class VersionFile:
     """
     A representation of the declaration information stored in a version
     file for a particular product declared in an EUPS database.

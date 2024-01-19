@@ -15,7 +15,7 @@ macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
             "UPS_DIR":   re.compile(r"^\$UPS_DIR\b"),
             "UPS_DB":    re.compile(r"^\$UPS_DB\b")     }
 
-class Product(object):
+class Product:
     """
     a description of a Product as stored in the stack database.
 

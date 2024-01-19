@@ -29,7 +29,7 @@ def append_current(option, opt_str, value, parser):
 
     parser.values.postTag.append("current")
 
-class EupsSetup(object):
+class EupsSetup:
     """
     A class for executing the EUPS command-line setup tool.
 

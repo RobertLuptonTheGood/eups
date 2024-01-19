@@ -5,7 +5,7 @@ from eups.utils import ctimeTZ, stdwarn, getUserName
 
 who = getUserName(full=True)
 
-class ChainFile(object):
+class ChainFile:
     """
     a representation of the data contained in a product tag chain file.
     This file records which version of a product a particular tag is

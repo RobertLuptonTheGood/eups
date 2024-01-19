@@ -27,7 +27,7 @@ serverConfigFilename = "config.txt"
 BASH = "/bin/bash"    # see end of this module where we look for bash
 dirCache = dict()     # cache listDir results
 
-class DistribServer(object):
+class DistribServer:
     """a class that encapsulates the communication with a package server.
 
     This class allows the mechanisms (e.g. the URLs) used to retrieve
@@ -952,7 +952,7 @@ class ServerNotResponding(TransporterError):
         """
         TransporterError.__init__(self, message, exc)
 
-class Transporter(object):
+class Transporter:
     """a class that understands how to operate a particular transport
     mechanism.
 
@@ -1313,7 +1313,7 @@ class DreamTransporter(Transporter):
         pass
 
 
-class TransporterFactory(object):
+class TransporterFactory:
 
     def __init__(self):
         self.classes = []
@@ -1364,7 +1364,7 @@ def defaultMakeTransporter(source, verbosity, log):
 makeTransporter = defaultMakeTransporter
 
 
-class TaggedProductList(object):
+class TaggedProductList:
     """
     a listing of all versions of products that has been assigned a particular
     tag.
@@ -1538,7 +1538,7 @@ EUPS distribution %s version list. Version %s
 
     fromFile = staticmethod(fromFile)  # should work as of python 2.2
 
-class Dependency(object):
+class Dependency:
     """a container for information about a product required by another product.
     Users should use the attribute data directly.
     """
@@ -1575,7 +1575,7 @@ class Dependency(object):
         return repr(out)
 
 
-class Mapping(object):
+class Mapping:
     """a mapping between product,version pairs for different flavors"""
     def __init__(self):
         self._mapping = {}
@@ -1694,7 +1694,7 @@ class Mapping(object):
         return "Mapping(" + self.__str__() + ")"
 
 
-class Manifest(object):
+class Manifest:
     """a list of product dependencies that must be installed in order to
     install a particular product."""
 
@@ -2064,7 +2064,7 @@ Additional mappings can be provided.
         return mapping
 
 
-class ServerConf(object):
+class ServerConf:
     """a factory class for creating DistribServer classes based on the
     servers configuration data
     """

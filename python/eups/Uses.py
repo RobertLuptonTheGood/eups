@@ -8,13 +8,13 @@ from .utils import cmp_or_key, cmp
 #
 # Cache for the Uses tree
 #
-class Props(object):
+class Props:
     def __init__(self, version, optional, depth):
         self.version = version
         self.optional = optional
         self.depth = depth
 
-class Uses(object):
+class Uses:
     """
     a class for tracking product dependencies.  Typically an instance of
     this class is created via a call to Eups.uses().  This class is used

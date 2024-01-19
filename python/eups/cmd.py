@@ -46,7 +46,7 @@ from .distrib.server import ServerConf, Mapping, importClass
 
 _errstrm = utils.stderr
 
-class EupsCmd(object):
+class EupsCmd:
     """
     A class for defining and executing the EUPS command-line tool.
 
@@ -347,7 +347,7 @@ Common"""
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class CommandCallbacks(object):
+class CommandCallbacks:
     """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
         and calling eups.commandCallbacks.add(hook)"""
 

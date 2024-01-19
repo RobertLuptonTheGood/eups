@@ -403,7 +403,7 @@ class SetupCmdTestCase(unittest.TestCase):
         self.assertEqual(cmd.run(), 0)
 
 
-class Stdout(object):
+class Stdout:
 
     def __init__(self, newstdout=None):
         self.oldstdout = sys.stdout
