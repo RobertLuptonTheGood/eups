@@ -3270,7 +3270,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if interactive:
                 yn = default_yn
                 while yn != "!":
-                    yn = raw_input("Remove %s %s: (ynq!) [%s] " % (product.name, product.version, default_yn))
+                    yn = input("Remove %s %s: (ynq!) [%s] " % (product.name, product.version, default_yn))
 
                     if yn == "":
                         yn = default_yn
