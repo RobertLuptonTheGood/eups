@@ -1441,7 +1441,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         if recurse:
             try:
                 NVOL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
-            except:
+            except Exception:
                 if not optional:
                     if not force:
                         raise

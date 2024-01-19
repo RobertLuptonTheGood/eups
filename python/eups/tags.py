@@ -251,7 +251,7 @@ class Tags:
         finally:
             try:
                 fd.close()
-            except:
+            except Exception:
                 pass
 
     def loadFromEupsPath(self, eupsPath, verbosity=0):

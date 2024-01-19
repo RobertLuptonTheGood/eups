@@ -132,19 +132,19 @@ DIST_URL = %s
         except Exception as e:
             try:
                 os.unlink(pwdFile)
-            except:
+            except Exception:
                 pass
 
             try:
                 os.unlink(fullTarball)
-            except:
+            except Exception:
                 pass
 
             raise OSError("Failed to write '%s': %s" % (tarball, str(e)))
 
         try:
             os.unlink(pwdFile)
-        except:
+        except Exception:
             pass
 
         self.setGroupPerms(os.path.join(serverDir, tarball))
@@ -245,7 +245,7 @@ DIST_URL = %s
             try:                        # "try ... except ... finally" and "with" are too new-fangled to use
                 fd = open(pwdFile)
                 originalDir = fd.readline().strip()
-            except:
+            except Exception:
                 originalDir = None
 
             if originalDir and installDir != originalDir:

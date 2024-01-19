@@ -677,7 +677,7 @@ class coloredFile:
         self._class = cclass
         try:
             self._isatty = os.isatty(fileObj.fileno())
-        except:
+        except Exception:
             self._isatty = False
 
     def write(self, text):

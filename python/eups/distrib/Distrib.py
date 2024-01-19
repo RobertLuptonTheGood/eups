@@ -415,7 +415,7 @@ class Distrib:
                     product = self.Eups.getProduct(productName, version)
                     dependencies = self.Eups.getDependentProducts(product, productDictionary={},
                                                                   topological=True)
-                except:
+                except Exception:
                     return None
                 return dependencies
 
@@ -521,7 +521,7 @@ class Distrib:
         else:
             try:
                 (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo.dir).groups()
-            except:
+            except Exception:
                 if self.verbose > 1:
                     print("Split of \"%s\" at \"%s\" failed; proceeding" \
                         % (pinfo.dir, product), file=self.log)
@@ -533,7 +533,7 @@ class Distrib:
                         if self.verbose > 1:
                             print("Guessing \"%s\" has productdir \"%s\"" \
                                 % (pinfo.dir, productDir), file=self.log)
-                    except:
+                    except Exception:
                         if self.verbose:
                             print("Again failed to split \"%s\" into baseDir and productdir" \
                                 % (pinfo.dir), file=self.log)
@@ -916,7 +916,7 @@ class DefaultDistrib(Distrib):
     #         except KeyboardInterrupt:
     #             raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
     #                                  (product, version))
-    #         except:
+    #         except Exception:
     #             pass
     #         return tablefile
 

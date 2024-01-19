@@ -1429,7 +1429,7 @@ class TaggedProductList:
 
                 try:
                     info = wordsre.findall(line)
-                except:
+                except Exception:
                     raise RuntimeError("Failed to parse line:" + line)
 
                 productName, versionName, flavor, info = info[0], info[2], info[1], info[3:]

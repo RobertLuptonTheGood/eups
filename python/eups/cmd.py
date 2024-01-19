@@ -169,7 +169,7 @@ Common"""
 
         try:
             return ecmd.run()
-        except:
+        except Exception:
             raise
         finally:
             lock.giveLocks(locks, ecmd.opts.verbose)
@@ -2728,7 +2728,7 @@ class DistribCreateCmd(EupsCmd):
                 doRebuild = True
                 try:
                     doRebuild = not p.getConfig("distrib", "binary", getType=bool)
-                except:
+                except Exception:
                     pass
                 if doRebuild:
                     if self.opts.verbose:
@@ -2981,7 +2981,7 @@ class TagsCmd(EupsCmd):
 
         try:
             isatty = os.isatty(sys.stdout.fileno())
-        except:
+        except Exception:
             isatty = False
 
         if isatty:

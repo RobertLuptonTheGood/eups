@@ -512,7 +512,7 @@ class _Database:
         if not os.path.exists(vfile):
             try:
                 os.rmdir(pdir)
-            except:
+            except Exception:
                 pass
 
         return changed

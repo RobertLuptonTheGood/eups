@@ -772,7 +772,7 @@ class Repositories:
                     print(pkgroot, file=fd)
                 finally:
                     fd.close()
-            except:
+            except Exception:
                 if self.verbose >= 0:
                     print("Warning: Failed to write distID to %s: %s" % (file, traceback.format_exc(0)), file=self.log)
 

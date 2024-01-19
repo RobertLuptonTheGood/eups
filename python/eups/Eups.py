@@ -512,7 +512,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             try:
                 with open(os.path.join(cachedir,"README"), "w") as readme:
                     print("User cache directory for", eupsPathDir, file=readme)
-            except:
+            except Exception:
                 pass
         return cachedir
 
@@ -2461,7 +2461,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 umask = os.umask(0o02); os.umask(umask)
                 try:
                     perms = os.fstat(tfd.fileno()).st_mode
-                except:
+                except Exception:
                     perms = 0
 
                 perms |= (0o666 & ~umask) # set read/write for everyone (modulu umask)

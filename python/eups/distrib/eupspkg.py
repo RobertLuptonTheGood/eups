@@ -831,7 +831,7 @@ TAGLIST_DIR = tags
             if not os.path.isdir(productsDir):
                 try:
                     os.makedirs(productsDir, exist_ok=True)
-                except:
+                except Exception:
                     raise RuntimeError("Failed to create %s" % (productsDir))
 
             tfn = os.path.join(productsDir, "%s-%s.eupspkg" % (product, version))
@@ -1068,7 +1068,7 @@ setup --type=build -k -r .
                 try:
                     print("\n\n***** error: from %s:" % logfile, file=self.log)
                     eupsServer.system("tail -20 %s 1>&2" % q(logfile))
-                except:
+                except Exception:
                     pass
             raise RuntimeError("Failed to build %s: %s" % (pkg, str(e)))
 

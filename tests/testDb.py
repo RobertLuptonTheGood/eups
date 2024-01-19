@@ -676,7 +676,7 @@ class DatabaseTestCase(unittest.TestCase):
                               ("python", "2.6"))
             self.db.unassignTag("stable", "python", "Linux")
             self.assertTrue(not os.path.exists(tfile))
-        except:
+        except Exception:
             if os.path.exists(tfile): os.remove(tfile)
             raise
 
@@ -709,7 +709,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.db.unassignTag("beta", "doxygen")
             self.assertTrue(not os.path.exists(tfile))
-        except:
+        except Exception:
             if os.path.exists(tfile):  os.remove(tfile)
             raise
 
@@ -777,7 +777,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.assertEqual(len(self.db.findProducts("base")), 0)
             self.assertTrue(not os.path.exists(pdir))
 
-        except:
+        except Exception:
             if False:
               if os.path.isdir(pdir):
                   for p in os.listdir(pdir):

@@ -212,7 +212,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         if not os.path.isdir(builderDir):
             try:
                 os.makedirs(builderDir, exist_ok=True)
-            except:
+            except Exception:
                 raise RuntimeError("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
@@ -409,7 +409,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     try:
                         print("BUILD ERROR!  From build log:", file=self.log)
                         eupsServer.system("tail -20 %s 1>&2" % logfile)
-                    except:
+                    except Exception:
                         pass
                 raise RuntimeError("Failed to build %s: %s" % (builder, str(e)))
 
