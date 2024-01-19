@@ -23,13 +23,13 @@ class SshTransporterTestCase(unittest.TestCase):
     def testGenericTransporter(self):
         loc = self.base+"s1/config.txt"
         localfile = "/tmp/eupstest-config.txt"
-        self.assert_(not Transporter.canHandle(loc))
+        self.assertTrue(not Transporter.canHandle(loc))
         if os.path.exists(localfile):
             os.remove(localfile)
         trx = Transporter(loc)
         self.assertRaises(Exception, trx.listDir)
         self.assertRaises(Exception, trx.cacheToFile, localfile)
-        self.assert_(not os.path.exists(localfile))
+        self.assertTrue(not os.path.exists(localfile))
         self.assertRaises(Exception, trx.listDir)
 
     def testSshTransporter(self):
@@ -37,16 +37,16 @@ class SshTransporterTestCase(unittest.TestCase):
         localfile = "/tmp/eupstest-config.txt"
         if os.path.exists(localfile):
             os.remove(localfile)
-        self.assert_(SshTransporter.canHandle(loc))
+        self.assertTrue(SshTransporter.canHandle(loc))
 
         trx = SshTransporter(loc)
 #        self.assertRaises(RemoteFileNotFound, trx.cacheToFile, localfile)
-        self.assert_(not os.path.exists(localfile))
+        self.assertTrue(not os.path.exists(localfile))
 
         loc = self.base+"s2/config.txt"
         trx = SshTransporter(loc)
         trx.cacheToFile(localfile)
-        self.assert_(os.path.exists(localfile))
+        self.assertTrue(os.path.exists(localfile))
 
         loc = self.base+"s2"
         trx = SshTransporter(loc)
@@ -72,7 +72,7 @@ class SshConfigFileTestCase(unittest.TestCase):
     def testGetConfigFile(self):
         ds = DistribServer(self.base)
         configFile = ds.getConfigFile(self.configFile)
-        self.assert_(os.path.exists(configFile))
+        self.assertTrue(os.path.exists(configFile))
 
 
 

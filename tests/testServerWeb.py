@@ -26,16 +26,16 @@ class WebTransporterTestCase(unittest.TestCase):
         localfile = "/tmp/eupstest-config.txt"
         if os.path.exists(localfile):
             os.remove(localfile)
-        self.assert_(WebTransporter.canHandle(loc))
+        self.assertTrue(WebTransporter.canHandle(loc))
 
         trx = WebTransporter(loc)
         self.assertRaises(RemoteFileNotFound, trx.cacheToFile, localfile)
-        self.assert_(not os.path.exists(localfile))
+        self.assertTrue(not os.path.exists(localfile))
 
         loc = self.base+"s2/config.txt"
         trx = WebTransporter(loc)
         trx.cacheToFile(localfile)
-        self.assert_(os.path.exists(localfile))
+        self.assertTrue(os.path.exists(localfile))
 
         loc = self.base+"s2"
         trx = WebTransporter(loc)
@@ -59,7 +59,7 @@ class WebConfigFileTestCase(unittest.TestCase):
     def testGetConfigFile(self):
         ds = DistribServer(self.base)
         configFile = ds.getConfigFile(self.configFile)
-        self.assert_(os.path.exists(configFile))
+        self.assertTrue(os.path.exists(configFile))
 
 
 

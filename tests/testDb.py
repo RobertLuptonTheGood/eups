@@ -84,7 +84,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEqual(len(flavors), 2)
         self.vf.removeFlavor(flavors)
         self.assertEqual(len(self.vf.getFlavors()), 0)
-        self.assert_(self.vf.isEmpty())
+        self.assertTrue(self.vf.isEmpty())
 
     def testMakeProduct(self):
         prod = self.vf.makeProduct("Darwin")
@@ -94,7 +94,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEqual(prod.flavor, "Darwin")
         self.assertEqual(prod.tablefile, "DarwinX86/fw/1.2/ups/fw.table")
         self.assertEqual(len(prod.tags), 0)
-        self.assert_(prod.db is None)
+        self.assertTrue(prod.db is None)
 
         self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2",
                           "/opt/sw/Linux/fw/1.2/ups/fw.table", "ups")
@@ -105,14 +105,14 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEqual(prod.flavor, "Linux:rhel")
         self.assertEqual(prod.tablefile, "/opt/sw/Linux/fw/1.2/ups/fw.table")
         self.assertEqual(len(prod.tags), 0)
-        self.assert_(prod.db is None)
+        self.assertTrue(prod.db is None)
 
         self.assertRaises(ProductNotFound, self.vf.makeProduct, "goober")
 
         prod = self.vf.makeProducts()
         self.assertEqual(len(prod), 3)
         for p in prod:
-            self.assert_(isinstance(p, Product))
+            self.assertTrue(isinstance(p, Product))
 
     def testWrite(self):
         self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2",
@@ -270,7 +270,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
         vf = VersionFile(None, readFile=False)
         vf.addFlavor("Linux", "$UPS_DB/Linux/fw/1.0", "fw.table")
         prod = vf.makeProduct("Linux")
-        self.assert_(prod.db is None)
+        self.assertTrue(prod.db is None)
         self.assertEqual(prod.dir, "$UPS_DB/Linux/fw/1.0")
         self.assertEqual(prod.tablefile, "$UPS_DB/Linux/fw/1.0/fw.table")
 
@@ -399,8 +399,8 @@ class ChainFileTestCase(unittest.TestCase):
 
         flavor = self.cf.info["Linux"]
         self.assertEqual(flavor['version'], '2.0')
-        self.assert_(bool(flavor['declarer']))
-        self.assert_(bool(flavor['declared']))
+        self.assertTrue(bool(flavor['declarer']))
+        self.assertTrue(bool(flavor['declared']))
         self.assertNotIn('modifier', flavor)
         self.assertNotIn('modified', flavor)
         who = flavor['declarer']
@@ -414,7 +414,7 @@ class ChainFileTestCase(unittest.TestCase):
         flavor = self.cf.info["Linux64"]
         self.assertEqual(flavor['version'], '2.1')
         self.assertEqual(flavor['declarer'], who)
-        self.assert_(bool(flavor['declared']))
+        self.assertTrue(bool(flavor['declared']))
         self.assertNotIn('modifier', flavor)
         self.assertNotIn('modified', flavor)
 
@@ -430,7 +430,7 @@ class ChainFileTestCase(unittest.TestCase):
         self.assertEqual(flavor['declarer'], 'rhl')
         self.assertEqual(flavor['declared'], 'Thu Jan 24 23:43:35 2008')
         self.assertEqual(flavor['modifier'], who)
-        self.assert_(bool(flavor['modified']))
+        self.assertTrue(bool(flavor['modified']))
 
         self.cf.removeVersion("Linux64")
         flavors = self.cf.getFlavors()
@@ -442,7 +442,7 @@ class ChainFileTestCase(unittest.TestCase):
         flavors = self.cf.getFlavors()
         self.assertEqual(len(flavors), 0)
 
-        self.assert_(self.cf.hasNoAssignments())
+        self.assertTrue(self.cf.hasNoAssignments())
 
     def testWrite(self):
         self.cf.setVersion("2.0", "Linux:rhel")
@@ -540,16 +540,16 @@ class DatabaseTestCase(unittest.TestCase):
 
     def testFindProduct(self):
         prod = self.db.findProduct("doxygen", "1.5.9", "Linux")
-        self.assert_(prod is None)
+        self.assertTrue(prod is None)
 
         prod = self.db.findProduct("doxygen", "1.5.10", "Linux")
-        self.assert_(prod is None)
+        self.assertTrue(prod is None)
 
         prod = self.db.findProduct("goober", "1.5.10", "Linux")
-        self.assert_(prod is None)
+        self.assertTrue(prod is None)
 
         prod = self.db.findProduct("doxygen", "1.5.9", "Linux64")
-        self.assert_(prod is not None)
+        self.assertTrue(prod is not None)
         self.assertEqual(prod.name, "doxygen")
         self.assertEqual(prod.version, "1.5.9")
         self.assertEqual(prod.flavor, "Linux64")
@@ -560,7 +560,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEqual(len(prod.tags), 0)
 
         prod = self.db.findProduct("doxygen", "1.5.7.1", "Linux")
-        self.assert_(prod is not None)
+        self.assertTrue(prod is not None)
         self.assertEqual(prod.name, "doxygen")
         self.assertEqual(prod.version, "1.5.7.1")
         self.assertEqual(prod.flavor, "Linux")
@@ -577,14 +577,14 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEqual(prod.version, "2.5.2")
         self.assertEqual(prod.flavor, "Linux")
         self.assertEqual(prod.db, os.path.join(testEupsStack, "ups_db"))
-        self.assert_(prod.tablefile.endswith("Linux/python/2.5.2/ups/python.table"))
-        self.assert_(os.path.exists(prod.tablefile))
+        self.assertTrue(prod.tablefile.endswith("Linux/python/2.5.2/ups/python.table"))
+        self.assertTrue(os.path.exists(prod.tablefile))
 
         # test autonormalization of product install directories.
         # The install directory (PROD_DIR) for this python is given
         # as a relative directory
         prod = self.db.findProduct("python", "2.5.2", "Linux")
-        self.assert_(prod is not None)
+        self.assertTrue(prod is not None)
         self.assertEqual(prod.name, "python")
         self.assertEqual(prod.version, "2.5.2")
         self.assertEqual(prod.flavor, "Linux")
@@ -612,25 +612,25 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEqual(len(prods), 1)
 
     def testIsDeclared(self):
-        self.assert_(self.db.isDeclared("doxygen"))
-        self.assert_(self.db.isDeclared("doxygen", "1.5.9"))
-        self.assert_(self.db.isDeclared("doxygen", "1.5.7.1"))
-        self.assert_(self.db.isDeclared("doxygen", "1.5.9", "Linux64"))
-        self.assert_(self.db.isDeclared("doxygen", flavor="Linux64"))
-        self.assert_(self.db.isDeclared("doxygen", flavor="Linux"))
-        self.assert_(not self.db.isDeclared("goober"))
-        self.assert_(not self.db.isDeclared("goober", "1.0"))
-        self.assert_(not self.db.isDeclared("doxygen", "1.5.10"))
-        self.assert_(not self.db.isDeclared("doxygen", "1.5.9", "Linux"))
+        self.assertTrue(self.db.isDeclared("doxygen"))
+        self.assertTrue(self.db.isDeclared("doxygen", "1.5.9"))
+        self.assertTrue(self.db.isDeclared("doxygen", "1.5.7.1"))
+        self.assertTrue(self.db.isDeclared("doxygen", "1.5.9", "Linux64"))
+        self.assertTrue(self.db.isDeclared("doxygen", flavor="Linux64"))
+        self.assertTrue(self.db.isDeclared("doxygen", flavor="Linux"))
+        self.assertTrue(not self.db.isDeclared("goober"))
+        self.assertTrue(not self.db.isDeclared("goober", "1.0"))
+        self.assertTrue(not self.db.isDeclared("doxygen", "1.5.10"))
+        self.assertTrue(not self.db.isDeclared("doxygen", "1.5.9", "Linux"))
 
     def testUserTag(self):
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
-        self.assert_(vers is None)
+        self.assertTrue(vers is None)
 
         self.db.assignTag("user:my", "python", "2.5.2")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
         self.assertEqual(vers, "2.5.2")
-        self.assert_(os.path.exists(os.path.join(self.userdb,
+        self.assertTrue(os.path.exists(os.path.join(self.userdb,
                                                  "python","my.chain")))
 
         tags = self.db.findTags("python", "2.5.2", "Linux")
@@ -647,8 +647,8 @@ class DatabaseTestCase(unittest.TestCase):
 
         self.db.unassignTag("user:my", "python")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
-        self.assert_(vers is None)
-        self.assert_(not os.path.exists(os.path.join(self.userdb,
+        self.assertTrue(vers is None)
+        self.assertTrue(not os.path.exists(os.path.join(self.userdb,
                                                      "python","my.chain")))
 
     def testAssignTag(self):
@@ -675,7 +675,7 @@ class DatabaseTestCase(unittest.TestCase):
                                                        "Linux"),
                               ("python", "2.6"))
             self.db.unassignTag("stable", "python", "Linux")
-            self.assert_(not os.path.exists(tfile))
+            self.assertTrue(not os.path.exists(tfile))
         except:
             if os.path.exists(tfile): os.remove(file)
             raise
@@ -708,7 +708,7 @@ class DatabaseTestCase(unittest.TestCase):
                               None)
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.db.unassignTag("beta", "doxygen")
-            self.assert_(not os.path.exists(tfile))
+            self.assertTrue(not os.path.exists(tfile))
         except:
             if os.path.exists(tfile):  os.remove(tfile)
             raise
@@ -724,15 +724,15 @@ class DatabaseTestCase(unittest.TestCase):
                     os.remove(f)
             os.removedirs(pdir)
         try:
-            self.assert_(not os.path.exists(pdir))
+            self.assertTrue(not os.path.exists(pdir))
             baseidir = os.path.join(testEupsStack,"Linux/base/1.0")
             base = Product("base", "1.0", "Linux", baseidir,
                            os.path.join(baseidir, "ups/base.table"),
                            tags=["current"])
             self.db.declare(base)
-            self.assert_(os.path.isdir(pdir))
-            self.assert_(os.path.isfile(os.path.join(pdir,"1.0.version")))
-            self.assert_(os.path.isfile(os.path.join(pdir,"current.chain")))
+            self.assertTrue(os.path.isdir(pdir))
+            self.assertTrue(os.path.isfile(os.path.join(pdir,"1.0.version")))
+            self.assertTrue(os.path.isfile(os.path.join(pdir,"current.chain")))
             prods = self.db.findProducts("base")
             self.assertEqual(len(prods), 1)
             self.assertEqual(prods[0].name, "base")
@@ -763,19 +763,19 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.undeclare(base)
             self.assertEqual(self.db.findProduct("base","1.0","Linux"), None)
             self.assertEqual(len(self.db.findProducts("base")), 2)
-            self.assert_(not os.path.exists(os.path.join(pdir,"1.0.version")))
+            self.assertTrue(not os.path.exists(os.path.join(pdir,"1.0.version")))
 
             self.db.undeclare(base3)
             self.assertEqual(self.db.findProduct("base","3.0","Linux"), None)
             self.assertEqual(len(self.db.findProducts("base")), 1)
-            self.assert_(not os.path.exists(os.path.join(pdir,"3.0.version")))
+            self.assertTrue(not os.path.exists(os.path.join(pdir,"3.0.version")))
             self.assertEqual(self.db.getTaggedVersion("current", "base",
                                                        "Linux")[1],
                               None)
-            self.assert_(not os.path.exists(os.path.join(pdir,"current.chain")))
+            self.assertTrue(not os.path.exists(os.path.join(pdir,"current.chain")))
             self.db.undeclare(base2)
             self.assertEqual(len(self.db.findProducts("base")), 0)
-            self.assert_(not os.path.exists(pdir))
+            self.assertTrue(not os.path.exists(pdir))
 
         except:
             if False:

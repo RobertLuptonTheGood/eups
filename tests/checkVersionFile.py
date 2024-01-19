@@ -75,14 +75,14 @@ class CheckVersionFileTestCase(unittest.TestCase):
             self.assertPathExists(path, what)
 
     def assertPathExists(self, path, what):
-        self.assert_(os.path.exists(path),
+        self.assertTrue(os.path.exists(path),
                      "Path %s does not exist: %s" % (what, path))
 
     def assertResolvedMacros(self, path, what):
-        self.assert_(path.find('$') < 0,
+        self.assertTrue(path.find('$') < 0,
                      "Unresolved macro in %s: %s" % (what, path))
     def assertAbs(self, path, what):
-        self.assert_(path == "none" or os.path.isabs(path),
+        self.assertTrue(path == "none" or os.path.isabs(path),
                      "Relative path in %s: %s"  % (what, path))
 
     def shortDescription(self):
