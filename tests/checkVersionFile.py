@@ -87,13 +87,13 @@ class CheckVersionFileTestCase(unittest.TestCase):
     def shortDescription(self):
         return self.file
 
-class VersionFileTestResult(unittest._TextTestResult):
+class VersionFileTestResult(unittest.TextTestResult):
 
     def __init__(self, stream=None):
         if not stream:
             stream = sys.stderr
-        strm = unittest._WritelnDecorator(stream)
-        unittest._TextTestResult.__init__(self, strm, True, 1)
+        strm = unittest.runner._WritelnDecorator(stream)
+        unittest.TextTestResult.__init__(self, strm, True, 1)
 
 def findVersionFiles(dir):
     out = []
