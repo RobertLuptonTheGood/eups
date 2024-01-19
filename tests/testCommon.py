@@ -91,12 +91,7 @@ def ScriptTestSuite(testSuiteDir):
         skipMarkerFn = testFn + ".skip";
 
         if os.path.isfile(skipMarkerFn):
-            if sys.version_info[:2] > (2, 6):
-                self.skipTest(open(skipMarkerFn).read())
-            else:
-                # On Python 2.6 we'll just pretend the test succeeded
-                print("Skipping test %s" % testFn)
-                return True
+            self.skipTest(open(skipMarkerFn).read())
 
         return False
 
