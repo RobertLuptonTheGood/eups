@@ -127,7 +127,7 @@ configure : configure.ac
 tests : test
 test :
 	@ echo "Running tests"
-	"$(EUPS_PYTHON)" tests/testAll.py
+	"$(EUPS_PYTHON)" -Wd tests/testAll.py
 	@ echo "Running server tests (requires network)"
 	"$(EUPS_PYTHON)" tests/testServerAll.py
 clean :
