@@ -3,8 +3,6 @@
 Tests for eups.Eups
 """
 
-from __future__ import print_function
-
 # Import this first, as it will set up the environment
 import testCommon
 

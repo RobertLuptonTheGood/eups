@@ -670,7 +670,6 @@ r"""
 
 """
 
-from __future__ import absolute_import, print_function
 import sys, os, shutil, tempfile, shlex, stat
 from . import Distrib as eupsDistrib
 from . import server as eupsServer

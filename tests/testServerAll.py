@@ -2,7 +2,6 @@
 """
 A master script for running all tests.
 """
-from __future__ import print_function
 import sys, unittest
 from testServerLocal import *
 

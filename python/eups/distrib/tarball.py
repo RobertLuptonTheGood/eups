@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: : a specialization for binary tar-balls
 #
-from __future__ import absolute_import, print_function
 import sys, os, re
 from . import Distrib as eupsDistrib
 from . import server as eupsServer

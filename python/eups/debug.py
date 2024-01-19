@@ -3,7 +3,6 @@ Support for debugging
 
 N.b. can't go in utils.py as utils is imported be eups, and we need to import eups.Eups here
 """
-from __future__ import print_function
 import re
 import sys
 import eups.Eups

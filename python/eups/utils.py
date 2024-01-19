@@ -1,7 +1,6 @@
 """
 Utility functions used across EUPS classes.
 """
-from __future__ import print_function
 import time
 import os
 import sys

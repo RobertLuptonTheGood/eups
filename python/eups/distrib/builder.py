@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for the "Builder" mechanism
 #
-from __future__ import absolute_import, print_function
 import sys
 import os, re
 from . import Distrib as eupsDistrib

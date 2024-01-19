@@ -2,7 +2,6 @@
 common high-level EUPS functions appropriate for calling from an application.
 """
 
-from __future__ import absolute_import, print_function
 import fnmatch
 import re
 import os

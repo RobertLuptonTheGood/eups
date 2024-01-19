@@ -3,7 +3,6 @@
 """
 classes for communicating with a remote package server
 """
-from __future__ import print_function
 import sys
 import os
 import re

@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for Pacman
 #
-from __future__ import absolute_import
 import sys
 import re
 import copy

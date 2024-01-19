@@ -2,7 +2,6 @@
 the Repositories class -- a set of distribution servers from which
 distribution packages can be received and installed.
 """
-from __future__ import absolute_import, print_function
 import sys
 import os
 import re

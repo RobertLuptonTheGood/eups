@@ -2,7 +2,6 @@
 #
 # The main eups programme
 #
-from __future__ import print_function
 import sys
 import os
 

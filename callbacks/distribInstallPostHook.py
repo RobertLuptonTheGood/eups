@@ -5,8 +5,6 @@ Not generally needed if you're building from source, but with binary installatio
 be critical (e.g. to patch up os/x's SIP protection)
 """
 
-from __future__ import absolute_import, print_function
-
 from distutils.spawn import find_executable
 import io
 import locale

@@ -2,7 +2,6 @@
 the Repository class -- An interface into a distribution server for
 installing and deploying distribution packages.
 """
-from __future__ import absolute_import, print_function
 import sys
 import eups
 from eups.tags      import Tag, TagNotRecognized
