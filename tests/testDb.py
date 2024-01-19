@@ -677,7 +677,7 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.unassignTag("stable", "python", "Linux")
             self.assertTrue(not os.path.exists(tfile))
         except:
-            if os.path.exists(tfile): os.remove(file)
+            if os.path.exists(tfile): os.remove(tfile)
             raise
 
         tfile = self.db._tagFile("doxygen", "beta")
