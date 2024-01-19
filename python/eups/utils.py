@@ -322,7 +322,7 @@ def isDbWritable(dbpath, create=False):
 
     if not dbExists and create:
         try:
-            os.makedirs(dbpath)
+            os.makedirs(dbpath, exist_ok=True)
         except Exception as e:
             pass
         else:

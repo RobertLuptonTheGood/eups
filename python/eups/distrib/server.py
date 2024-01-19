@@ -391,7 +391,7 @@ class DistribServer(object):
         # make sure we can write to destination
         parent = os.path.dirname(filename)
         if parent and not os.path.isdir(parent):
-            os.makedirs(parent)
+            os.makedirs(parent, exist_ok=True)
 
         trx.cacheToFile(filename, noaction=noaction) # this is not a cache! It's "copy to local file"
 
@@ -2112,7 +2112,7 @@ class ServerConf(object):
                 # make sure the cache directory exists
                 pdir = os.path.dirname(cached)
                 if not os.path.exists(pdir):
-                    os.makedirs(pdir)
+                    os.makedirs(pdir, exist_ok=True)
                 if self.verbose > 1 and self.base != "/dev/null" and not os.path.exists(cached):
                     print("Caching configuration for %s as %s" % (self.base, cached), file=self.log)
 
@@ -2188,7 +2188,7 @@ class ServerConf(object):
                 configDir = os.path.dirname(configFile)
                 try:
                     if not os.path.exists(configDir):
-                        os.makedirs(configDir)
+                        os.makedirs(configDir, exist_ok=True)
                     if os.access(configDir, os.W_OK):
                         defaultConfigFile = configFile # we can create it if we need to
                 except OSError:

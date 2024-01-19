@@ -214,7 +214,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         builderDir = os.path.join(serverDir, "builds")
         if not os.path.isdir(builderDir):
             try:
-                os.makedirs(builderDir)
+                os.makedirs(builderDir, exist_ok=True)
             except:
                 raise RuntimeError("Failed to create %s" % (builderDir))
 

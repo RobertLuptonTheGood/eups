@@ -475,8 +475,7 @@ class DatabaseTestCase(unittest.TestCase):
     def setUp(self):
         self.dbpath = os.path.join(testEupsStack, "ups_db")
         self.userdb = os.path.join(testEupsStack, "user_ups_db")
-        if not os.path.exists(self.userdb):
-            os.makedirs(self.userdb)
+        os.makedirs(self.userdb, exist_ok=True)
 
         self.db = Database(self.dbpath, self.userdb)
 

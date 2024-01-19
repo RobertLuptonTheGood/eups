@@ -618,7 +618,7 @@ class _Database(object):
             pdir = self._productDir(productName, writeableDB)
 
             if not os.path.exists(pdir):
-                os.makedirs(pdir)
+                os.makedirs(pdir, exist_ok=True)
         else:
             pdir = self._productDir(productName)
 

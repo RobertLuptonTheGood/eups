@@ -39,7 +39,7 @@ def getLockPath(dirName, create=False):
 
         if create:
             if not os.path.exists(dirName):
-                os.makedirs(dirName)
+                os.makedirs(dirName, exist_ok=True)
 
         return dirName
 

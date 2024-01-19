@@ -104,7 +104,7 @@ class ProductStack(object):
         self.persistDir = persistDir
         if self.persistDir is not None and self.autosave and \
            not os.path.exists(self.persistDir):
-              os.makedirs(self.persistDir)
+              os.makedirs(self.persistDir, exist_ok=True)
               # raise IOError("Directory not found: " + self.persistDir)
 
         # user tag assignments stored a hierarchical dictionary.  The

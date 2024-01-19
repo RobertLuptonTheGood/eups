@@ -157,7 +157,7 @@ class Distrib(object):
         @param serverDir    the directory to initialize
         """
         if not os.path.exists(serverDir):
-            os.makedirs(serverDir)
+            os.makedirs(serverDir, exist_ok=True)
 
     def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
         """Write a package distribution into server directory tree and
@@ -648,7 +648,7 @@ class DefaultDistrib(Distrib):
         for dir in "manifests tables".split():
             dir = os.path.join(serverDir, dir)
             if not os.path.exists(dir):
-                os.makedirs(dir)
+                os.makedirs(dir, exist_ok=True)
 
                 # set group owner ship and permissions, if desired
                 self.setGroupPerms(dir)
@@ -764,7 +764,7 @@ class DefaultDistrib(Distrib):
         out = self.getManifestPath(serverDir, product, version, self.flavor)
         mandir = os.path.dirname(out)
         if not os.path.exists(mandir):
-	        os.makedirs(mandir)
+	        os.makedirs(mandir, exist_ok=True)
 
         man = server.Manifest(product, version, self.Eups,
                        verbosity=self.verbose-1, log=self.log)

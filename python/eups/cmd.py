@@ -2615,7 +2615,7 @@ class DistribCreateCmd(EupsCmd):
                     break
         elif not os.path.exists(self.opts.serverDir):
             self.err("Server directory %s does not exist; creating " % self.opts.serverDir)
-            os.makedirs(self.opts.serverDir)
+            os.makedirs(self.opts.serverDir, exist_ok=True)
         elif not utils.isDbWritable(self.opts.serverDir):
             self.err("Server directory %s is not writable: " % self.opts.serverDir)
             return 3

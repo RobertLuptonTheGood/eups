@@ -859,7 +859,7 @@ class Repositories(object):
                     tablefile = open(tablefile, "r")
                 else:
                     if upsdir and not os.path.exists(upsdir):
-                        os.makedirs(upsdir)
+                        os.makedirs(upsdir, exist_ok=True)
                     tablefile = \
                               repos.distServer.getFileForProduct(mprod.tablefile,
                                                                  mprod.product,
@@ -909,7 +909,7 @@ class Repositories(object):
         # Can we write to that directory?
         #
         try:
-            os.makedirs(buildRoot)      # make sure it exists if we have the power to do so
+            os.makedirs(buildRoot, exist_ok=True)  # make sure it exists if we have the power to do so
         except OSError:                 # already exists, or failed; we don't care which
             pass
 
@@ -927,7 +927,7 @@ class Repositories(object):
                     buildRoot = bd
                 else:
                     try:
-                        os.makedirs(bd)
+                        os.makedirs(bd, exist_ok=True)
                     except Exception as e:
                         pass
                     else:
@@ -954,7 +954,7 @@ class Repositories(object):
         """
         dir = self.getBuildDirFor(productRoot, product, version, options, flavor)
         if not os.path.exists(dir):
-            os.makedirs(dir)
+            os.makedirs(dir, exist_ok=True)
         return dir
 
     def cleanBuildDirFor(self, productRoot, product, version, options=None,

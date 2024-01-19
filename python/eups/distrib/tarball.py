@@ -219,7 +219,7 @@ DIST_URL = %s
                 pass
 
         if not os.path.exists(unpackDir):
-            os.makedirs(unpackDir)
+            os.makedirs(unpackDir, exist_ok=True)
 
         if self.verbose > 0:
             print("installing %s into %s" % (tarball, unpackDir), file=self.log)

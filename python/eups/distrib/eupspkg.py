@@ -833,7 +833,7 @@ TAGLIST_DIR = tags
             productsDir = os.path.join(serverDir, "products")
             if not os.path.isdir(productsDir):
                 try:
-                    os.makedirs(productsDir)
+                    os.makedirs(productsDir, exist_ok=True)
                 except:
                     raise RuntimeError("Failed to create %s" % (productsDir))
 

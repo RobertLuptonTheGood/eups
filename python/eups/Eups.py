@@ -513,7 +513,7 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _makeUserCacheDir(self, eupsPathDir):
         cachedir = self._userStackCache(eupsPathDir)
         if cachedir and not os.path.exists(cachedir):
-            os.makedirs(cachedir)
+            os.makedirs(cachedir, exist_ok=True)
             try:
                 readme = open(os.path.join(cachedir,"README"), "w")
                 try:
@@ -1459,7 +1459,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if not os.path.isdir(upsDB):
             if create:
-                os.makedirs(upsDB)
+                os.makedirs(upsDB, exist_ok=True)
 
         if not os.path.isdir(upsDB):
             if noRaise:
@@ -2414,7 +2414,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.isUserTag(tag):
             ups_db = self.getUpsDB(self.userDataDir)
             if not os.path.isdir(ups_db):
-                os.makedirs(ups_db)
+                os.makedirs(ups_db, exist_ok=True)
             eupsPathDir = self.userDataDir
 
         if not eupsPathDir:
@@ -2719,7 +2719,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 else:
                     if self.verbose > 1:
                         print("mkdir -p %s" % (dirName), file=utils.stdinfo)
-                    os.makedirs(dirName)
+                    os.makedirs(dirName, exist_ok=True)
 
             if not (os.path.exists(pathOut) and os.path.samefile(fileNameIn, pathOut)):
                 if self.noaction:
