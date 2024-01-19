@@ -96,7 +96,7 @@ def fix_shebang(path, build_python, verbose=0):
         return
 
     prefenc = locale.getpreferredencoding()
-    with io.open(path, encoding=prefenc, mode='r+') as fi:
+    with open(path, encoding=prefenc, mode='r+') as fi:
         try:
             data = fi.read(100)
             fi.seek(0)
@@ -137,7 +137,7 @@ def fix_shebang(path, build_python, verbose=0):
 
     # save original file mode
     mode = os.stat(path).st_mode
-    with io.open(path, 'w', encoding=encoding) as fo:
+    with open(path, 'w', encoding=encoding) as fo:
         fo.write(new_data.decode(encoding))
     # restore file mode
     os.chmod(path, mode)
