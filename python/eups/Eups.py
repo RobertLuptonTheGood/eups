@@ -514,11 +514,8 @@ The what argument tells us what sort of state is expected (allowed values are de
         if cachedir and not os.path.exists(cachedir):
             os.makedirs(cachedir, exist_ok=True)
             try:
-                readme = open(os.path.join(cachedir,"README"), "w")
-                try:
+                with open(os.path.join(cachedir,"README"), "w") as readme:
                     print("User cache directory for", eupsPathDir, file=readme)
-                finally:
-                    readme.close()
             except:
                 pass
         return cachedir
