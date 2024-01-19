@@ -168,7 +168,7 @@ def makeSuite(testCases, makeSuite=True):
 
     tests = []
     for t in testCases:
-        tests += unittest.makeSuite(t)
+        tests += unittest.defaultTestLoader.loadTestsFromTestCase(t)
 
     if makeSuite:
         return unittest.TestSuite(tests)
