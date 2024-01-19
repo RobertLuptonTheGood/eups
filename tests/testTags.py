@@ -85,7 +85,7 @@ class TagsTestCase(unittest.TestCase):
         stable2 = self.tags.getTag("stable")
         self.assertEqual(stable, stable2)
         rlp = self.tags.getTag("rlp")
-        self.assertNotEquals(stable, rlp)
+        self.assertNotEqual(stable, rlp)
         self.assertEqual("rlp", rlp)
 
     def testSaveLoad(self):
