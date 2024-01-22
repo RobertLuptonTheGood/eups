@@ -3,9 +3,6 @@ import os.path
 import subprocess
 import glob
 
-# This will activate Python 2.6 compatibility hacks
-if sys.version_info[:2] == (2, 6):
-	import python26compat
 
 testEupsStack = os.path.dirname(__file__)
 
@@ -94,12 +91,7 @@ def ScriptTestSuite(testSuiteDir):
         skipMarkerFn = testFn + ".skip";
 
         if os.path.isfile(skipMarkerFn):
-            if sys.version_info[:2] > (2, 6):
-                self.skipTest(open(skipMarkerFn).read())
-            else:
-                # On Python 2.6 we'll just pretend the test succeeded
-                print("Skipping test %s" % testFn)
-                return True
+            self.skipTest(open(skipMarkerFn).read())
 
         return False
 
@@ -171,7 +163,7 @@ def makeSuite(testCases, makeSuite=True):
 
     tests = []
     for t in testCases:
-        tests += unittest.makeSuite(t)
+        tests += unittest.defaultTestLoader.loadTestsFromTestCase(t)
 
     if makeSuite:
         return unittest.TestSuite(tests)

@@ -3,7 +3,6 @@
 Tests for eups
 """
 
-from __future__ import print_function
 import sys
 import unittest
 import eups

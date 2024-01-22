@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import re
 import errno
@@ -6,7 +5,7 @@ from eups.utils import ctimeTZ, stdwarn, getUserName
 
 who = getUserName(full=True)
 
-class ChainFile(object):
+class ChainFile:
     """
     a representation of the data contained in a product tag chain file.
     This file records which version of a product a particular tag is
@@ -43,7 +42,7 @@ class ChainFile(object):
         if readFile:
             try:
                 self._read(self.file, verbosity)
-            except IOError as e:
+            except OSError as e:
                 # It's not an error if the file didn't exist
                 if e.errno != errno.ENOENT:
                     raise

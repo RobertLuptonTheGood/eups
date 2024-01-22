@@ -17,21 +17,21 @@ class TagsTestCase(unittest.TestCase):
         self.tags.registerUserTag("rlp")
 
     def testRecognized(self):
-        self.assert_(self.tags.isRecognized("stable"), "stable not recognized")
-        self.assert_(self.tags.isRecognized("global:stable"),
+        self.assertTrue(self.tags.isRecognized("stable"), "stable not recognized")
+        self.assertTrue(self.tags.isRecognized("global:stable"),
                      "global:stable not recognized")
-        self.assert_(not self.tags.isRecognized("user:stable"),
+        self.assertFalse(self.tags.isRecognized("user:stable"),
                      "stable recognized as user tag")
-        self.assert_(self.tags.isRecognized("rlp"), "rlp not recognized")
-        self.assert_(self.tags.isRecognized("user:rlp"),
+        self.assertTrue(self.tags.isRecognized("rlp"), "rlp not recognized")
+        self.assertTrue(self.tags.isRecognized("user:rlp"),
                      "user:rlp not recognized")
-        self.assert_(not self.tags.isRecognized("global:rlp"),
+        self.assertFalse(self.tags.isRecognized("global:rlp"),
                      "rlp recognized as global tag")
 
     def testGroupFor(self):
         self.assertEqual(self.tags.groupFor("stable"), Tags.global_)
         self.assertEqual(self.tags.groupFor("rlp"), Tags.user)
-        self.assert_(self.tags.groupFor("goober") is None,
+        self.assertIsNone(self.tags.groupFor("goober"),
                      "Found group for undefined tag")
 
     def testTagNames(self):
@@ -42,22 +42,22 @@ class TagsTestCase(unittest.TestCase):
 
     def testGetTag(self):
         tag = self.tags.getTag("stable")
-        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertTrue(isinstance(tag, Tag), "non-Tag returned by getTag()")
         self.assertEqual(tag.name, "stable")
         self.assertEqual(tag.group, Tags.global_)
 
         tag = self.tags.getTag("global:stable")
-        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertTrue(isinstance(tag, Tag), "non-Tag returned by getTag()")
         self.assertEqual(tag.name, "stable")
         self.assertEqual(tag.group, Tags.global_)
 
         tag = self.tags.getTag("rlp")
-        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertTrue(isinstance(tag, Tag), "non-Tag returned by getTag()")
         self.assertEqual(tag.name, "rlp")
         self.assertEqual(tag.group, Tags.user)
 
         tag = self.tags.getTag("user:rlp")
-        self.assert_(isinstance(tag, Tag), "non-Tag returned by getTag()")
+        self.assertTrue(isinstance(tag, Tag), "non-Tag returned by getTag()")
         self.assertEqual(tag.name, "rlp")
         self.assertEqual(tag.group, Tags.user)
 
@@ -85,19 +85,19 @@ class TagsTestCase(unittest.TestCase):
         stable2 = self.tags.getTag("stable")
         self.assertEqual(stable, stable2)
         rlp = self.tags.getTag("rlp")
-        self.assertNotEquals(stable, rlp)
+        self.assertNotEqual(stable, rlp)
         self.assertEqual("rlp", rlp)
 
     def testSaveLoad(self):
         file = os.path.join(testEupsStack, "ups_db", "test.tags")
         if os.path.exists(file):  os.remove(file)
-        self.assert_(not os.path.exists(file))
+        self.assertFalse(os.path.exists(file))
 
         try:
             self.tags.registerTag("current")
             self.tags.registerTag("beta")
             self.tags.save(self.tags.global_, file)
-            self.assert_(os.path.exists(file))
+            self.assertTrue(os.path.exists(file))
 
             tags = Tags()
             tags.load(tags.global_, file)
@@ -117,11 +117,11 @@ class TagsTestCase(unittest.TestCase):
         self.assertEqual(len(self.tags.getTagNames()), 2)
         self.tags.loadUserTags(dir)
         self.assertEqual(len(self.tags.getTagNames()), 2)
-        self.assert_(not os.path.exists(file))
+        self.assertFalse(os.path.exists(file))
 
         try:
             self.tags.saveUserTags(dir)
-            self.assert_(os.path.exists(file), "cache file not found: " + file)
+            self.assertTrue(os.path.exists(file), "cache file not found: " + file)
 
             tags = Tags()
             tags.loadUserTags(dir)
@@ -140,7 +140,7 @@ class TagsTestCase(unittest.TestCase):
         self.tags.registerTag("current")
         self.tags.registerTag("beta")
         self.tags.saveGlobalTags(dir)
-        self.assert_(os.path.exists(file), "cache file not found: " + file)
+        self.assertTrue(os.path.exists(file), "cache file not found: " + file)
 
         tags = Tags()
         tags.loadFromEupsPath(dir, 1)

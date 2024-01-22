@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package
 #
-from __future__ import absolute_import, print_function
 import sys
 import os
 import re
@@ -15,7 +14,7 @@ from eups.VersionParser import VersionParser
 from eups.exceptions import EupsException
 from . import server
 
-class Distrib(object):
+class Distrib:
     """A class to encapsulate product distribution
 
     This class is an abstract base class with some default implementation.
@@ -135,7 +134,7 @@ class Distrib(object):
 
         self._alwaysExpandTableFiles = True # returned by self.alwaysExpandTableFiles()
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -143,8 +142,6 @@ class Distrib(object):
         This implementation always returns None
         """
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
         """Check that self is properly initialised; this matters for subclasses
@@ -157,7 +154,7 @@ class Distrib(object):
         @param serverDir    the directory to initialize
         """
         if not os.path.exists(serverDir):
-            os.makedirs(serverDir)
+            os.makedirs(serverDir, exist_ok=True)
 
     def createPackage(self, serverDir, product, version, flavor=None, overwrite=False):
         """Write a package distribution into server directory tree and
@@ -418,7 +415,7 @@ class Distrib(object):
                     product = self.Eups.getProduct(productName, version)
                     dependencies = self.Eups.getDependentProducts(product, productDictionary={},
                                                                   topological=True)
-                except:
+                except Exception:
                     return None
                 return dependencies
 
@@ -524,7 +521,7 @@ class Distrib(object):
         else:
             try:
                 (baseDir, productDir) = re.search(r"^(\S+)/(%s/\S*)$" % (product), pinfo.dir).groups()
-            except:
+            except Exception:
                 if self.verbose > 1:
                     print("Split of \"%s\" at \"%s\" failed; proceeding" \
                         % (pinfo.dir, product), file=self.log)
@@ -536,7 +533,7 @@ class Distrib(object):
                         if self.verbose > 1:
                             print("Guessing \"%s\" has productdir \"%s\"" \
                                 % (pinfo.dir, productDir), file=self.log)
-                    except:
+                    except Exception:
                         if self.verbose:
                             print("Again failed to split \"%s\" into baseDir and productdir" \
                                 % (pinfo.dir), file=self.log)
@@ -648,7 +645,7 @@ class DefaultDistrib(Distrib):
         for dir in "manifests tables".split():
             dir = os.path.join(serverDir, dir)
             if not os.path.exists(dir):
-                os.makedirs(dir)
+                os.makedirs(dir, exist_ok=True)
 
                 # set group owner ship and permissions, if desired
                 self.setGroupPerms(dir)
@@ -764,7 +761,7 @@ class DefaultDistrib(Distrib):
         out = self.getManifestPath(serverDir, product, version, self.flavor)
         mandir = os.path.dirname(out)
         if not os.path.exists(mandir):
-	        os.makedirs(mandir)
+	        os.makedirs(mandir, exist_ok=True)
 
         man = server.Manifest(product, version, self.Eups,
                        verbosity=self.verbose-1, log=self.log)
@@ -919,7 +916,7 @@ class DefaultDistrib(Distrib):
     #         except KeyboardInterrupt:
     #             raise RuntimeError, ("You hit ^C while looking for %s %s's table file" %
     #                                  (product, version))
-    #         except:
+    #         except Exception:
     #             pass
     #         return tablefile
 

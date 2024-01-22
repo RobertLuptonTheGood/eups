@@ -3,7 +3,7 @@
 import os
 import re
 
-class VersionParser(object):
+class VersionParser:
     """Evaluate a logical expression, returning a Bool.  The grammar is:
 
         expr : term

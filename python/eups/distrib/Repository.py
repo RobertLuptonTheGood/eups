@@ -2,18 +2,17 @@
 the Repository class -- An interface into a distribution server for
 installing and deploying distribution packages.
 """
-from __future__ import absolute_import, print_function
 import sys
 import eups
 from eups.tags      import Tag, TagNotRecognized
-from eups.utils     import Flavor, isDbWritable, cmp_or_key, xrange, is_string
+from eups.utils     import Flavor, isDbWritable, cmp_or_key, is_string
 from eups.exceptions import EupsException, ProductNotFound
 from .server         import ServerConf, Manifest, Mapping, TaggedProductList
 from .server         import LocalTransporter
 from .DistribFactory import DistribFactory
 from .Distrib        import Distrib, DefaultDistrib
 
-class Repository(object):
+class Repository:
     """
     an interface into a distribution server for handling package
     installation and creation requests.

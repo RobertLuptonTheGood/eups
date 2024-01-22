@@ -1,4 +1,3 @@
-from __future__ import absolute_import, print_function
 import fnmatch
 import os
 import re
@@ -12,7 +11,7 @@ tagListFileTmpl = "%s." + tagListFileExt
 tagListFileRe = re.compile(r"^(\w\S*).%s$" % tagListFileExt)
 commRe = re.compile(r"\s*#.*$")
 
-class Tags(object):
+class Tags:
     """
     a manager of a set of known tag names.  Tags are organized into
     groups; however, the same name may not be allowed in more than one
@@ -202,12 +201,11 @@ class Tags(object):
         """
         return self.registerTag(name, self.user, force)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def persistFilename(group):
         if group in (Tags.global_, Tags.pseudo):  group = "global"
         if group == Tags.user:     group = "user"
         return tagListFileTmpl % group
-    persistFilename = staticmethod(persistFilename) #should work as'f python 2.2
 
     def load(self, group, file):
         """
@@ -253,7 +251,7 @@ class Tags(object):
         finally:
             try:
                 fd.close()
-            except:
+            except Exception:
                 pass
 
     def loadFromEupsPath(self, eupsPath, verbosity=0):
@@ -303,7 +301,7 @@ class Tags(object):
                     print("Reading tags from", file, file=utils.stdinfo)
                 try:
                     loaded = self.load(group, file)
-                except IOError as e:
+                except OSError as e:
                     if verbosity >= 0:
                         print("Skipping troublesome tag file (%s): %s" % \
                             (str(e), file), file=utils.stdwarn)
@@ -320,7 +318,7 @@ class Tags(object):
                                    containing the user tags.
         """
         if not os.path.isdir(userPersistDir):
-            raise IOError("Tag cache not an existing directory: " +
+            raise OSError("Tag cache not an existing directory: " +
                           userPersistDir)
         fileName = os.path.join(userPersistDir, self.persistFilename("user"))
         if not os.path.exists(fileName):
@@ -340,7 +338,7 @@ class Tags(object):
         if group == self.user:     group = "user"
 
         if not os.path.isdir(dir):
-            raise IOError("Tag cache not an existing directory: " + dir)
+            raise OSError("Tag cache not an existing directory: " + dir)
         file = os.path.join(dir, self.persistFilename(group))
 
         if group == "global":
@@ -365,7 +363,7 @@ class Tags(object):
         taken from the EUPS_PATH).
         """
         if not os.path.isdir(persistDir):
-            raise IOError("Tag cache not an existing directory: " +
+            raise OSError("Tag cache not an existing directory: " +
                           persistDir)
 
         dir = os.path.join(persistDir, "ups_db")
@@ -375,7 +373,7 @@ class Tags(object):
         self.save(self.global_, file)
 
 
-class Tag(object):
+class Tag:
 
     """
     a representation of a Tag.  This implementation supports == and != with
@@ -445,7 +443,7 @@ class Tag(object):
     def __ne__(self, that):
         return not (self == that)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parse(name, defGroup=Tags.global_):
         """
         create a Tag instance from a fully specified tag name string.
@@ -454,16 +452,7 @@ class Tag(object):
         there is not group name, it is assumed to be of the group given by
         defGroup (which defaults to global).
         """
-        # This is requires python 2.4
-        #   parts = name.rsplit(':', 1)
-        # replaced with:
-        parts = name.split(':')
-        if len(parts) > 2:
-            try:
-                parts = ":".join(parts[:-1], parts[-1])
-            except Exception as e:
-                import eups; eups.debug(e)
-
+        parts = name.rsplit(':', 1)
         if len(parts) == 1:
             return Tag(name, defGroup)
         else:
@@ -475,7 +464,6 @@ class Tag(object):
                 return Tag(parts[1])    # unknown tag, probably from a version name
 
             return Tag(parts[1], parts[0])
-    parse = staticmethod(parse) #should work as of python 2.2
 
 def UserTag(name):
     """

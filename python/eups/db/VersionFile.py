@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import re
 from eups.Product import Product
@@ -9,7 +8,7 @@ import eups.utils
 who = eups.utils.getUserName(full=True)
 defaultProductUpsDir = "ups"
 
-class VersionFile(object):
+class VersionFile:
     """
     A representation of the declaration information stored in a version
     file for a particular product declared in an EUPS database.
@@ -178,21 +177,6 @@ class VersionFile(object):
         out.resolvePaths()
 
         return out
-
-    def _resolve(self, value, data, skip=None):
-        if not value: return value
-
-        dosub = list(data.keys())
-        if skip:
-            if eups.utils.is_string(skip):
-                skip = skip.split()
-            dosub = [n for n in dosub if n not in skip]
-
-        for name in dosub:
-            if name in macrore and data[name]:
-                value = macrore[name].sub(data[name], value)
-
-        return value
 
     def makeProducts(self):
         """
@@ -529,6 +513,3 @@ Group:
         print("End:", file=fd)
 
         fd.close()
-
-
-

@@ -20,13 +20,13 @@ class LocalTransporterTestCase(unittest.TestCase):
     def testGenericTransporter(self):
         loc = self.base+"s1/config.txt"
         localfile = "/tmp/eupstest-config.txt"
-        self.assertTrue(not Transporter.canHandle(loc))
+        self.assertFalse(Transporter.canHandle(loc))
         if os.path.exists(localfile):
             os.remove(localfile)
         trx = Transporter(loc)
         self.assertRaises(Exception, trx.listDir)
         self.assertRaises(Exception, trx.cacheToFile, localfile)
-        self.assertTrue(not os.path.exists(localfile))
+        self.assertFalse(os.path.exists(localfile))
         self.assertRaises(Exception, trx.listDir)
 
     def testLocalTransporter(self):
@@ -39,7 +39,7 @@ class LocalTransporterTestCase(unittest.TestCase):
 
         trx = LocalTransporter(loc)
 #        self.assertRaises(RemoteFileNotFound, trx.cacheToFile, localfile)
-        self.assertTrue(not os.path.exists(localfile))
+        self.assertFalse(os.path.exists(localfile))
 
         loc = os.path.join(base,"s2","config.txt")
         trx = LocalTransporter(loc)
@@ -159,11 +159,11 @@ class LocalRepositoryTestCase(unittest.TestCase):
 
     def testGetManifest(self):
         man = self.repos.getManifest("doxygen", "1.5.8", "generic")
-        self.assertTrue(man is not None)
+        self.assertIsNotNone(man)
 
     def testListPackages(self):
         pkgs = self.repos.listPackages()
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 1)
         self.assertEqual(pkgs[0][0], "doxygen")
@@ -171,7 +171,7 @@ class LocalRepositoryTestCase(unittest.TestCase):
         self.assertEqual(pkgs[0][2], "generic")
 
         pkgs = self.repos.listPackages("doxygen")
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 1)
         self.assertEqual(pkgs[0][0], "doxygen")
@@ -179,7 +179,7 @@ class LocalRepositoryTestCase(unittest.TestCase):
         self.assertEqual(pkgs[0][2], "generic")
 
         pkgs = self.repos.listPackages("doxygen", "1.5.10")
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 0)
 
@@ -190,32 +190,32 @@ class LocalRepositoryTestCase(unittest.TestCase):
 
     def testFindPackage(self):
         pkg = self.repos.findPackage("doxygen")
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
 
         pkg = self.repos.findPackage("doxygen", "1.5.8")
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
 
         pkg = self.repos.findPackage("doxygen", "1.5.0")
-        self.assertTrue(pkg is None)
+        self.assertIsNone(pkg)
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "Linux")
         self.assertTrue(pkg[2] == 'generic')
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "generic")
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
 
         tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
@@ -238,7 +238,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
 
     def testListPackages(self):
         pkgs = self.repos.listPackages()
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 2)           # the # of repositories
         self.assertEqual(len(pkgs[0]), 2)        # (pkgroot, pkg-list)
@@ -253,7 +253,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
         self.assertEqual(pkgs[1][1][0][2], "generic")
 
         pkgs = self.repos.listPackages("doxygen")
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 2)
         self.assertEqual(pkgs[0][1][0][0], "doxygen")
@@ -261,7 +261,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
         self.assertEqual(pkgs[0][1][0][2], "generic")
 
         pkgs = self.repos.listPackages("doxygen", "1.5.10")
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 2)           # the # of repositories
         self.assertEqual(len(pkgs[0][1]), 0)     # # of products per repos.
@@ -269,7 +269,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
 
         tag = Tag("latest")
         pkgs = self.repos.listPackages("doxygen", tag)
-        self.assertTrue(pkgs is not None)
+        self.assertIsNotNone(pkgs)
         self.assertTrue(isinstance(pkgs, list))
         self.assertEqual(len(pkgs), 2)
         self.assertEqual(pkgs[0][1][0][0], "doxygen")
@@ -281,26 +281,26 @@ class LocalRepositoriesTestCase(unittest.TestCase):
 
     def testFindPackage(self):
         pkg = self.repos.findPackage("doxygen")
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
 
         pkg = self.repos.findPackage("doxygen", "1.5.8")
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
         self.assertEqual(pkg[3], self.pkgroot)
 
         pkg = self.repos.findPackage("doxygen", "1.5.0")
-        self.assertTrue(pkg is None)
+        self.assertIsNone(pkg)
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "Linux")
         self.assertTrue(pkg[2] == 'generic')
 
         pkg = self.repos.findPackage("doxygen", "1.5.8", "generic")
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")
@@ -308,7 +308,7 @@ class LocalRepositoriesTestCase(unittest.TestCase):
 
         tag = Tag("latest")
         pkg = self.repos.findPackage("doxygen", tag)
-        self.assertTrue(pkg is not None)
+        self.assertIsNotNone(pkg)
         self.assertEqual(pkg[0], "doxygen")
         self.assertEqual(pkg[1], "1.5.8")
         self.assertEqual(pkg[2], "generic")

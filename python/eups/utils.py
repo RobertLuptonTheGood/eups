@@ -1,7 +1,6 @@
 """
 Utility functions used across EUPS classes.
 """
-from __future__ import print_function
 import time
 import os
 import sys
@@ -11,66 +10,39 @@ import shutil
 import tempfile
 import pwd
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-# Python 2/3 compatibility layer
 
-# load the correct StringIO module (StringIO in 2, io in 3)
-if sys.version_info[0] == 2:
-    # Python 2.x versions
-    import cStringIO as StringIO
+# Python 3.x versions
+import io as StringIO
 
-    xrange = xrange
+xrange = range
 
-    def cmp_or_key(cmp):
-        return { 'cmp': cmp }
+import functools
+def cmp_or_key(cmp):
+    return { 'key': functools.cmp_to_key(cmp) }
 
-    reload = reload
+import importlib
+try:
+    # Python 3.4 and newer
+    reload = importlib.reload
+except AttributeError:
+    # Python 3.3 and older
+    import imp
+    reload = imp.reload
 
-    cmp = cmp
+def cmp(a, b):
+    return (a > b) - (a < b)
 
-    reduce = reduce
+import functools
+reduce = functools.reduce
 
-    def get_content_charset(response):
-        return "ascii"
+def get_content_charset(response):
+    return response.headers.get_content_charset(failobj='utf-8')
 
-    def decode(string, encoding):
-        return string
+def decode(string, encoding):
+    return string.decode(encoding)
 
-    def is_string(string):
-        return isinstance(string, basestring)
-else:
-    # Python 3.x versions
-    import io as StringIO
-
-    xrange = range
-
-    import functools
-    def cmp_or_key(cmp):
-        return { 'key': functools.cmp_to_key(cmp) }
-
-    import importlib
-    try:
-        # Python 3.4 and newer
-        reload = importlib.reload
-    except AttributeError:
-        # Python 3.3 and older
-        import imp
-        reload = imp.reload
-
-    def cmp(a, b):
-        return (a > b) - (a < b)
-
-    import functools
-    reduce = functools.reduce
-
-    def get_content_charset(response):
-        return response.headers.get_content_charset(failobj='utf-8')
-
-    def decode(string, encoding):
-        return string.decode(encoding)
-
-    def is_string(string):
-        return isinstance(string, str)
+def is_string(string):
+    return isinstance(string, str)
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -322,7 +294,7 @@ def isDbWritable(dbpath, create=False):
 
     if not dbExists and create:
         try:
-            os.makedirs(dbpath)
+            os.makedirs(dbpath, exist_ok=True)
         except Exception as e:
             pass
         else:
@@ -431,7 +403,7 @@ def decodePath(encodedPath):
     """Decode a directory path that was encoded by encodePath()."""
     return encodedPath.replace(SPACE_TO_STRING, " ")
 
-class Flavor(object):
+class Flavor:
     """A class to handle flavors"""
 
     def __init__(self):
@@ -474,7 +446,7 @@ class Flavor(object):
 #
 # setFallbackFlavors = Flavor().setFallbackFlavors
 
-class Quiet(object):
+class Quiet:
     """A class whose members, while they exist, make Eups quieter"""
 
     def __init__(self, Eups):
@@ -484,7 +456,7 @@ class Quiet(object):
     def __del__(self):
         self.Eups.quiet -= 1
 
-class ConfigProperty(object):
+class ConfigProperty:
     """
     This class emulates a properties used in configuration files.  It
     represents a set of defined property names that are accessible as
@@ -559,10 +531,7 @@ def canPickle():
     cache product info.
     """
     try:
-        try:
-            import cPickle as pickle
-        except ImportError:
-            import pickle
+        import pickle
         return pickle.HIGHEST_PROTOCOL >= 2
     except (ImportError, AttributeError):
         return False
@@ -595,7 +564,7 @@ def createTempDir(path):
             dir = os.path.join(dir, d)
 
             if not os.path.isdir(dir):
-                os.mkdir(dir)
+                os.makedirs(dir, exist_ok=True)
                 os.chmod(dir, 0o777)
 
     return path
@@ -626,7 +595,7 @@ def copyfile(file1, file2):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Color(object):
+class Color:
     classes = dict(
         OK    = "green",
         WARN  = "yellow",
@@ -665,6 +634,7 @@ class Color(object):
         if bold:
             self._code += ";1"
 
+    @staticmethod
     def colorize(val=None):
         """Should I colour strings?  With an argument, set the value"""
         if val is not None:
@@ -687,8 +657,6 @@ class Color(object):
 
         return Color._colorize
 
-    colorize = staticmethod(colorize)
-
     def __str__(self):
         if not self.colorize():
             return self.rawText
@@ -700,7 +668,7 @@ class Color(object):
 
         return prefix + self.rawText + suffix
 
-class coloredFile(object):
+class coloredFile:
     """Like sys.stderr, but colourize text first"""
 
     def __init__(self, fileObj, cclass):
@@ -709,7 +677,7 @@ class coloredFile(object):
         self._class = cclass
         try:
             self._isatty = os.isatty(fileObj.fileno())
-        except:
+        except Exception:
             self._isatty = False
 
     def write(self, text):
@@ -915,7 +883,7 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
         raise RuntimeError("A cyclic dependency exists amongst %s" %
                            " ".join(sorted([name([x for x in p]) for p in graph.keys()])))
 
-class AtomicFile(object):
+class AtomicFile:
     """
         A file to which all the changes (writes) are committed all at once,
         or not at all.  Useful for avoiding race conditions where a reader

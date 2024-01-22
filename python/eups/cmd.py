@@ -31,7 +31,6 @@ The output of run() is a status code appropriate for passing to sys.exit().
 #
 ########################################################################
 
-from __future__ import absolute_import, print_function
 import re
 import os
 import sys
@@ -47,7 +46,7 @@ from .distrib.server import ServerConf, Mapping, importClass
 
 _errstrm = utils.stderr
 
-class EupsCmd(object):
+class EupsCmd:
     """
     A class for defining and executing the EUPS command-line tool.
 
@@ -170,7 +169,7 @@ Common"""
 
         try:
             return ecmd.run()
-        except:
+        except Exception:
             raise
         finally:
             lock.giveLocks(locks, ecmd.opts.verbose)
@@ -348,7 +347,7 @@ Common"""
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class CommandCallbacks(object):
+class CommandCallbacks:
     """Callback to allow users to customize behaviour by defining hooks in EUPS_STARTUP
         and calling eups.commandCallbacks.add(hook)"""
 
@@ -943,7 +942,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
                 return 6
             try:
                 ifd = open(inFile)
-            except IOError as e:
+            except OSError as e:
                 self.err('Failed to open file "%s" for read: %s' %
                          (inFile, str(e)))
                 return 6
@@ -955,7 +954,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
 
             try:
                 ofd = open(outfile, "w")
-            except IOError as e:
+            except OSError as e:
                 self.err('Failed to open file "%s" for write: %s' %
                          (outfile, str(e)))
                 return 6
@@ -965,7 +964,7 @@ otherwise it'll be written to stdout unless you specify --inplace.
                                   "."+os.path.basename(inFile)+".tmp")
             try:
                 ofd = open(tmpout, "w")
-            except IOError as e:
+            except OSError as e:
                 outfile = os.path.dirname(tmpout)
                 if not outfile:  outfile = "."
                 self.err('Failed to temporary file in "%s" for write: %s' %
@@ -1086,7 +1085,7 @@ For example, the make target in a ups directory might contain the line:
                 return 6
             try:
                 ifd = open(inFile)
-            except IOError as e:
+            except OSError as e:
                 self.err('Failed to open file "%s" for read: %s' %
                          (inFile, str(e)))
                 return 6
@@ -1098,7 +1097,7 @@ For example, the make target in a ups directory might contain the line:
 
             try:
                 ofd = open(outfile, "w")
-            except IOError as e:
+            except OSError as e:
                 self.err('Failed to open file "%s" for write: %s' %
                          (outfile, str(e)))
                 return 6
@@ -1108,7 +1107,7 @@ For example, the make target in a ups directory might contain the line:
                                   "."+os.path.basename(inFile)+".tmp")
             try:
                 ofd = open(tmpout, "w")
-            except IOError as e:
+            except OSError as e:
                 outfile = os.path.dirname(tmpout)
                 if not outfile:  outfile = "."
                 self.err('Failed to temporary file in "%s" for write: %s' %
@@ -1278,7 +1277,7 @@ only wish to assign a tag, you should use the -t option but not include
             else:
                 try:
                     tablefile = open(self.opts.externalTablefile, "r")
-                except IOError as e:
+                except OSError as e:
                     self.err("Error opening %s: %s" % (self.opts.externalTablefile, e))
                     return 4
 
@@ -1653,7 +1652,7 @@ class AdminClearLocksCmd(EupsCmd):
 
         try:
             lock.clearLocks(path, self.opts.verbose, self.opts.noaction)
-        except IOError:
+        except OSError:
             pass
 
         return 0
@@ -1687,7 +1686,7 @@ class AdminListLocksCmd(EupsCmd):
 
         try:
             lock.listLocks(path, self.opts.verbose, self.opts.noaction)
-        except IOError:
+        except OSError:
             pass
 
         return 0
@@ -2615,7 +2614,7 @@ class DistribCreateCmd(EupsCmd):
                     break
         elif not os.path.exists(self.opts.serverDir):
             self.err("Server directory %s does not exist; creating " % self.opts.serverDir)
-            os.makedirs(self.opts.serverDir)
+            os.makedirs(self.opts.serverDir, exist_ok=True)
         elif not utils.isDbWritable(self.opts.serverDir):
             self.err("Server directory %s is not writable: " % self.opts.serverDir)
             return 3
@@ -2729,7 +2728,7 @@ class DistribCreateCmd(EupsCmd):
                 doRebuild = True
                 try:
                     doRebuild = not p.getConfig("distrib", "binary", getType=bool)
-                except:
+                except Exception:
                     pass
                 if doRebuild:
                     if self.opts.verbose:
@@ -2982,7 +2981,7 @@ class TagsCmd(EupsCmd):
 
         try:
             isatty = os.isatty(sys.stdout.fileno())
-        except:
+        except Exception:
             isatty = False
 
         if isatty:

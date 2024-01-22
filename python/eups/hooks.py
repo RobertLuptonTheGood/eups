@@ -1,7 +1,6 @@
 """
 Module that enables user configuration and hooks.
 """
-from __future__ import absolute_import, print_function
 import os
 import re
 from . import utils
@@ -232,9 +231,6 @@ def loadCustomization(verbose=0, log=utils.stdinfo, execute=True, quiet=True, pa
     return customisationFiles
 
 def execute_file(startupFile):
-    import eups
-    from eups import hooks
-    from .VersionCompare import VersionCompare
 
     _globals = {}
     for key in globals().keys():

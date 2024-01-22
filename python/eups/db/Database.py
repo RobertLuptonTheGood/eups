@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import re
 from .VersionFile import VersionFile
@@ -54,7 +52,7 @@ def Database(dbpath, userTagRoot=None, defStackRoot=None, owner=None):
 
     return _databases[key]
 
-class _Database(object):
+class _Database:
     """
     An interface to the product database recorded on disk.  This interface will
     enforce restrictions on product names, flavors, and versions.
@@ -460,7 +458,7 @@ class _Database(object):
 
         # seal the deal
         if not os.path.exists(pdir):
-            os.mkdir(pdir)
+            os.makedirs(pdir, exist_ok=True)
 
         if prod.dir:
             trimDir = prod.stackRoot()
@@ -514,7 +512,7 @@ class _Database(object):
         if not os.path.exists(vfile):
             try:
                 os.rmdir(pdir)
-            except:
+            except Exception:
                 pass
 
         return changed
@@ -618,7 +616,7 @@ class _Database(object):
             pdir = self._productDir(productName, writeableDB)
 
             if not os.path.exists(pdir):
-                os.makedirs(pdir)
+                os.makedirs(pdir, exist_ok=True)
         else:
             pdir = self._productDir(productName)
 
@@ -727,5 +725,3 @@ def _cmp_str(a, b):
     if a < b:  return -1
     if a > b:  return 1
     return 0
-
-

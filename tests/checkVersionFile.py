@@ -3,17 +3,13 @@
 Check a Version file for parsability and macro substitution
 """
 
-from __future__ import print_function
 import os
 import sys
-import shutil
 import re
 import unittest
-import time
 from optparse import OptionParser
 import testCommon
 
-from eups import ProductNotFound, Product
 from eups.db import VersionFile
 
 defaultFile = os.path.join(testCommon.testEupsStack, "fw.version")
@@ -75,26 +71,26 @@ class CheckVersionFileTestCase(unittest.TestCase):
             self.assertPathExists(path, what)
 
     def assertPathExists(self, path, what):
-        self.assert_(os.path.exists(path),
+        self.assertTrue(os.path.exists(path),
                      "Path %s does not exist: %s" % (what, path))
 
     def assertResolvedMacros(self, path, what):
-        self.assert_(path.find('$') < 0,
+        self.assertTrue(path.find('$') < 0,
                      "Unresolved macro in %s: %s" % (what, path))
     def assertAbs(self, path, what):
-        self.assert_(path == "none" or os.path.isabs(path),
+        self.assertTrue(path == "none" or os.path.isabs(path),
                      "Relative path in %s: %s"  % (what, path))
 
     def shortDescription(self):
         return self.file
 
-class VersionFileTestResult(unittest._TextTestResult):
+class VersionFileTestResult(unittest.TextTestResult):
 
     def __init__(self, stream=None):
         if not stream:
             stream = sys.stderr
-        strm = unittest._WritelnDecorator(stream)
-        unittest._TextTestResult.__init__(self, strm, True, 1)
+        strm = unittest.runner._WritelnDecorator(stream)
+        unittest.TextTestResult.__init__(self, strm, True, 1)
 
 def findVersionFiles(dir):
     out = []

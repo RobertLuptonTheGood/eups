@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for the "Builder" mechanism
 #
-from __future__ import absolute_import, print_function
 import sys
 import os, re
 from . import Distrib as eupsDistrib
@@ -66,7 +65,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
 
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -80,8 +79,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID[len(prefix):]
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
         """Check that self is properly initialised; this matters for subclasses
@@ -214,8 +211,8 @@ DIST_URL = %%(base)s/builds/%%(path)s
         builderDir = os.path.join(serverDir, "builds")
         if not os.path.isdir(builderDir):
             try:
-                os.makedirs(builderDir)
-            except:
+                os.makedirs(builderDir, exist_ok=True)
+            except Exception:
                 raise RuntimeError("Failed to create %s" % (builderDir))
 
         full_builder = os.path.join(builderDir, builder)
@@ -234,11 +231,11 @@ DIST_URL = %%(base)s/builds/%%(path)s
                 else:
                     try:
                         ifd = open(buildFile)
-                    except IOError as e:
+                    except OSError as e:
                         raise RuntimeError("Failed to open file \"%s\" for read" % buildFile)
                     try:
                         ofd = open(full_builder, "w")
-                    except IOError as e:
+                    except OSError as e:
                         raise RuntimeError("Failed to open file \"%s\" for write" % full_builder)
 
                     builderVars = eups.hooks.config.distrib["builder"]["variables"]
@@ -255,7 +252,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                         raise RuntimeError("Failed to expand build file \"%s\": %s" % (full_builder, e))
 
                     del ifd; del ofd
-        except IOError as param:
+        except OSError as param:
             try:
                 os.unlink(full_builder)
             except OSError:
@@ -353,7 +350,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
         else:
             try:
                 fd = open(tfile)
-            except IOError as e:
+            except OSError as e:
                 raise RuntimeError("Failed to open %s: %s" % (tfile, e))
 
             for line in fd:
@@ -396,7 +393,8 @@ DIST_URL = %%(base)s/builds/%%(path)s
             print("Issuing commands:")
             print("\t", str.join("\n\t", cmd))
 
-        print(str.join("\n\t", cmd), file=file(logfile, "w"))
+        with open(logfile, "w") as fd:
+            print(str.join("\n\t", cmd), file=fd)
 
         if False:
             cmd = "(%s) 2>&1 | tee >> %s" % (str.join("\n", cmd), logfile)
@@ -411,7 +409,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
                     try:
                         print("BUILD ERROR!  From build log:", file=self.log)
                         eupsServer.system("tail -20 %s 1>&2" % logfile)
-                    except:
+                    except Exception:
                         pass
                 raise RuntimeError("Failed to build %s: %s" % (builder, str(e)))
 
@@ -466,7 +464,7 @@ DIST_URL = %%(base)s/builds/%%(path)s
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class BuildfilePatchCallbacks(object):
+class BuildfilePatchCallbacks:
     """Callbacks to modify build files.
 
      E.g. we can define a callback to rewrite SVN root to recognise a tagname
@@ -551,7 +549,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                 rfd = open("CVS/Root")
                 cvsroot = re.sub(r"\n$", "", rfd.readline())
                 del rfd
-            except IOError as e:
+            except OSError as e:
                 print("Tried to read \"CVS/Root\" but failed: %s" % e, file=sys.stderr)
 
         return cvsroot
@@ -581,7 +579,7 @@ def expandBuildFile(ofd, ifd, productName, versionName, verbose=False, builderVa
                             break
 
                 del rfd
-            except IOError as e:
+            except OSError as e:
                 print("Tried to read \".svn\" but failed: %s" % e, file=sys.stderr)
 
         return svnroot

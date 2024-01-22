@@ -13,7 +13,6 @@ To run an eups command from Python, try:
 
 The output of run() is a status code appropriate for passing to sys.exit().
 """
-from __future__ import absolute_import, print_function
 import os
 import sys
 from .cmd import EupsOptionParser
@@ -30,7 +29,7 @@ def append_current(option, opt_str, value, parser):
 
     parser.values.postTag.append("current")
 
-class EupsSetup(object):
+class EupsSetup:
     """
     A class for executing the EUPS command-line setup tool.
 

@@ -1,7 +1,6 @@
 """
 The Eups class
 """
-from __future__ import absolute_import, print_function
 import glob
 import re
 import os
@@ -23,7 +22,7 @@ from .Uses       import Uses
 from .utils      import cmp_or_key, xrange, cmp
 from . import hooks
 
-class Eups(object):
+class Eups:
     """
     An application interface to EUPS functionality.
 
@@ -45,7 +44,7 @@ class Eups(object):
     #  managed software stack
     ups_db = "ups_db"
 
-    # staticmethod;  would use a decorator if we knew we had a new enough python
+    @staticmethod
     def setEupsPath(path=None, dbz=None):
         if not path:
             path = os.environ.get("EUPS_PATH", [])
@@ -71,9 +70,7 @@ class Eups(object):
         os.environ["EUPS_PATH"] = ":".join(eups_path)
         return eups_path
 
-    setEupsPath = staticmethod(setEupsPath)
-
-    # staticmethod;  would use a decorator if we knew we had a new enough python
+    @staticmethod
     def _processDefaultTags(opts):
         """Handle any default tags defined as hooks"""
         if opts.tag in (["None"], [""]):
@@ -103,8 +100,6 @@ class Eups(object):
 
                 if not (hasattr(opts, "unsetup") and opts.unsetup):
                     print(msg, "; ".join(tagMsg), file=utils.stdinfo)
-
-    _processDefaultTags = staticmethod(_processDefaultTags)
 
     def __init__(self, flavor=None, path=None, dbz=None, root=None, readCache=True,
                  shell=None, verbose=0, quiet=0,
@@ -513,14 +508,11 @@ The what argument tells us what sort of state is expected (allowed values are de
     def _makeUserCacheDir(self, eupsPathDir):
         cachedir = self._userStackCache(eupsPathDir)
         if cachedir and not os.path.exists(cachedir):
-            os.makedirs(cachedir)
+            os.makedirs(cachedir, exist_ok=True)
             try:
-                readme = open(os.path.join(cachedir,"README"), "w")
-                try:
+                with open(os.path.join(cachedir,"README"), "w") as readme:
                     print("User cache directory for", eupsPathDir, file=readme)
-                finally:
-                    readme.close()
-            except:
+            except Exception:
                 pass
         return cachedir
 
@@ -1220,7 +1212,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         try:
             fd = open(fileName, "r")
-        except IOError:
+        except OSError:
             raise TagNotRecognized(str(fileName))
 
         version = None
@@ -1459,7 +1451,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         if not os.path.isdir(upsDB):
             if create:
-                os.makedirs(upsDB)
+                os.makedirs(upsDB, exist_ok=True)
 
         if not os.path.isdir(upsDB):
             if noRaise:
@@ -2414,7 +2406,7 @@ The what argument tells us what sort of state is expected (allowed values are de
         if self.isUserTag(tag):
             ups_db = self.getUpsDB(self.userDataDir)
             if not os.path.isdir(ups_db):
-                os.makedirs(ups_db)
+                os.makedirs(ups_db, exist_ok=True)
             eupsPathDir = self.userDataDir
 
         if not eupsPathDir:
@@ -2469,7 +2461,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 umask = os.umask(0o02); os.umask(umask)
                 try:
                     perms = os.fstat(tfd.fileno()).st_mode
-                except:
+                except Exception:
                     perms = 0
 
                 perms |= (0o666 & ~umask) # set read/write for everyone (modulu umask)
@@ -2580,8 +2572,10 @@ The what argument tells us what sort of state is expected (allowed values are de
                     if not os.path.exists(pathOut):
                         differences += ["Adding %s" % pathOut]
                     else:
-                        crcOld = zlib.crc32(open(fileNameIn, "rb").read())
-                        crcNew = zlib.crc32(open(pathOut, "rb").read())
+                        with open(fileNameIn, "rb") as fd:
+                            crcOld = zlib.crc32(fd.read())
+                        with open(pathOut, "rb") as fd:
+                            crcNew = zlib.crc32(fd.read())
 
                         if crcOld != crcNew:
                             differences += ["%s's CRC32 changed" % pathOut]
@@ -2719,7 +2713,7 @@ The what argument tells us what sort of state is expected (allowed values are de
                 else:
                     if self.verbose > 1:
                         print("mkdir -p %s" % (dirName), file=utils.stdinfo)
-                    os.makedirs(dirName)
+                    os.makedirs(dirName, exist_ok=True)
 
             if not (os.path.exists(pathOut) and os.path.samefile(fileNameIn, pathOut)):
                 if self.noaction:
@@ -3272,7 +3266,7 @@ The what argument tells us what sort of state is expected (allowed values are de
             if interactive:
                 yn = default_yn
                 while yn != "!":
-                    yn = raw_input("Remove %s %s: (ynq!) [%s] " % (product.name, product.version, default_yn))
+                    yn = input("Remove %s %s: (ynq!) [%s] " % (product.name, product.version, default_yn))
 
                     if yn == "":
                         yn = default_yn
@@ -3724,7 +3718,7 @@ The what argument tells us what sort of state is expected (allowed values are de
 
         self._vro = self.preferredTags  # we should get rid of preferredTags; it's left over from Ray Plante
 
-    # staticmethod;  would use a decorator if we knew we had a new enough python
+    @staticmethod
     def __mergeWarnings(vro):
         """Replace consecutive sequences of warn:X by warn:min (otherwise we may get repeated warnings);
 such sequences can be generated while rewriting the VRO"""
@@ -3755,8 +3749,6 @@ such sequences can be generated while rewriting the VRO"""
                 cleanedVro.append(e)
 
         return cleanedVro
-
-    __mergeWarnings = staticmethod(__mergeWarnings)
 
     def makeVroExact(self):
         """Modify the VRO to support setup --exact even if the table files don't have an
@@ -3822,7 +3814,7 @@ such sequences can be generated while rewriting the VRO"""
 _ClassEups = Eups                       # so we can say, "isinstance(Eups, _ClassEups)"
 
 
-class _TagSet(object):
+class _TagSet:
     def __init__(self, eups, tags):
         self.eups = eups
         self.lu = {}

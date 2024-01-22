@@ -45,8 +45,8 @@ class DeprecatedTestCase(unittest.TestCase):
 
     def testDeprecatedProduct(self):
         prod = Product(Eups(), "newprod", noInit=True)
-        self.assert_(prod is not None)
-        self.assert_(newerr.getvalue().find("deprecated") >= 0)
+        self.assertIsNotNone(prod)
+        self.assertTrue(newerr.getvalue().find("deprecated") >= 0)
 
         self.assertEqual(prod.envarDirName(), "NEWPROD_DIR")
         self.assertEqual(prod.envarSetupName(), "SETUP_NEWPROD")

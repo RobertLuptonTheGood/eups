@@ -33,8 +33,7 @@ class AppTestCase(unittest.TestCase):
         if "SETUP_PYTHON" in os.environ:
             del os.environ["SETUP_PYTHON"]
 
-        self.assertTrue(eups.productDir("python") is None,
-                        "found unsetup product")
+        self.assertIsNone(eups.productDir("python"), "found unsetup product")
 
         pdir = os.path.join(testEupsStack, os.environ["EUPS_FLAVOR"],
                             "python", "2.5.2")
@@ -109,7 +108,7 @@ class TagSetupTestCase(unittest.TestCase):
         # setup the preferred (tagged current) version
         eups.setup("python")
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is not None, "python not setup")
+        self.assertIsNotNone(prod, "python not setup")
         self.assertEqual(prod.version, "2.5.2")
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")
@@ -117,7 +116,7 @@ class TagSetupTestCase(unittest.TestCase):
 
         # check for dependent product
         prod = self.eups.findSetupProduct("tcltk")
-        self.assert_(prod is not None, "tcltk not setup")
+        self.assertIsNotNone(prod, "tcltk not setup")
         self.assertEqual(prod.version, "8.5a4")
         self.assertIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK not set")
         self.assertIn("TCLTK_DIR", os.environ, "TCLTK_DIR not set")
@@ -125,18 +124,18 @@ class TagSetupTestCase(unittest.TestCase):
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is None, "python is still setup")
+        self.assertIsNone(prod, "python is still setup")
         self.assertNotIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON is still set")
         self.assertNotIn("PYTHON_DIR", os.environ, "PYTHON_DIR is still set")
         prod = self.eups.findSetupProduct("tcltk")
-        self.assert_(prod is None, "tcltk is still setup")
+        self.assertIsNone(prod, "tcltk is still setup")
         self.assertNotIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK is still set")
         self.assertNotIn("TCLTK_DIR", os.environ, "TCLTK_DIR is still set")
 
         # set up an explicit version
         eups.setup("python", "2.5.2")
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is not None, "python not setup")
+        self.assertIsNotNone(prod, "python not setup")
         self.assertEqual(prod.version, "2.5.2")
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")
@@ -144,7 +143,7 @@ class TagSetupTestCase(unittest.TestCase):
 
         # check for dependent product
         prod = self.eups.findSetupProduct("tcltk")
-        self.assert_(prod is not None, "tcltk not setup")
+        self.assertIsNotNone(prod, "tcltk not setup")
         self.assertEqual(prod.version, "8.5a4")
         self.assertIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK not set")
         self.assertIn("TCLTK_DIR", os.environ, "TCLTK_DIR not set")
@@ -152,11 +151,11 @@ class TagSetupTestCase(unittest.TestCase):
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is None, "python is still setup")
+        self.assertIsNone(prod, "python is still setup")
         self.assertNotIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON is still set")
         self.assertNotIn("PYTHON_DIR", os.environ, "PYTHON_DIR is still set")
         prod = self.eups.findSetupProduct("tcltk")
-        self.assert_(prod is None, "tcltk is still setup")
+        self.assertIsNone(prod, "tcltk is still setup")
         self.assertNotIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK is still set")
         self.assertNotIn("TCLTK_DIR", os.environ, "TCLTK_DIR is still set")
 
@@ -179,14 +178,14 @@ class TagSetupTestCase(unittest.TestCase):
 setupRequired(python)
 """
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
-                          tablefile=StringIO(newprodtable))
+                          tablefile=StringIO.StringIO(newprodtable))
         self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
-                          tablefile=StringIO(newprodtable), tag="beta")
+                          tablefile=StringIO.StringIO(newprodtable), tag="beta")
         # test the setup
-        self.assert_(self.eups.findProduct("newprod", "1.0") is not None, "newprod 1.0 not declared")
-        self.assert_(self.eups.findProduct("newprod", "2.0") is not None, "newprod 2.0 not declared")
-        self.assert_(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
-        self.assert_(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
+        self.assertIsNotNone(self.eups.findProduct("newprod", "1.0"), "newprod 1.0 not declared")
+        self.assertIsNotNone(self.eups.findProduct("newprod", "2.0"), "newprod 2.0 not declared")
+        self.assertTrue(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
+        self.assertTrue(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
 
         self.assertEqual(len(p for p in self.eups.uses("python") if p[0] == "newprod"), 2,
                           "newprod does not depend on python")
@@ -195,14 +194,14 @@ setupRequired(python)
         eups.setup("newprod", prefTags="beta")
 
         prod = self.eups.findSetupProduct("newprod")
-        self.assert_(prod is not None, "newprod not setup")
+        self.assertIsNotNone(prod, "newprod not setup")
         self.assertEqual(prod.version, "2.0")
         self.assertIn("SETUP_NEWPROD", os.environ, "SETUP_NEWPROD not set")
         self.assertIn("NEWPROD_DIR", os.environ, "NEWPROD_DIR not set")
         self.assertEqual(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is not None, "python not setup")
+        self.assertIsNotNone(prod, "python not setup")
         self.assertEqual(prod.version, "2.5.2")  # tagged current
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")
@@ -210,11 +209,11 @@ setupRequired(python)
 
         eups.unsetup("newprod")
         prod = self.eups.findSetupProduct("newprod")
-        self.assert_(prod is None, "newprod is still setup")
+        self.assertIsNone(prod, "newprod is still setup")
         self.assertNotIn("SETUP_NEWPROD", os.environ, "SETUP_NEWPROD not set")
         self.assertNotIn("NEWPROD_DIR", os.environ, "NEWPROD_DIR not set")
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is None, "python is still setup")
+        self.assertIsNone(prod, "python is still setup")
         self.assertNotIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON is still set")
         self.assertNotIn("PYTHON_DIR", os.environ, "PYTHON_DIR is still set")
 
@@ -223,14 +222,14 @@ setupRequired(python)
         eups.setup("newprod", prefTags="beta")
 
         prod = self.eups.findSetupProduct("newprod")
-        self.assert_(prod is not None, "newprod not setup")
+        self.assertIsNotNone(prod, "newprod not setup")
         self.assertEqual(prod.version, "2.0")
         self.assertIn("SETUP_NEWPROD", os.environ, "SETUP_NEWPROD not set")
         self.assertIn("NEWPROD_DIR", os.environ, "NEWPROD_DIR not set")
         self.assertEqual(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is not None, "python not setup")
+        self.assertIsNotNone(prod, "python not setup")
         self.assertEqual(prod.version, "2.6")  # tagged beta
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")
@@ -256,16 +255,16 @@ setupRequired(python)
 setupRequired(python)
 """
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
-                          tablefile=StringIO(newprodtable), tag="current")
+                          tablefile=StringIO.StringIO(newprodtable), tag="current")
         self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
-                          tablefile=StringIO(newprodtable))
+                          tablefile=StringIO.StringIO(newprodtable))
         self.eups.assignTag("beta", "python", "2.6")
 
         # test the setup
-        self.assert_(self.eups.findProduct("newprod", "1.0") is not None, "newprod 1.0 not declared")
-        self.assert_(self.eups.findProduct("newprod", "2.0") is not None, "newprod 2.0 not declared")
-        self.assert_(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
-        self.assert_(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
+        self.assertIsNotNone(self.eups.findProduct("newprod", "1.0"), "newprod 1.0 not declared")
+        self.assertIsNotNone(self.eups.findProduct("newprod", "2.0"), "newprod 2.0 not declared")
+        self.assertTrue(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
+        self.assertTrue(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
 
         self.assertEqual(len(p for p in self.eups.uses("python") if p[0] == "newprod"), 2,
                           "newprod does not depend on python")
@@ -276,14 +275,14 @@ setupRequired(python)
         del q
 
         prod = self.eups.findSetupProduct("newprod")
-        self.assert_(prod is not None, "newprod not setup")
+        self.assertIsNotNone(prod, "newprod not setup")
         self.assertEqual(prod.version, "1.0")
         self.assertIn("SETUP_NEWPROD", os.environ, "SETUP_NEWPROD not set")
         self.assertIn("NEWPROD_DIR", os.environ, "NEWPROD_DIR not set")
         self.assertEqual(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is not None, "python not setup")
+        self.assertIsNotNone(prod, "python not setup")
         self.assertEqual(prod.version, "2.6")  # tagged beta
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")
@@ -309,18 +308,18 @@ setupRequired(python 2.5.2 [>= 2.5])
         pytdir = pyprod.dir
 
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack,
-                          tablefile=StringIO(newprodtable), tag="current")
+                          tablefile=StringIO.StringIO(newprodtable), tag="current")
         self.eups.declare("newprod", "2.0", pdir20, testEupsStack,
-                          tablefile=StringIO(newprodtable))
+                          tablefile=StringIO.StringIO(newprodtable))
         self.eups.declare("python", "test", pytdir, testEupsStack)
         self.eups.assignTag("rhl", "python", "test")
 
         # test the setup
-        self.assert_(self.eups.findProduct("newprod", "1.0") is not None, "newprod 1.0 not declared")
-        self.assert_(self.eups.findProduct("newprod", "2.0") is not None, "newprod 2.0 not declared")
-        self.assert_(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
-        self.assert_(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
-        self.assert_(self.eups.findProduct("python", "test") is not None, "python test not declared")
+        self.assertIsNotNone(self.eups.findProduct("newprod", "1.0"), "newprod 1.0 not declared")
+        self.assertIsNotNone(self.eups.findProduct("newprod", "2.0"), "newprod 2.0 not declared")
+        self.assertTrue(os.path.exists(ptble10), "Can't find newprod 1.0's table file")
+        self.assertTrue(os.path.exists(ptble20), "Can't find newprod 2.0's table file")
+        self.assertIsNotNone(self.eups.findProduct("python", "test"), "python test not declared")
 
         self.assertEqual(len(p for p in self.eups.uses("python") if p[0] == "newprod"), 2,
                           "newprod does not depend on python")
@@ -331,14 +330,14 @@ setupRequired(python 2.5.2 [>= 2.5])
         del q
 
         prod = self.eups.findSetupProduct("newprod")
-        self.assert_(prod is not None, "newprod not setup")
+        self.assertIsNotNone(prod, "newprod not setup")
         self.assertEqual(prod.version, "1.0")
         self.assertIn("SETUP_NEWPROD", os.environ, "SETUP_NEWPROD not set")
         self.assertIn("NEWPROD_DIR", os.environ, "NEWPROD_DIR not set")
         self.assertEqual(os.environ["NEWPROD_DIR"], pdir20)
 
         prod = self.eups.findSetupProduct("python")
-        self.assert_(prod is not None, "python not setup")
+        self.assertIsNotNone(prod, "python not setup")
         self.assertEqual(prod.version, "test")  # tagged rhl
         self.assertIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON not set")
         self.assertIn("PYTHON_DIR", os.environ, "PYTHON_DIR not set")

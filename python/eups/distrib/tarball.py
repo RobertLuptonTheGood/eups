@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: : a specialization for binary tar-balls
 #
-from __future__ import absolute_import, print_function
 import sys, os, re
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
@@ -42,7 +41,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
 
         self._alwaysExpandTableFiles = False # expand table files after installation
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only if we recognize the
         given distribution identifier
@@ -56,8 +55,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def initServerTree(self, serverDir):
         """initialize the given directory to serve as a package distribution
@@ -135,19 +132,19 @@ DIST_URL = %s
         except Exception as e:
             try:
                 os.unlink(pwdFile)
-            except:
+            except Exception:
                 pass
 
             try:
                 os.unlink(fullTarball)
-            except:
+            except Exception:
                 pass
 
             raise OSError("Failed to write '%s': %s" % (tarball, str(e)))
 
         try:
             os.unlink(pwdFile)
-        except:
+        except Exception:
             pass
 
         self.setGroupPerms(os.path.join(serverDir, tarball))
@@ -219,7 +216,7 @@ DIST_URL = %s
                 pass
 
         if not os.path.exists(unpackDir):
-            os.makedirs(unpackDir)
+            os.makedirs(unpackDir, exist_ok=True)
 
         if self.verbose > 0:
             print("installing %s into %s" % (tarball, unpackDir), file=self.log)
@@ -248,7 +245,7 @@ DIST_URL = %s
             try:                        # "try ... except ... finally" and "with" are too new-fangled to use
                 fd = open(pwdFile)
                 originalDir = fd.readline().strip()
-            except:
+            except Exception:
                 originalDir = None
 
             if originalDir and installDir != originalDir:

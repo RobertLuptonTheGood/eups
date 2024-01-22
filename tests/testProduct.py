@@ -23,10 +23,10 @@ class ProductTestCase(unittest.TestCase):
         self.assertEqual(self.prod.name, "eups")
         self.assertEqual(self.prod.version, "1.0")
         self.assertEqual(self.prod.dir, testEupsStack)
-        self.assert_(self.prod.db is None)
-        self.assert_(self.prod._table is None)
-        self.assert_(self.prod.tablefile is None)
-        self.assert_(self.prod._prodStack is None)
+        self.assertIsNone(self.prod.db)
+        self.assertIsNone(self.prod._table)
+        self.assertIsNone(self.prod.tablefile)
+        self.assertIsNone(self.prod._prodStack)
 
         db = os.path.join(os.environ["PWD"], "ups_db")
         p = Product("eups", "1.0", dir=os.environ["PWD"],
@@ -37,7 +37,7 @@ class ProductTestCase(unittest.TestCase):
         self.assertIn("mine", p.tags)
 
     def testStackRoot(self):
-        self.assert_(self.prod.stackRoot() is None)
+        self.assertIsNone(self.prod.stackRoot())
         self.prod.db = os.path.join(self.prod.dir, "ups_db")
         self.assertEqual(self.prod.stackRoot(), self.prod.dir)
 
@@ -46,20 +46,20 @@ class ProductTestCase(unittest.TestCase):
         self.assertEqual(path, os.path.join(testEupsStack,"ups","eups.table"))
 
         self.prod.tablefile = "none"
-        self.assert_(self.prod.tableFileName() is None)
+        self.assertIsNone(self.prod.tableFileName())
 
         self.prod.tablefile = "/tmp/eups.table"
         self.assertEqual(self.prod.tableFileName(), "/tmp/eups.table")
 
     def testTableFileName2(self):
         self.prod.name = None
-        self.assert_(self.prod.tableFileName() is None)
+        self.assertIsNone(self.prod.tableFileName())
 
     def testTableFileName3(self):
         self.prod.dir = None
-        self.assert_(self.prod.tableFileName() is None)
+        self.assertIsNone(self.prod.tableFileName())
         self.prod.dir = "none"
-        self.assert_(self.prod.tableFileName() is None)
+        self.assertIsNone(self.prod.tableFileName())
 
     def testGetTable(self):
         self.assertRaises(TableFileNotFound, self.prod.getTable)
@@ -85,8 +85,8 @@ class ProductTransformationTestCase(unittest.TestCase):
 
         self.assertEqual(prod.dir, pdir)
         self.assertEqual(prod.db, self.dbpath)
-        self.assert_(prod.ups_dir is None)
-        self.assert_(prod.tablefile is None)
+        self.assertIsNone(prod.ups_dir)
+        self.assertIsNone(prod.tablefile)
         self.assertEqual(prod.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
@@ -94,8 +94,8 @@ class ProductTransformationTestCase(unittest.TestCase):
         clone = prod.clone()
         self.assertEqual(clone.dir, pdir)
         self.assertEqual(clone.db, self.dbpath)
-        self.assert_(clone.ups_dir is None)
-        self.assert_(clone.tablefile is None)
+        self.assertIsNone(clone.ups_dir)
+        self.assertIsNone(clone.tablefile)
         self.assertEqual(clone.tableFileName(),
                           os.path.join(pdir,"ups",pname+".table"))
 
@@ -162,7 +162,7 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEqual(prod.db, self.dbpath)
         self.assertEqual(prod.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
-        self.assert_(prod.ups_dir is None)
+        self.assertIsNone(prod.ups_dir)
         self.assertEqual(prod.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
@@ -172,7 +172,7 @@ class ProductTransformationTestCase(unittest.TestCase):
         self.assertEqual(clone.db, self.dbpath)
         self.assertEqual(clone.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
-        self.assert_(clone.ups_dir is None)
+        self.assertIsNone(clone.ups_dir)
         self.assertEqual(clone.tableFileName(),
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
 
@@ -180,7 +180,7 @@ class ProductTransformationTestCase(unittest.TestCase):
         prod.resolvePaths()
         self.assertEqual(prod.dir, pdir)
         self.assertEqual(prod.db, self.dbpath)
-        self.assert_(prod.ups_dir is None)
+        self.assertIsNone(prod.ups_dir)
         self.assertEqual(prod.tablefile,
                           os.path.join(self.dbpath,"newprod/Linux/2.0.table"))
         self.assertEqual(prod.tableFileName(),

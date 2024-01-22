@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package
 #
-from __future__ import absolute_import, print_function
 import os
 import re
 
@@ -15,7 +14,7 @@ from .VersionParser import VersionParser
 from . import utils
 from . import hooks
 
-class Table(object):
+class Table:
     """A class that represents a eups table file"""
 
     def __init__(self, tableFile, topProduct=None, addDefaultProduct=None, verbose=0):
@@ -259,7 +258,7 @@ but no other interpretation is applied
 
         try:
             fd = open(tableFile)
-        except IOError as e:
+        except OSError as e:
             raise TableError(tableFile, msg=str(e))
 
         contents = fd.readlines()
@@ -706,7 +705,7 @@ but no other interpretation is applied
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-class Action(object):
+class Action:
     """
     An action in a table file
 
@@ -1442,7 +1441,7 @@ def expandTableFile(Eups, ofd, ifd, productList, versionRegexp=None, force=False
         if recurse:
             try:
                 NVOL += eups.getDependencies(productName, version, Eups, setup=True, shouldRaise=True)
-            except:
+            except Exception:
                 if not optional:
                     if not force:
                         raise

@@ -2,7 +2,6 @@
 #
 # The EUPS setup programme
 #
-from __future__ import print_function
 import sys, os, re
 
 sys.argv[0] = "eups"

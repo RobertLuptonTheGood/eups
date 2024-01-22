@@ -2,7 +2,6 @@
 the Repositories class -- a set of distribution servers from which
 distribution packages can be received and installed.
 """
-from __future__ import absolute_import, print_function
 import sys
 import os
 import re
@@ -19,7 +18,7 @@ from .DistribFactory import DistribFactory
 from .server         import Manifest, ServerError, RemoteFileInvalid
 import eups.hooks as hooks
 
-class Repositories(object):
+class Repositories:
 
     DEPS_NONE = 0
     DEPS_ALL  = 1
@@ -773,7 +772,7 @@ class Repositories(object):
                     print(pkgroot, file=fd)
                 finally:
                     fd.close()
-            except:
+            except Exception:
                 if self.verbose >= 0:
                     print("Warning: Failed to write distID to %s: %s" % (file, traceback.format_exc(0)), file=self.log)
 
@@ -859,7 +858,7 @@ class Repositories(object):
                     tablefile = open(tablefile, "r")
                 else:
                     if upsdir and not os.path.exists(upsdir):
-                        os.makedirs(upsdir)
+                        os.makedirs(upsdir, exist_ok=True)
                     tablefile = \
                               repos.distServer.getFileForProduct(mprod.tablefile,
                                                                  mprod.product,
@@ -909,7 +908,7 @@ class Repositories(object):
         # Can we write to that directory?
         #
         try:
-            os.makedirs(buildRoot)      # make sure it exists if we have the power to do so
+            os.makedirs(buildRoot, exist_ok=True)  # make sure it exists if we have the power to do so
         except OSError:                 # already exists, or failed; we don't care which
             pass
 
@@ -927,7 +926,7 @@ class Repositories(object):
                     buildRoot = bd
                 else:
                     try:
-                        os.makedirs(bd)
+                        os.makedirs(bd, exist_ok=True)
                     except Exception as e:
                         pass
                     else:
@@ -954,7 +953,7 @@ class Repositories(object):
         """
         dir = self.getBuildDirFor(productRoot, product, version, options, flavor)
         if not os.path.exists(dir):
-            os.makedirs(dir)
+            os.makedirs(dir, exist_ok=True)
         return dir
 
     def cleanBuildDirFor(self, productRoot, product, version, options=None,

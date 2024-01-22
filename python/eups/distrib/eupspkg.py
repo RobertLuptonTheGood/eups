@@ -670,7 +670,6 @@ r"""
 
 """
 
-from __future__ import absolute_import, print_function
 import sys, os, shutil, tempfile, shlex, stat
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
@@ -705,7 +704,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
         knownopts = set(['config', 'nobuild', 'noclean', 'noaction', 'exact', 'allowIncomplete', 'buildDir', 'noeups', 'installCurrent']);
         self.qopts = " ".join( "%s=%s" % (k.upper(), shlex.quote(str(v))) for k, v in self.options.items() if k not in knownopts )
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -719,8 +718,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID[len(prefix):]
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def initServerTree(self, serverDir):
         """initialize the given directory to serve as a package distribution
@@ -747,7 +744,7 @@ TAGLIST_DIR = tags
         # Create the tags storage directory
         tagsDir = os.path.join(serverDir, 'tags')
         if not os.path.exists(tagsDir):
-                os.mkdir(tagsDir)
+                os.makedirs(tagsDir, exist_ok=True)
 
 
     def getTaggedReleasePath(self, tag, flavor=None):
@@ -833,8 +830,8 @@ TAGLIST_DIR = tags
             productsDir = os.path.join(serverDir, "products")
             if not os.path.isdir(productsDir):
                 try:
-                    os.makedirs(productsDir)
-                except:
+                    os.makedirs(productsDir, exist_ok=True)
+                except Exception:
                     raise RuntimeError("Failed to create %s" % (productsDir))
 
             tfn = os.path.join(productsDir, "%s-%s.eupspkg" % (product, version))
@@ -1071,7 +1068,7 @@ setup --type=build -k -r .
                 try:
                     print("\n\n***** error: from %s:" % logfile, file=self.log)
                     eupsServer.system("tail -20 %s 1>&2" % q(logfile))
-                except:
+                except Exception:
                     pass
             raise RuntimeError("Failed to build %s: %s" % (pkg, str(e)))
 

@@ -1,9 +1,5 @@
-from __future__ import absolute_import, print_function
 import re, os, sys
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 from eups import utils
 from eups import Product
 from .ProductFamily import ProductFamily
@@ -25,7 +21,7 @@ userPrefix = "user:"
 dotre = re.compile(r'\.')
 who = utils.getUserName()
 
-class ProductStack(object):
+class ProductStack:
     """
     a lookup for products installed into a software "stack" managed by
     EUPS via a single ups_db database.
@@ -75,7 +71,7 @@ class ProductStack(object):
             raise RuntimeError("Empty/None given as EUPS database path: " +
                                str(dbpath))
         if not os.path.exists(self.dbpath):
-            raise IOError(dbpath + ": EUPS database directory not found")
+            raise OSError(dbpath + ": EUPS database directory not found")
 
         # a hierarchical dictionary for looking up products.  The dimensions
         # of the hierarchy (from left to right, general to specific) are:
@@ -104,7 +100,7 @@ class ProductStack(object):
         self.persistDir = persistDir
         if self.persistDir is not None and self.autosave and \
            not os.path.exists(self.persistDir):
-              os.makedirs(self.persistDir)
+              os.makedirs(self.persistDir, exist_ok=True)
               # raise IOError("Directory not found: " + self.persistDir)
 
         # user tag assignments stored a hierarchical dictionary.  The
@@ -219,10 +215,9 @@ class ProductStack(object):
         except KeyError:
             raise ProductNotFound(name, version, flavor)
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def persistFilename(flavor):
         return "%s.%s" % (flavor, ProductStack.persistFileExt)
-    persistFilename = staticmethod(persistFilename)  # works since python 2.2
 
     def save(self, flavors=None, dir=None):
         """
@@ -299,7 +294,7 @@ class ProductStack(object):
             dir = self.persistDir
             if not dir:
                 dir = self.dbpath
-            file = os.path.join(dir, persistFilename(flavor))
+            file = os.path.join(dir, self.persistFilename(flavor))
 
         if flavor not in self.lookup:
             self.lookup[flavor] = {}
@@ -743,7 +738,7 @@ class ProductStack(object):
                 self.assignTag(tag, pname, version, flavor)
 
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def fromDatabase(dbpath, persistDir=None, userTagDir=None, autosave=True):
         """
         return a ProductStack that has all products loaded in from an EUPS
@@ -759,9 +754,8 @@ class ProductStack(object):
         out = ProductStack(dbpath, persistDir, autosave)
         out.refreshFromDatabase(userTagDir)
         return out
-    fromDatabase = staticmethod(fromDatabase)    # works since python2.2
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def fromCache(dbpath, flavors, persistDir=None, userTagDir=None,
                   updateCache=True, autosave=True, verbose=0):
         """
@@ -812,8 +806,6 @@ class ProductStack(object):
 
         out.autosave = autosave
         return out
-
-    fromCache = staticmethod(fromCache)    # works since python2.2
 
     def _tryCache(self, dbpath, cacheDir, flavors, verbose=0):
         if not cacheDir or not os.path.exists(cacheDir):

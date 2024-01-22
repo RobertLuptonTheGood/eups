@@ -357,7 +357,7 @@ tcltk                 8.5a4      \tcurrent
     def testDistrib(self):
         cmd = eups.cmd.EupsCmd(args="distrib".split(), toolname=prog)
         self.assertNotEqual(cmd.run(), 0)
-        self.assertNotEquals(self.err.getvalue(), "")
+        self.assertNotEqual(self.err.getvalue(), "")
 
 import eups.setupcmd
 
@@ -403,7 +403,7 @@ class SetupCmdTestCase(unittest.TestCase):
         self.assertEqual(cmd.run(), 0)
 
 
-class Stdout(object):
+class Stdout:
 
     def __init__(self, newstdout=None):
         self.oldstdout = sys.stdout

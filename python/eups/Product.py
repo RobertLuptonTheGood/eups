@@ -1,11 +1,8 @@
 # from Table import *
-from __future__ import absolute_import, print_function
 import os
 import re
-try:
-    from configparser import ConfigParser
-except ImportError:
-    from ConfigParser import ConfigParser
+from configparser import ConfigParser
+
 from . import table as mod_table
 from . import utils
 from .exceptions import ProductNotFound, TableFileNotFound
@@ -16,7 +13,7 @@ macrore = { "PROD_ROOT": re.compile(r"^\$PROD_ROOT\b"),
             "UPS_DIR":   re.compile(r"^\$UPS_DIR\b"),
             "UPS_DB":    re.compile(r"^\$UPS_DB\b")     }
 
-class Product(object):
+class Product:
     """
     a description of a Product as stored in the stack database.
 
@@ -464,7 +461,7 @@ class Product(object):
         return config
 
     # this replaces from initFromDirectory()
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def createLocal(productName, productDir, flavor=None, checkForTable=True, tablefile=None):
         localDir = Product._decode_dir(productDir)
         if localDir:
@@ -482,8 +479,6 @@ class Product(object):
             if not os.path.exists(out.tablefile):
                 out.tablefile = "none"
         return out
-    createLocal = staticmethod(createLocal)  # should work as of python 2.2
-
 
     def envarDirName(self):
         return utils.dirEnvNameFor(self.name)

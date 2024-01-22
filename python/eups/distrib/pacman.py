@@ -4,7 +4,6 @@
 # Export a product and its dependencies as a package, or install a
 # product from a package: a specialization for Pacman
 #
-from __future__ import print_function
 import sys, os
 from . import Distrib as eupsDistrib
 from . import server as eupsServer
@@ -43,7 +42,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 self.distServer is not None:
             self.options['pacmanCache'] = self.distServer.base + "/pm"
 
-    # @staticmethod   # requires python 2.4
+    @staticmethod
     def parseDistID(distID):
         """Return a valid package location if and only we recognize the
         given distribution identifier
@@ -57,8 +56,6 @@ class Distrib(eupsDistrib.DefaultDistrib):
                 return distID[len(prefix):]
 
         return None
-
-    parseDistID = staticmethod(parseDistID)  # should work as of python 2.2
 
     def checkInit(self, forserver=True):
         """Check that self is properly initialised; this matters for subclasses
@@ -207,7 +204,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
            pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit
         """
         if not os.path.isdir(pacmanDir):
-            os.mkdir(pacmanDir)
+            os.makedirs(pacmanDir, exist_ok=True)
 
     def cleanPackage(self, product, version, productRoot, location):
         """remove any distribution-specific remnants of a package installation.

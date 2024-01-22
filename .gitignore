@@ -30,6 +30,6 @@ bin/setups.zsh
 TAGS
 autom4te.cache
 eups_impl.py
-eups
+bin/eups
 bin/eups_setup
 bin/eups_setup_impl.py
