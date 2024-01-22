@@ -178,21 +178,6 @@ class VersionFile:
 
         return out
 
-    def _resolve(self, value, data, skip=None):
-        if not value: return value
-
-        dosub = list(data.keys())
-        if skip:
-            if eups.utils.is_string(skip):
-                skip = skip.split()
-            dosub = [n for n in dosub if n not in skip]
-
-        for name in dosub:
-            if name in macrore and data[name]:
-                value = macrore[name].sub(data[name], value)
-
-        return value
-
     def makeProducts(self):
         """
         return Product instances for all of the flavors declared in the file.
@@ -528,6 +513,3 @@ Group:
         print("End:", file=fd)
 
         fd.close()
-
-
-
