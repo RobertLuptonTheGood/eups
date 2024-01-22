@@ -20,12 +20,12 @@ class TagsTestCase(unittest.TestCase):
         self.assertTrue(self.tags.isRecognized("stable"), "stable not recognized")
         self.assertTrue(self.tags.isRecognized("global:stable"),
                      "global:stable not recognized")
-        self.assertTrue(not self.tags.isRecognized("user:stable"),
+        self.assertFalse(self.tags.isRecognized("user:stable"),
                      "stable recognized as user tag")
         self.assertTrue(self.tags.isRecognized("rlp"), "rlp not recognized")
         self.assertTrue(self.tags.isRecognized("user:rlp"),
                      "user:rlp not recognized")
-        self.assertTrue(not self.tags.isRecognized("global:rlp"),
+        self.assertFalse(self.tags.isRecognized("global:rlp"),
                      "rlp recognized as global tag")
 
     def testGroupFor(self):
@@ -91,7 +91,7 @@ class TagsTestCase(unittest.TestCase):
     def testSaveLoad(self):
         file = os.path.join(testEupsStack, "ups_db", "test.tags")
         if os.path.exists(file):  os.remove(file)
-        self.assertTrue(not os.path.exists(file))
+        self.assertFalse(os.path.exists(file))
 
         try:
             self.tags.registerTag("current")
@@ -117,7 +117,7 @@ class TagsTestCase(unittest.TestCase):
         self.assertEqual(len(self.tags.getTagNames()), 2)
         self.tags.loadUserTags(dir)
         self.assertEqual(len(self.tags.getTagNames()), 2)
-        self.assertTrue(not os.path.exists(file))
+        self.assertFalse(os.path.exists(file))
 
         try:
             self.tags.saveUserTags(dir)

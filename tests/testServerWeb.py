@@ -30,7 +30,7 @@ class WebTransporterTestCase(unittest.TestCase):
 
         trx = WebTransporter(loc)
         self.assertRaises(RemoteFileNotFound, trx.cacheToFile, localfile)
-        self.assertTrue(not os.path.exists(localfile))
+        self.assertFalse(os.path.exists(localfile))
 
         loc = self.base+"s2/config.txt"
         trx = WebTransporter(loc)

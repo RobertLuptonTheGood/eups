@@ -20,13 +20,13 @@ class LocalTransporterTestCase(unittest.TestCase):
     def testGenericTransporter(self):
         loc = self.base+"s1/config.txt"
         localfile = "/tmp/eupstest-config.txt"
-        self.assertTrue(not Transporter.canHandle(loc))
+        self.assertFalse(Transporter.canHandle(loc))
         if os.path.exists(localfile):
             os.remove(localfile)
         trx = Transporter(loc)
         self.assertRaises(Exception, trx.listDir)
         self.assertRaises(Exception, trx.cacheToFile, localfile)
-        self.assertTrue(not os.path.exists(localfile))
+        self.assertFalse(os.path.exists(localfile))
         self.assertRaises(Exception, trx.listDir)
 
     def testLocalTransporter(self):
@@ -39,7 +39,7 @@ class LocalTransporterTestCase(unittest.TestCase):
 
         trx = LocalTransporter(loc)
 #        self.assertRaises(RemoteFileNotFound, trx.cacheToFile, localfile)
-        self.assertTrue(not os.path.exists(localfile))
+        self.assertFalse(os.path.exists(localfile))
 
         loc = os.path.join(base,"s2","config.txt")
         trx = LocalTransporter(loc)

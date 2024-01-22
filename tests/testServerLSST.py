@@ -141,7 +141,7 @@ class LsstRepositoryTestCase(unittest.TestCase):
         self.assertTrue(self.repos.distServer, DistribServer)
 
     def testIsWritable(self):
-        self.assertTrue(not self.repos.isWritable())
+        self.assertFalse(self.repos.isWritable())
 
     def testGetManifest(self):
         man = self.repos.getManifest("doxygen", "1.5.9", "generic")
@@ -350,16 +350,16 @@ class LsstCmdTestCase(unittest.TestCase):
         cmd = "distrib clean lssteups 1.1 -r " + self.lsstroot
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
-        self.assertTrue(not os.path.exists(bdir), "%s still exists" % bdir)
+        self.assertFalse(os.path.exists(bdir), "%s still exists" % bdir)
 
         cmd = "distrib clean lssteups 1.1 -q -R -r " + self.lsstroot
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
         self.assertEqual(cmd.run(), 0)
-        self.assertTrue(not os.path.exists(bdir), "%s still exists" % bdir)
+        self.assertFalse(os.path.exists(bdir), "%s still exists" % bdir)
 
         prod = Eups().findProduct("lssteups")
         self.assertIsNone(prod)
-        self.assertTrue(not os.path.exists(pdir))
+        self.assertFalse(os.path.exists(pdir))
 
 
 __all__ = "LsstConfigFileTestCase LsstServerConfTestCase LsstDistribServerTestCase LsstRepositoryTestCase LsstRepositoriesTestCase".split()

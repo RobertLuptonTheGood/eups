@@ -232,7 +232,7 @@ class EupsTestCase(unittest.TestCase):
 
         # test unassign, specifying version
         self.eups.unassignTag("beta", "python", "2.6")
-        self.assertTrue(not os.path.exists(self.betachain),
+        self.assertFalse(os.path.exists(self.betachain),
                      "Failed to remove beta tag file for python")
 
         # test unassign to any version
@@ -240,7 +240,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertTrue(os.path.exists(self.betachain),
                      "Failed to create beta tag file for python")
         self.eups.unassignTag("beta", "python")
-        self.assertTrue(not os.path.exists(self.betachain),
+        self.assertFalse(os.path.exists(self.betachain),
                      "Failed to remove beta tag file for python")
         prod = self.eups.findProduct("python", self.eups.tags.getTag("beta"))
         self.assertIsNone(prod, "Failed to untag beta from %s" % prod)
@@ -274,7 +274,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertIsNone(prod, "Found undeclared product")
         prod = self.eups.findProduct("newprod", noCache=True)
         self.assertIsNone(prod, "Found undeclared product")
-        self.assertTrue(not os.path.exists(os.path.join(self.dbpath,
+        self.assertFalse(os.path.exists(os.path.join(self.dbpath,
                                                      "newprod", "1.0.version")))
 
         # test declaring with tag (+ without eupsPathDir)
@@ -338,7 +338,7 @@ class EupsTestCase(unittest.TestCase):
 
         # test unassign of tag via undeclare
         self.eups.undeclare("newprod", "1.0", tag="current")
-        self.assertTrue(not os.path.exists(chainfile))
+        self.assertFalse(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assertIsNotNone(prod, "Unintentionally undeclared product")
         self.assertEqual(len(prod.tags), 0)
@@ -352,7 +352,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "current")
         self.eups.undeclare("newprod", "1.0", undeclareCurrent=True)
-        self.assertTrue(not os.path.exists(chainfile))
+        self.assertFalse(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assertIsNotNone(prod, "Unintentionally undeclared product")
         self.assertEqual(len(prod.tags), 0)
@@ -365,7 +365,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "current")
         self.eups.undeclare("newprod", "1.0", testEupsStack, True)
-        self.assertTrue(not os.path.exists(chainfile))
+        self.assertFalse(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
         self.assertIsNotNone(prod, "Unintentionally undeclared product")
         self.assertEqual(len(prod.tags), 0)
@@ -374,7 +374,7 @@ class EupsTestCase(unittest.TestCase):
         # test undeclare of tagged product
         self.eups.undeclare("newprod", "1.1")
         chainfile = os.path.join(self.dbpath, "newprod", "beta.chain")
-        self.assertTrue(not os.path.exists(chainfile),
+        self.assertFalse(os.path.exists(chainfile),
                      "undeclared tag file still exists")
         prod = self.eups.findTaggedProduct("newprod", "beta")
         self.assertIsNone(prod, "removed tag still assigned")
@@ -383,7 +383,7 @@ class EupsTestCase(unittest.TestCase):
 
 #       needs listProducts()
         self.eups.undeclare("newprod")
-        self.assertTrue(not os.path.exists(os.path.join(self.dbpath,"newprod")),
+        self.assertFalse(os.path.exists(os.path.join(self.dbpath,"newprod")),
                      "product not fully removed")
 
     def testDeclareStdinTable(self):
@@ -526,9 +526,9 @@ class EupsTestCase(unittest.TestCase):
 #        self.eups.verbose=1
 #        self.eups.remove("newprod", "2.0", False, interactive=True)
         self.eups.remove("newprod", "2.0", False)
-        self.assertTrue(not os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")),
+        self.assertFalse(os.path.exists(os.path.join(self.dbpath,"newprod","2.0.version")),
                      "Failed to undeclare newprod")
-        self.assertTrue(not os.path.exists(pdir20), "Failed to remove newprod")
+        self.assertFalse(os.path.exists(pdir20), "Failed to remove newprod")
 
         # need to test for recursion
 

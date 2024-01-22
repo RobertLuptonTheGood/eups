@@ -618,10 +618,10 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertTrue(self.db.isDeclared("doxygen", "1.5.9", "Linux64"))
         self.assertTrue(self.db.isDeclared("doxygen", flavor="Linux64"))
         self.assertTrue(self.db.isDeclared("doxygen", flavor="Linux"))
-        self.assertTrue(not self.db.isDeclared("goober"))
-        self.assertTrue(not self.db.isDeclared("goober", "1.0"))
-        self.assertTrue(not self.db.isDeclared("doxygen", "1.5.10"))
-        self.assertTrue(not self.db.isDeclared("doxygen", "1.5.9", "Linux"))
+        self.assertFalse(self.db.isDeclared("goober"))
+        self.assertFalse(self.db.isDeclared("goober", "1.0"))
+        self.assertFalse(self.db.isDeclared("doxygen", "1.5.10"))
+        self.assertFalse(self.db.isDeclared("doxygen", "1.5.9", "Linux"))
 
     def testUserTag(self):
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
@@ -648,7 +648,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.db.unassignTag("user:my", "python")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
         self.assertIsNone(vers)
-        self.assertTrue(not os.path.exists(os.path.join(self.userdb,
+        self.assertFalse(os.path.exists(os.path.join(self.userdb,
                                                      "python","my.chain")))
 
     def testAssignTag(self):
@@ -675,7 +675,7 @@ class DatabaseTestCase(unittest.TestCase):
                                                        "Linux"),
                               ("python", "2.6"))
             self.db.unassignTag("stable", "python", "Linux")
-            self.assertTrue(not os.path.exists(tfile))
+            self.assertFalse(os.path.exists(tfile))
         except Exception:
             if os.path.exists(tfile): os.remove(tfile)
             raise
@@ -708,7 +708,7 @@ class DatabaseTestCase(unittest.TestCase):
                               None)
             self.db.assignTag("beta", "doxygen", "1.5.7.1")
             self.db.unassignTag("beta", "doxygen")
-            self.assertTrue(not os.path.exists(tfile))
+            self.assertFalse(os.path.exists(tfile))
         except Exception:
             if os.path.exists(tfile):  os.remove(tfile)
             raise
@@ -724,7 +724,7 @@ class DatabaseTestCase(unittest.TestCase):
                     os.remove(f)
             os.removedirs(pdir)
         try:
-            self.assertTrue(not os.path.exists(pdir))
+            self.assertFalse(os.path.exists(pdir))
             baseidir = os.path.join(testEupsStack,"Linux/base/1.0")
             base = Product("base", "1.0", "Linux", baseidir,
                            os.path.join(baseidir, "ups/base.table"),
@@ -763,19 +763,19 @@ class DatabaseTestCase(unittest.TestCase):
             self.db.undeclare(base)
             self.assertEqual(self.db.findProduct("base","1.0","Linux"), None)
             self.assertEqual(len(self.db.findProducts("base")), 2)
-            self.assertTrue(not os.path.exists(os.path.join(pdir,"1.0.version")))
+            self.assertFalse(os.path.exists(os.path.join(pdir,"1.0.version")))
 
             self.db.undeclare(base3)
             self.assertEqual(self.db.findProduct("base","3.0","Linux"), None)
             self.assertEqual(len(self.db.findProducts("base")), 1)
-            self.assertTrue(not os.path.exists(os.path.join(pdir,"3.0.version")))
+            self.assertFalse(os.path.exists(os.path.join(pdir,"3.0.version")))
             self.assertEqual(self.db.getTaggedVersion("current", "base",
                                                        "Linux")[1],
                               None)
-            self.assertTrue(not os.path.exists(os.path.join(pdir,"current.chain")))
+            self.assertFalse(os.path.exists(os.path.join(pdir,"current.chain")))
             self.db.undeclare(base2)
             self.assertEqual(len(self.db.findProducts("base")), 0)
-            self.assertTrue(not os.path.exists(pdir))
+            self.assertFalse(os.path.exists(pdir))
 
         except Exception:
             if False:
