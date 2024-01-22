@@ -6,7 +6,6 @@ be critical (e.g. to patch up os/x's SIP protection)
 """
 
 from distutils.spawn import find_executable
-import io
 import locale
 import mmap
 import re

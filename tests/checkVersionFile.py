@@ -5,14 +5,11 @@ Check a Version file for parsability and macro substitution
 
 import os
 import sys
-import shutil
 import re
 import unittest
-import time
 from optparse import OptionParser
 import testCommon
 
-from eups import ProductNotFound, Product
 from eups.db import VersionFile
 
 defaultFile = os.path.join(testCommon.testEupsStack, "fw.version")

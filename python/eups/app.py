@@ -15,7 +15,7 @@ from .VersionParser  import VersionParser
 from .stack          import ProductStack, persistVersionName as cacheVersion
 from . import utils, table, hooks
 from .exceptions import EupsException
-from .utils import cmp_or_key, cmp
+from .utils import cmp_or_key
 
 def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                   tags=None, setup=False, tablefile=False, directory=False,

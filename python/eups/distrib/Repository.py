@@ -5,7 +5,7 @@ installing and deploying distribution packages.
 import sys
 import eups
 from eups.tags      import Tag, TagNotRecognized
-from eups.utils     import Flavor, isDbWritable, cmp_or_key, xrange, is_string
+from eups.utils     import Flavor, isDbWritable, cmp_or_key, is_string
 from eups.exceptions import EupsException, ProductNotFound
 from .server         import ServerConf, Manifest, Mapping, TaggedProductList
 from .server         import LocalTransporter
