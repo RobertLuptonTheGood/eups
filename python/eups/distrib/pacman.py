@@ -204,7 +204,7 @@ class Distrib(eupsDistrib.DefaultDistrib):
            pacman -install http://dev.lsstcorp.org/pkgs/pm:LSSTinit
         """
         if not os.path.isdir(pacmanDir):
-            os.mkdir(pacmanDir)
+            os.makedirs(pacmanDir, exist_ok=True)
 
     def cleanPackage(self, product, version, productRoot, location):
         """remove any distribution-specific remnants of a package installation.

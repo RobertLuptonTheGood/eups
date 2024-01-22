@@ -458,7 +458,7 @@ class _Database:
 
         # seal the deal
         if not os.path.exists(pdir):
-            os.mkdir(pdir)
+            os.makedirs(pdir, exist_ok=True)
 
         if prod.dir:
             trimDir = prod.stackRoot()
@@ -725,5 +725,3 @@ def _cmp_str(a, b):
     if a < b:  return -1
     if a > b:  return 1
     return 0
-
-

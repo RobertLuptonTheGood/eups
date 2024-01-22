@@ -564,7 +564,7 @@ def createTempDir(path):
             dir = os.path.join(dir, d)
 
             if not os.path.isdir(dir):
-                os.mkdir(dir)
+                os.makedirs(dir, exist_ok=True)
                 os.chmod(dir, 0o777)
 
     return path

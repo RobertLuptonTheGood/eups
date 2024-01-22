@@ -744,7 +744,7 @@ TAGLIST_DIR = tags
         # Create the tags storage directory
         tagsDir = os.path.join(serverDir, 'tags')
         if not os.path.exists(tagsDir):
-                os.mkdir(tagsDir)
+                os.makedirs(tagsDir, exist_ok=True)
 
 
     def getTaggedReleasePath(self, tag, flavor=None):
