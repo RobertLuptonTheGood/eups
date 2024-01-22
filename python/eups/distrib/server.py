@@ -2355,7 +2355,7 @@ def importClass(classname):
 def system(cmd, noaction=False, verbosity=0, log=sys.stderr):
     """Run BASH shell commands in a EUPS-aware environment.  This will make
     sure the EUPS environment is properly setup before running the commands.
-    The currently environment is passed in except:
+    The current environment is passed in except:
       o  the SHELL environment is set to /bin/bash
       o  the BASH_ENV environment is set to setup EUPS
       o  the setting up of EUPS will tweak EUPS_PATH & PYTHONPATH (in good ways).
