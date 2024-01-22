@@ -85,7 +85,7 @@ class ProductFamilyTestCase(unittest.TestCase):
         p = prods["3.1"]
         self.assertEqual(p.name, "magnum")
         self.assertEqual(p.flavor, "Linux")
-        self.assertTrue(p.db is None)
+        self.assertIsNone(p.db)
         self.assertEqual(len(p.tags), 2)
         self.assertIn("current", p.tags)
         p.name = "helpful"
@@ -101,7 +101,7 @@ class ProductFamilyTestCase(unittest.TestCase):
         prod = self.fam.getProduct("3.1")
         self.assertIsNotNone(prod.tablefile)
         self.assertTrue(os.path.exists(prod.tablefile))
-        self.assertTrue(prod._table is None)
+        self.assertIsNone(prod._table)
         self.fam.loadTableFor("3.1")
         prod = self.fam.getProduct("3.1")
         self.assertIsNotNone(prod._table)
@@ -112,7 +112,7 @@ class ProductFamilyTestCase(unittest.TestCase):
         prod = self.fam.getProduct("3.1")
         self.assertIsNotNone(prod.tablefile)
         self.assertTrue(os.path.exists(prod.tablefile))
-        self.assertTrue(prod._table is None)
+        self.assertIsNone(prod._table)
         self.fam.loadTableFor("3.1")
 
         self.fam.loadTables()
@@ -295,7 +295,7 @@ class ProductStackTestCase(unittest.TestCase):
         self.assertEqual(tags[0], "beta")
         self.assertEqual(tags[1], "current")
         prod = self.stack.getTaggedProduct("afw", "Linux", "stable")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
         prod = self.stack.getTaggedProduct("afw", "Linux", "beta")
         self.assertEqual(prod.version, "1.2")
         self.assertEqual(prod.flavor, "Linux")
@@ -401,7 +401,7 @@ class ProductStackTestCase(unittest.TestCase):
 
         self.stack.loadTables(flavors="Linux")
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertTrue(prod._table is None)
+        self.assertIsNone(prod._table)
 
         self.stack.loadTables(flavors="Darwin")
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
@@ -415,7 +415,7 @@ class ProductStackTestCase(unittest.TestCase):
 
         self.stack.loadTables("newprod")
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertTrue(prod._table is None)
+        self.assertIsNone(prod._table)
 
         self.stack.loadTables("afw")
         prod = self.stack.getProduct("afw", "1.2", "Darwin")

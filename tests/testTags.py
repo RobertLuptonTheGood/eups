@@ -31,7 +31,7 @@ class TagsTestCase(unittest.TestCase):
     def testGroupFor(self):
         self.assertEqual(self.tags.groupFor("stable"), Tags.global_)
         self.assertEqual(self.tags.groupFor("rlp"), Tags.user)
-        self.assertTrue(self.tags.groupFor("goober") is None,
+        self.assertIsNone(self.tags.groupFor("goober"),
                      "Found group for undefined tag")
 
     def testTagNames(self):

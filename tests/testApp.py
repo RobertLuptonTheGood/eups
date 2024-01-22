@@ -33,8 +33,7 @@ class AppTestCase(unittest.TestCase):
         if "SETUP_PYTHON" in os.environ:
             del os.environ["SETUP_PYTHON"]
 
-        self.assertTrue(eups.productDir("python") is None,
-                        "found unsetup product")
+        self.assertIsNone(eups.productDir("python"), "found unsetup product")
 
         pdir = os.path.join(testEupsStack, os.environ["EUPS_FLAVOR"],
                             "python", "2.5.2")
@@ -125,11 +124,11 @@ class TagSetupTestCase(unittest.TestCase):
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
-        self.assertTrue(prod is None, "python is still setup")
+        self.assertIsNone(prod, "python is still setup")
         self.assertNotIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON is still set")
         self.assertNotIn("PYTHON_DIR", os.environ, "PYTHON_DIR is still set")
         prod = self.eups.findSetupProduct("tcltk")
-        self.assertTrue(prod is None, "tcltk is still setup")
+        self.assertIsNone(prod, "tcltk is still setup")
         self.assertNotIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK is still set")
         self.assertNotIn("TCLTK_DIR", os.environ, "TCLTK_DIR is still set")
 
@@ -152,11 +151,11 @@ class TagSetupTestCase(unittest.TestCase):
 
         eups.unsetup("python")
         prod = self.eups.findSetupProduct("python")
-        self.assertTrue(prod is None, "python is still setup")
+        self.assertIsNone(prod, "python is still setup")
         self.assertNotIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON is still set")
         self.assertNotIn("PYTHON_DIR", os.environ, "PYTHON_DIR is still set")
         prod = self.eups.findSetupProduct("tcltk")
-        self.assertTrue(prod is None, "tcltk is still setup")
+        self.assertIsNone(prod, "tcltk is still setup")
         self.assertNotIn("SETUP_TCLTK", os.environ, "SETUP_TCLTK is still set")
         self.assertNotIn("TCLTK_DIR", os.environ, "TCLTK_DIR is still set")
 
@@ -210,11 +209,11 @@ setupRequired(python)
 
         eups.unsetup("newprod")
         prod = self.eups.findSetupProduct("newprod")
-        self.assertTrue(prod is None, "newprod is still setup")
+        self.assertIsNone(prod, "newprod is still setup")
         self.assertNotIn("SETUP_NEWPROD", os.environ, "SETUP_NEWPROD not set")
         self.assertNotIn("NEWPROD_DIR", os.environ, "NEWPROD_DIR not set")
         prod = self.eups.findSetupProduct("python")
-        self.assertTrue(prod is None, "python is still setup")
+        self.assertIsNone(prod, "python is still setup")
         self.assertNotIn("SETUP_PYTHON", os.environ, "SETUP_PYTHON is still set")
         self.assertNotIn("PYTHON_DIR", os.environ, "PYTHON_DIR is still set")
 

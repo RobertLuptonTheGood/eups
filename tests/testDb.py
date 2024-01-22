@@ -94,7 +94,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEqual(prod.flavor, "Darwin")
         self.assertEqual(prod.tablefile, "DarwinX86/fw/1.2/ups/fw.table")
         self.assertEqual(len(prod.tags), 0)
-        self.assertTrue(prod.db is None)
+        self.assertIsNone(prod.db)
 
         self.vf.addFlavor("Linux:rhel", "/opt/sw/Linux/fw/1.2",
                           "/opt/sw/Linux/fw/1.2/ups/fw.table", "ups")
@@ -105,7 +105,7 @@ class VersionFileTestCase(unittest.TestCase):
         self.assertEqual(prod.flavor, "Linux:rhel")
         self.assertEqual(prod.tablefile, "/opt/sw/Linux/fw/1.2/ups/fw.table")
         self.assertEqual(len(prod.tags), 0)
-        self.assertTrue(prod.db is None)
+        self.assertIsNone(prod.db)
 
         self.assertRaises(ProductNotFound, self.vf.makeProduct, "goober")
 
@@ -270,7 +270,7 @@ class MacroSubstitutionTestCase(unittest.TestCase):
         vf = VersionFile(None, readFile=False)
         vf.addFlavor("Linux", "$UPS_DB/Linux/fw/1.0", "fw.table")
         prod = vf.makeProduct("Linux")
-        self.assertTrue(prod.db is None)
+        self.assertIsNone(prod.db)
         self.assertEqual(prod.dir, "$UPS_DB/Linux/fw/1.0")
         self.assertEqual(prod.tablefile, "$UPS_DB/Linux/fw/1.0/fw.table")
 
@@ -540,13 +540,13 @@ class DatabaseTestCase(unittest.TestCase):
 
     def testFindProduct(self):
         prod = self.db.findProduct("doxygen", "1.5.9", "Linux")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
 
         prod = self.db.findProduct("doxygen", "1.5.10", "Linux")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
 
         prod = self.db.findProduct("goober", "1.5.10", "Linux")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
 
         prod = self.db.findProduct("doxygen", "1.5.9", "Linux64")
         self.assertIsNotNone(prod)
@@ -625,7 +625,7 @@ class DatabaseTestCase(unittest.TestCase):
 
     def testUserTag(self):
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
-        self.assertTrue(vers is None)
+        self.assertIsNone(vers)
 
         self.db.assignTag("user:my", "python", "2.5.2")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
@@ -647,7 +647,7 @@ class DatabaseTestCase(unittest.TestCase):
 
         self.db.unassignTag("user:my", "python")
         vers = self.db.getTaggedVersion("user:my", "python", "Linux")[1]
-        self.assertTrue(vers is None)
+        self.assertIsNone(vers)
         self.assertTrue(not os.path.exists(os.path.join(self.userdb,
                                                      "python","my.chain")))
 

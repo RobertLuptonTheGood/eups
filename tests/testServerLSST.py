@@ -174,10 +174,10 @@ class LsstRepositoryTestCase(unittest.TestCase):
         self.assertEqual(pkg[2], "generic")
 
         pkg = self.repos.findPackage("doxygen", "1.5.0")
-        self.assertTrue(pkg is None)
+        self.assertIsNone(pkg)
 
         pkg = self.repos.findPackage("doxygen", "1.5.9", "Linux")
-        self.assertTrue(pkg is None)
+        self.assertIsNone(pkg)
 
         pkg = self.repos.findPackage("doxygen", "1.5.9", "generic")
         self.assertIsNotNone(pkg)
@@ -236,10 +236,10 @@ class LsstRepositoriesTestCase(unittest.TestCase):
         self.assertEqual(pkg[3], self.localroot)
 
         pkg = self.repos.findPackage("doxygen", "1.5.0")
-        self.assertTrue(pkg is None)
+        self.assertIsNone(pkg)
 
         pkg = self.repos.findPackage("doxygen", "1.5.9", "Linux")
-        self.assertTrue(pkg is None)
+        self.assertIsNone(pkg)
 
         pkg = self.repos.findPackage("doxygen", "1.5.9", "generic")
         self.assertIsNotNone(pkg)
@@ -318,7 +318,7 @@ class LsstCmdTestCase(unittest.TestCase):
 
     def testInstall(self):
         prod = Eups().findProduct("lssteups")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
 
         cmd = "distrib install lssteups 1.1 -q -r " + self.lsstroot
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
@@ -336,7 +336,7 @@ class LsstCmdTestCase(unittest.TestCase):
         self.assertEqual(cmd.run(), 0)
 
         prod = Eups().findProduct("lssteups")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
 
         cmd = "distrib install lssteups 1.1 --noclean -q -r " + self.lsstroot
         cmd = eups.cmd.EupsCmd(args=cmd.split(), toolname=prog)
@@ -358,7 +358,7 @@ class LsstCmdTestCase(unittest.TestCase):
         self.assertTrue(not os.path.exists(bdir), "%s still exists" % bdir)
 
         prod = Eups().findProduct("lssteups")
-        self.assertTrue(prod is None)
+        self.assertIsNone(prod)
         self.assertTrue(not os.path.exists(pdir))
 
 
