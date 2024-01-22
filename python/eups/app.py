@@ -45,6 +45,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              a logical operator and an integer (e.g.
                              "> 3") implies a comparison with the depth
                              of each dependency (i.e. "depth > 3").
+    @param productDir      List dependencies of this product directory
     @param topological     List dependencies in topological-sorted order
     @param checkCycles     Raise RuntimeError if topological sort detects a cycle
     @param raw             Generate "raw" output (suitable for further processing)
