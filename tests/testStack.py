@@ -99,25 +99,25 @@ class ProductFamilyTestCase(unittest.TestCase):
         tablefile = os.path.join(testEupsStack,"mwi.table")
         self.fam.addVersion("3.1", "/opt/LInux/magnum/3.1", tablefile)
         prod = self.fam.getProduct("3.1")
-        self.assertTrue(prod.tablefile is not None)
+        self.assertIsNotNone(prod.tablefile)
         self.assertTrue(os.path.exists(prod.tablefile))
         self.assertTrue(prod._table is None)
         self.fam.loadTableFor("3.1")
         prod = self.fam.getProduct("3.1")
-        self.assertTrue(prod._table is not None)
+        self.assertIsNotNone(prod._table)
 
     def testLoadTables(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
         self.fam.addVersion("3.1", "/opt/LInux/magnum/3.1", tablefile)
         prod = self.fam.getProduct("3.1")
-        self.assertTrue(prod.tablefile is not None)
+        self.assertIsNotNone(prod.tablefile)
         self.assertTrue(os.path.exists(prod.tablefile))
         self.assertTrue(prod._table is None)
         self.fam.loadTableFor("3.1")
 
         self.fam.loadTables()
         prod = self.fam.getProduct("3.1")
-        self.assertTrue(prod._table is not None)
+        self.assertIsNotNone(prod._table)
 
 
 
@@ -381,7 +381,7 @@ class ProductStackTestCase(unittest.TestCase):
 
         self.stack.loadTableFor(prod.name, prod.version, prod.flavor)
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertTrue(prod._table is not None)
+        self.assertIsNotNone(prod._table)
 
     def testLoadTables(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
@@ -391,7 +391,7 @@ class ProductStackTestCase(unittest.TestCase):
 
         self.stack.loadTables()
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertTrue(prod._table is not None)
+        self.assertIsNotNone(prod._table)
 
     def testLoadTablesForFlavor(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
@@ -405,7 +405,7 @@ class ProductStackTestCase(unittest.TestCase):
 
         self.stack.loadTables(flavors="Darwin")
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertTrue(prod._table is not None)
+        self.assertIsNotNone(prod._table)
 
     def testLoadTablesForProd(self):
         tablefile = os.path.join(testEupsStack,"mwi.table")
@@ -419,7 +419,7 @@ class ProductStackTestCase(unittest.TestCase):
 
         self.stack.loadTables("afw")
         prod = self.stack.getProduct("afw", "1.2", "Darwin")
-        self.assertTrue(prod._table is not None)
+        self.assertIsNotNone(prod._table)
 
 
 

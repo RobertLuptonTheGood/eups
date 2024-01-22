@@ -549,7 +549,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertTrue(prod is None)
 
         prod = self.db.findProduct("doxygen", "1.5.9", "Linux64")
-        self.assertTrue(prod is not None)
+        self.assertIsNotNone(prod)
         self.assertEqual(prod.name, "doxygen")
         self.assertEqual(prod.version, "1.5.9")
         self.assertEqual(prod.flavor, "Linux64")
@@ -560,7 +560,7 @@ class DatabaseTestCase(unittest.TestCase):
         self.assertEqual(len(prod.tags), 0)
 
         prod = self.db.findProduct("doxygen", "1.5.7.1", "Linux")
-        self.assertTrue(prod is not None)
+        self.assertIsNotNone(prod)
         self.assertEqual(prod.name, "doxygen")
         self.assertEqual(prod.version, "1.5.7.1")
         self.assertEqual(prod.flavor, "Linux")
@@ -584,7 +584,7 @@ class DatabaseTestCase(unittest.TestCase):
         # The install directory (PROD_DIR) for this python is given
         # as a relative directory
         prod = self.db.findProduct("python", "2.5.2", "Linux")
-        self.assertTrue(prod is not None)
+        self.assertIsNotNone(prod)
         self.assertEqual(prod.name, "python")
         self.assertEqual(prod.version, "2.5.2")
         self.assertEqual(prod.flavor, "Linux")

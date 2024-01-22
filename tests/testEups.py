@@ -73,7 +73,7 @@ class EupsTestCase(unittest.TestCase):
         self.assertEqual(self.eups.getUpsDB(testEupsStack), self.dbpath)
         self.assertEqual(len(self.eups.versions), 2)
         self.assertIn(testEupsStack, self.eups.versions)
-        self.assertTrue(self.eups.versions[testEupsStack] is not None)
+        self.assertIsNotNone(self.eups.versions[testEupsStack])
 
         flavors = self.eups.versions[testEupsStack].getFlavors()
         self.assertEqual(len(flavors), 3)
@@ -125,7 +125,7 @@ class EupsTestCase(unittest.TestCase):
 
         # find by name, version, flavor
         prod = self.eups.findProduct("eigen", "2.0.0", flavor="Linux")
-        self.assertTrue(prod is not None, "Failed to find product")
+        self.assertIsNotNone(prod, "Failed to find product")
         self.assertEqual(prod.name,    "eigen")
         self.assertEqual(prod.version, "2.0.0")
         self.assertEqual(prod.flavor,  "Linux")
@@ -136,14 +136,14 @@ class EupsTestCase(unittest.TestCase):
 
         # find by name, version
         prod = self.eups.findProduct("eigen", "2.0.0")
-        self.assertTrue(prod is not None, "Failed to find product")
+        self.assertIsNotNone(prod, "Failed to find product")
         self.assertEqual(prod.name,    "eigen")
         self.assertEqual(prod.version, "2.0.0")
         self.assertEqual(prod.flavor,  "Linux")
 
         # find by name
         prod = self.eups.findProduct("eigen")
-        self.assertTrue(prod is not None, "Failed to find product")
+        self.assertIsNotNone(prod, "Failed to find product")
         self.assertEqual(prod.name,    "eigen")
         self.assertEqual(prod.version, "2.0.0")
         self.assertEqual(prod.flavor,  "Linux")
@@ -151,7 +151,7 @@ class EupsTestCase(unittest.TestCase):
 
         # find by name, preferring tagged version
         prod = self.eups.findProduct("python")
-        self.assertTrue(prod is not None, "Failed to find python product")
+        self.assertIsNotNone(prod, "Failed to find python product")
         self.assertEqual(prod.name,    "python")
         self.assertEqual(prod.version, "2.5.2")
         self.assertEqual(prod.flavor,  "Linux")
@@ -160,7 +160,7 @@ class EupsTestCase(unittest.TestCase):
         # find by name, preferring latest version
         tag = self.eups.tags.getTag("latest")
         prod = self.eups.findProduct("python", tag)
-        self.assertTrue(prod is not None, "Failed to find python product")
+        self.assertIsNotNone(prod, "Failed to find python product")
         self.assertEqual(prod.name,    "python")
         self.assertEqual(prod.version, "2.6")
         self.assertEqual(prod.flavor,  "Linux")
@@ -207,7 +207,7 @@ class EupsTestCase(unittest.TestCase):
 
     def testAssignTags(self):
         prod = self.eups.getProduct("python", "2.6")
-        self.assertTrue(prod is not None, "Failed to find python 2.6")
+        self.assertIsNotNone(prod, "Failed to find python 2.6")
         if "beta" in prod.tags:
             print("Warning: python 2.6 is already tagged beta", file=sys.stderr)
         self.eups.assignTag("beta", "python", "2.6")
@@ -255,7 +255,7 @@ class EupsTestCase(unittest.TestCase):
         # test declare.  Note: "current" is now a default tag assignment
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack, table)
         prod = self.eups.findProduct("newprod")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(prod.name,    "newprod")
         self.assertEqual(prod.version, "1.0")
         self.assertEqual(len(prod.tags), 1)
@@ -280,7 +280,7 @@ class EupsTestCase(unittest.TestCase):
         # test declaring with tag (+ without eupsPathDir)
         self.eups.declare("newprod", "1.0", pdir10, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", eupsPathDirs=testEupsStack)
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "beta")
 
@@ -301,12 +301,12 @@ class EupsTestCase(unittest.TestCase):
         # test 2nd declare, w/ transfer of tag
         self.eups.declare("newprod", "1.1", pdir11, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", "1.1")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(prod.dir, pdir11)
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "beta")
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(len(prod.tags), 0)
 
         # test redeclare w/change of product dir
@@ -319,7 +319,7 @@ class EupsTestCase(unittest.TestCase):
         self.eups.force = True
         self.eups.declare("newprod", "1.1", pdir10, None, table, tag="beta")
         prod = self.eups.findProduct("newprod", "1.1")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(prod.dir, pdir10)
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "beta")
@@ -332,7 +332,7 @@ class EupsTestCase(unittest.TestCase):
         chainfile = os.path.join(self.dbpath, "newprod", "current.chain")
         self.assertTrue(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "current")
 
@@ -340,7 +340,7 @@ class EupsTestCase(unittest.TestCase):
         self.eups.undeclare("newprod", "1.0", tag="current")
         self.assertTrue(not os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Unintentionally undeclared product")
+        self.assertIsNotNone(prod, "Unintentionally undeclared product")
         self.assertEqual(len(prod.tags), 0)
 
         # test deprecated declareCurrent
@@ -348,26 +348,26 @@ class EupsTestCase(unittest.TestCase):
         self.eups.declare ("newprod", "1.0", declareCurrent=True)
         self.assertTrue(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "current")
         self.eups.undeclare("newprod", "1.0", undeclareCurrent=True)
         self.assertTrue(not os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Unintentionally undeclared product")
+        self.assertIsNotNone(prod, "Unintentionally undeclared product")
         self.assertEqual(len(prod.tags), 0)
 
         # test deprecated declareCurrent
         self.eups.declare("newprod", "1.0", pdir10, testEupsStack, table, True)
         self.assertTrue(os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
         self.assertEqual(len(prod.tags), 1)
         self.assertEqual(prod.tags[0], "current")
         self.eups.undeclare("newprod", "1.0", testEupsStack, True)
         self.assertTrue(not os.path.exists(chainfile))
         prod = self.eups.findProduct("newprod", "1.0")
-        self.assertTrue(prod is not None, "Unintentionally undeclared product")
+        self.assertIsNotNone(prod, "Unintentionally undeclared product")
         self.assertEqual(len(prod.tags), 0)
         del q
 
@@ -379,7 +379,7 @@ class EupsTestCase(unittest.TestCase):
         prod = self.eups.findTaggedProduct("newprod", "beta")
         self.assertTrue(prod is None, "removed tag still assigned")
         prod = self.eups.findProduct("newprod")
-        self.assertTrue(prod is not None, "all products removed")
+        self.assertIsNotNone(prod, "all products removed")
 
 #       needs listProducts()
         self.eups.undeclare("newprod")
@@ -396,7 +396,7 @@ class EupsTestCase(unittest.TestCase):
         # declare with table coming from input stream
         self.eups.declare("newprod", "1.1", pdir11, testEupsStack, tableStrm)
         prod = self.eups.findProduct("newprod", "1.1")
-        self.assertTrue(prod is not None, "failed to declare newprod 1.1")
+        self.assertIsNotNone(prod, "failed to declare newprod 1.1")
         self.assertEqual(prod.tablefile,
                           os.path.join(self.dbpath, "Linux","newprod","1.1", "ups", "newprod.table"))
 
@@ -581,7 +581,7 @@ class EupsCacheTestCase(unittest.TestCase):
         table = os.path.join(pdir10, "ups", "newprod.table")
         e1.declare("newprod", "1.0", pdir10, testEupsStack, table)
         prod = e1.findProduct("newprod")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
 
         # Eups now keeps things in sync
         # prod = e2.findProduct("newprod")
@@ -589,7 +589,7 @@ class EupsCacheTestCase(unittest.TestCase):
 
         e2.assignTag("beta", "python", "2.5.2")
         prod = e2.findProduct("newprod")
-        self.assertTrue(prod is not None, "Failed to declare product")
+        self.assertIsNotNone(prod, "Failed to declare product")
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
