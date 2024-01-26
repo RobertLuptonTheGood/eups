@@ -455,6 +455,8 @@ will also be printed.
         # these are specific to this command
         self.clo.add_option("-c", "--current", dest="currentTag", action="store_true", default=False,
                             help="same as --postTag=current")
+        self.clo.add_option("-C", "--diff", dest="difference", action="store_true", default=False,
+                            help="Print the relative complement (set difference) of declared version products with respect to currently setup products")
         self.clo.add_option("-D", "--dependencies", dest="depends", action="store_true", default=False,
                             help="Print product's dependencies (must specify version if ambiguous). With --setup print the versions of dependent products that are actually setup.")
         self.clo.add_option("--depth", dest="depth", action="store",
@@ -508,6 +510,7 @@ will also be printed.
                                    tags=self.opts.tag,
                                    setup=self.opts.setup,
                                    tablefile=self.opts.tablefile,
+                                   difference=self.opts.difference,
                                    directory=self.opts.printdir,
                                    dependencies=self.opts.depends,
                                    showVersion=self.opts.version, showName=self.opts.showName,
