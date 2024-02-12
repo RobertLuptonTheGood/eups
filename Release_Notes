@@ -1,3 +1,22 @@
+2024-02-12 timj (2.2.6)
+    - Handle possible race conditions when making directories.
+    - Cleanup more python 2-isms.
+    - Modernize some test code.
+    - Support python 3.12.
+    - Support `eups list \*`
+    - Search for user tag chainFile in main repo if needs be
+    - Switch __repr__ to __str__; squash me
+    - Fix some typos
+    - Add tags to `eups admin listCache` if verbose >= 2
+    - Added __str__ for DataBase, Product{Family,Stack}
+    - Improve error message for 'eups admin show'
+    - Improve error message when 'eups declare -m' is passed a directory
+    - Error (in python 3.x?) comparing None to int
+
+    dev stats:
+      - 56 files changed, 568 insertions(+), 793 deletions(-)
+      - contributors: Tim Jenness, Robert Lupton the Good
+
 2024-01-16 rhl
     - Make `eups list \*` work (I thought it did already; the manual says that it does)
 
