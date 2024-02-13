@@ -1,3 +1,10 @@
+2024-02-13 timj (2.2.7)
+    - Fix hooks execution
+
+    dev stats:
+      - 1 file changed, 3 insertions(+)
+      - contributors: #
+
 2024-02-12 timj (2.2.6)
     - Handle possible race conditions when making directories.
     - Cleanup more python 2-isms.
