@@ -505,7 +505,7 @@ will also be printed.
             print("Ignoring --depth as it only makes sense with --dependencies", file=utils.stdwarn)
 
         try:
-            n = eups.printProducts(sys.stdout, product, version,
+            n = eups.printProducts(product, version,
                                    self.createEups(self.opts, versionName=version, quiet=1),
                                    tags=self.opts.tag,
                                    setup=self.opts.setup,
