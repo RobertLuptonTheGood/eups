@@ -17,13 +17,13 @@ from . import utils, table, hooks
 from .exceptions import EupsException
 from .utils import cmp_or_key
 
-def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
+
+def printProducts(productName=None, versionName=None, eupsenv=None,
                   tags=None, setup=False, tablefile=False, difference=False, directory=False,
                   dependencies=False, showVersion=False, showName=False, showTagsGlob="*",
                   depth=None, productDir=None, topological=False, checkCycles=False, raw=False):
     """
     print out a listing of products.  Returned is the number of products listed.
-    @param ostrm           the output stream to send listing to
     @param productName     restrict the listing to this product
     @param versionName     restrict the listing to this version of the product.
     @param eupsenv         the Eups instance to use; if None, a default
