@@ -455,8 +455,6 @@ will also be printed.
         # these are specific to this command
         self.clo.add_option("-c", "--current", dest="currentTag", action="store_true", default=False,
                             help="same as --postTag=current")
-        self.clo.add_option("-C", "--diff", dest="difference", action="store_true", default=False,
-                            help="Print the relative complement (set difference) of declared version products with respect to currently setup products")
         self.clo.add_option("-D", "--dependencies", dest="depends", action="store_true", default=False,
                             help="Print product's dependencies (must specify version if ambiguous). With --setup print the versions of dependent products that are actually setup.")
         self.clo.add_option("--depth", dest="depth", action="store",
@@ -467,6 +465,9 @@ will also be printed.
                             help="Follow the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("--name", dest="showName", action="store_true", default=False,
                             help="Print the product's name")
+        self.clo.add_option("-o", "--overrides", dest="overrides", action="store_true", default=False,
+                            help="Print the local overrides of the declared product dependencies with "
+                            "respect to currently setup products")
         self.clo.add_option("-r", "--root", dest="productDir", action="store",
                             help="root directory where product is installed")
         self.clo.add_option("--raw", action="store_true",
@@ -510,7 +511,7 @@ will also be printed.
                                    tags=self.opts.tag,
                                    setup=self.opts.setup,
                                    tablefile=self.opts.tablefile,
-                                   difference=self.opts.difference,
+                                   overrides=self.opts.overrides,
                                    directory=self.opts.printdir,
                                    dependencies=self.opts.depends,
                                    showVersion=self.opts.version, showName=self.opts.showName,
