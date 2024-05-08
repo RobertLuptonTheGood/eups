@@ -19,7 +19,7 @@ from .utils import cmp_or_key
 
 
 def printProducts(productName=None, versionName=None, eupsenv=None,
-                  tags=None, setup=False, tablefile=False, difference=False, directory=False,
+                  tags=None, setup=False, tablefile=False, overrides=False, directory=False,
                   dependencies=False, showVersion=False, showName=False, showTagsGlob="*",
                   depth=None, productDir=None, topological=False, checkCycles=False, raw=False):
     """
@@ -32,8 +32,8 @@ def printProducts(productName=None, versionName=None, eupsenv=None,
     @param setup           restrict the listing to products that are currently
                               setup (or print actually setup versions with dependencies)
     @param tablefile       include the path to each product's table file
-    @param difference      Print the relative complement (set difference) of declared version
-                              products to setup products
+    @param overrides       Print the local overrides of the declared product dependencies with
+                           respect to currently setup products
     @param directory       include each product's installation directory
     @param dependencies    print the product's dependencies
     @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
@@ -65,8 +65,8 @@ def printProducts(productName=None, versionName=None, eupsenv=None,
     if showTagsGlob == "*":
         showTagsGlob = None
 
-    # Limit to "setup" products if we're only listing differences
-    if difference:
+    # Limit to "setup" products if we're only listing local overrides
+    if overrides:
         setup = True
 
     # If productDir is provided only list its dependencies;  we do this by setting it up
@@ -103,11 +103,11 @@ def printProducts(productName=None, versionName=None, eupsenv=None,
 
             raise ProductNotFound(productName, versionName, msg="Unable to find product %s" % msg)
 
-    if difference:
+    if overrides:
         if versionName:
-            raise EupsException("--diff does not make sense with a version")
+            raise EupsException("--overrides does not make sense with a version")
         if dependencies:
-            raise EupsException("--diff does not make sense with --dependencies")
+            raise EupsException("--overrides does not make sense with --dependencies")
         setupProducts = set(eupsenv.getSetupProducts())
         dependentProductList = eupsenv.getDependentProducts(productList[0])
         dependentProducts = {x[0] for x in dependentProductList}
@@ -117,7 +117,7 @@ def printProducts(productName=None, versionName=None, eupsenv=None,
 
     productList.sort(key=lambda p: (p.name, p.version))
 
-    if difference and productName:
+    if overrides and productName:
         # Insert the main product name at the front of the list, to be printed first
         productNameIndex = [i for i, p in enumerate(productList) if p.name == productName][0]
         productList.insert(0, productList.pop(productList.index(productList[productNameIndex])))
@@ -216,7 +216,7 @@ def printProducts(productName=None, versionName=None, eupsenv=None,
     #
     nprod = len(productList)
     for pi in productList:
-        name, version, root = pi.name, pi.version, pi.stackRoot() # for convenience
+        name, version, root = pi.name, pi.version, pi.stackRoot()  # for convenience
         if root == "none":  root = " (none)"
         info = ""
 
@@ -272,8 +272,15 @@ def printProducts(productName=None, versionName=None, eupsenv=None,
                 if info:
                     info += "|"
                 info += name + "|" + version
+            elif overrides:
+                if name != productName:
+                    info += "|"
+                info += "%-21s " % (name)
+                if name == productName:
+                    info += " "
+                info += "%-10s " % (version)
             else:
-                if productName and not utils.isGlob(productName) and not difference:
+                if productName and not utils.isGlob(productName):
                     info += "   "
                 else:
                     info += "%-21s " % (name)
