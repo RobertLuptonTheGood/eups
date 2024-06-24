@@ -690,9 +690,8 @@ class ProductStack:
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
             self.modtimes[fileName] = os.stat(fileName).st_mtime
-            fd = open(fileName, "rb")
-            lookup = pickle.load(fd)
-            fd.close()
+            with open(fileName, "rb") as fd:
+                lookup = pickle.load(fd)
 
             self.lookup[flavor] = lookup
 
