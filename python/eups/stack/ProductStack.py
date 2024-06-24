@@ -252,8 +252,15 @@ class ProductStack:
             raise CacheOutOfSync(outofsync)
 
     def _cacheFileIsInSync(self, file):
-        return (file not in self.modtimes or
-                os.stat(file).st_mtime <= self.modtimes[file])
+        if file not in self.modtimes:
+            return True
+        try:
+            older = os.stat(file).st_mtime <= self.modtimes[file]
+        except FileNotFoundError:
+            # File must have been deleted by other eups process.
+            del self.modtimes[file]
+            return True
+        return older
 
     def cacheIsInSync(self, flavors=None):
         """
