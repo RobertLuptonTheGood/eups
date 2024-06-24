@@ -18,7 +18,7 @@ persistVersionName = "1.3.0"
 # considered a global tag.
 userPrefix = "user:"
 
-dotre = re.compile(r'\.')
+persistVersionNameNoDot = persistVersionName.replace(".", "_")
 who = utils.getUserName()
 
 class ProductStack:
@@ -47,13 +47,13 @@ class ProductStack:
     persistVersion = persistVersionName
 
     # static variable: name of file extension to use to persist data
-    persistFileExt = "pickleDB%s" % dotre.sub('_', persistVersionName)
+    persistFileExt = f"pickleDB{persistVersionNameNoDot}"
 
     # static variable: regexp for cache file names
-    persistFileRe = re.compile(r'^(\w\S*)\.%s$' % persistFileExt)
+    persistFileRe = re.compile(rf'^(\w\S*)\.{persistFileExt}$')
 
     # static variable: name of file extension to use to persist data
-    userTagFileExt = "pickleTag%s" % dotre.sub('_', persistVersionName)
+    userTagFileExt = f"pickleTag{persistVersionNameNoDot}"
 
     def __init__(self, dbpath, persistDir=None, autosave=True):
         """
