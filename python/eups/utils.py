@@ -1,6 +1,7 @@
 """
 Utility functions used across EUPS classes.
 """
+import contextlib
 import time
 import os
 import sys
@@ -883,54 +884,55 @@ def topologicalSort(graph, verbose=False, checkCycles=False):
         raise RuntimeError("A cyclic dependency exists amongst %s" %
                            " ".join(sorted([name([x for x in p]) for p in graph.keys()])))
 
-class AtomicFile:
+
+@contextlib.contextmanager
+def AtomicFile(fn: str, mode: str):
+    """Guarantee atomic writes to a file.
+
+    Parameters
+    ----------
+    fn : `str`
+        Name of file to write.
+    mode : `str`
+        Write mode.
+
+    Returns
+    -------
+    fd : `typing.IO`
+        File handle to use for writing.
+
+    Notes
+    -----
+    A file to which all the changes (writes) are committed all at once,
+    or not at all.  Useful for avoiding race conditions where a reader
+    may be trying to read from a file that's still being written to.
+
+    This is accomplished by creating a temporary file into which all the
+    writes are directed, and then renaming it to the destination
+    filename on close().  On POSIX-compliant filesystems, the rename is
+    guaranteed to be atomic.
+
+    Should be used as a context manager.
+
+    .. code-block:: python
+
+        with AtomicFile("myfile.txt", "w") as fd:
+            print("Some text", file=fd)
     """
-        A file to which all the changes (writes) are committed all at once,
-        or not at all.  Useful for avoiding race conditions where a reader
-        may be trying to read from a file that's still being written to.
+    dir = os.path.dirname(fn)
 
-        This is accomplished by creating a temporary file into which all the
-        writes are directed, and then renaming it to the destination
-        filename on close().  On POSIX-compliant filesystems, the rename is
-        guaranteed to be atomic.
+    fh, tmpfn = tempfile.mkstemp(suffix='.tmp', dir=dir)
+    fp = os.fdopen(fh, mode)
 
-        Presents a file-like object interface.
+    yield fp
 
-        Constructor arguments:
-            fn:      filename (string)
-          mode:      the read/write mode (string), must be equal to
-                     "w" or "wb", for now
+    # Needed because fclose() doesn't guarantee fsync()
+    # in POSIX, which may lead to interesting issues (e.g., see
+    # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
+    os.fsync(fh)
+    fp.close()
+    os.rename(tmpfn, fn)
 
-        Return value:
-            file object
-    """
-    def __init__(self, fn, mode):
-        assert(mode in ["w", "wb"])   # no other modes are currently implemented
-
-        self._fn = fn
-        dir = os.path.dirname(fn)
-
-        (self._fh, self._tmpfn) = tempfile.mkstemp(suffix='.tmp', dir=dir)
-        self._fp = os.fdopen(self._fh, mode)
-
-    def __getattr__(self, name):
-        try:
-            return object.__getattr__(self, name)
-        except AttributeError:
-            return getattr(self._fp, name)
-
-    def __setattr__(self, name, value):
-        if name.startswith('_'):
-            return object.__setattr__(self, name, value)
-        else:
-            return setattr(self._fp, name, value)
-
-    def close(self):
-        os.fsync(self._fh)  # Needed because fclose() doesn't guarantee fsync()
-                            # in POSIX, which may lead to interesting issues (e.g., see
-                            # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
-        self._fp.close()
-        os.rename(self._tmpfn, self._fn)
 
 def isSubpath(path, root):
     """!Return True if path is root or in root

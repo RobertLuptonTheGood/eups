@@ -300,9 +300,9 @@ class ProductStack:
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
-        fd = utils.AtomicFile(file, "wb")
-        pickle.dump(flavorData, fd, protocol=2)
-        fd.close()
+        with utils.AtomicFile(file, "wb") as fd:
+            pickle.dump(flavorData, fd, protocol=2)
+        # This could fail if another process deleted the file immediately.
         self.modtimes[file] = os.stat(file).st_mtime
 
     def export(self):
@@ -886,4 +886,3 @@ class CacheOutOfSync(EupsException):
         self.files = files
         self.flavors = flavors
         self.maxsave = maxsave
-
