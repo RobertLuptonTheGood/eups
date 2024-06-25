@@ -634,7 +634,10 @@ class ProductStack:
             return False
 
         # get the modification time of the cache file
-        cache_mtime = os.stat(cache).st_mtime
+        try:
+            cache_mtime = os.stat(cache).st_mtime
+        except FileNotFoundError:
+            return False
 
         # check for user tag updates
         if cacheDir != self.dbpath and \
@@ -667,7 +670,11 @@ class ProductStack:
             if os.path.exists(fileName):
                 if verbose > 0:
                     print("Deleting %s" % (fileName), file=sys.stderr)
-                os.remove(fileName)
+                try:
+                    os.remove(fileName)
+                except FileNotFoundError:
+                    # Some other process deleted the file.
+                    pass
 
     def reload(self, flavors=None, persistDir=None, verbose=0):
         """
