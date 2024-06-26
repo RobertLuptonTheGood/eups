@@ -338,9 +338,8 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
     else:
         usesInfo = eupsenv.uses()
         if pickleFile:
-            fd = utils.AtomicFile(pickleFile, "wb")
-            pickle.dump(usesInfo, fd, protocol=2)
-            fd.close()
+            with utils.AtomicFile(pickleFile, "wb") as fd:
+                pickle.dump(usesInfo, fd, protocol=2)
 
     userList = eupsenv.uses(productName, versionName, depth, usesInfo=usesInfo)
 
@@ -967,4 +966,3 @@ def enableLocking(enableLocking=True):
     """Enable or disable the use of lock files"""
     from . import lock
     lock.disableLocking = not enableLocking
-

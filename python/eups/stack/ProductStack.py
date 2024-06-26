@@ -18,7 +18,7 @@ persistVersionName = "1.3.0"
 # considered a global tag.
 userPrefix = "user:"
 
-dotre = re.compile(r'\.')
+persistVersionNameNoDot = persistVersionName.replace(".", "_")
 who = utils.getUserName()
 
 class ProductStack:
@@ -47,13 +47,13 @@ class ProductStack:
     persistVersion = persistVersionName
 
     # static variable: name of file extension to use to persist data
-    persistFileExt = "pickleDB%s" % dotre.sub('_', persistVersionName)
+    persistFileExt = f"pickleDB{persistVersionNameNoDot}"
 
     # static variable: regexp for cache file names
-    persistFileRe = re.compile(r'^(\w\S*)\.%s$' % persistFileExt)
+    persistFileRe = re.compile(rf'^(\w\S*)\.{persistFileExt}$')
 
     # static variable: name of file extension to use to persist data
-    userTagFileExt = "pickleTag%s" % dotre.sub('_', persistVersionName)
+    userTagFileExt = f"pickleTag{persistVersionNameNoDot}"
 
     def __init__(self, dbpath, persistDir=None, autosave=True):
         """
@@ -252,8 +252,15 @@ class ProductStack:
             raise CacheOutOfSync(outofsync)
 
     def _cacheFileIsInSync(self, file):
-        return (file not in self.modtimes or
-                os.stat(file).st_mtime <= self.modtimes[file])
+        if file not in self.modtimes:
+            return True
+        try:
+            older = os.stat(file).st_mtime <= self.modtimes[file]
+        except FileNotFoundError:
+            # File must have been deleted by other eups process.
+            del self.modtimes[file]
+            return True
+        return older
 
     def cacheIsInSync(self, flavors=None):
         """
@@ -300,9 +307,9 @@ class ProductStack:
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
-        fd = utils.AtomicFile(file, "wb")
-        pickle.dump(flavorData, fd, protocol=2)
-        fd.close()
+        with utils.AtomicFile(file, "wb") as fd:
+            pickle.dump(flavorData, fd, protocol=2)
+        # This could fail if another process deleted the file immediately.
         self.modtimes[file] = os.stat(file).st_mtime
 
     def export(self):
@@ -627,7 +634,10 @@ class ProductStack:
             return False
 
         # get the modification time of the cache file
-        cache_mtime = os.stat(cache).st_mtime
+        try:
+            cache_mtime = os.stat(cache).st_mtime
+        except FileNotFoundError:
+            return False
 
         # check for user tag updates
         if cacheDir != self.dbpath and \
@@ -660,7 +670,11 @@ class ProductStack:
             if os.path.exists(fileName):
                 if verbose > 0:
                     print("Deleting %s" % (fileName), file=sys.stderr)
-                os.remove(fileName)
+                try:
+                    os.remove(fileName)
+                except FileNotFoundError:
+                    # Some other process deleted the file.
+                    pass
 
     def reload(self, flavors=None, persistDir=None, verbose=0):
         """
@@ -690,9 +704,8 @@ class ProductStack:
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
             self.modtimes[fileName] = os.stat(fileName).st_mtime
-            fd = open(fileName, "rb")
-            lookup = pickle.load(fd)
-            fd.close()
+            with open(fileName, "rb") as fd:
+                lookup = pickle.load(fd)
 
             self.lookup[flavor] = lookup
 
@@ -886,4 +899,3 @@ class CacheOutOfSync(EupsException):
         self.files = files
         self.flavors = flavors
         self.maxsave = maxsave
-
