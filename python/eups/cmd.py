@@ -250,7 +250,7 @@ Common"""
         return 0
 
     def _issubclass(self):
-        return isinstance(self, EupsCmd) and type(self) != EupsCmd
+        return isinstance(self, EupsCmd) and type(self) is not EupsCmd
 
     def err(self, msg, volume=0):
         """
@@ -2885,7 +2885,7 @@ The tagname may be a glob pattern.
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-        
+
 class TagsCmd(EupsCmd):
 
     usage = """%prog tags [-h|--help] [options] [tagname] [product]

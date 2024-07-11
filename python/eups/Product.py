@@ -447,11 +447,11 @@ class Product:
 
         if option:
             try:
-                if getType == bool:
+                if getType is bool:
                     return config.getboolean(section, option)
-                elif getType == float:
+                elif getType is float:
                     return config.getfloat(section, option)
-                elif getType == int:
+                elif getType is int:
                     return config.getint(section, option)
                 else:
                     return config.get(section, option)
