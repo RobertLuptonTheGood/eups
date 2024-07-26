@@ -1,4 +1,5 @@
 import re, os, sys
+import contextlib
 import pickle
 from eups import utils
 from eups import Product
@@ -307,7 +308,8 @@ class ProductStack:
         with utils.AtomicFile(file, "wb") as fd:
             pickle.dump(flavorData, fd, protocol=2)
         # This could fail if another process deleted the file immediately.
-        self.modtimes[file] = os.stat(file).st_mtime
+        with contextlib.suppress(FileNotFoundError):
+            self.modtimes[file] = os.stat(file).st_mtime
 
     def export(self):
         """
