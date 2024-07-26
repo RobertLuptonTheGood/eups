@@ -306,7 +306,7 @@ class ProductStack:
         flavorData = self.lookup[flavor]
 
         with utils.AtomicFile(file, "wb") as fd:
-            pickle.dump(flavorData, fd, protocol=2)
+            pickle.dump(flavorData, fd, protocol=4)
         # This could fail if another process deleted the file immediately.
         with contextlib.suppress(FileNotFoundError):
             self.modtimes[file] = os.stat(file).st_mtime
