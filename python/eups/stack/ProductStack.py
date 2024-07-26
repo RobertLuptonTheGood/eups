@@ -298,10 +298,7 @@ class ProductStack:
                           a location will be be used.
         """
         if file is None:
-            dir = self.persistDir
-            if not dir:
-                dir = self.dbpath
-            file = os.path.join(dir, self.persistFilename(flavor))
+            file = self._persistPath(flavor)
 
         if flavor not in self.lookup:
             self.lookup[flavor] = {}
