@@ -1,4 +1,5 @@
 import re, os, sys
+import contextlib
 import pickle
 from eups import utils
 from eups import Product
@@ -298,19 +299,17 @@ class ProductStack:
                           a location will be be used.
         """
         if file is None:
-            dir = self.persistDir
-            if not dir:
-                dir = self.dbpath
-            file = os.path.join(dir, self.persistFilename(flavor))
+            file = self._persistPath(flavor)
 
         if flavor not in self.lookup:
             self.lookup[flavor] = {}
         flavorData = self.lookup[flavor]
 
         with utils.AtomicFile(file, "wb") as fd:
-            pickle.dump(flavorData, fd, protocol=2)
+            pickle.dump(flavorData, fd, protocol=4)
         # This could fail if another process deleted the file immediately.
-        self.modtimes[file] = os.stat(file).st_mtime
+        with contextlib.suppress(FileNotFoundError):
+            self.modtimes[file] = os.stat(file).st_mtime
 
     def export(self):
         """

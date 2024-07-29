@@ -921,17 +921,17 @@ def AtomicFile(fn: str, mode: str):
     """
     dir = os.path.dirname(fn)
 
-    fh, tmpfn = tempfile.mkstemp(suffix='.tmp', dir=dir)
-    fp = os.fdopen(fh, mode)
+    with tempfile.NamedTemporaryFile(
+        prefix=dir, suffix=".tmp", delete=False, mode=mode,
+    ) as fh:
+        yield fh
 
-    yield fp
+        # Needed because fclose() doesn't guarantee fsync()
+        # in POSIX, which may lead to interesting issues (e.g., see
+        # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
+        os.fsync(fh)
 
-    # Needed because fclose() doesn't guarantee fsync()
-    # in POSIX, which may lead to interesting issues (e.g., see
-    # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
-    os.fsync(fh)
-    fp.close()
-    os.rename(tmpfn, fn)
+    os.rename(fh.name, fn)
 
 
 def isSubpath(path, root):

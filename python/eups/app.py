@@ -339,7 +339,7 @@ def printUses(outstrm, productName, versionName=None, eupsenv=None,
         usesInfo = eupsenv.uses()
         if pickleFile:
             with utils.AtomicFile(pickleFile, "wb") as fd:
-                pickle.dump(usesInfo, fd, protocol=2)
+                pickle.dump(usesInfo, fd, protocol=4)
 
     userList = eupsenv.uses(productName, versionName, depth, usesInfo=usesInfo)
 
