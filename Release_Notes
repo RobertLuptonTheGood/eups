@@ -1,3 +1,12 @@
+2024-07-29 timj (2.2.9)
+    - Minor modernization of AtomicFile
+    - Catch one more problem with the product database disappearing.
+    - Use pickle protocol 4
+
+    dev stats:
+      - 5 files changed, 20 insertions(+), 21 deletions(-)
+      - contributors: #
+
 2024-06-26 timj (2.2.8)
     - Reduce change of race condition when accessing product database.
 
