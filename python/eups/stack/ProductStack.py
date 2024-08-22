@@ -702,11 +702,16 @@ class ProductStack:
 
         for flavor in flavors:
             fileName = self._persistPath(flavor,persistDir)
-            self.modtimes[fileName] = os.stat(fileName).st_mtime
-            with open(fileName, "rb") as fd:
-                lookup = pickle.load(fd)
-
-            self.lookup[flavor] = lookup
+            try:
+                self.modtimes[fileName] = os.stat(fileName).st_mtime
+                with open(fileName, "rb") as fd:
+                    lookup = pickle.load(fd)
+            except FileNotFoundError:
+                # Remove the stat call value if that succeeded but the open
+                # failed.
+                self.modtimes.pop(fileName)
+            else:
+                self.lookup[flavor] = lookup
 
     @staticmethod
     def findCachedFlavors(dir):
