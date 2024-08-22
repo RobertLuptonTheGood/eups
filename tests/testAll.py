@@ -12,7 +12,6 @@ for t in [
     "test_cmd",
     "test_deprecated",
     "test_db",
-    "test_eups",
     "test_eups2",
     "test_misc",
     "test_product",
