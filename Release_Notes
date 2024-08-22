@@ -1,3 +1,9 @@
+2024-08-22 timj (2.2.10)
+    - Protected another os.stat/open combination against a bad file system
+
+    dev stats:
+      - 17 files changed, 31 insertions(+), 209 deletions(-)
+
 2024-07-29 timj (2.2.9)
     - Minor modernization of AtomicFile
     - Catch one more problem with the product database disappearing.
