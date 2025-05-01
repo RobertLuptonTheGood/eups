@@ -708,8 +708,9 @@ class ProductStack:
                     lookup = pickle.load(fd)
             except FileNotFoundError:
                 # Remove the stat call value if that succeeded but the open
-                # failed.
-                self.modtimes.pop(fileName)
+                # failed, but ensuring that we handle the case where the
+                # initial stat() failed.
+                self.modtimes.pop(fileName, None)
             else:
                 self.lookup[flavor] = lookup
 
