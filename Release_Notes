@@ -1,3 +1,11 @@
+2025-05-01 timj (2.2.11)
+    - Merge pull request #156 from RobertLuptonTheGood/tickets/DM-50456
+      Fix error handling during race condition.
+
+    dev stats:
+      - 2 files changed, 4 insertions(+), 3 deletions(-)
+      - contributors: #
+
 2024-08-22 timj (2.2.10)
     - Protected another os.stat/open combination against a bad file system
 
