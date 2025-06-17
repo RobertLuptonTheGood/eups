@@ -8,15 +8,13 @@ import os
 import re
 import atexit
 import fnmatch
+import json
 import shutil
 import tempfile
 from pathlib import Path
 import concurrent.futures
-try:
-    from urllib2 import urlopen, HTTPError, URLError
-except ImportError:
-    from urllib.request import urlopen
-    from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
 import eups
 import eups.hooks as hooks
 import eups.utils as utils
@@ -1020,11 +1018,9 @@ class WebTransporter(Transporter):
                 Path(filename).touch()
                 print("Simulated web retrieval from", self.loc, file=self.log)
         else:
-            url = None
             out = None
-            try:
-                try:                               # for python 2.4 compat
-                    url = urlopen(self.loc)
+            with urlopen(self.loc) as url:
+                try:
                     out = open(filename, 'wb')
                     while True:
                         chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
@@ -1037,9 +1033,6 @@ class WebTransporter(Transporter):
                     raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
                 except KeyboardInterrupt:
                     raise EupsException("^C")
-            finally:
-                if url is not None: url.close()
-                if out is not None: out.close()
 
     def listDir(self, noaction=False):
         """interpret the source as a directory and return a list of files
@@ -1085,6 +1078,10 @@ class WebTransporter(Transporter):
                 if tag == "address":
                     self.is_attribute = True
 
+                if tag == "a":
+                    name, value = attributes[0]
+                    if value.endswith('/'):
+                        self.nrow += 1
                 if self.nrow <= 0 or tag != "a":
                     return
 
@@ -1113,32 +1110,40 @@ class WebTransporter(Transporter):
 
         p = LinksParser()
         try:
-          try:                               # for python 2.4 compat
-            url = urlopen(self.loc)
-            encoding = utils.get_content_charset(url)
-            for line in url:
-                p.feed(utils.decode(line, encoding))
+            if self.checkforindex(self.loc):
+                with urlopen(self.loc+'/index.json') as res:
+                    files = json.loads(res.read().decode())
+                    p.files = files
+            else:
+                with urlopen(self.loc) as url:
+                    encoding = utils.get_content_charset(url)
 
-            url.close()
-            if not p.is_apache and self.verbose >= 0:
-                print("Warning: URL does not look like a directory listing from an Apache web server", file=self.log)
+                    for line in url:
+                        p.feed(utils.decode(line, encoding))
+
+                    if not p.is_apache and self.verbose >= 0:
+                        print("Warning: URL does not look like a directory listing from an Apache web server", file=self.log)
             dirCache[self.loc]=p.files
             return p.files
 
-          except HTTPError as e:
+        except HTTPError as e:
             raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
-          except URLError as e:
+        except URLError as e:
             raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
-          except KeyboardInterrupt:
+        except KeyboardInterrupt:
             raise EupsException("^C")
-        finally:
-            if url is not None: url.close()
 
-        p = LinksParser()
-        for line in open(url, "r").readlines():
-            p.feed(line)
-
-        return p.files
+    def checkforindex(self,url:str):
+        try:
+            response = urlopen(url + '/index.json')
+            if response.status == 200:
+                    return True
+            else:
+                return False
+        except URLError:
+            if self.verbose >= 0:
+                print(f"Warning, no index.json file found for {url}")
+            return False
 
 
 
