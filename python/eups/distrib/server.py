@@ -1057,7 +1057,6 @@ class WebTransporter(Transporter):
                 # self.seen = set()
                 self.files = [] # files listed in table
                 self.is_attribute = False # next data is value of <attribute>
-                self.is_apache = False # are we reading data from apache?
 
             def handle_starttag(self, tag, attributes):
                 if tag == "pre":  # now in file listing portion (Apache)
@@ -1078,10 +1077,9 @@ class WebTransporter(Transporter):
                 if tag == "address":
                     self.is_attribute = True
 
-                if tag == "a":
-                    name, value = attributes[0]
-                    if value.endswith('/'):
-                        self.nrow += 1
+                if tag == "a" and attributes[0][1].endswith('/'): # Adds rows for nginx server
+                    self.nrow += 1
+
                 if self.nrow <= 0 or tag != "a":
                     return
 
@@ -1105,24 +1103,20 @@ class WebTransporter(Transporter):
 
             def handle_data(self, data):
                 if self.is_attribute:
-                    self.is_apache = re.search(r"^Apache", data)
                     self.is_attribute = False
 
         p = LinksParser()
         try:
-            if self.checkforindex(self.loc):
-                with urlopen(self.loc+'/index.json') as res:
-                    files = json.loads(res.read().decode())
-                    p.files = files
-            else:
+            files = self.check_and_read_index(self.loc)
+            if files == None:
                 with urlopen(self.loc) as url:
                     encoding = utils.get_content_charset(url)
 
                     for line in url:
                         p.feed(utils.decode(line, encoding))
+            else:
+                p.files = files
 
-                    if not p.is_apache and self.verbose >= 0:
-                        print("Warning: URL does not look like a directory listing from an Apache web server", file=self.log)
             dirCache[self.loc]=p.files
             return p.files
 
@@ -1133,17 +1127,22 @@ class WebTransporter(Transporter):
         except KeyboardInterrupt:
             raise EupsException("^C")
 
-    def checkforindex(self,url:str):
+    def check_and_read_index(self,url):
+        """checks to see if an index file exist in location
+        return a list of string containing context of index.json or None. 
+        Index.json is a list of location of files.
+        @param url      the url where the index file is located"""
         try:
-            response = urlopen(url + '/index.json')
-            if response.status == 200:
-                    return True
-            else:
-                return False
+            with urlopen(url + '/index.json') as response:
+                if response.status == 200:
+                    files = json.loads(response.read().decode())
+                    return files
+                else:
+                    return None
         except URLError:
             if self.verbose >= 0:
-                print(f"Warning, no index.json file found for {url}")
-            return False
+                print(f"Warning, no index.json file found for {url}, failing back to directory listing")
+            return None
 
 
 
