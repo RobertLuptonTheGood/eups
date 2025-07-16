@@ -8,15 +8,13 @@ import os
 import re
 import atexit
 import fnmatch
+import json
 import shutil
 import tempfile
 from pathlib import Path
 import concurrent.futures
-try:
-    from urllib2 import urlopen, HTTPError, URLError
-except ImportError:
-    from urllib.request import urlopen
-    from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
 import eups
 import eups.hooks as hooks
 import eups.utils as utils
@@ -1020,11 +1018,9 @@ class WebTransporter(Transporter):
                 Path(filename).touch()
                 print("Simulated web retrieval from", self.loc, file=self.log)
         else:
-            url = None
             out = None
-            try:
-                try:                               # for python 2.4 compat
-                    url = urlopen(self.loc)
+            with urlopen(self.loc) as url:
+                try:
                     out = open(filename, 'wb')
                     while True:
                         chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
@@ -1037,9 +1033,6 @@ class WebTransporter(Transporter):
                     raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
                 except KeyboardInterrupt:
                     raise EupsException("^C")
-            finally:
-                if url is not None: url.close()
-                if out is not None: out.close()
 
     def listDir(self, noaction=False):
         """interpret the source as a directory and return a list of files
@@ -1064,7 +1057,6 @@ class WebTransporter(Transporter):
                 # self.seen = set()
                 self.files = [] # files listed in table
                 self.is_attribute = False # next data is value of <attribute>
-                self.is_apache = False # are we reading data from apache?
 
             def handle_starttag(self, tag, attributes):
                 if tag == "pre":  # now in file listing portion (Apache)
@@ -1084,6 +1076,9 @@ class WebTransporter(Transporter):
 
                 if tag == "address":
                     self.is_attribute = True
+
+                if tag == "a" and attributes[0][1].endswith('/'): # Adds rows for nginx server
+                    self.nrow += 1
 
                 if self.nrow <= 0 or tag != "a":
                     return
@@ -1108,37 +1103,46 @@ class WebTransporter(Transporter):
 
             def handle_data(self, data):
                 if self.is_attribute:
-                    self.is_apache = re.search(r"^Apache", data)
                     self.is_attribute = False
 
         p = LinksParser()
         try:
-          try:                               # for python 2.4 compat
-            url = urlopen(self.loc)
-            encoding = utils.get_content_charset(url)
-            for line in url:
-                p.feed(utils.decode(line, encoding))
+            files = self.check_and_read_index(self.loc)
+            if files == None:
+                with urlopen(self.loc) as url:
+                    encoding = utils.get_content_charset(url)
 
-            url.close()
-            if not p.is_apache and self.verbose >= 0:
-                print("Warning: URL does not look like a directory listing from an Apache web server", file=self.log)
+                    for line in url:
+                        p.feed(utils.decode(line, encoding))
+            else:
+                p.files = files
+
             dirCache[self.loc]=p.files
             return p.files
 
-          except HTTPError as e:
+        except HTTPError as e:
             raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
-          except URLError as e:
+        except URLError as e:
             raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
-          except KeyboardInterrupt:
+        except KeyboardInterrupt:
             raise EupsException("^C")
-        finally:
-            if url is not None: url.close()
 
-        p = LinksParser()
-        for line in open(url, "r").readlines():
-            p.feed(line)
-
-        return p.files
+    def check_and_read_index(self,url):
+        """checks to see if an index file exist in location
+        return a list of string containing context of index.json or None. 
+        Index.json is a list of location of files.
+        @param url      the url where the index file is located"""
+        try:
+            with urlopen(url + '/index.json') as response:
+                if response.status == 200:
+                    files = json.loads(response.read().decode())
+                    return files
+                else:
+                    return None
+        except URLError:
+            if self.verbose >= 0:
+                print(f"Warning, no index.json file found for {url}, failing back to directory listing")
+            return None
 
 
 
