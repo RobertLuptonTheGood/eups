@@ -1,3 +1,11 @@
+2025-07-16 timj (2.2.12)
+    - Merge pull request #157 from RobertLuptonTheGood/tickets/DM-51444
+      Add support for index JSON files in remote server.
+
+    dev stats:
+      - 1 file changed, 36 insertions(+), 32 deletions(-)
+      - contributors: #
+
 2025-05-01 timj (2.2.11)
     - Merge pull request #156 from RobertLuptonTheGood/tickets/DM-50456
       Fix error handling during race condition.
