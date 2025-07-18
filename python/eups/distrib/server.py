@@ -1021,12 +1021,12 @@ class WebTransporter(Transporter):
             out = None
             with urlopen(self.loc) as url:
                 try:
-                    out = open(filename, 'wb')
-                    while True:
-                        chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
-                        if not chunk:
-                            break
-                        out.write(chunk)
+                    with open(filename, 'wb') as out:
+                        while True:
+                            chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
+                            if not chunk:
+                                break
+                            out.write(chunk)
                 except HTTPError as e:
                     raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
                 except URLError as e:
