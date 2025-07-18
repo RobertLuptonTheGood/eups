@@ -1020,8 +1020,7 @@ class WebTransporter(Transporter):
         else:
             out = None
             try:
-                with urlopen(self.loc) as url:
-                    out = open(filename, 'wb')
+                with urlopen(self.loc) as url, open(filename, 'wb') as out:
                     while True:
                         chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
                         if not chunk:
@@ -1091,7 +1090,7 @@ class WebTransporter(Transporter):
 
                     for old, new in [("%2B", '+'),
                                      ("%3A", ':'),
-                                     ("%40", "@"),                                     
+                                     ("%40", "@"),
                                      ]:
                         for o in [old.lower(), old.upper()]:
                             value = value.replace(o, new)
@@ -1129,7 +1128,7 @@ class WebTransporter(Transporter):
 
     def check_and_read_index(self,url):
         """checks to see if an index file exist in location
-        return a list of string containing context of index.json or None. 
+        return a list of string containing context of index.json or None.
         Index.json is a list of location of files.
         @param url      the url where the index file is located"""
         try:
