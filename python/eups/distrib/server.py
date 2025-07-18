@@ -746,13 +746,10 @@ class ConfigurableDistribServer(DistribServer):
             commre = re.compile(r'\s*#')
             try:
                 file = self.cacheFile(file, src, noaction)
-                fd = open(file)
-                try:
+                with open(file) as fd:
                     for line in fd:
                         line = commre.split(line)[0].strip()
                         out.extend(line.split())
-                finally:
-                    fd.close()
                 return out
 
             except TransporterError:
@@ -842,8 +839,7 @@ class ConfigurableDistribServer(DistribServer):
                 file = self.cacheFile(file, src, noaction)
 
                 out = []
-                fd = open(file)
-                try:
+                with open(file) as fd:
                     for line in fd:
                         line = commre.split(line)[0].strip()
                         if len(line) == 0:
@@ -852,8 +848,6 @@ class ConfigurableDistribServer(DistribServer):
                         if len(info) > 3:
                             info = info[:3]
                         out.append(info)
-                finally:
-                    fd.close()
 
                 return out
 
@@ -1294,15 +1288,14 @@ class DreamTransporter(Transporter):
     def cacheToFile(self, filename, noaction=False):
         # We know we're getting the configuration file, because that's all we handle.
         # Give it a fake configuration file to set up the DreamServer.
-        f = open(filename, "w")
-        f.write("""# Configuration for a dream server
+        with open(filename, "w") as f:
+            f.write("""# Configuration for a dream server
         DISTRIB_SERVER_CLASS = eups.distrib.dream.DreamServer
         DISTRIB_CLASS = eups.distrib.builder.Distrib
         BUILD_URL = %(base)s/%(product)s
         TABLE_URL = %(base)s/%(product)s
         DIST_URL = %(base)s/%(product)s
         """)
-        f.close()
 
     def listDir(self, noaction=False):
         pass
@@ -1411,20 +1404,20 @@ class TaggedProductList:
     def read(self, filename):
         """read the products from a given file and add it to our list.
         Any previously registered products may get updated."""
-        fd = open(filename, "r")
+        with open(filename, "r") as fd:
 
-        line = fd.readline()
-        mat = re.search(r"^EUPS distribution %s version list. Version (\S+)\s*$" % self.tag, line)
-        if not mat:
-            raise RemoteFileInvalid("First line of %s version file %s is corrupted:\n\t%s" %
+            line = fd.readline()
+            mat = re.search(r"^EUPS distribution %s version list. Version (\S+)\s*$" % self.tag, line)
+            if not mat:
+                raise RemoteFileInvalid("First line of %s version file %s is corrupted:\n\t%s" %
                                     (self.tag, filename, line))
-        version = mat.groups()[0]
-        if version != self.fmtversion:
-           print("WARNING. Saw version %s; expected %s" % (version, self.fmtversion), file=self.log)
+            version = mat.groups()[0]
+            if version != self.fmtversion:
+               print("WARNING. Saw version %s; expected %s" % (version, self.fmtversion), file=self.log)
 
-        commre = re.compile(r"^\s*#")
-        wordsre = re.compile(r"\S+")
-        try:
+            commre = re.compile(r"^\s*#")
+            wordsre = re.compile(r"\S+")
+
             for line in fd:
                 line = commre.split(line)[0].strip()
                 if len(line) == 0:
@@ -1441,8 +1434,6 @@ class TaggedProductList:
 
                 if flavor == self.flavor:
                     self.addProduct(productName, versionName, flavor, info)
-        finally:
-            fd.close()
 
     def write(self, filename, flavor=None, noaction=False):
         """write the collection of products out to a file
@@ -1774,71 +1765,66 @@ class Manifest:
         if shouldRecurse is None:
             shouldRecurse = False
 
-        fd = open(file)                 # "with" is too modern.  I should reconsider this!
+        with open(file) as fd:
 
-        line = fd.readline()
-        mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
-        if not mat:
-            fd.close()
-            raise RuntimeError("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
-        manifest_product, manifest_product_version, version = mat.groups()
+            line = fd.readline()
+            mat = re.search(r"^EUPS distribution manifest for (\S+) \((\S+)\). Version (\S+)\s*$", line)
+            if not mat:
+                raise RuntimeError("First line of manifest file %s is corrupted:\n\t%s" % (file, line))
+            manifest_product, manifest_product_version, version = mat.groups()
 
-        version = mat.groups()[2]
-        if version != self.fmtversion and self.verbose >= 0:
-            print("WARNING. Saw version %s; expected %s" % \
-                (version, self.fmtversion), file=self.log)
+            version = mat.groups()[2]
+            if version != self.fmtversion and self.verbose >= 0:
+                print("WARNING. Saw version %s; expected %s" % \
+                    (version, self.fmtversion), file=self.log)
 
-        if setproduct or self.product is None:
-            self.product = manifest_product
-        if setproduct or self.version is None:
-            self.version = manifest_product_version
+            if setproduct or self.product is None:
+                self.product = manifest_product
+            if setproduct or self.version is None:
+                self.version = manifest_product_version
 
-        FALSE = "FALSE"
-        TRUE = "TRUE"
-        OPT = "OPTIONAL"
-        for line in fd:
-            line = line.split("\n")[0]
-            if re.search(r"^\s*(#.*)?$", line):
-                continue
+            FALSE = "FALSE"
+            TRUE = "TRUE"
+            OPT = "OPTIONAL"
+            for line in fd:
+                line = line.split("\n")[0]
+                if re.search(r"^\s*(#.*)?$", line):
+                    continue
 
-            try:
-                info = re.findall(r"\S+", line)
+                try:
+                    info = re.findall(r"\S+", line)
 
-                # make sure we have at least 5 elements
-                info[4]
+                    # make sure we have at least 5 elements
+                    info[4]
 
-                # set a default for the distrib ID
-                if len(info) < 6:
-                    info.append(None)
-                elif info[5] == "search":
-                    info[5] = None
+                    # set a default for the distrib ID
+                    if len(info) < 6:
+                        info.append(None)
+                    elif info[5] == "search":
+                        info[5] = None
 
-                # set a whether this is optional or required
-                if len(info) < 7:
-                    info.append(False)
-                elif OPT.startswith(info[6]):
-                    info[6] = True
-                else:
-                    info[6] = False
+                    # set a whether this is optional or required
+                    if len(info) < 7:
+                        info.append(False)
+                    elif OPT.startswith(info[6]):
+                        info[6] = True
+                    else:
+                        info[6] = False
 
-                if len(info) < 8:
-                    info.append(shouldRecurse)
-                elif TRUE.startswith(info[7]):
-                    info[7] = True
-                elif FALSE.startswith(info[7]):
-                    info[7] = False
-                else:
-                    info[7] = shouldRecurse
+                    if len(info) < 8:
+                        info.append(shouldRecurse)
+                    elif TRUE.startswith(info[7]):
+                        info[7] = True
+                    elif FALSE.startswith(info[7]):
+                        info[7] = False
+                    else:
+                        info[7] = shouldRecurse
 
-                self.addDependency(info[0], info[2], info[1], info[3],
-                                   info[4], info[5], info[6], info[7], info[8:])
-            except Exception as e:
-                fd.close()
-                raise RuntimeError("Failed to parse line: (%s): %s" %
-                                   (str(e), line))
-
-        fd.close()
-
+                    self.addDependency(info[0], info[2], info[1], info[3],
+                                    info[4], info[5], info[6], info[7], info[8:])
+                except Exception as e:
+                    raise RuntimeError("Failed to parse line: (%s): %s" %
+                                    (str(e), line))
 
     def write(self, filename, noOptional=True, flavor=None, noaction=False):
         """write out the dependencies to a file
@@ -2197,30 +2183,27 @@ class ServerConf:
         out = {}
 
         try:
-            fd = open(file);
+            with open(file) as fd:
+                if self.verbose > 1:
+                    print("Reading configuration data from", file, file=self.log)
+                lineno = 0
+                line = ""
+                try:                               # for python 2.4 compat
+
+                    for line in fd:
+                        lineno += 1
+                        line = commre.split(line)[0].strip()
+                        if len(line) == 0:  continue
+
+                        (name, value) = paramre.split(line, 1);
+                        if name not in out:
+                            out[name] = []
+                        out[name].append(value.strip())
+                except ValueError as e:
+                    raise RuntimeError("format error in config file (%s:%d): %s" %
+                                       (file, lineno, line))
         except OSError as e:
             raise RuntimeError("%s: %s" % (file, str(e)))
-        if self.verbose > 1:
-            print("Reading configuration data from", file, file=self.log)
-
-        try:
-          try:                               # for python 2.4 compat
-            lineno = 0
-            for line in fd:
-                lineno += 1
-                line = commre.split(line)[0].strip()
-                if len(line) == 0:  continue
-
-                (name, value) = paramre.split(line, 1);
-                if name not in out:
-                    out[name] = []
-                out[name].append(value.strip())
-
-          except ValueError as e:
-            raise RuntimeError("format error in config file (%s:%d): %s" %
-                               (file, lineno, line))
-        finally:
-            fd.close()
 
         # check syntax of *CLASS
         for k in ["DISTRIB_CLASS", "DISTRIB_SERVER_CLASS",]:
@@ -2228,20 +2211,17 @@ class ServerConf:
                 if len(out[k][-1].split(".")) < 2:
                     print("Invalid config parameter %s: %s (expected module.class)" % (k, out[k][-1]), file=self.log)
 
-        return out;
+        return out
 
     def writeConfFile(self, file):
         """write out the configuration paramters to a file"""
-        fd = open(file, 'w')
-        if self.verbose > 1:
-            print("Writing configuration to", file, file=self.log)
+        with open(file, 'w') as fd:
+            if self.verbose > 1:
+                print("Writing configuration to", file, file=self.log)
 
-        try:
             for key in self.data.keys():
                 for value in self.data[key]:
                     print(key, "=", self.data[key], file=fd)
-        finally:
-            fd.close()
 
     @staticmethod
     def clearConfigCache(eups, servers=None, verbosity=0, log=sys.stderr):
