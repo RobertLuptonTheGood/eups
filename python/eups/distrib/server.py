@@ -1051,6 +1051,7 @@ class WebTransporter(Transporter):
                 # self.seen = set()
                 self.files = [] # files listed in table
                 self.is_attribute = False # next data is value of <attribute>
+                self.is_apache = False
 
             def handle_starttag(self, tag, attributes):
                 if tag == "pre":  # now in file listing portion (Apache)
@@ -1071,7 +1072,7 @@ class WebTransporter(Transporter):
                 if tag == "address":
                     self.is_attribute = True
 
-                if tag == "a" and attributes[0][1].endswith('/'): # Adds rows for nginx server
+                if tag == "a" and not self.is_apache and attributes[0][1].endswith('/'): # Adds rows for nginx server
                     self.nrow += 1
 
                 if self.nrow <= 0 or tag != "a":
@@ -1097,6 +1098,7 @@ class WebTransporter(Transporter):
 
             def handle_data(self, data):
                 if self.is_attribute:
+                    self.is_apache = re.search(r"^Apache", data)
                     self.is_attribute = False
 
         p = LinksParser()
