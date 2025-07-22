@@ -1,3 +1,11 @@
+2025-07-22 ross (2.2.13)
+    - Merge pull request #159 from ktlim/tickets/DM-51444a
+      Fixed missed exception error in index json code.
+
+    dev stats:
+      - 1 file changed, 8 insertions(+), 8 deletions(-)
+      - contributors: Kian-Tat Lim
+
 2025-07-16 timj (2.2.12)
     - Merge pull request #157 from RobertLuptonTheGood/tickets/DM-51444
       Add support for index JSON files in remote server.
