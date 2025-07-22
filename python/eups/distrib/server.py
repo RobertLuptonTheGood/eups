@@ -1112,7 +1112,6 @@ class WebTransporter(Transporter):
                         p.feed(utils.decode(line, encoding))
             else:
                 p.files = files
-
             dirCache[self.loc]=p.files
             return p.files
 
@@ -1135,6 +1134,10 @@ class WebTransporter(Transporter):
                     return files
                 else:
                     return None
+        except HTTPError as e:
+            if self.verbose >= 0:
+                print(f"Warning, no index.json file found for {url}, failing back to directory listing")
+            return None
         except URLError:
             if self.verbose >= 0:
                 print(f"Warning, no index.json file found for {url}, failing back to directory listing")
