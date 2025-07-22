@@ -1019,20 +1019,20 @@ class WebTransporter(Transporter):
                 print("Simulated web retrieval from", self.loc, file=self.log)
         else:
             out = None
-            with urlopen(self.loc) as url:
-                try:
+            try:
+                with urlopen(self.loc) as url:
                     out = open(filename, 'wb')
                     while True:
                         chunk = url.read(1024 * 1024)   # read 1MB at a time for small-memory machines
                         if not chunk:
                             break
                         out.write(chunk)
-                except HTTPError as e:
-                    raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
-                except URLError as e:
-                    raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
-                except KeyboardInterrupt:
-                    raise EupsException("^C")
+            except HTTPError as e:
+                raise RemoteFileNotFound("Failed to open URL %s (%s)" % (self.loc, e.reason))
+            except URLError as e:
+                raise ServerNotResponding("Failed to contact URL %s (%s)" % (self.loc, e.reason))
+            except KeyboardInterrupt:
+                raise EupsException("^C")
 
     def listDir(self, noaction=False):
         """interpret the source as a directory and return a list of files
