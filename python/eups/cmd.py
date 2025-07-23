@@ -465,6 +465,9 @@ will also be printed.
                             help="Follow the as-installed versions, not the dependencies in the table file ")
         self.clo.add_option("--name", dest="showName", action="store_true", default=False,
                             help="Print the product's name")
+        self.clo.add_option("-o", "--overrides", dest="overrides", action="store_true", default=False,
+                            help="Print the local overrides of the declared product dependencies with "
+                            "respect to currently setup products")
         self.clo.add_option("-r", "--root", dest="productDir", action="store",
                             help="root directory where product is installed")
         self.clo.add_option("--raw", action="store_true",
@@ -503,11 +506,12 @@ will also be printed.
             print("Ignoring --depth as it only makes sense with --dependencies", file=utils.stdwarn)
 
         try:
-            n = eups.printProducts(sys.stdout, product, version,
+            n = eups.printProducts(product, version,
                                    self.createEups(self.opts, versionName=version, quiet=1),
                                    tags=self.opts.tag,
                                    setup=self.opts.setup,
                                    tablefile=self.opts.tablefile,
+                                   overrides=self.opts.overrides,
                                    directory=self.opts.printdir,
                                    dependencies=self.opts.depends,
                                    showVersion=self.opts.version, showName=self.opts.showName,

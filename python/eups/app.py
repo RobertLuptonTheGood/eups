@@ -17,13 +17,13 @@ from . import utils, table, hooks
 from .exceptions import EupsException
 from .utils import cmp_or_key
 
-def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
-                  tags=None, setup=False, tablefile=False, directory=False,
+
+def printProducts(productName=None, versionName=None, eupsenv=None,
+                  tags=None, setup=False, tablefile=False, overrides=False, directory=False,
                   dependencies=False, showVersion=False, showName=False, showTagsGlob="*",
                   depth=None, productDir=None, topological=False, checkCycles=False, raw=False):
     """
     print out a listing of products.  Returned is the number of products listed.
-    @param ostrm           the output stream to send listing to
     @param productName     restrict the listing to this product
     @param versionName     restrict the listing to this version of the product.
     @param eupsenv         the Eups instance to use; if None, a default
@@ -32,6 +32,8 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     @param setup           restrict the listing to products that are currently
                               setup (or print actually setup versions with dependencies)
     @param tablefile       include the path to each product's table file
+    @param overrides       Print the local overrides of the declared product dependencies with
+                           respect to currently setup products
     @param directory       include each product's installation directory
     @param dependencies    print the product's dependencies
     @param showVersion     Only print the product{'s,s'} version[s] (e.g. eups list -V -s afw)
@@ -45,6 +47,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                              a logical operator and an integer (e.g.
                              "> 3") implies a comparison with the depth
                              of each dependency (i.e. "depth > 3").
+    @param productDir      List dependencies of this product directory
     @param topological     List dependencies in topological-sorted order
     @param checkCycles     Raise RuntimeError if topological sort detects a cycle
     @param raw             Generate "raw" output (suitable for further processing)
@@ -61,6 +64,10 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
     if showTagsGlob == "*":
         showTagsGlob = None
+
+    # Limit to "setup" products if we're only listing local overrides
+    if overrides:
+        setup = True
 
     # If productDir is provided only list its dependencies;  we do this by setting it up
     if productDir:
@@ -96,7 +103,25 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
 
             raise ProductNotFound(productName, versionName, msg="Unable to find product %s" % msg)
 
+    if overrides:
+        if versionName:
+            raise EupsException("--overrides does not make sense with a version")
+        if dependencies:
+            raise EupsException("--overrides does not make sense with --dependencies")
+        setupProducts = set(eupsenv.getSetupProducts())
+        dependentProductList = eupsenv.getDependentProducts(productList[0])
+        dependentProducts = {x[0] for x in dependentProductList}
+        productList = list(setupProducts - dependentProducts)
+        if not productList:
+            return 0
+
     productList.sort(key=lambda p: (p.name, p.version))
+
+    if overrides and productName:
+        # Insert the main product name at the front of the list, to be printed first
+        productNameIndex = [i for i, p in enumerate(productList) if p.name == productName][0]
+        productList.insert(0, productList.pop(productList.index(productList[productNameIndex])))
+
     if dependencies:
         _msgs = {}               # maintain list of printed dependencies
         recursionDepth, indent = 0, ""
@@ -191,7 +216,7 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
     #
     nprod = len(productList)
     for pi in productList:
-        name, version, root = pi.name, pi.version, pi.stackRoot() # for convenience
+        name, version, root = pi.name, pi.version, pi.stackRoot()  # for convenience
         if root == "none":  root = " (none)"
         info = ""
 
@@ -247,6 +272,13 @@ def printProducts(ostrm, productName=None, versionName=None, eupsenv=None,
                 if info:
                     info += "|"
                 info += name + "|" + version
+            elif overrides:
+                if name != productName:
+                    info += "|"
+                info += "%-21s " % (name)
+                if name == productName:
+                    info += " "
+                info += "%-10s " % (version)
             else:
                 if productName and not utils.isGlob(productName):
                     info += "   "
