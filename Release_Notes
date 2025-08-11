@@ -1,3 +1,12 @@
+2025-08-11 timj (2.2.14)
+    - Merge pull request #158 from RobertLuptonTheGood/u/timj/fix-close-file
+      Closed a file that was being left open and use context manager in
+      more places.
+
+    dev stats:
+      - 1 file changed, 91 insertions(+), 112 deletions(-)
+      - contributors: #
+
 2025-07-22 ross (2.2.13)
     - Merge pull request #159 from ktlim/tickets/DM-51444a
       Fixed missed exception error in index json code.
