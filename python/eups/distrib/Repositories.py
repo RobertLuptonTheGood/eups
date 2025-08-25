@@ -462,8 +462,6 @@ class Repositories:
             if thisinstalled:
                 msg = "  [ %2d%s ]  %s %s" % (at+1, nprods, prod.product, prod.version)
 
-                if prod.product == defaultProduct:
-                    continue            # we don't want to install the implicit products
                 if prod.version == "dummy":
                     continue            # we can't reinstall dummy versions and don't want to install toolchain
                 if manifest.mapping and manifest.mapping.noReinstall(prod.product, prod.version, flavor):
