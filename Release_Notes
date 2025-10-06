@@ -1,3 +1,12 @@
+2025-10-06 ross (2.2.15)
+    - Merge pull request #160 from RobertLuptonTheGood/tickets/DM-52773
+      Improve index.json URL construction
+      Drop changes made for nginx
+
+    dev stats:
+      - 1 file changed, 3 insertions(+), 4 deletions(-)
+      - contributors: Ross Ceballo
+
 2025-08-11 timj (2.2.14)
     - Merge pull request #158 from RobertLuptonTheGood/u/timj/fix-close-file
       Closed a file that was being left open and use context manager in
