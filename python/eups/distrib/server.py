@@ -12,6 +12,7 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+import posixpath
 import concurrent.futures
 from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
@@ -1123,7 +1124,8 @@ class WebTransporter(Transporter):
         Index.json is a list of location of files.
         @param url      the url where the index file is located"""
         try:
-            with urlopen(url + '/index.json') as response:
+            indexurl = posixpath.join(url,"index.json")
+            with urlopen(indexurl) as response:
                 if response.status == 200:
                     files = json.loads(response.read().decode())
                     return files
