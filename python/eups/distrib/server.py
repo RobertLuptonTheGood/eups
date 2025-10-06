@@ -1070,9 +1070,6 @@ class WebTransporter(Transporter):
                 if tag == "address":
                     self.is_attribute = True
 
-                if tag == "a" and attributes[0][1].endswith('/'): # Adds rows for nginx server
-                    self.nrow += 1
-
                 if self.nrow <= 0 or tag != "a":
                     return
 
