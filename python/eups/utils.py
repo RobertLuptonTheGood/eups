@@ -919,10 +919,12 @@ def AtomicFile(fn: str, mode: str):
         with AtomicFile("myfile.txt", "w") as fd:
             print("Some text", file=fd)
     """
-    dir = os.path.dirname(fn)
+    # The temporary file must share a directory with the destination so that
+    # the final rename stays within one filesystem and is therefore atomic.
+    dir = os.path.dirname(fn) or os.curdir
 
     with tempfile.NamedTemporaryFile(
-        prefix=dir, suffix=".tmp", delete=False, mode=mode,
+        dir=dir, suffix=".tmp", delete=False, mode=mode,
     ) as fh:
         yield fh
 
