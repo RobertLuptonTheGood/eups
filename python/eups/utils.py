@@ -548,7 +548,7 @@ def createTempDir(path):
 
     @param path  the path to create a temporary directory for.
     """
-    tmpdir = os.path.dirname(tempfile.NamedTemporaryFile().name) # directory that tempfile's using
+    tmpdir = tempfile.gettempdir()      # directory that tempfile's using
     path = re.sub(r"^/", "", path)      # os.path.join won't work if path is an absolute path
 
     path = os.path.join(tmpdir, "eups", path)
