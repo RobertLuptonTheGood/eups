@@ -70,6 +70,43 @@ class AtomicFileTestCase(unittest.TestCase):
         finally:
             os.chdir(cwd)
 
+    def testCleanupOnError(self):
+        """A failed write leaves no temporary file and creates no destination."""
+        dest = os.path.join(self.workdir, "out.txt")
+
+        with self.assertRaises(ValueError):
+            with eups.utils.AtomicFile(dest, "w") as fd:
+                fd.write("some text")
+                raise ValueError("write failed")
+
+        self.assertEqual(os.listdir(self.workdir), [])
+
+    def testDestinationPreservedOnError(self):
+        """A failed write must not disturb an existing destination."""
+        dest = os.path.join(self.workdir, "out.txt")
+        with open(dest, "w") as fd:
+            fd.write("original")
+
+        with self.assertRaises(ValueError):
+            with eups.utils.AtomicFile(dest, "w") as fd:
+                fd.write("replacement")
+                raise ValueError("write failed")
+
+        with open(dest) as fd:
+            self.assertEqual(fd.read(), "original")
+        self.assertEqual(os.listdir(self.workdir), ["out.txt"])
+
+    def testCleanupOnInterrupt(self):
+        """Cleanup also covers exceptions outside the Exception hierarchy."""
+        dest = os.path.join(self.workdir, "out.txt")
+
+        with self.assertRaises(KeyboardInterrupt):
+            with eups.utils.AtomicFile(dest, "w") as fd:
+                fd.write("some text")
+                raise KeyboardInterrupt
+
+        self.assertEqual(os.listdir(self.workdir), [])
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def suite(makeSuite=True):

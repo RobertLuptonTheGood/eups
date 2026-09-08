@@ -923,15 +923,21 @@ def AtomicFile(fn: str, mode: str):
     # the final rename stays within one filesystem and is therefore atomic.
     dir = os.path.dirname(fn) or os.curdir
 
-    with tempfile.NamedTemporaryFile(
-        dir=dir, suffix=".tmp", delete=False, mode=mode,
-    ) as fh:
-        yield fh
+    fh = tempfile.NamedTemporaryFile(dir=dir, suffix=".tmp", delete=False, mode=mode)
+    try:
+        with fh:
+            yield fh
 
-        # Needed because fclose() doesn't guarantee fsync()
-        # in POSIX, which may lead to interesting issues (e.g., see
-        # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
-        os.fsync(fh)
+            # Needed because fclose() doesn't guarantee fsync()
+            # in POSIX, which may lead to interesting issues (e.g., see
+            # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
+            os.fsync(fh)
+    except BaseException:
+        # Discard the partial write so the destination is left untouched.
+        # A cleanup failure must not mask the original exception.
+        with contextlib.suppress(OSError):
+            os.unlink(fh.name)
+        raise
 
     os.rename(fh.name, fn)
 
