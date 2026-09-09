@@ -548,7 +548,7 @@ def createTempDir(path):
 
     @param path  the path to create a temporary directory for.
     """
-    tmpdir = os.path.dirname(tempfile.NamedTemporaryFile().name) # directory that tempfile's using
+    tmpdir = tempfile.gettempdir()      # directory that tempfile's using
     path = re.sub(r"^/", "", path)      # os.path.join won't work if path is an absolute path
 
     path = os.path.join(tmpdir, "eups", path)
@@ -919,17 +919,25 @@ def AtomicFile(fn: str, mode: str):
         with AtomicFile("myfile.txt", "w") as fd:
             print("Some text", file=fd)
     """
-    dir = os.path.dirname(fn)
+    # The temporary file must share a directory with the destination so that
+    # the final rename stays within one filesystem and is therefore atomic.
+    dir = os.path.dirname(fn) or os.curdir
 
-    with tempfile.NamedTemporaryFile(
-        prefix=dir, suffix=".tmp", delete=False, mode=mode,
-    ) as fh:
-        yield fh
+    fh = tempfile.NamedTemporaryFile(dir=dir, suffix=".tmp", delete=False, mode=mode)
+    try:
+        with fh:
+            yield fh
 
-        # Needed because fclose() doesn't guarantee fsync()
-        # in POSIX, which may lead to interesting issues (e.g., see
-        # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
-        os.fsync(fh)
+            # Needed because fclose() doesn't guarantee fsync()
+            # in POSIX, which may lead to interesting issues (e.g., see
+            # http://thunk.org/tytso/blog/2009/03/12/delayed-allocation-and-the-zero-length-file-problem/ )
+            os.fsync(fh)
+    except BaseException:
+        # Discard the partial write so the destination is left untouched.
+        # A cleanup failure must not mask the original exception.
+        with contextlib.suppress(OSError):
+            os.unlink(fh.name)
+        raise
 
     os.rename(fh.name, fn)
 
